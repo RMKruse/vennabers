@@ -71,6 +71,40 @@ log_loss <- function(truth, probability) {
   -mean(ifelse(truth == 1, log(probability), log1p(-probability)))
 }
 
+calibration_plot <- function(truth, probability, bins = 10, ...) {
+  .validate_binary_input(truth, probability)
+  if (!is.numeric(bins) || !is.null(dim(bins)) || length(bins) != 1L || !is.finite(bins) ||
+      bins < 1 || bins != floor(bins)) {
+    stop("`bins` must be one finite whole number of at least 1.", call. = FALSE)
+  }
+
+  upper_break <- ceiling(probability * bins)
+  bin <- pmin(pmax(upper_break + (probability >= upper_break / bins), 1), bins)
+  observations <- split(seq_along(probability), bin)
+  summary <- data.frame(
+    mean_probability = vapply(observations, function(i) mean(probability[i]), 0),
+    event_rate = vapply(observations, function(i) mean(truth[i]), 0),
+    count = vapply(observations, length, 0L),
+    row.names = NULL
+  )
+
+  options <- utils::modifyList(list(
+    type = "o",
+    xlim = c(0, 1),
+    ylim = c(0, 1),
+    xaxs = "i",
+    yaxs = "i",
+    xlab = "Mean predicted probability",
+    ylab = "Observed event rate",
+    main = "Calibration plot"
+  ), list(...))
+  options$x <- summary$mean_probability
+  options$y <- summary$event_rate
+  do.call(graphics::plot, options)
+  graphics::abline(a = 0, b = 1, lty = 2)
+  invisible(summary)
+}
+
 venn_abers <- function(truth, probability) {
   .validate_binary_input(truth, probability)
 

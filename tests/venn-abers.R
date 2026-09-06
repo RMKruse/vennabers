@@ -161,3 +161,55 @@ stopifnot(
   )),
   identical(returned, calibrator)
 )
+
+plot_file <- tempfile(fileext = ".pdf")
+grDevices::pdf(plot_file)
+calibration <- withVisible(calibration_plot(
+  c(0, 1, 1, 0, 1),
+  c(0, .25, .5, .75, 1),
+  bins = 4
+))
+stopifnot(
+  !calibration$visible,
+  identical(names(calibration$value), c("mean_probability", "event_rate", "count")),
+  identical(calibration$value$count, c(1L, 1L, 1L, 2L)),
+  isTRUE(all.equal(calibration$value$mean_probability, c(0, .25, .5, .875))),
+  isTRUE(all.equal(calibration$value$event_rate, c(0, 1, 1, .5)))
+)
+
+decimal_boundary <- calibration_plot(c(0, 1), c(.579, .58), bins = 50)
+stopifnot(
+  identical(decimal_boundary$mean_probability, c(.579, .58)),
+  identical(decimal_boundary$event_rate, c(0, 1)),
+  identical(decimal_boundary$count, c(1L, 1L))
+)
+
+for (bad_bins in list(numeric(0), c(1, 2), NA_real_, NaN, Inf, -Inf, 0, -1, 1.5, TRUE, "2", list(2), matrix(2))) {
+  expect_error(calibration_plot(0, .5, bins = bad_bins), "bins")
+}
+
+degenerate_plots <- list(
+  expect_no_warning(calibration_plot(1, .5)),
+  expect_no_warning(calibration_plot(c(0, 0), c(.1, .9), bins = 1)),
+  expect_no_warning(calibration_plot(c(1, 1, 1), rep(.5, 3), bins = 1e9)),
+  expect_no_warning(calibration_plot(
+    c(FALSE, TRUE), c(0, 1), col = "red", pch = 19, main = "Override", x = 1:2, y = 0
+  ))
+)
+grDevices::dev.off()
+unlink(plot_file)
+stopifnot(
+  identical(degenerate_plots[[1L]], data.frame(mean_probability = .5, event_rate = 1, count = 1L)),
+  identical(degenerate_plots[[2L]], data.frame(mean_probability = .5, event_rate = 0, count = 2L)),
+  identical(degenerate_plots[[3L]], data.frame(mean_probability = .5, event_rate = 1, count = 3L)),
+  nrow(degenerate_plots[[4L]]) == 2L
+)
+
+for (bad_truth in invalid_truths) {
+  expect_error(calibration_plot(bad_truth, rep(.5, length(bad_truth))), "truth")
+}
+for (bad_probability in invalid_probabilities) {
+  expect_error(calibration_plot(0, bad_probability), "probability")
+}
+expect_error(calibration_plot(numeric(0), numeric(0)), "truth")
+expect_error(calibration_plot(c(0, 1), .5), "probability")
