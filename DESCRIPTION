@@ -1,9 +1,12 @@
 Package: vennabers
 Title: Binary Venn-Abers Calibration
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: person("Venn-Abers", "Authors", email = "authors@invalid.example", role = c("aut", "cre"))
-Description: Fits binary Inductive Venn-Abers calibrators and returns
-    Venn-Abers intervals and regularized probabilities.
+Description: Fits binary Inductive and Cross Venn-Abers calibrators from
+    caller-supplied probabilities. Returns Inductive Venn-Abers intervals
+    and regularized probabilities, or Cross Venn-Abers regularized
+    probabilities using equal-weight log-loss aggregation across matched
+    folds. Includes Brier score, log loss, and a base R calibration plot.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
