@@ -5,7 +5,10 @@ fold identity, and within-fold row. `cross-predictions.csv` stores each matched
 fold-model probability and its expected IVAP endpoints by case/fold/new row.
 `cross-combined.csv` stores the expected combined event probability by case/new
 row. Decimal values retain Python's round-trip float representation: no
-precision rounding is applied. In particular, preserve adjacent values at 0.5.
+precision rounding is applied. The `near_knots` case stores probabilities as
+hexadecimal floats so Base R also preserves adjacent values at 0.5 on R 4.1
+arm64, whose decimal parser can round the predecessor onto the knot. This
+changes only serialization, not the reference inputs, outputs or tolerances.
 
 The independent oracle is Python `venn-abers` **1.5.4**, commit
 `0e7b4bc575ce230134576ba1c76688d46bf99ac7`:

@@ -63,10 +63,13 @@ improvement is not guaranteed on every data set.
 Package-managed predictive-model fitting, fold generation, preprocessing,
 tuning or resampling; repeated or overlapping partitions; multiclass or
 regression calibration; observation weights; alternate event-class selection;
-automatic coercion or missing-value handling; precision controls; Brier-loss
-aggregation; public aggregate endpoints or fold diagnostics; formula or
-data-frame cross interfaces; and new smoothing or plotting features are not
-supported.
+automatic coercion or missing-value handling; precision or rounding controls;
+alternate aggregation (including Brier-loss or fold-size weighting); public
+aggregate endpoints or fold diagnostics; formula or data-frame cross
+interfaces; tidymodels/yardstick integrations; and new metrics, smoothing or
+plotting features are not supported. Only Base R and standard R distribution
+packages are needed. Installation and acceptance require neither Python nor
+networking; Python reference-fixture regeneration is optional and separate.
 }
 \seealso{\code{\link{predict.cross_venn_abers}},
 \code{\link{print.cross_venn_abers}}, \code{\link{brier_score}},

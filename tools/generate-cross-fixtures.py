@@ -153,7 +153,14 @@ for filename, header, rows in [
     with (output / filename).open("w", newline="") as stream:
         writer = csv.writer(stream, lineterminator="\n")
         writer.writerow(header)
-        writer.writerows(rows)
+        for row in rows:
+            row = list(row)
+            if row[0] == "near_knots":
+                # R 4.1 on arm64 can round adjacent decimal inputs onto a knot.
+                # Hexadecimal floats preserve the exact reference probability.
+                i = header.index("probability")
+                row[i] = float(row[i]).hex()
+            writer.writerow(row)
 
 report = {
     "seed": SEED, "commit": COMMIT, "module_sha256": MODULE_SHA256,

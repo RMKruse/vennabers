@@ -265,8 +265,8 @@
     ]
   },
   "fixture_sha256": {
-    "cross-calibration.csv": "da685b5316789796ae45e189a94a56a4302942a539eac60e5fc5a6fec334de8e",
-    "cross-combined.csv": "3f36ce6fb8f5322afd80ba4a9d9f607d9abb04987c7bc5e09808a64cb3db896e",
-    "cross-predictions.csv": "565df085db779b5100b72144178ae74ab0cdf2555a0bbfd00c9ec5471b72b76b"
+    "cross-calibration.csv": "62efbe6f65b38b33bef0d2f1be10b14ffac4270436d34f9b32631420685895e8",
+    "cross-combined.csv": "987247c4d8c5e80e7297ec971624901971a562377b59087336b1ceeb5ca5fb45",
+    "cross-predictions.csv": "53365c58f1a188a9bde650a70ddd4202c6ff2754ce3bba91c08c02b78efd5d05"
   }
 }
