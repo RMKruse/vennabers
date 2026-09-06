@@ -1,3 +1,5 @@
 export(venn_abers)
+export(brier_score)
+export(log_loss)
 S3method(predict,venn_abers)
 S3method(print,venn_abers)

@@ -102,17 +102,47 @@ stopifnot(
   all(vapply(empty, is.double, FALSE))
 )
 
-expect_error(venn_abers(numeric(0), numeric(0)), "truth")
-expect_error(venn_abers(c(0, 1), .5), "probability")
-for (bad_truth in list("0", factor(0), list(0), 0 + 0i, c(0, NA), c(0, Inf), c(0, .5), matrix(c(0, 1)))) {
-  expect_error(venn_abers(bad_truth, rep(.5, length(bad_truth))), "truth")
-}
+invalid_truths <- list("0", factor(0), list(0), 0 + 0i, c(0, NA), c(0, Inf), c(0, .5), matrix(c(0, 1)))
 invalid_probabilities <- list(
   TRUE, "0.5", factor(.5), list(.5), .5 + 0i,
   NA_real_, NaN, Inf, -.1, 1.1, matrix(.5)
 )
-for (bad_probability in invalid_probabilities) {
-  expect_error(venn_abers(0, bad_probability), "probability")
+
+numeric_truth <- c(0, 1, 1)
+logical_truth <- as.logical(numeric_truth)
+regularized_probability <- c(.1, .8, .6)
+names(regularized_probability) <- letters[1:3]
+for (truth in list(numeric_truth, logical_truth)) {
+  brier <- brier_score(truth, regularized_probability)
+  loss <- log_loss(truth, regularized_probability)
+  stopifnot(
+    isTRUE(all.equal(brier, .07)),
+    is.double(brier),
+    length(brier) == 1L,
+    is.null(names(brier)),
+    isTRUE(all.equal(loss, 0.2797765635793423)),
+    is.double(loss),
+    length(loss) == 1L,
+    is.null(names(loss))
+  )
+}
+
+stopifnot(
+  identical(brier_score(c(0, 1), c(0, 1)), 0),
+  identical(brier_score(c(0, 1), c(1, 0)), 1),
+  identical(log_loss(c(0, 1), c(0, 1)), 0),
+  identical(log_loss(c(0, 1), c(1, 0)), Inf)
+)
+
+for (consumer in list(venn_abers, brier_score, log_loss)) {
+  expect_error(consumer(numeric(0), numeric(0)), "truth")
+  expect_error(consumer(c(0, 1), .5), "probability")
+  for (bad_truth in invalid_truths) {
+    expect_error(consumer(bad_truth, rep(.5, length(bad_truth))), "truth")
+  }
+  for (bad_probability in invalid_probabilities) {
+    expect_error(consumer(0, bad_probability), "probability")
+  }
 }
 
 for (bad_newdata in invalid_probabilities) {

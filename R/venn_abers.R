@@ -45,7 +45,7 @@
   is.vector(x) && is.numeric(x) && all(is.finite(x) & x >= 0 & x <= 1)
 }
 
-venn_abers <- function(truth, probability) {
+.validate_binary_input <- function(truth, probability) {
   if (!is.vector(truth) || !(is.logical(truth) || is.numeric(truth)) ||
       anyNA(truth) || any(!is.finite(truth)) || any(!truth %in% c(0, 1))) {
     stop("`truth` must be a logical or numeric vector containing only 0 and 1.", call. = FALSE)
@@ -59,6 +59,20 @@ venn_abers <- function(truth, probability) {
   if (length(probability) != length(truth)) {
     stop("`probability` must have the same length as `truth`.", call. = FALSE)
   }
+}
+
+brier_score <- function(truth, probability) {
+  .validate_binary_input(truth, probability)
+  mean((truth - probability)^2)
+}
+
+log_loss <- function(truth, probability) {
+  .validate_binary_input(truth, probability)
+  -mean(ifelse(truth == 1, log(probability), log1p(-probability)))
+}
+
+venn_abers <- function(truth, probability) {
+  .validate_binary_input(truth, probability)
 
   ordered <- order(probability, method = "radix")
   probability <- probability[ordered]
