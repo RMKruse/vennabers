@@ -1,5 +1,10 @@
 library(vennabers)
 
+stopifnot(identical(
+  sort(getNamespaceExports("vennabers")),
+  sort(c("venn_abers", "brier_score", "log_loss", "calibration_plot"))
+))
+
 expect_error <- function(expr, argument) {
   error <- tryCatch({
     force(expr)

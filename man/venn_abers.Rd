@@ -18,6 +18,13 @@ An opaque object of class \code{"venn_abers"}.
 Fits an Inductive Venn-Abers calibrator for a binary truth and uncalibrated
 event probabilities.
 }
+\section{Version 0.1 scope}{
+Version 0.1 does not support Cross Venn-Abers, multiclass calibration,
+regression, predictive-model fitting or resampling, observation weights,
+custom event-class selection, coercion or missing-value handling, precision or
+rounding controls, formula or data-frame interfaces, tidymodels or yardstick
+integration, smoothing or \code{ggplot2} output, or CRAN submission guarantees.
+}
 \examples{
 calibrator <- venn_abers(
   truth = c(FALSE, TRUE, FALSE, TRUE),
