@@ -1,0 +1,9 @@
+Package: vennabers
+Title: Binary Venn-Abers Calibration
+Version: 0.1.0
+Authors@R: person("Venn-Abers", "Authors", email = "authors@invalid.example", role = c("aut", "cre"))
+Description: Fits binary Inductive Venn-Abers calibrators and returns
+    Venn-Abers intervals and regularized probabilities.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
