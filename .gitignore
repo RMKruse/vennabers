@@ -1,0 +1,22 @@
+# R session and IDE state
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+*.Rproj
+
+# Local environment and secrets
+.Renviron
+
+# Package build and check output
+/*.tar.gz
+/*.Rcheck/
+
+# renv local state (keep renv.lock and bootstrap files)
+renv/library/
+renv/staging/
+renv/python/
+
+# Local planning artifacts
+.scratch/
+CONTEXT.md
