@@ -1,4 +1,14 @@
-# Development toward 0.4.0
+# vennabers 0.4.0 (release candidate)
+
+- Identify one regression source candidate for the eight-platform acceptance
+  matrix and Linux R-devel. Extend the separate benchmark protocol with IVAR
+  and CVAR at `m = 1` and `epsilon = 0.1`, retaining all twelve classification
+  cases for remeasurement against v0.3. Approval remains blocked by missing
+  predecessor, platform and Linux benchmark evidence; see `tools/acceptance-v04.md`.
+- Migration from v0.3: regression uses separate real-valued entry points; existing
+  classification calls, defaults and tolerances are unchanged. R >= 4.5.0 remains
+  the previous-minor support floor for September 2026. No tidymodels, Python or
+  network dependency is introduced for normal package use, tests or examples.
 
 - Add `venn_abers_regression()` and its `predict()` method: asymmetric
   moderation, explicit `m` or `epsilon`, weighted point merging, and finite

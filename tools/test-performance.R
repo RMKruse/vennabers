@@ -1,6 +1,8 @@
 # Validate a completed benchmark/smoke bundle: Rscript tools/test-performance.R OUTPUT
 local({
   output <- commandArgs(TRUE)
+  v04 <- "--v04" %in% output
+  output <- output[output != "--v04"]
   stopifnot(length(output) == 1L)
   read <- function(name) read.csv(file.path(output, name))
   plan <- read("plan.csv")
@@ -10,6 +12,15 @@ local({
   stopifnot(nrow(plan) > 0L, !anyNA(plan$case), all(nzchar(plan$case)),
             !anyDuplicated(plan$case), is.logical(plan$previous_supported),
             !anyNA(plan$previous_supported))
+  if (v04) {
+    classification <- c("binary_inductive", "binary_cross", "binary_cross_brier_p2",
+      "3_cross_ovo_brier_p2", as.vector(outer(c("3", "10"),
+        c("inductive_ovo", "inductive_ovr", "cross_ovo", "cross_ovr"), paste, sep = "_")))
+    regression <- c("regression_inductive_m1", "regression_inductive_epsilon01",
+                    "regression_cross_m1", "regression_cross_epsilon01")
+    stopifnot(setequal(plan$case, c(classification, regression)),
+              identical(plan$previous_supported, plan$case %in% classification))
+  }
   pairs <- rbind(data.frame(case = plan$case, release = "current"),
                  data.frame(case = plan$case[plan$previous_supported],
                             release = rep("previous", sum(plan$previous_supported))))
@@ -74,6 +85,24 @@ local({
     stopifnot(unname(tools::md5sum(path)) == plan$input_md5[plan$case == id])
     input <- readRDS(path)
     if (input$cross && is.factor(input$truth)) stopifnot(all(table(input$truth, input$fold) > 0L))
+    if (v04 && id %in% regression) {
+      cross <- grepl("_cross_", id)
+      epsilon <- grepl("_epsilon01$", id)
+      stopifnot(identical(input$cross, cross), input$method == "regression",
+                length(input$truth) == 10000L, length(input$prediction) == 10000L,
+                identical(input$calibration_row, seq_len(10000L)),
+                identical(input$new_row, seq_len(1000L)),
+                all(is.finite(c(input$truth, input$prediction, input$newdata))),
+                identical(input$moderation, if (epsilon) list(epsilon = 0.1) else list(m = 1)))
+      if (cross) stopifnot(identical(dim(input$newdata), c(1000L, 5L)),
+                          length(input$fold) == 10000L,
+                          identical(colnames(input$newdata), unique(input$fold)))
+      else stopifnot(is.null(dim(input$newdata)), length(input$newdata) == 1000L)
+      k <- if (cross) as.numeric(table(input$fold)) else 10000
+      m <- if (epsilon) floor(0.1 * (k + 1) / 2) else rep(1, length(k))
+      stopifnot(length(k) == if (cross) 5L else 1L, all(k == if (cross) 2000L else 10000L),
+                all(m >= 1 & m <= floor((k - 1) / 2)))
+    }
   }
   # Independently protect the original IVAP case, including RNG draw order.
   set.seed(20260906)

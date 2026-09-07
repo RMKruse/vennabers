@@ -2,9 +2,8 @@
 
 Dependency-free binary Inductive/Cross, multiclass Inductive/Cross OvO/OvR,
 and moderated Inductive/Cross regression calibration for R 4.5 and later.
-The development tree adds regression toward v0.4; the package version
-remains the v0.3.0 source candidate until release work is complete.
-Release approval remains pending; see the [acceptance record](tools/acceptance-v03.md).
+The package version is the v0.4.0 source candidate. Release approval remains
+blocked by outstanding evidence; see the [acceptance record](tools/acceptance-v04.md).
 
 ## Quick start
 
@@ -479,7 +478,7 @@ The active [workflow](.github/workflows/acceptance.yaml) requires R 4.6.1 and
 4.5.3 on Linux x86_64, Windows x86_64, macOS Intel and macOS ARM. Linux R-devel
 is an additional visible, non-blocking early warning. New releases require
 at least the previous R minor series; recheck the matrix and `DESCRIPTION`
-floor at final v0.3 acceptance. Older releases retain their original floor.
+floor at final v0.4 acceptance. Older releases retain their original floor.
 
 Set `ACCEPTANCE_OUTPUT_DIR` to an empty directory to retain the source artifact,
 logs and environment/package versions. Set `ACCEPTANCE_ARTIFACT` to an existing
@@ -488,26 +487,28 @@ once, verifies SHA-256, and checks the same archive on every platform. The
 standalone examples ship in the package; find them after installation with
 `system.file("examples", package = "vennabers")`.
 
-See the [v0.3 acceptance record](tools/acceptance-v03.md) for the capability
+See the [v0.4 acceptance record](tools/acceptance-v04.md) for the capability
 map, migration notes, commands, results and remaining release blockers. The
-[earlier CI record](tools/acceptance-v03-ci.md) describes its starting point.
+[v0.3 record](tools/acceptance-v03.md) retains the unapproved predecessor evidence.
 
 Benchmarks run separately on the documented Linux x86_64 reference machine:
 
 ```sh
-Rscript tools/performance.R vennabers_0.3.0.tar.gz vennabers_0.2.0.tar.gz benchmark-output
-Rscript tools/test-performance.R benchmark-output
+Rscript tools/performance.R vennabers_0.4.0.tar.gz vennabers_0.3.0.tar.gz benchmark-output
+Rscript tools/test-performance.R benchmark-output --v04
 ```
 
 The runner prepares fixed inputs outside measurement, installs both artifacts,
 and runs cases serially in fresh R processes with one warmup and three measured
 runs. It records separate fit/predict times, process peak memory, RDS sizes,
-individual results, medians and predecessor comparisons. Only shared v0.2
-capabilities receive comparisons; new capabilities receive baselines. Increased
+individual results, medians and predecessor comparisons. All twelve classification
+cases are compared with v0.3. IVAR and CVAR each add baselines for `m = 1` and
+`epsilon = 0.1`, with 10,000 calibration rows, 1,000 new rows and five CVAR folds.
+The runner checks moderation per fold and saves exact inputs and row assignments. Increased
 costs require investigation before approval. `--smoke` permits another platform
 for runner validation and explicitly does not produce release evidence.
 
 The unchanged 100,000-calibration / 100,000-prediction IVAP case is retained.
 The comparative protocol replaces the historical 10-second ceiling. Historical
 measurements remain in the [v0.2 record](tools/acceptance-v02.md); they cannot
-substitute for remeasuring v0.2 on the same reference machine.
+substitute for remeasuring v0.3 on the same reference machine.
