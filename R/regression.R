@@ -9,6 +9,9 @@
 .regression_interpolate <- function(lower, upper, fraction) {
   opposite <- sign(lower) != sign(upper)
   result <- lower + (upper - lower) * fraction
+  # Anchor at the nearer endpoint to preserve it exactly and avoid cancellation.
+  near_upper <- fraction > .5
+  result[near_upper] <- (upper - (upper - lower) * (1 - fraction))[near_upper]
   result[opposite] <- (lower * (1 - fraction) + upper * fraction)[opposite]
   result
 }

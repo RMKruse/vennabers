@@ -150,6 +150,16 @@ for (rows in list(integer(), 2L, c(3L, 1L, 2L))) {
 }
 stopifnot(identical(serialize(fit, NULL), before))
 
+# Exact fitted endpoints and their zero-weight midpoint propagate through Cross.
+endpoint_fit <- cross_venn_abers_regression(rep(c(-1e16, -3, -3), 2),
+                                           rep(1:3, 2), rep(c("A", "B"), each = 3))
+endpoint_result <- predict(endpoint_fit, cbind(B = 0, A = 0), type = "details")
+endpoint_expected <- data.frame(prediction = -1e16 / 2 - 3 / 2, lower = -1e16, upper = -3)
+stopifnot(identical(endpoint_result$folds$A, endpoint_expected),
+          identical(endpoint_result$folds$B, endpoint_expected),
+          identical(endpoint_result$prediction, endpoint_expected),
+          identical(predict(endpoint_fit, cbind(B = 0, A = 0)), endpoint_expected))
+
 # Nonconstant zero weights, small positive weights and changed target units.
 for (scale in c(1e-200, 1e-12, 1, 1e120)) {
   zero <- cross_venn_abers_regression(c(0, 0, 2, 2, 0, 0, 0, 4, 10) * scale,

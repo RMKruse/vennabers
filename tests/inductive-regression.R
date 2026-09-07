@@ -60,6 +60,25 @@ for (bad in list(NULL, TRUE, "1", factor(1:3), list(1:3), matrix(1:3),
 # Zero weights with nonconstant truth: the gap separates two flat isotonic blocks.
 zero <- venn_abers_regression(c(0, 0, 2, 2), 1:4)
 stopifnot(identical(predict(zero, 2.5), data.frame(prediction = 1, lower = 0, upper = 2)))
+# Interpolation must preserve endpoints for scalar and vector bounds, including
+# opposite signs whose difference overflows, and stay accurate near either end.
+interpolate <- vennabers:::.regression_interpolate
+endpoints <- list(c(-1e16, -3), c(3, 1e16), c(-1e308, 1e308),
+                  c(-1e308, 0), c(0, 1e308), c(5e-324, 5e-324))
+for (bounds in endpoints) {
+  stopifnot(identical(interpolate(bounds[1], bounds[2], c(0, .5, 1))[c(1, 3)], bounds))
+}
+lower <- vapply(endpoints, `[`, 0, 1)
+upper <- vapply(endpoints, `[`, 0, 2)
+stopifnot(identical(interpolate(lower, upper, rep(0, length(lower))), lower),
+          identical(interpolate(lower, upper, rep(1, length(upper))), upper),
+          identical(interpolate(c(1, -2^54), c(2^54, -1), c(2^-54, 1 - 2^-53)), c(2, -3)))
+# The constant upper-moderated truth must remain exactly b, so both exterior
+# merger weights vanish and the point is the midpoint, rather than upper.
+endpoint_fit <- venn_abers_regression(c(-1e16, -3, -3), 1:3)
+stopifnot(all(endpoint_fit$upper == -3),
+          identical(predict(endpoint_fit, 0),
+                    data.frame(prediction = -1e16 / 2 - 3 / 2, lower = -1e16, upper = -3)))
 # Tiny positive weights must retain the weighted answer, not the midpoint.
 for (scale in c(1e-200, 1e-12, 1, 1e150)) {
   tiny <- venn_abers_regression(c(0, 0, 0, 4, 10) * scale, rep(0, 5))
