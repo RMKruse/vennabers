@@ -1,5 +1,11 @@
 # vennabers 0.3.0 (development)
 
+- Add manual Inductive one-vs-one multiclass calibration using factor truth
+  and named probability matrices. Reuse binary rounding and Log/Brier
+  regularization, with factor classes and reconstructible pair diagnostics.
+  Extend scores and calibration plots to the same class schema; two-column
+  Brier scores sum both class errors and ties select the first factor level.
+  Existing binary vector calls retain their behavior and positional precision.
 - Add optional native R rounding of calibration probabilities, prediction-time
   log-loss/Brier selection, logical binary classes, and public Cross fold
   details. Defaults, scores, plots, and stable Cross log aggregation remain

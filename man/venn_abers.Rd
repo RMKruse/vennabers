@@ -1,31 +1,50 @@
 \name{venn_abers}
 \alias{venn_abers}
-\title{Fit a Binary Inductive Venn-Abers Calibrator}
+\title{Fit an Inductive Venn-Abers Calibrator}
 \usage{
-venn_abers(truth, probability, precision = NULL)
+venn_abers(truth, probability, precision = NULL, method = "ovo")
 }
 \arguments{
   \item{truth}{A non-empty logical or numeric vector containing only
   \code{FALSE}/\code{0} and \code{TRUE}/\code{1}. \code{TRUE}/\code{1}
-  is the event class.}
+  is the event class. For multiclass, a non-empty factor without missing
+  values, with at least two non-empty levels. Levels fix class order;
+  every level must be observed in the calibration set.}
   \item{probability}{A numeric vector of uncalibrated event probabilities,
-  the same length as \code{truth}, with finite values in \code{[0, 1]}.}
+  the same length as \code{truth}, with finite values in \code{[0, 1]}.
+  For factor truth, a numeric matrix with one row per truth and complete,
+  unique, non-empty column names matching the factor levels. Columns are
+  reordered by name. Entries must be finite and in \code{[0, 1]}; row sums
+  must be within \code{1e-8} of one and are normalized within that tolerance.
+  No clipping, name repair, or dropped rows.}
   \item{precision}{\code{NULL} (default) disables rounding. Otherwise, one
   finite numeric whole number, including zero or negative values, passed to
   native R \code{round()} for calibration probabilities only. Logical,
   missing, nonfinite, fractional, and multiple values are errors.}
+  \item{method}{Exactly \code{"ovo"}, the multiclass default. Explicitly
+  supplying this argument requires factor truth and a class matrix.}
 }
 \value{
 An opaque object of class \code{"venn_abers"}.
 }
 \description{
-Fits an Inductive Venn-Abers calibrator for a binary truth and uncalibrated
-event probabilities.
+Fits binary or multiclass Inductive calibration from caller-supplied
+uncalibrated probabilities. No predictive models or data splits are created.
 }
 \details{
 The calibration set must be separate from the fixed predictive model's
 training, including learned preprocessing and tuning. Single-class and
-singleton calibration sets are valid. Inputs align by position, not names.
+singleton binary calibration sets are valid. Rows align by position, not names.
+
+Multiclass uses each pair in factor-level order and only that pair's
+calibration observations. The later class is the binary event. Its probability
+is divided by the pair sum before optional rounding. An exactly zero pair sum
+uses event probability 0.5, including during prediction. This fit replacement
+is also rounded: at \code{precision = 0}, native R rounds 0.5 to zero.
+Only the event probability is rounded, not its complement independently.
+There are no separate trained pair models. All global classes must occur,
+so an Inductive OvO pair always has both observed classes. The underlying
+binary calibrator still accepts single-class subsets.
 
 Original probabilities are validated before rounding; an out-of-range input
 cannot become valid through rounding. Exact ties after rounding are combined.
@@ -34,7 +53,9 @@ precision requires a new fit. Native R rounding can differ from NumPy at
 floating-point boundaries; NumPy rounding is not emulated.
 
 Choose log-loss (default) or Brier regularization at prediction time without
-refitting. See \code{\link{predict.venn_abers}} for probabilities and classes.
+refitting. See \code{\link{predict.venn_abers}} for probabilities, classes,
+pair coupling, and details. Exactly two factor levels also select the
+multiclass matrix contract, with its distinct tie rule and Brier score scale.
 }
 \examples{
 calibrator <- venn_abers(
@@ -46,4 +67,21 @@ calibrator
 predict(calibrator, c(0.2, 0.5, 0.9))
 rounded <- venn_abers(c(0, 1, 0, 1), c(.501, .502, .509, .510), precision = 2)
 predict(rounded, c(.501, .505, .51), loss = "brier")
+
+# Fixed-model probabilities on a separate calibration set.
+classes <- c("cat", "dog", "bird")
+truth <- factor(rep(classes, 2), levels = classes)
+p <- rbind(c(.7, .2, .1), c(.2, .6, .2), c(.1, .2, .7),
+           c(.5, .3, .2), c(.3, .5, .2), c(.2, .3, .5))
+colnames(p) <- classes
+fit <- venn_abers(truth, p, precision = 2)
+new_p <- rbind(c(.6, .3, .1), c(.1, .4, .5))
+colnames(new_p) <- classes
+assessment <- factor(c("cat", "bird"), levels = classes)
+details <- predict(fit, new_p, loss = "brier", type = "details")
+details$pairs
+predict(fit, new_p, loss = "brier", type = "class")
+brier_score(assessment, details$prediction)
+log_loss(assessment, details$prediction)
+calibration_plot(assessment, details$prediction)
 }

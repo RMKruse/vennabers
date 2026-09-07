@@ -62,16 +62,42 @@
 }
 
 brier_score <- function(truth, probability) {
+  if (is.factor(truth)) {
+    probability <- .validate_multiclass_input(truth, probability)
+    probability[cbind(seq_along(truth), as.integer(truth))] <-
+      probability[cbind(seq_along(truth), as.integer(truth))] - 1
+    return(mean(rowSums(probability^2)))
+  }
   .validate_binary_input(truth, probability)
   mean((truth - probability)^2)
 }
 
 log_loss <- function(truth, probability) {
+  if (is.factor(truth)) {
+    probability <- .validate_multiclass_input(truth, probability)
+    return(-mean(log(probability[cbind(seq_along(truth), as.integer(truth))])))
+  }
   .validate_binary_input(truth, probability)
   -mean(ifelse(truth == 1, log(probability), log1p(-probability)))
 }
 
 calibration_plot <- function(truth, probability, bins = 10, ...) {
+  if (is.factor(truth)) {
+    probability <- .validate_multiclass_input(truth, probability)
+    classes <- levels(truth)
+    old <- graphics::par(no.readonly = TRUE)
+    on.exit(graphics::par(old))
+    rows <- ceiling(sqrt(length(classes)))
+    graphics::par(mfrow = c(rows, ceiling(length(classes) / rows)))
+    summaries <- lapply(classes, function(class) {
+      options <- utils::modifyList(list(main = paste("Calibration:", class)), list(...))
+      summary <- do.call(calibration_plot, c(list(
+        truth = truth == class, probability = probability[, class], bins = bins
+      ), options))
+      data.frame(class = factor(rep(class, nrow(summary)), levels = classes), summary)
+    })
+    return(invisible(do.call(rbind, summaries)))
+  }
   .validate_binary_input(truth, probability)
   if (!is.numeric(bins) || !is.null(dim(bins)) || length(bins) != 1L || !is.finite(bins) ||
       bins < 1 || bins != floor(bins)) {
@@ -105,7 +131,12 @@ calibration_plot <- function(truth, probability, bins = 10, ...) {
   invisible(summary)
 }
 
-venn_abers <- function(truth, probability, precision = NULL) {
+venn_abers <- function(truth, probability, precision = NULL, method = "ovo") {
+  .validate_choice(method, "ovo", "method")
+  if (is.factor(truth)) {
+    return(.fit_inductive_ovo(truth, probability, precision))
+  }
+  if (!missing(method)) stop("`method` requires factor truth and a class matrix.", call. = FALSE)
   .validate_binary_input(truth, probability)
   if (!is.null(precision)) {
     if (!is.numeric(precision) || !is.vector(precision) || length(precision) != 1L ||
@@ -154,6 +185,7 @@ predict.venn_abers <- function(object, newdata, ..., loss = "log", type = "respo
     stop("`...` must be empty; unsupported prediction argument.", call. = FALSE)
   }
   .validate_choice(loss, c("log", "brier"), "loss")
+  if (!is.null(object$classes)) return(.predict_inductive_ovo(object, newdata, loss, type))
   .validate_choice(type, c("response", "class"), "type")
   if (!.valid_probability(newdata)) {
     stop("`newdata` must be a numeric vector of finite values between 0 and 1.", call. = FALSE)
@@ -171,6 +203,12 @@ predict.venn_abers <- function(object, newdata, ..., loss = "log", type = "respo
 }
 
 print.venn_abers <- function(x, ...) {
+  if (!is.null(x$classes)) {
+    cat("<venn_abers: ovo>\nCalibration observations: ", x$observations,
+        "\nClasses: ", paste(x$classes, collapse = ", "),
+        "\nClass pairs: ", length(x$calibrators), "\n", sep = "")
+    return(invisible(x))
+  }
   cat(
     "<venn_abers>\n",
     "Calibration observations: ", x$observations, "\n",

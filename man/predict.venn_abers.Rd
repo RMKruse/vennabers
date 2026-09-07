@@ -7,10 +7,13 @@
 \arguments{
   \item{object}{A fitted \code{venn_abers} object.}
   \item{newdata}{A numeric vector of uncalibrated event probabilities with
-  finite values in \code{[0, 1]}. \code{numeric(0)} is accepted.}
+  finite values in \code{[0, 1]}. \code{numeric(0)} is accepted for binary
+  objects. For multiclass, a numeric matrix under the fit-time class,
+  name, range, and row-sum contract; zero rows are accepted.}
   \item{...}{Must be empty; unsupported arguments are errors.}
   \item{loss}{Exactly \code{"log"} (default) or \code{"brier"}.}
   \item{type}{Exactly \code{"response"} (default) or \code{"class"}.
+  Multiclass also accepts \code{"details"}.
   Supply both options by their full argument names.}
 }
 \value{
@@ -21,6 +24,18 @@ using the chosen loss. For \code{type = "class"}, an unnamed logical vector,
 \code{TRUE} when the final event probability is at least 0.5 and \code{FALSE}
 otherwise. Zero observations return the same empty data-frame schema or
 \code{logical(0)}; one observation retains its data-frame/vector shape.
+
+For multiclass, \code{"response"} returns a numeric class-probability matrix
+in fitted factor-level order, retaining new-row order and matrix row names.
+\code{"class"} returns an unnamed factor with the stored levels; the first
+stored class wins exact ties. This also applies with exactly two classes,
+whereas binary vector ties select the event. \code{"details"} returns a list
+with \code{prediction} (the response matrix) and \code{pairs}, a data frame
+with \code{row}, \code{non_event}, \code{event}, \code{lower}, \code{upper},
+and \code{probability}. Row is the integer one-based new-row position;
+the two class names are character columns. The remaining columns are doubles.
+Pairs follow factor-level combination order, then new-row order. Zero or one
+new rows retain these matrix, factor, list, and table schemas.
 }
 \description{
 Predicts a Venn-Abers interval and regularized event probability while
@@ -34,6 +49,18 @@ probabilities are never rounded, even if calibration used \code{precision}.
 Input names are not alignment keys. The endpoints are Venn-Abers bounds,
 not confidence intervals. The probability column can be passed to the
 existing scores and calibration plot with either loss choice.
+
+For multiclass, class and pair normalization precedes prediction, including
+the zero-pair replacement described in \code{\link{venn_abers}}. New pair
+probabilities remain unrounded. After binary regularization, for class j let
+q[j,i] be its probability in its pair with class i. Reciprocal coupling is
+\code{w[j] = 1 / (sum(1 / q[j,i]) - (K - 2))}, summed over the other K-1
+classes. The response is \code{w / sum(w)}. For each diagnostic record,
+\code{probability} is the event's q and \code{1 - probability} is the
+non-event's q. Thus details reconstruct the final matrix for either loss.
+The endpoints describe only the binary subproblems, not multiclass confidence
+intervals. Binary Brier regularization does not imply optimality for the final
+multiclass Brier score or guarantee improvement in assessment scores.
 }
 \examples{
 calibrator <- venn_abers(c(0, 1, 0), c(0.1, 0.2, 0.3))

@@ -1,6 +1,6 @@
 # venn-abers
 
-Dependency-free binary Inductive and Cross Venn-Abers calibration for R 4.5
+Dependency-free binary Inductive/Cross and multiclass Inductive OvO calibration for R 4.5
 and later. This is the v0.3 development branch; version 0.2 added matched-fold
 cross calibration.
 
@@ -173,11 +173,82 @@ The five public functions are `venn_abers()`, `cross_venn_abers()`,
 registered `predict()` and `print()` methods. See `?cross_venn_abers` and
 `?predict.cross_venn_abers` for executable help and the complete contract.
 
+## Multiclass Inductive OvO
+
+Supply factor truth and a numeric matrix with one named column per factor
+level. Every level must occur in the calibration set. Columns are matched
+by name and returned in level order, including names containing spaces or
+punctuation. Rows align by position; row names are not matching keys. Entries
+must be finite and in `[0, 1]`. Row sums within `1e-8` of one are normalized;
+other sums, missing/extra/duplicate/empty column names and invalid values fail.
+
+```r
+classes <- c("cat", "dog", "bird")
+truth <- factor(rep(classes, 2), levels = classes)
+# Illustrative fixed-model probabilities on a separate calibration set.
+p <- rbind(c(.7, .2, .1), c(.2, .6, .2), c(.1, .2, .7),
+           c(.5, .3, .2), c(.3, .5, .2), c(.2, .3, .5))
+colnames(p) <- classes
+multiclass <- venn_abers(truth, p, method = "ovo", precision = 2)
+new_p <- rbind(c(.6, .3, .1), c(.1, .4, .5))
+colnames(new_p) <- classes
+details <- predict(multiclass, new_p, loss = "brier", type = "details")
+details$prediction
+details$pairs
+predict(multiclass, new_p, loss = "brier", type = "class")
+assessment <- factor(c("cat", "bird"), levels = classes)
+brier_score(assessment, details$prediction)
+log_loss(assessment, details$prediction)
+calibration_plot(assessment, details$prediction)
+```
+
+Each class pair uses only its calibration observations. Pair probabilities
+are normalized before optional native R rounding; the later factor level is
+the event. An exactly zero pair sum uses event probability `0.5`. That fit
+replacement is also rounded (`precision = 0` makes it zero); new pair
+probabilities always remain unrounded. No pair models are trained.
+
+The selected binary Log/Brier regularization precedes reciprocal coupling:
+for class `j`, `w[j] = 1 / (sum(1 / q[j,i]) - (K - 2))`, where `q[j,i]`
+is its probability against each other class. Normalize `w` to sum to one.
+The default result is a class matrix. Classes use its maximum, choosing the
+first stored level on ties, including with exactly two factor levels.
+Binary vector ties continue to choose the event. Existing positional
+`precision` calls remain valid; supply `method` by name.
+
+Details contain `prediction` and `pairs`. Each pair-table record has the
+integer new-row position `row`, literal character `non_event`/`event` names,
+and double `lower`, `upper`, `probability`. Records follow factor-level pair
+order and then new-row order. The endpoints stay the same under a loss switch;
+the event point and its complement reconstruct the coupling. These are binary
+diagnostics, not multiclass confidence intervals. Empty new matrices retain
+their class columns; empty classes retain levels; empty details retain schemas.
+
+Assessment may omit observed classes while retaining their factor levels and
+probability columns. Multiclass Brier sums all squared class errors per row
+before averaging, so the two-column score is twice the binary vector score.
+Log loss uses the observed class probability without clipping; zero gives
+`Inf`. Calibration plots show final class probabilities against the rest in
+one panel per class and invisibly return `class`, `mean_probability`,
+`event_rate`, and `count` for occupied bins. Neither loss choice guarantees
+an improvement in assessment scores or optimal final multiclass Brier loss.
+
+The [complete example](examples/inductive-ovo.R) verifies reconstruction and
+runs against the installed package. `example(venn_abers)` also includes a
+complete multiclass scoring/plotting workflow in the installed help.
+Stored fixtures cover 33 fixed/seeded cases, two to four classes, both losses,
+and rounding at `NULL`, zero, two, and minus one digits, with tolerance `1e-10`.
+Log OvO uses the pinned Python 1.5.4 manual reference; Brier uses its binary
+reference components followed by independent coupling. The manual Brier API,
+zero-pair replacement, validation and native R rounding are explicit R rules.
+Regeneration and provenance are in `tools/generate-ovo-fixtures.py` and
+`inst/extdata/ovo-environment.json`; ordinary tests need no Python.
+
 ## Current scope
 
 The package does not support package-managed predictive-model fitting, fold
 creation, learned preprocessing, tuning or resampling; repeated or overlapping
-partitions; one-fold public cross calibration; multiclass or regression
+partitions; one-fold public cross calibration; multiclass OvR/Cross or regression
 calibration; observation weights; alternate event selection; automatic
 coercion or missing-value handling; fold-size weighting, pooling or averaging
 log-loss fold point predictions; public aggregate cross bounds; formula/data-frame

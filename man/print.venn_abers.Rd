@@ -14,6 +14,8 @@
 \description{
 Prints the calibrator class and counts of calibration observations, event
 observations, and unique probability knots.
+For multiclass objects, prints the calibration count, class names in stored
+order, and number of class pairs instead.
 }
 \examples{
 venn_abers(c(0, 1, 0), c(0.1, 0.2, 0.3))
