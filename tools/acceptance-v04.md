@@ -1,7 +1,7 @@
 # v0.4 regression candidate: acceptance and benchmarks
 
 Status on 2026-09-07: **not approved for release**. The local artifact checks
-pass; predecessor approval, the remaining platform matrix, Linux R-devel and
+pass; the remaining v0.4 platform matrix, Linux R-devel and
 controlled Linux benchmark evidence are outstanding. This report does not
 complete those acceptance criteria. No tagging, publishing or CRAN submission
 is part of this ticket.
@@ -14,23 +14,30 @@ sections 3 and 5. Implementation starts at
 there. This ticket changes release metadata and external verification tooling,
 not the numerical product or its classification tolerances.
 
-## Predecessor: stable reference, approval still missing
+## Predecessor: approved; stable comparison reference retained
+
+Maintainer confirmation on 2026-09-07 supersedes the earlier local status:
+**v0.3 is approved and has been run on Linux and Windows machines.**
+Predecessor release approval is therefore no longer a v0.4 blocker. This
+confirmation concerns v0.3; the v0.4 candidate results below remain separate.
 
 The complete classification source used for comparison is
 `801f467eeafe5539255e0aa09ac9b8cfae598d07`, the last commit before IVAR.
 Its DESCRIPTION is 0.3.0. It includes binary Inductive/Cross, Log/Brier,
 rounding, classes, fold diagnostics, Inductive/Cross OvO/OvR, scores and plots,
 including the later active-subproblem probability fix. It is an immutable
-comparison reference, **not an approved v0.3 release**.
+comparison reference. The maintainer's confirmation did not identify the exact
+archive used on the other machines, so those runs are not attributed to this
+locally rebuilt archive.
 
-The [v0.3 acceptance report](acceptance-v03.md) explicitly leaves approval open.
+The historical [v0.3 acceptance report](acceptance-v03.md) left approval open
+before the maintainer's confirmation above.
 Its historical archive SHA-256 is
 `c72d953b049de7087372eb065c2198f88855094ca0120a31da3660c62788b825` and its
 payload predates later classification fixes. It is not substituted for the
-newer reference. Closed planning issues and the 0.3.0 version string provide
-no missing platform or performance evidence. There is no invented predecessor
-release issue number. Completion of v0.3 release acceptance remains an external
-blocker, including revalidation of its final source/artifact.
+newer reference. The recorded archive identities remain unchanged; approval is
+recorded from the maintainer's explicit confirmation, not inferred from a
+version string or a closed planning issue.
 
 The reference was exported with `git archive 801f467` and built with the same
 local R 4.6.1 used for v0.4. Its saved source artifact is
@@ -245,7 +252,7 @@ For the denied-network local checks, the wrapper was:
   /opt/homebrew/opt/r/bin/Rscript --vanilla tools/acceptance.R
 ```
 
-Release approval still requires completed v0.3 acceptance, every missing
+Release approval still requires every missing v0.4
 mandatory platform result for this exact candidate, current Linux R-devel
 findings/triage, controlled Linux predecessor benchmarks and investigated
 regressions. Changes to package code, metadata, tests, examples or bundled tools
@@ -263,7 +270,7 @@ independently reran the saved bundle and mutation verifiers successfully.
 ## Spec
 
 Independent review against the same base: no actionable implementation defects
-or scope creep. Three acceptance gaps remain: completed v0.3 release approval,
+or scope creep. At review time, three acceptance gaps were recorded: v0.3 release approval,
 seven mandatory platform combinations plus Linux R-devel, and controlled Linux
 benchmark/comparison clearance. The report explicitly preserves these gaps;
 the saved bundle passes v0.4 validation. The four regression cases, twelve
@@ -271,6 +278,10 @@ classification comparisons, separate timing windows, fresh-process restoration
 and unchanged classification tolerances match the ticket.
 
 Review totals: Standards 0 findings; Spec 0 actionable implementation findings,
-3 external acceptance gaps, all blocking full release acceptance. A final payload
+3 external acceptance gaps at review time. The maintainer subsequently confirmed
+v0.3 approval, resolving that gap; the v0.4 platform and Linux benchmark gaps
+remain. The candidate's bundled NEWS/README retain their pre-confirmation status
+wording; this external report records the correction without changing the
+checked artifact. A final payload
 comparison also verified 104 archived files against the checkout, excluding
 only build-normalized DESCRIPTION; the saved SHA-256 manifest verifies.
