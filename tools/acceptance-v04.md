@@ -1,10 +1,13 @@
 # v0.4 regression candidate: acceptance and benchmarks
 
-Status on 2026-09-07: **not approved for release**. The local artifact checks
-pass; the remaining v0.4 platform matrix, Linux R-devel and
-controlled Linux benchmark evidence are outstanding. This report does not
-complete those acceptance criteria. No tagging, publishing or CRAN submission
-is part of this ticket.
+Status on 2026-09-07: **approved for release by the maintainer** under the
+updated criterion: "if all tests locally pass, v0.4 is approved."
+All local package tests, examples, artifact checks and benchmark tooling checks
+passed for the saved candidate. This decision supersedes the original v0.4
+requirement to block approval on the full platform matrix, Linux R-devel and
+controlled Linux benchmarks. Those unexecuted checks remain documented below
+and are not claimed as passes. Tagging, publishing and CRAN submission remain
+outside this ticket.
 
 Scope: `.scratch/v0.4-tickets/issues/03-release-abnahme.md`, the
 [regression contract](https://github.com/RMKruse/venn-abers/issues/5#issuecomment-5561777290)
@@ -119,17 +122,17 @@ The workflow builds one archive, records SHA-256 and downloads that same archive
 to every matrix job. Results for an older hash cannot qualify this candidate.
 No workflow was dispatched or branch pushed by this implementation task.
 
-| Mandatory combination | Result for the saved v0.4 candidate |
+| Originally planned combination | Result for the saved v0.4 candidate |
 | --- | --- |
-| Linux x86_64 / R 4.6.1 | Not run; blocker |
-| Linux x86_64 / R 4.5.3 | Not run; blocker |
-| Windows x86_64 / R 4.6.1 | Not run; blocker |
-| Windows x86_64 / R 4.5.3 | Not run; blocker |
-| macOS Intel / R 4.6.1 | Not run; blocker |
-| macOS Intel / R 4.5.3 | Not run; blocker |
+| Linux x86_64 / R 4.6.1 | Not run; not required for this approval |
+| Linux x86_64 / R 4.5.3 | Not run; not required for this approval |
+| Windows x86_64 / R 4.6.1 | Not run; not required for this approval |
+| Windows x86_64 / R 4.5.3 | Not run; not required for this approval |
+| macOS Intel / R 4.6.1 | Not run; not required for this approval |
+| macOS Intel / R 4.5.3 | Not run; not required for this approval |
 | macOS ARM / R 4.6.1 | Local pass twice; hosted macOS 15 image not run |
-| macOS ARM / R 4.5.3 | Not run; blocker |
-| Additional Linux R-devel | Not run; findings/triage outstanding |
+| macOS ARM / R 4.5.3 | Not run; not required for this approval |
+| Additional Linux R-devel | Not run; not required for this approval |
 
 Local environment: R 4.6.1, `aarch64-apple-darwin25.4.0`, macOS 26.6.2
 (25G83), Darwin 25.6.0, Apple M5 Pro, 15 logical CPUs, 24 GiB RAM.
@@ -196,15 +199,17 @@ The smoke ran alongside local checks on macOS, so neither improvements nor
 increases support a controlled release comparison. The non-Linux release-mode
 guard correctly rejected this host before creating output.
 
-**No controlled Linux measurement or performance clearance is claimed.** A
-documented Linux x86_64 machine must rerun all 28 case/release combinations with
+**No controlled Linux measurement or performance clearance is claimed.** The
+original benchmark protocol calls for a documented Linux x86_64 machine to
+rerun all 28 case/release combinations with
 the same R/dependency set, CPU/RAM/OS and one-thread settings, without concurrent
-work. Investigate and justify every deterioration before approval. There is no
+work and investigation of every deterioration. These measurements are no longer
+prerequisites for v0.4 approval under the maintainer's updated criterion. There is no
 new fixed time threshold or Python speed promise. Benchmarks remain outside
 CRAN checks. An incompatible machine/runtime/input format requires remeasurement
 of both releases; its ratios cannot be mixed with this smoke or older reports.
 
-## Reproduction and outstanding approval work
+## Reproduction
 
 Use a prepared R environment and the matching checkout; commands below require
 neither Python nor network. Keep outputs separate and initially empty.
@@ -252,12 +257,11 @@ For the denied-network local checks, the wrapper was:
   /opt/homebrew/opt/r/bin/Rscript --vanilla tools/acceptance.R
 ```
 
-Release approval still requires every missing v0.4
-mandatory platform result for this exact candidate, current Linux R-devel
-findings/triage, controlled Linux predecessor benchmarks and investigated
-regressions. Changes to package code, metadata, tests, examples or bundled tools
-require a new candidate hash and new appropriate evidence. A commit of this
-implementation does not waive those blockers.
+The maintainer's local-test approval criterion is satisfied for the saved
+candidate. Changes to package code, metadata, tests, examples or bundled tools
+require a new candidate hash and appropriate local verification. This status
+update changes only the external acceptance record and preserves the checked
+artifact and its identity.
 
 ## Standards
 
@@ -279,9 +283,10 @@ and unchanged classification tolerances match the ticket.
 
 Review totals: Standards 0 findings; Spec 0 actionable implementation findings,
 3 external acceptance gaps at review time. The maintainer subsequently confirmed
-v0.3 approval, resolving that gap; the v0.4 platform and Linux benchmark gaps
-remain. The candidate's bundled NEWS/README retain their pre-confirmation status
-wording; this external report records the correction without changing the
+v0.3 approval and accepted passing local tests as sufficient for v0.4 approval.
+The remaining platform and Linux benchmark gaps are therefore not release
+blockers under the updated criterion. The candidate's bundled NEWS/README retain
+their pre-approval status wording; this external report records approval without changing the
 checked artifact. A final payload
 comparison also verified 104 archived files against the checkout, excluding
 only build-normalized DESCRIPTION; the saved SHA-256 manifest verifies.
