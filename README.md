@@ -1,8 +1,8 @@
 # venn-abers
 
 Dependency-free binary Inductive/Cross, multiclass Inductive/Cross OvO/OvR,
-and moderated Inductive regression calibration for R 4.5 and later.
-The development tree adds Inductive regression toward v0.4; the package version
+and moderated Inductive/Cross regression calibration for R 4.5 and later.
+The development tree adds regression toward v0.4; the package version
 remains the v0.3.0 source candidate until release work is complete.
 Release approval remains pending; see the [acceptance record](tools/acceptance-v03.md).
 
@@ -77,6 +77,65 @@ This manual entry point is an R extension. The
 Python 1.5.4 regression components from lower-bound and zero-weight defects.
 Training, automatic splits, regression score/plot helpers, exact minimax,
 observation weights and rounding options remain outside this implementation.
+
+## Cross regression
+
+`cross_venn_abers_regression(truth, prediction, fold)` accepts finite real-valued
+truth and out-of-fold model predictions, aligned by position. Supply one fold
+ID per observation and at least two represented folds: nonempty character
+labels or finite positive whole-number numeric IDs, with no factors or logical
+IDs. Every fold must satisfy the IVAR moderation domain. Unequal sizes are valid.
+
+```r
+cross_regression <- cross_venn_abers_regression(
+  c(-10, 0, 2, 6, 20, 10, 10, 10), rep(0, 8),
+  rep(c("A", "B"), c(5, 3))
+)
+# Each column comes from its retained model, for the same new rows.
+regression_details <- predict(cross_regression,
+                              cbind(B = c(1, 0), A = c(-1, 0)), type = "details")
+regression_details
+lapply(cross_regression$calibrators, function(x) x[c("requested", "m", "epsilon")])
+source(system.file("examples", "cross-regression.R", package = "vennabers"))
+```
+
+Each fold receives a complete IVAR fit. The default `m=1`, explicit `m`, and
+alternative `epsilon` follow the Inductive contract above. With epsilon,
+`m_f=floor(epsilon*(k_f+1)/2)` and effective `epsilon_f=2*m_f/(k_f+1)` may
+differ across folds. The named `calibrators` list retains each fold's requested
+and effective parameters and size. Invalid moderation in any fold fails the
+entire fit with fold context, without capping or omission.
+
+Predict requires a finite numeric matrix with exactly one uniquely named column
+per fold. Column order may change; missing, additional, duplicate, empty or
+absent names are errors. Rows align by position, regardless of row names.
+Inputs are never rounded or clipped, including tied and exterior scores.
+Unsupported options are errors. Predict trains nothing.
+
+First compute complete IVAR points and bounds per fold. Then take separate
+equal-weight arithmetic means of points, lower bounds and upper bounds, even
+for unequal fold sizes. No pooling, size weighting or new point merger on
+averaged bounds occurs. Default output has double columns `prediction`, `lower`,
+`upper`; details add the named list `folds` with the same complete schema.
+Zero and one row retain their schema, and empty details retain every fold ID.
+All three aggregates can be reconstructed from these fold results. Fits survive
+`saveRDS()`/`readRDS()` in a fresh R process with the package loaded.
+
+The installed example retains three `lm()` models, excluding each held-out
+fold from the entire learned procedure, then uses those same models for the
+new matrix columns. Separate assessment outcomes enter only the RMSE/MAE
+evaluation. The caller is responsible for model provenance, including learned
+preprocessing and tuning, and semantic row identity across columns; matching
+names cannot verify these. A model retrained on all development data cannot
+replace the fold models. The theoretical setting assumes IID observations
+and a model fixed independently of its calibration observations.
+
+Aggregated bounds are descriptive fold summaries without an additional
+coverage or selector guarantee. They are not confidence or prediction intervals
+for individual outcomes, and no score improvement is promised. The
+[Cross reference record](inst/extdata/cross-regression-reference.md) documents
+offline Python 1.5.4 IVAR component evidence and independent aggregation;
+there is no corresponding public manual Python CVAR wrapper.
 
 ## Binary options
 
@@ -389,10 +448,10 @@ extension, distinct from Python's trained pairwise model/fold plans.
 
 The package does not support package-managed predictive-model fitting, fold
 creation, learned preprocessing, tuning or resampling; repeated or overlapping
-partitions; one-fold public cross calibration; regression
-calibration; separate pairwise model training or pair-specific fold plans; observation weights; alternate event selection; automatic
+partitions; one-fold public cross calibration;
+separate pairwise model training or pair-specific fold plans; observation weights; alternate event selection; automatic
 coercion or missing-value handling; fold-size weighting, pooling or averaging
-log-loss fold point predictions; public aggregate cross bounds; formula/data-frame
+log-loss fold point predictions; public aggregate classification cross bounds; formula/data-frame
 cross interfaces; tidymodels/yardstick integrations; or new metrics, smoothing,
 plotting features or `ggplot2` output.
 
@@ -425,7 +484,7 @@ floor at final v0.3 acceptance. Older releases retain their original floor.
 Set `ACCEPTANCE_OUTPUT_DIR` to an empty directory to retain the source artifact,
 logs and environment/package versions. Set `ACCEPTANCE_ARTIFACT` to an existing
 source tarball to check that exact candidate instead of rebuilding. CI builds
-once, verifies SHA-256, and checks the same archive on every platform. The five
+once, verifies SHA-256, and checks the same archive on every platform. The
 standalone examples ship in the package; find them after installation with
 `system.file("examples", package = "vennabers")`.
 

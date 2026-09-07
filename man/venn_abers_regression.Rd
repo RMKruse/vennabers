@@ -81,6 +81,7 @@ See the installed \file{extdata/regression-reference.md} for provenance.
 Package-managed training, automatic splits, new regression score/plot functions,
 exact minimax, observation weights and rounding options are not provided.
 }
+\seealso{\code{\link{cross_venn_abers_regression}}}
 \examples{
 # The installed example fixes disjoint training/calibration/assessment roles,
 # fits lm() only on training data, and reports Base R RMSE and MAE.

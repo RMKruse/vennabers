@@ -8,6 +8,7 @@ import hashlib
 import importlib.metadata as metadata
 import inspect
 import json
+import math
 from pathlib import Path
 import platform
 import subprocess
@@ -120,3 +121,75 @@ environment = {
 }
 (OUTPUT / "regression-environment.json").write_text(json.dumps(environment, indent=2) + "\n")
 print(json.dumps({key: environment[key] for key in ("cases", "rows", "direct_valid_rows", "direct_defect_rows")}))
+
+# CVAR is an R extension. Use only the IVAR reference above, followed by
+# independent equal-weight arithmetic; do not invent a Python CVAR wrapper.
+cross_seed = 20260908
+rng = np.random.default_rng(cross_seed)
+cross_cases = [
+    ("unequal_tied", [([-10, 0, 2, 6, 20], [0] * 5), ([10] * 3, [1, 2, 3])], "default", None),
+    ("zero_and_small_weights", [([0, 0, 2, 2], [1, 2, 3, 4]), ([0, 0, 0, 4, 10], [0] * 5)], "m", 1),
+    ("epsilon_unequal", [([-10, 0, 2, 6, 20], [-2, -2, 0, 1, 1]),
+                         ([-8, -2, 0, 1, 3, 8, 10, 30], [-3, -2, -2, 0, 0, 1, 2, 3])], "epsilon", .5),
+    ("explicit_two", [([-10, 0, 2, 6, 20], [0] * 5),
+                      ([-4, -2, 0, 1, 3, 8, 10], [-2, -2, 0, 0, 1, 2, 3])], "m", 2),
+]
+for i in range(16):
+    components = []
+    for k in rng.integers(5, 26, 2 + i % 3):
+        y = rng.normal(0, 3, k)
+        p = rng.integers(-4, 5, k).astype(float) if i % 2 else rng.normal(0, 2, k)
+        components.append((y, p))
+    parameter, requested = [("default", None), ("m", 2), ("epsilon", .5)][i % 3]
+    cross_cases.append((f"random_{i:02d}", components, parameter, requested))
+
+cross_calibration, cross_predictions, cross_options, cross_aggregate = [], [], [], []
+for name, components, parameter, requested in cross_cases:
+    for unit, shift, suffix in [(1., 0., "ordinary"), (1e-12, 0., "small"),
+                                (1e120, 0., "large"), (1., 1e5, "shifted")]:
+        case = f"{name}_{suffix}"
+        cal_rows, outputs = [], []
+        for index, (y, p) in enumerate(components):
+            fold = ["B / held out", "A:fold", "17", "last"][index]
+            y, p = np.asarray(y) * unit + shift, np.asarray(p, dtype=float)
+            # Include exact ties, exterior scores, and the zero-weight gap.
+            new = np.array([min(p) - 1, p[0], 0, 2.5, p[-1], max(p) + 1, -1])
+            epsilon = requested if parameter == "epsilon" else None
+            m = math.floor(epsilon * (len(y) + 1) / 2) if epsilon is not None else requested or 1
+            cv, ly, uy, expected, direct = reference(y, p, new, m, epsilon)
+            assert cv.m_parameter == m
+            cross_options.append([case, fold, parameter, requested, len(y), m,
+                                  2 * m / (len(y) + 1), unit, shift,
+                                  cv.y_stars_lower_[0], cv.y_stars_upper_[0]])
+            cal_rows.extend([[case, fold, *values] for values in zip(y, p, ly, uy)])
+            valid = np.all(np.isfinite(direct) & (abs(direct - expected) <= 1e-10 * unit + 1e-10 * abs(expected)), axis=1)
+            for row, (value, wanted, raw, ok) in enumerate(zip(new, expected, direct, valid), 1):
+                cross_predictions.append([case, fold, row, value, *wanted, *raw, int(ok)])
+            outputs.append(expected)
+        # Store non-contiguous fold membership and explicit positional row IDs.
+        for row, index in enumerate(rng.permutation(len(cal_rows)), 1):
+            cross_calibration.append([*cal_rows[index][:2], row, *cal_rows[index][2:]])
+        for row in range(7):
+            cross_aggregate.append([case, row + 1, *[
+                math.fsum(output[row, column] for output in outputs) / len(outputs)
+                for column in range(3)]])
+
+write("cross-regression-options.csv", "case_id fold parameter requested observations m epsilon scale shift a b", cross_options)
+write("cross-regression-calibration.csv", "case_id fold row truth prediction lower_truth upper_truth", cross_calibration)
+write("cross-regression-predictions.csv", "case_id fold row input prediction lower upper direct_prediction direct_lower direct_upper direct_valid", cross_predictions)
+write("cross-regression-aggregate.csv", "case_id row prediction lower upper", cross_aggregate)
+cross_environment = {
+    "commit": COMMIT, "source_version": "1.5.4", "module_sha256": MODULE_SHA256,
+    "seed": cross_seed, "python": platform.python_version(), "platform": platform.platform(),
+    "versions": environment["versions"], "cases": len(cross_cases) * 4,
+    "folds": len(cross_options), "aggregate_rows": len(cross_aggregate),
+    "component_rows": len(cross_predictions),
+    "direct_valid_rows": sum(row[-1] for row in cross_predictions),
+    "direct_defect_rows": sum(not row[-1] for row in cross_predictions),
+    "component_reference": "Same pinned IVAR components and retained defects as regression-reference.md",
+    "aggregate_reference": "Separate math.fsum of IVAR points, lower and upper endpoints divided by fold count",
+    "scale": "Predeclared unit: 1, 1e-12, 1e120; shifted cases have unit 1 and shift 1e5",
+    "fixture_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(OUTPUT.glob("cross-regression-*.csv"))},
+}
+(OUTPUT / "cross-regression-environment.json").write_text(json.dumps(cross_environment, indent=2) + "\n")
+print(json.dumps({key: cross_environment[key] for key in ("cases", "folds", "aggregate_rows", "component_rows", "direct_valid_rows", "direct_defect_rows")}))

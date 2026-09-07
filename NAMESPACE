@@ -1,6 +1,8 @@
 export(venn_abers)
 export(venn_abers_regression)
 S3method(predict,venn_abers_regression)
+export(cross_venn_abers_regression)
+S3method(predict,cross_venn_abers_regression)
 export(cross_venn_abers)
 export(brier_score)
 export(log_loss)

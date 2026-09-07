@@ -9,7 +9,11 @@
   regression example with separate training/calibration/assessment data.
   Known reference lower-bound and zero-weight defects are documented in
   `inst/extdata/regression-reference.md`. Existing classification defaults stay
-  unchanged. Cross regression and release approval remain separate work.
+  unchanged. Release approval remains separate work.
+- Add `cross_venn_abers_regression()` with complete IVAR fits per named fold,
+  fold-local moderation diagnostics, stable equal-weight means of points and
+  bounds, and reconstructible fold details. Include offline component/aggregate
+  fixtures and an installed matching-fold `lm()` example with RMSE/MAE.
 
 # vennabers 0.3.0 (release candidate)
 

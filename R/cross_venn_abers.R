@@ -31,7 +31,7 @@ cross_venn_abers <- function(truth, probability, fold, precision = NULL, method 
     stop("`fold` numeric IDs must be finite positive whole numbers.", call. = FALSE)
   }
   if (length(fold) != observations) {
-    stop("`fold` must have the same length as `truth` and `probability`.", call. = FALSE)
+    stop("`fold` must have the same length as `truth`.", call. = FALSE)
   }
   fold <- as.character(fold)
   if (length(unique(fold)) < 2L) {
