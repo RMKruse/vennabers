@@ -1,4 +1,11 @@
-# vennabers 0.3.0 (development)
+# vennabers 0.3.0 (release candidate)
+
+- Package standalone examples under `inst/examples`, available after installation
+  through `system.file("examples", package = "vennabers")`. Checkout commands
+  formerly using `examples/` now use `inst/examples/`.
+- Prepare one source artifact for all platform checks and a separate comparative
+  benchmark runner. Release approval is pending the evidence in
+  `tools/acceptance-v03.md`; the version number does not assert approval.
 
 - Add manual Cross multiclass OvO/OvR with one shared calibration fold plan
   and a fold-named list of new class matrices. Merge binary folds with

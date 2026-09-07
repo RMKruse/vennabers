@@ -11,13 +11,13 @@ local({
   stopifnot(all(file.copy(files, checkout, recursive = TRUE)))
   setwd(checkout)
   on.exit(setwd(root), add = TRUE, after = FALSE)
-  Sys.unsetenv("ACCEPTANCE_OUTPUT_DIR")
+  Sys.unsetenv(c("ACCEPTANCE_OUTPUT_DIR", "ACCEPTANCE_ARTIFACT"))
 
   # Each new file must be discovered automatically and fail the whole command.
-  for (directory in c("examples", "tests")) {
+  for (directory in c("inst/examples", "tests")) {
     sentinel <- file.path(directory, "intentional-failure.R")
     writeLines('stop("intentional acceptance regression failure")', sentinel)
-    output_file <- file.path(work, paste0(directory, ".log"))
+    output_file <- file.path(work, paste0(basename(directory), ".log"))
     status <- system2(file.path(R.home("bin"), "Rscript"),
       c("--vanilla", "tools/acceptance.R"), stdout = output_file, stderr = output_file)
     output <- readLines(output_file, warn = FALSE)

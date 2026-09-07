@@ -133,7 +133,8 @@ brier_score(test_truth, result$probability)
 log_loss(test_truth, result$probability)
 calibration_plot(test_truth, result$probability)
 
-# After package installation: Rscript examples/cross-multiclass.R
+# After installation, find the standalone example with:
+# system.file("examples", "cross-multiclass.R", package = "vennabers")
 library(vennabers)
 
 # Precomputed out-of-fold probabilities from two retained multiclass models.

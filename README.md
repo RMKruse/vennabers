@@ -1,8 +1,8 @@
 # venn-abers
 
 Dependency-free binary Inductive/Cross and multiclass Inductive/Cross OvO/OvR calibration for R 4.5
-and later. This is the v0.3 development branch; version 0.2 added matched-fold
-cross calibration.
+and later. The v0.3.0 source candidate includes the manual classification scope below.
+Release approval remains pending; see the [acceptance record](tools/acceptance-v03.md).
 
 ## Quick start
 
@@ -59,12 +59,12 @@ and `type`. Unsupported arguments and unknown option values are errors.
 Logical, missing, nonfinite, fractional, and multiple precision values are
 rejected. R and NumPy can round differently at floating-point boundaries;
 native R behavior is intentional, with separate tests from Python parity.
-See the executable [binary options example](examples/binary-options.R) and
+See the executable [binary options example](inst/examples/binary-options.R) and
 [reference record](inst/extdata/binary-options-reference.md).
 
 ## Cross Venn-Abers
 
-Follow the canonical [three-fold GLM example](examples/cross-venn-abers.R).
+Follow the canonical [three-fold GLM example](inst/examples/cross-venn-abers.R).
 It generates seeded binary data, sets aside untouched test observations,
 fits three binomial GLMs on the other two development folds, restores each
 held-out probability to its original row, and retains the models to predict
@@ -72,7 +72,7 @@ the same test rows. It then calibrates, predicts, scores, and plots with no
 downloads or additional dependencies. From an installed checkout, run:
 
 ```sh
-Rscript examples/cross-venn-abers.R
+Rscript inst/examples/cross-venn-abers.R
 ```
 
 The script checks its results and closes and removes a temporary PDF, so it
@@ -257,7 +257,7 @@ one panel per class and invisibly return `class`, `mean_probability`,
 `event_rate`, and `count` for occupied bins. Neither loss choice guarantees
 an improvement in assessment scores or optimal final multiclass Brier loss.
 
-The complete [OvO](examples/inductive-ovo.R) and [OvR](examples/inductive-ovr.R)
+The complete [OvO](inst/examples/inductive-ovo.R) and [OvR](inst/examples/inductive-ovr.R)
 examples verify reconstruction and run against the installed package. `example(venn_abers)` also includes a
 complete multiclass scoring/plotting workflow in the installed help.
 Stored fixtures cover 33 fixed/seeded cases, two to four classes, both losses,
@@ -329,10 +329,10 @@ Zero/one new row retains the output types and global class mapping. Output
 row names come from the first stored fold's matrix. There is no additional
 multiclass or Cross confidence interval.
 
-The [complete Cross multiclass example](examples/cross-multiclass.R) checks
+The [complete Cross multiclass example](inst/examples/cross-multiclass.R) checks
 reconstruction for both methods and losses, unequal folds, and a missing fold
 class, then scores and plots the final probabilities. Run it against the
-installed package with `Rscript examples/cross-multiclass.R`; it is also included
+installed package with `Rscript inst/examples/cross-multiclass.R`; it is also included
 in `example(cross_venn_abers)`. Numerical tests use hand calculations and the
 existing reference-checked binary IVAP API followed by independent merging
 and combination, with absolute tolerance `1e-10`. **Python 1.5.4 has no matching
@@ -366,7 +366,7 @@ Rscript tools/acceptance.R
 It builds and installs the source artifact into an isolated library, runs
 `R CMD check --as-cran --no-manual` (all package tests and help examples),
 verifies the loaded package path and version, and executes the README R
-snippets and every R script under `examples/` against that installation.
+snippets and every R script under `inst/examples/` against that installation.
 Errors, warnings and NOTEs fail the gate. Online CRAN incoming checks and
 clock probes are disabled so the prepared R environment can run offline.
 
@@ -377,17 +377,32 @@ at least the previous R minor series; recheck the matrix and `DESCRIPTION`
 floor at final v0.3 acceptance. Older releases retain their original floor.
 
 Set `ACCEPTANCE_OUTPUT_DIR` to an empty directory to retain the source artifact,
-logs and environment/package versions; CI uploads this evidence even on failure.
-See the [v0.3 CI record](tools/acceptance-v03-ci.md) for configuration, evidence
-and the distinction between local checks and hosted matrix results.
+logs and environment/package versions. Set `ACCEPTANCE_ARTIFACT` to an existing
+source tarball to check that exact candidate instead of rebuilding. CI builds
+once, verifies SHA-256, and checks the same archive on every platform. The five
+standalone examples ship in the package; find them after installation with
+`system.file("examples", package = "vennabers")`.
 
-Benchmarks run separately after installing the built artifact:
+See the [v0.3 acceptance record](tools/acceptance-v03.md) for the capability
+map, migration notes, commands, results and remaining release blockers. The
+[earlier CI record](tools/acceptance-v03-ci.md) describes its starting point.
+
+Benchmarks run separately on the documented Linux x86_64 reference machine:
 
 ```sh
-Rscript tools/performance.R
+Rscript tools/performance.R vennabers_0.3.0.tar.gz vennabers_0.2.0.tar.gz benchmark-output
+Rscript tools/test-performance.R benchmark-output
 ```
 
-The 100,000-calibration / 100,000-prediction IVAP case is preserved, without
-the historical 10-second ceiling. The full comparative benchmark protocol in
-[the release roadmap](RELEASE-ROADMAP.md#35-performance) belongs to overall
-release acceptance. Historical results remain in the [v0.2 record](tools/acceptance-v02.md).
+The runner prepares fixed inputs outside measurement, installs both artifacts,
+and runs cases serially in fresh R processes with one warmup and three measured
+runs. It records separate fit/predict times, process peak memory, RDS sizes,
+individual results, medians and predecessor comparisons. Only shared v0.2
+capabilities receive comparisons; new capabilities receive baselines. Increased
+costs require investigation before approval. `--smoke` permits another platform
+for runner validation and explicitly does not produce release evidence.
+
+The unchanged 100,000-calibration / 100,000-prediction IVAP case is retained.
+The comparative protocol replaces the historical 10-second ceiling. Historical
+measurements remain in the [v0.2 record](tools/acceptance-v02.md); they cannot
+substitute for remeasuring v0.2 on the same reference machine.

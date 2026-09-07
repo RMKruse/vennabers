@@ -1,7 +1,8 @@
 Package: vennabers
 Title: Venn-Abers Classification Calibration
-Version: 0.2.0.9000
-Authors@R: person("Venn-Abers", "Authors", email = "authors@invalid.example", role = c("aut", "cre"))
+Version: 0.3.0
+Authors@R: c(person("Venn-Abers", "Authors", role = "aut"),
+    person("René-M.", "Kruse", email = "rene.marcel.kruse@protonmail.com", role = "cre"))
 Description: Fits binary Inductive and Cross Venn-Abers calibrators from
     caller-supplied probabilities. Returns Inductive Venn-Abers intervals
     and regularized probabilities, or Cross Venn-Abers regularized

@@ -1,5 +1,8 @@
 # v0.3 package CI and support evidence
 
+Historical implementation record. The [overall v0.3 acceptance](acceptance-v03.md)
+supersedes its build-per-job path and records later hosted failures and fixes.
+
 Implemented on 2026-09-07 for the v0.3 development branch, starting at
 `3be8ac61f9a9c71c399d4b3a03169b26c0232172`. Package version `0.2.0.9000`
 distinguishes this work from released v0.2.0; it does not declare v0.3 complete.

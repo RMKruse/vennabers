@@ -5,6 +5,8 @@ if (!file.exists("DESCRIPTION")) {
 
 local({
   root <- normalizePath(".")
+  supplied_artifact <- Sys.getenv("ACCEPTANCE_ARTIFACT")
+  if (nzchar(supplied_artifact)) supplied_artifact <- normalizePath(supplied_artifact, mustWork = TRUE)
   description <- read.dcf("DESCRIPTION", fields = c("Package", "Version"))[1L, ]
   output_dir <- Sys.getenv("ACCEPTANCE_OUTPUT_DIR")
   work_dir <- if (nzchar(output_dir)) output_dir else tempfile("vennabers-acceptance-")
@@ -19,8 +21,12 @@ local({
   }, add = TRUE)
 
   run <- function(command, arguments) {
-    output_file <- file.path(work_dir, paste0(tolower(arguments[2L]), ".log"))
+    # R copies the tree before applying .Rbuildignore. On Windows an open
+    # log inside that tree cannot be copied, even when it will be excluded.
+    output_file <- tempfile("acceptance-command-", fileext = ".log")
+    on.exit(unlink(output_file), add = TRUE)
     status <- system2(command, arguments, stdout = output_file, stderr = output_file)
+    stopifnot(file.copy(output_file, file.path(work_dir, paste0(tolower(arguments[2L]), ".log"))))
     output <- readLines(output_file, warn = FALSE)
     cat(output, sep = "\n")
     if (!identical(status, 0L)) {
@@ -53,9 +59,17 @@ local({
              `_R_CHECK_SYSTEM_CLOCK_` = "false")
   setwd(work_dir)
   r_executable <- file.path(R.home("bin"), if (.Platform$OS.type == "windows") "R.exe" else "R")
-  run(r_executable, c("CMD", "build", shQuote(root)))
-
   artifact <- file.path(work_dir, paste0(description[["Package"]], "_", description[["Version"]], ".tar.gz"))
+  if (nzchar(supplied_artifact)) {
+    stopifnot(file.copy(supplied_artifact, artifact))
+  } else {
+    run(r_executable, c("CMD", "build", shQuote(root)))
+  }
+  utils::untar(artifact, files = "vennabers/DESCRIPTION", exdir = work_dir)
+  stopifnot(identical(description, read.dcf("vennabers/DESCRIPTION",
+                                         fields = c("Package", "Version"))[1L, ]))
+  writeLines(paste(basename(artifact), unname(tools::md5sum(artifact))),
+             file.path(work_dir, "artifact-md5.txt"))
   library_dir <- file.path(work_dir, "library")
   dir.create(library_dir)
   run(r_executable, c("CMD", "INSTALL", paste0("--library=", shQuote(library_dir)), shQuote(artifact)))
@@ -106,8 +120,10 @@ local({
   })
 
   # Standalone examples exercise the installed API. Discover new scripts too.
-  for (example in list.files(file.path(root, "examples"), pattern = "\\.[Rr]$",
-                             full.names = TRUE, recursive = TRUE)) {
+  examples <- list.files(system.file("examples", package = "vennabers"),
+                         pattern = "\\.[Rr]$", full.names = TRUE, recursive = TRUE)
+  stopifnot(length(examples) > 0L)
+  for (example in examples) {
     cat("Running example:", basename(example), "\n")
     sys.source(example, envir = new.env())
   }
