@@ -35,6 +35,37 @@ IVAP prediction still returns three double columns: `lower` and `upper` are
 the Venn-Abers interval endpoints; `probability` is the regularized event
 probability, using log loss by default. These endpoints are not confidence intervals.
 
+## Automatic binary workflow calibration
+
+`calibrated_workflow(base, outcome = "truth", seed = 42)` wraps a configured,
+unfitted tidymodels workflow. Use `generics::fit()` on development data, then
+ordinary `predict(..., type = "prob")` or `type = "class"`. The outer Variables
+preprocessor carries raw columns; put recipes in `base`. One complete base workflow
+learns on 80% of the data by default, and its held-out probabilities calibrate the
+binary Inductive core. Both factor levels must exist in the development data.
+
+`venn_abers_details(fitted, new_data)` returns native probabilities plus row/fold
+bounds. `workflows::extract_fit_engine(fitted)` exposes the model, calibrator,
+original class names, split positions, options and versions. Set `event_level`
+to `"first"` (default) or `"second"`; the event class wins ties. Set `loss` at
+construction or override it in predict/details without refitting. Calibration-only
+`precision` accepts NULL and whole numbers, including negatives.
+
+The integration packages listed in DESCRIPTION are optional and must be installed
+explicitly; manual calibration still loads without parsnip. The installed example
+runs fit, prediction, diagnostics and a comparison to its stored default:
+
+```r
+source(system.file("examples", "calibrated-workflow.R", package = "vennabers"))
+```
+
+Keep final assessment data separate. This local split cannot undo prior tuning or
+external transformations using calibration/assessment observations. The statistical
+setting assumes IID data and a model fixed independently of calibration data;
+improved scores on every test set are not guaranteed. This first automatic path
+supports binary Inductive calibration only; explicit plans and outer evaluation
+are separate work. See `?calibrated_workflow` for exact input and naming boundaries.
+
 ## Inductive regression
 
 `venn_abers_regression(truth, prediction)` fits from finite real-valued vectors

@@ -90,7 +90,7 @@ local({
   stopifnot(!"vennabers" %in% loadedNamespaces())
   original_libraries <- .libPaths()
   on.exit(.libPaths(original_libraries), add = TRUE)
-  .libPaths(c(library_dir, .Library))
+  .libPaths(c(library_dir, original_libraries))
   library(vennabers, lib.loc = library_dir)
   installed_path <- normalizePath(file.path(library_dir, description[["Package"]]))
   stopifnot(

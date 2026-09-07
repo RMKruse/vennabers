@@ -63,6 +63,9 @@ jobs:
         with:
           name: source-candidate
           path: .scratch/source
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"Suggests"'
       - name: Verify source identity
         shell: bash
         working-directory: .scratch/source

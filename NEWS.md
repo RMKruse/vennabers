@@ -77,3 +77,10 @@
   acceptance gate to cover it and the README examples.
 - Preserve the v0.1 IVAP intervals, regularized probabilities, scores, plot,
   and printing behavior. R 4.1.0 remains the minimum; no dependencies added.
+# Development
+
+- Add optional `calibrated_workflow()` for automatic binary Inductive calibration
+  with raw-variable transport, local recipe learning, native probability/class
+  prediction, loss overrides, and `venn_abers_details()` diagnostics.
+- Preserve class names, split positions, complete base workflows and calibration
+  state; validate unsupported options and naming collisions before inner learning.

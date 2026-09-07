@@ -1,0 +1,242 @@
+# The outer workflow only carries raw variables. Learning belongs to the base
+# workflow after the local split, including any recipe preparation.
+calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
+                                method = "inductive", classification = "binary",
+                                event_level = "first", calibration_prop = 0.2,
+                                strata = NULL, seed = NULL, precision = NULL,
+                                loss = "log") {
+  .integration_dots(...)
+  # Arguments before ... also need exact names (R otherwise partially matches).
+  supplied <- names(sys.call())[-1L]
+  bad <- supplied[nzchar(supplied) & !supplied %in% names(formals(calibrated_workflow))]
+  if (length(bad)) stop("Unknown argument: ", sQuote(bad[1L]), ".", call. = FALSE)
+  .integration_names(outcome, "outcome")
+  if (length(outcome) != 1L) stop("`outcome` must name one column.", call. = FALSE)
+  if (grepl("^(\\.pred($|_)|\\.row$|\\.config$|id([1-9][0-9]*)?$)", outcome)) {
+    stop("Outcome ", sQuote(outcome), " is reserved for prediction/resample metadata; rename it explicitly.", call. = FALSE)
+  }
+  if (!is.null(predictors)) {
+    .integration_names(predictors, "predictor")
+    if (outcome %in% predictors) stop("Outcome ", sQuote(outcome), " is also a predictor.", call. = FALSE)
+  }
+  .validate_choice(method, "inductive", "method")
+  .validate_choice(classification, "binary", "classification")
+  .validate_choice(event_level, c("first", "second"), "event_level")
+  .validate_choice(loss, c("log", "brier"), "loss")
+  if (!is.numeric(calibration_prop) || !is.vector(calibration_prop) ||
+      length(calibration_prop) != 1L || !is.finite(calibration_prop) ||
+      calibration_prop <= 0 || calibration_prop >= 1) {
+    stop("`calibration_prop` must be one number strictly between 0 and 1.", call. = FALSE)
+  }
+  if (!is.null(strata) && !identical(strata, FALSE)) {
+    stop("`strata` must be NULL (outcome stratification) or FALSE.", call. = FALSE)
+  }
+  if (!is.null(seed) && (!is.numeric(seed) || !is.vector(seed) || length(seed) != 1L ||
+                        !is.finite(seed) || seed != floor(seed) || abs(seed) > .Machine$integer.max)) {
+    stop("`seed` must be NULL or one integer in R's seed range.", call. = FALSE)
+  }
+  if (!is.null(precision) && (!is.numeric(precision) || !is.vector(precision) ||
+                            length(precision) != 1L || !is.finite(precision) || precision != floor(precision))) {
+    stop("`precision` must be NULL or one finite numeric whole number.", call. = FALSE)
+  }
+  .integration_packages()
+  .validate_base_workflow(workflow, outcome)
+  .register_vennabers()
+  requested <- list(predictors = predictors, method = method, classification = classification,
+                    event_level = event_level, calibration_prop = calibration_prop,
+                    strata = strata, seed = seed, precision = precision, loss = loss)
+  explicit <- c(predictors = !missing(predictors), method = !missing(method),
+                classification = !missing(classification), event_level = !missing(event_level),
+                calibration_prop = !missing(calibration_prop), strata = !missing(strata),
+                seed = !missing(seed), precision = !missing(precision), loss = !missing(loss))
+  spec <- parsnip::new_model_spec("vennabers", args = list(), eng_args = NULL,
+                                mode = "classification", method = NULL, engine = "inductive")
+  spec <- parsnip::set_engine(spec, "inductive", base_workflow = workflow,
+                             outcome = outcome, parameters = list(requested = requested, explicit = explicit))
+  selection <- if (is.null(predictors)) quote(everything()) else predictors
+  carrier <- rlang::inject(workflows::add_variables(
+    workflows::workflow(), outcomes = .integration_select_outcome(!!outcome), predictors = !!selection,
+    blueprint = hardhat::default_xy_blueprint(intercept = FALSE, allow_novel_levels = TRUE)))
+  workflows::add_model(carrier, spec)
+}
+
+.integration_select_outcome <- function(outcome) {
+  .integration_names(tidyselect::peek_vars(), "input column")
+  data <- tidyselect::peek_data()
+  if (outcome %in% names(data)) .integration_class_levels(data[[outcome]], outcome)
+  outcome
+}
+
+.integration_dots <- function(...) {
+  if (...length()) stop("`...` must be empty; unsupported argument: ",
+                        paste(names(list(...)), collapse = ", "), ".", call. = FALSE)
+}
+
+.integration_names <- function(x, role) {
+  if (!is.character(x) || !is.vector(x) || !length(x)) {
+    stop("The ", role, " names must be a nonempty character vector.", call. = FALSE)
+  }
+  bad <- is.na(x) | !nzchar(x) | duplicated(x)
+  if (any(bad)) stop("Invalid ", role, " name ", sQuote(x[which(bad)[1L]]),
+                     ": names must be unique, nonmissing and nonempty; rename explicitly.", call. = FALSE)
+}
+
+.validate_base_workflow <- function(workflow, outcome) {
+  if (!inherits(workflow, "workflow")) stop("`workflow` must be an unfitted workflow.", call. = FALSE)
+  fitted <- tryCatch(workflows::extract_fit_parsnip(workflow), error = function(e) NULL)
+  if (!is.null(fitted)) stop("`workflow` is already fitted.", call. = FALSE)
+  post <- tryCatch(workflows::extract_postprocessor(workflow), error = function(e) NULL)
+  if (!is.null(post)) stop("Additional workflow postprocessors are not supported.", call. = FALSE)
+  spec <- workflows::extract_spec_parsnip(workflow)
+  if (!identical(spec$mode, "classification")) {
+    stop("The base workflow model mode must be classification (binary).", call. = FALSE)
+  }
+  if (is.null(spec$engine)) stop("Configure the base workflow model engine before calibration.", call. = FALSE)
+  pre <- workflows::extract_preprocessor(workflow)
+  if (inherits(pre, "recipe")) {
+    if (recipes::fully_trained(pre) || any(vapply(pre$steps, function(x) isTRUE(recipes::is_trained(x)), logical(1)))) {
+      stop("The base workflow recipe is already prepped/trained.", call. = FALSE)
+    }
+    targets <- pre$var_info$variable[pre$var_info$role == "outcome"]
+    if (!identical(targets, outcome)) stop("Base recipe outcome must be ", sQuote(outcome), ".", call. = FALSE)
+    if (outcome %in% names(pre$template)) .integration_class_levels(pre$template[[outcome]], outcome)
+  } else if (inherits(pre, "formula")) {
+    if (length(pre) != 3L || !identical(pre[[2L]], as.name(outcome))) {
+      stop("Base formula outcome must be the raw column ", sQuote(outcome), ".", call. = FALSE)
+    }
+  }
+  if (nrow(generics::tune_args(workflow))) stop("Resolve all tune() placeholders before calibration.", call. = FALSE)
+  invisible(NULL)
+}
+
+.integration_class_levels <- function(y, outcome) {
+  if (!is.factor(y) || nlevels(y) != 2L || anyNA(y)) {
+    stop("Outcome ", sQuote(outcome), " must be a nonmissing factor with exactly two levels.", call. = FALSE)
+  }
+  classes <- levels(y)
+  .integration_names(classes, "class")
+  bad <- classes == "class" | startsWith(classes, ".pred_")
+  if (any(bad)) stop("Class ", sQuote(classes[which(bad)[1L]]),
+                     " is reserved for native predictions; rename it explicitly.", call. = FALSE)
+  classes
+}
+
+# Public only as a parsnip engine entry point; use calibrated_workflow().
+fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
+  .integration_packages()
+  .validate_base_workflow(base_workflow, outcome)
+  .integration_names(names(x), "input column")
+  if (is.data.frame(y) && ncol(y) == 1L) y <- y[[1L]]
+  classes <- .integration_class_levels(y, outcome)
+  if (any(tabulate(y, nbins = 2L) == 0L)) {
+    stop("Outcome ", sQuote(outcome), " must contain both classes in the development data.", call. = FALSE)
+  }
+  raw <- as.data.frame(x)
+  raw[[outcome]] <- y
+  pre <- workflows::extract_preprocessor(base_workflow)
+  if (inherits(pre, "workflow_variables") &&
+      !identical(names(tidyselect::eval_select(pre$outcomes, raw)), outcome)) {
+    stop("Base workflow outcome must be ", sQuote(outcome), ".", call. = FALSE)
+  }
+  settings <- parameters$requested
+  effective <- settings
+  effective$predictors <- names(x)
+  effective$strata <- if (is.null(settings$strata)) outcome else FALSE
+  parameters$effective <- effective
+  event <- classes[if (settings$event_level == "first") 1L else 2L]
+  # One local RNG scope includes both split generation and base model learning.
+  if (!is.null(settings$seed)) withr::local_seed(settings$seed)
+  split <- tryCatch(if (identical(effective$strata, FALSE)) {
+    rsample::initial_split(raw, prop = 1 - settings$calibration_prop)
+  } else {
+    rlang::inject(rsample::initial_split(raw, prop = 1 - settings$calibration_prop,
+                                       strata = !!outcome, pool = 0))
+  }, error = function(e) stop("Inductive1 rsample split failed (nonempty training and calibration required): ",
+                              conditionMessage(e), call. = FALSE))
+  analysis <- as.integer(split, data = "analysis")
+  assessment <- as.integer(split, data = "assessment")
+  if (!length(analysis) || !length(assessment) || anyDuplicated(analysis) ||
+      anyDuplicated(assessment) || length(intersect(analysis, assessment)) ||
+      !identical(sort(c(analysis, assessment)), seq_len(nrow(raw)))) {
+    stop("Inductive1 must partition all rows into nonempty, disjoint training and calibration positions.", call. = FALSE)
+  }
+  model <- tryCatch(generics::fit(base_workflow, raw[analysis, , drop = FALSE]),
+                    error = function(e) stop("Inductive1 base workflow training: ", conditionMessage(e), call. = FALSE))
+  p <- .base_event_probability(model, raw[assessment, , drop = FALSE], classes, event)
+  calibrator <- venn_abers(y[assessment] == event, p, precision = settings$precision)
+  structure(list(parameters = parameters, outcome = outcome,
+                 predictors = names(x), columns = names(raw), class_levels = classes,
+                 event_class = event, loss = settings$loss,
+                 folds = list(Inductive1 = list(analysis = analysis, assessment = assessment,
+                                              training_size = length(analysis), calibration_size = length(assessment))),
+                 models = list(Inductive1 = model), calibrator = calibrator,
+                 versions = c(R = as.character(getRversion()),
+                              vapply(c("vennabers", names(.integration_versions)),
+                                     function(p) as.character(utils::packageVersion(p)), "")),
+                 rng_kind = RNGkind()), class = "vennabers_fit")
+}
+
+.base_event_probability <- function(model, data, classes, event) {
+  p <- tryCatch(stats::predict(model, data, type = "prob"),
+                error = function(e) stop("Inductive1 base workflow probability prediction: ", conditionMessage(e), call. = FALSE))
+  .integration_names(names(p), "base probability column")
+  expected <- paste0(".pred_", classes)
+  if (!setequal(names(p), expected) || nrow(p) != nrow(data) ||
+      !all(vapply(p, .valid_probability, logical(1))) ||
+      any(abs(rowSums(p) - 1) > 1e-8)) {
+    stop("Inductive1 base workflow must return finite probabilities for original classes ",
+         paste(sQuote(classes), collapse = ", "), " in columns ",
+         paste(sQuote(expected), collapse = ", "), ".", call. = FALSE)
+  }
+  as.double(p[[paste0(".pred_", event)]])
+}
+
+.integration_prediction <- function(object, new_data) {
+  p <- if (nrow(new_data)) {
+    .base_event_probability(object$models$Inductive1, new_data, object$class_levels, object$event_class)
+  } else numeric()
+  bounds <- stats::predict(object$calibrator, p, loss = object$loss)
+  probabilities <- lapply(object$class_levels, function(cl) {
+    if (cl == object$event_class) bounds$probability else 1 - bounds$probability
+  })
+  names(probabilities) <- paste0(".pred_", object$class_levels)
+  list(prediction = tibble::as_tibble(probabilities, .name_repair = "minimal"),
+       details = tibble::tibble(row = seq_len(nrow(new_data)),
+                               fold = rep("Inductive1", nrow(new_data)),
+                               event_class = rep(object$event_class, nrow(new_data)),
+                               lower = bounds$lower, upper = bounds$upper,
+                               probability = bounds$probability))
+}
+
+predict_vennabers_prob <- function(object, new_data) {
+  .integration_prediction(object, new_data)$prediction
+}
+
+predict_vennabers_class <- function(object, new_data) {
+  p <- .integration_prediction(object, new_data)$details$probability
+  factor(ifelse(p >= .5, object$event_class,
+                object$class_levels[object$class_levels != object$event_class]), levels = object$class_levels)
+}
+
+predict._vennabers_fit <- function(object, new_data, type = NULL, opts = list(), ..., loss = NULL) {
+  .integration_dots(...)
+  if (!missing(loss)) {
+    .validate_choice(loss, c("log", "brier"), "loss")
+    object$fit$loss <- loss
+  }
+  if (!is.null(type)) .validate_choice(type, c("prob", "class"), "type")
+  parsnip::predict.model_fit(object, new_data, type = type, opts = opts)
+}
+
+venn_abers_details <- function(object, new_data, ..., loss = NULL) {
+  .integration_dots(...)
+  .integration_packages()
+  state <- workflows::extract_fit_engine(object)
+  if (!inherits(state, "vennabers_fit")) stop("`object` must be a fitted calibrated_workflow().", call. = FALSE)
+  if (!missing(loss)) {
+    .validate_choice(loss, c("log", "brier"), "loss")
+    state$loss <- loss
+  }
+  forged <- hardhat::forge(new_data, blueprint = workflows::extract_mold(object)$blueprint)
+  .integration_prediction(state, forged$predictors)
+}
