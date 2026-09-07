@@ -40,54 +40,81 @@
   result
 }
 
-.fit_inductive_multiclass <- function(truth, probability, precision, method) {
+.subproblem_probability <- function(probability, problem) {
+  if (length(problem) == 1L) probability[, problem] else .pair_probability(probability, problem)
+}
+
+.fit_multiclass <- function(truth, probability, precision, method, fold = NULL) {
   probability <- .validate_multiclass_input(truth, probability, require_all = TRUE)
   classes <- levels(truth)
   pairs <- if (method == "ovo") utils::combn(classes, 2L, simplify = FALSE) else NULL
-  calibrators <- if (method == "ovr") {
-    lapply(classes, function(class) venn_abers(truth == class, probability[, class], precision))
-  } else {
-    lapply(pairs, function(pair) {
-      rows <- truth %in% pair
-      venn_abers(truth[rows] == pair[2L],
-                 .pair_probability(probability[rows, , drop = FALSE], pair), precision)
-    })
-  }
-  structure(list(classes = classes, method = method, pairs = pairs, calibrators = calibrators,
-                 observations = length(truth)), class = "venn_abers")
+  problems <- if (method == "ovo") pairs else as.list(classes)
+  calibrators <- lapply(problems, function(problem) {
+    rows <- if (method == "ovo") truth %in% problem else rep(TRUE, length(truth))
+    absent <- setdiff(unique(fold), fold[rows])
+    if (length(absent)) {
+      stop("Empty calibration for pair [", paste(problem, collapse = ", "),
+           "] in fold [", absent[1L], "].", call. = FALSE)
+    }
+    event <- truth[rows] == problem[length(problem)]
+    scores <- .subproblem_probability(probability[rows, , drop = FALSE], problem)
+    if (is.null(fold)) venn_abers(event, scores, precision) else
+      cross_venn_abers(event, scores, fold[rows], precision)
+  })
+  result <- list(classes = classes, method = method, pairs = pairs, calibrators = calibrators,
+                 observations = length(truth))
+  if (!is.null(fold)) result$folds <- unique(fold)
+  structure(result, class = if (is.null(fold)) "venn_abers" else "cross_venn_abers")
 }
 
-.predict_inductive_multiclass <- function(object, newdata, loss, type) {
+.predict_multiclass <- function(object, newdata, loss, type) {
   .validate_choice(type, c("response", "class", "details"), "type")
-  newdata <- .class_probability(newdata, object$classes, "newdata")
-  n <- nrow(newdata)
-  k <- length(object$classes)
-  details <- vector("list", length(object$calibrators))
-  ovr <- identical(object$method, "ovr")
-  if (ovr) {
-    prediction <- matrix(0, n, k, dimnames = dimnames(newdata))
-    for (i in seq_along(object$classes)) {
-      class <- object$classes[i]
-      binary <- stats::predict(object$calibrators[[i]], newdata[, class], loss = loss)
-      prediction[, class] <- binary$probability
-      if (type == "details") {
-        details[[i]] <- data.frame(row = seq_len(n), event = rep(class, n), binary)
-      }
+  cross <- inherits(object, "cross_venn_abers")
+  if (cross) {
+    ids <- names(newdata)
+    if (!is.list(newdata) || is.data.frame(newdata) || !is.null(dim(newdata)) ||
+        is.null(ids) || anyNA(ids) || any(!nzchar(ids)) || anyDuplicated(ids) ||
+        !setequal(ids, object$folds)) {
+      stop("`newdata` must be a list named uniquely by the fitted fold IDs.", call. = FALSE)
+    }
+    newdata <- lapply(object$folds, function(id) {
+      .class_probability(newdata[[id]], object$classes, paste0("newdata fold ", id))
+    })
+    names(newdata) <- object$folds
+    if (length(unique(vapply(newdata, nrow, 0L))) != 1L) {
+      stop("`newdata` fold matrices must have the same number of rows.", call. = FALSE)
     }
   } else {
-    reciprocal <- matrix(2 - k, n, k, dimnames = dimnames(newdata))
-    for (i in seq_along(object$pairs)) {
-      pair <- object$pairs[[i]]
-      binary <- stats::predict(object$calibrators[[i]], .pair_probability(newdata, pair), loss = loss)
-      reciprocal[, pair[1L]] <- reciprocal[, pair[1L]] + 1 / (1 - binary$probability)
-      reciprocal[, pair[2L]] <- reciprocal[, pair[2L]] + 1 / binary$probability
-      if (type == "details") {
-        details[[i]] <- data.frame(row = seq_len(n),
-                                  non_event = rep(pair[1L], n), event = rep(pair[2L], n), binary)
-      }
-    }
-    prediction <- 1 / reciprocal
+    newdata <- list(.class_probability(newdata, object$classes, "newdata"))
   }
+  n <- nrow(newdata[[1L]])
+  k <- length(object$classes)
+  ovr <- identical(object$method, "ovr")
+  problems <- if (ovr) as.list(object$classes) else object$pairs
+  details <- vector("list", length(problems))
+  prediction <- matrix(if (ovr) 0 else 2 - k, n, k, dimnames = dimnames(newdata[[1L]]))
+  for (i in seq_along(problems)) {
+    problem <- problems[[i]]
+    scores <- lapply(newdata, .subproblem_probability, problem = problem)
+    scores <- if (cross) do.call(cbind, scores) else scores[[1L]]
+    binary <- stats::predict(object$calibrators[[i]], scores, loss = loss,
+                             type = if (cross && type == "details") "details" else "response")
+    point <- if (cross && type == "details") binary$prediction$probability else binary$probability
+    event <- problem[length(problem)]
+    if (ovr) {
+      prediction[, event] <- point
+    } else {
+      prediction[, problem[1L]] <- prediction[, problem[1L]] + 1 / (1 - point)
+      prediction[, event] <- prediction[, event] + 1 / point
+    }
+    if (type == "details") {
+      parts <- if (cross) binary$folds else data.frame(row = seq_len(n), binary)
+      identity <- if (ovr) data.frame(event = rep(event, nrow(parts))) else
+        data.frame(non_event = rep(problem[1L], nrow(parts)), event = rep(event, nrow(parts)))
+      details[[i]] <- cbind(parts["row"], identity, parts[setdiff(names(parts), "row")])
+    }
+  }
+  if (!ovr) prediction <- 1 / prediction
   prediction <- prediction / rowSums(prediction)
   if (type == "class") {
     return(factor(object$classes[max.col(prediction, ties.method = "first")], levels = object$classes))

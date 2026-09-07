@@ -1,5 +1,11 @@
 # vennabers 0.3.0 (development)
 
+- Add manual Cross multiclass OvO/OvR with one shared calibration fold plan
+  and a fold-named list of new class matrices. Merge binary folds with
+  Log/Brier before coupling or normalization; expose reconstructible fold
+  diagnostics, preserve global classes, and identify empty OvO pair/folds.
+  Reuse the Inductive multiclass paths and binary Cross merger. No model
+  training or dependencies added; no public manual Python Cross API claimed.
 - Add explicit `method = "ovr"` to manual Inductive multiclass calibration;
   OvO remains the default. Calibrate each class against all remaining classes,
   apply binary Log/Brier regularization, then normalize the class points.

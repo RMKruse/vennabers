@@ -1,6 +1,6 @@
 # venn-abers
 
-Dependency-free binary Inductive/Cross and multiclass Inductive OvO/OvR calibration for R 4.5
+Dependency-free binary Inductive/Cross and multiclass Inductive/Cross OvO/OvR calibration for R 4.5
 and later. This is the v0.3 development branch; version 0.2 added matched-fold
 cross calibration.
 
@@ -273,12 +273,78 @@ explicit R rules. Regeneration is in `tools/generate-multiclass-fixtures.py`;
 provenance and hashes. Both methods share the `ovo-calibration.csv` and
 `ovo-input.csv` inputs. Ordinary tests need no Python.
 
+## Multiclass Cross OvO and OvR
+
+`cross_venn_abers()` accepts factor truth, a named out-of-fold class matrix,
+and one common fold vector. Each class must occur globally. Folds may omit
+classes, but every OvO pair must remain nonempty in every fold; otherwise
+fit reports both the pair and fold. Singleton and single-class subcalibrations
+are supported. OvR uses all observations in each fold.
+
+Predict with a **list named by fold ID**, each element a complete class matrix
+for the same new observations in the same row order. The corresponding model
+must have excluded that calibration fold throughout fitting, preprocessing,
+and tuning. Retain these models yourself. List names and class names align
+inputs; row names cannot establish semantic alignment. Missing, additional,
+or duplicate names and unequal row counts fail. Class matrices follow the
+Inductive value and row-sum rules, including columns for absent fold classes.
+
+```r
+# Illustrative OOF values: A's retained model excluded rows 1:3;
+# B's retained model excluded rows 4:6. They supplied the matching new matrices.
+classes <- c("cat", "dog", "bird")
+truth <- factor(rep(classes, 2), levels = classes)
+p <- rbind(c(.7, .2, .1), c(.2, .6, .2), c(.1, .2, .7),
+           c(.5, .3, .2), c(.3, .5, .2), c(.2, .3, .5))
+colnames(p) <- classes
+new_by_fold <- list(B = p[4:5, , drop = FALSE], A = p[1:2, , drop = FALSE])
+assessment <- factor(c("cat", "dog"), levels = classes)
+for (method in c("ovo", "ovr")) {
+  fit <- cross_venn_abers(truth, p, rep(c("A", "B"), each = 3),
+                          method = method, precision = 2)
+  for (loss in c("log", "brier")) {
+    details <- predict(fit, new_by_fold, loss = loss, type = "details")
+    print(details)
+    print(predict(fit, new_by_fold, loss = loss, type = "class"))
+    print(brier_score(assessment, details$prediction))
+    print(log_loss(assessment, details$prediction))
+    calibration_plot(assessment, details$prediction)
+  }
+}
+```
+
+For each subproblem, merge binary folds first: stable equal-weight endpoint
+aggregation for Log, equal-weight fold Brier points for Brier. Only then apply
+OvO reciprocal coupling or OvR normalization. No pooling, size weighting, or
+averaging of finished multiclass fold outputs occurs. Fit rounding follows
+pair/class preparation, while new values remain unrounded.
+
+Response is the final class matrix; class predictions use its maximum and
+first-level tie rule. Details contain `prediction` and `pairs` (OvO) or
+`classes` (OvR), with `row`, `non_event` (OvO only), `event`, `fold`, `lower`,
+`upper`, and loss-dependent `probability`. Events are the later pair class
+or the selected class against the rest. Integer row positions and literal
+fold/class identities permit reconstruction, even with punctuation in names.
+Zero/one new row retains the output types and global class mapping. Output
+row names come from the first stored fold's matrix. There is no additional
+multiclass or Cross confidence interval.
+
+The [complete Cross multiclass example](examples/cross-multiclass.R) checks
+reconstruction for both methods and losses, unequal folds, and a missing fold
+class, then scores and plots the final probabilities. Run it against the
+installed package with `Rscript examples/cross-multiclass.R`; it is also included
+in `example(cross_venn_abers)`. Numerical tests use hand calculations and the
+existing reference-checked binary IVAP API followed by independent merging
+and combination, with absolute tolerance `1e-10`. **Python 1.5.4 has no matching
+public manual Cross-multiclass API**; this shared-fold interface is an R
+extension, distinct from Python's trained pairwise model/fold plans.
+
 ## Current scope
 
 The package does not support package-managed predictive-model fitting, fold
 creation, learned preprocessing, tuning or resampling; repeated or overlapping
-partitions; one-fold public cross calibration; multiclass Cross or regression
-calibration; observation weights; alternate event selection; automatic
+partitions; one-fold public cross calibration; regression
+calibration; separate pairwise model training or pair-specific fold plans; observation weights; alternate event selection; automatic
 coercion or missing-value handling; fold-size weighting, pooling or averaging
 log-loss fold point predictions; public aggregate cross bounds; formula/data-frame
 cross interfaces; tidymodels/yardstick integrations; or new metrics, smoothing,

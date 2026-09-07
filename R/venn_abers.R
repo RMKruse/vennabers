@@ -134,7 +134,7 @@ calibration_plot <- function(truth, probability, bins = 10, ...) {
 venn_abers <- function(truth, probability, precision = NULL, method = "ovo") {
   .validate_choice(method, c("ovo", "ovr"), "method")
   if (is.factor(truth)) {
-    return(.fit_inductive_multiclass(truth, probability, precision, method))
+    return(.fit_multiclass(truth, probability, precision, method))
   }
   if (!missing(method)) stop("`method` requires factor truth and a class matrix.", call. = FALSE)
   .validate_binary_input(truth, probability)
@@ -185,7 +185,7 @@ predict.venn_abers <- function(object, newdata, ..., loss = "log", type = "respo
     stop("`...` must be empty; unsupported prediction argument.", call. = FALSE)
   }
   .validate_choice(loss, c("log", "brier"), "loss")
-  if (!is.null(object$classes)) return(.predict_inductive_multiclass(object, newdata, loss, type))
+  if (!is.null(object$classes)) return(.predict_multiclass(object, newdata, loss, type))
   .validate_choice(type, c("response", "class"), "type")
   if (!.valid_probability(newdata)) {
     stop("`newdata` must be a numeric vector of finite values between 0 and 1.", call. = FALSE)

@@ -10,14 +10,17 @@
   \code{[0, 1]}, one row per new observation and one column per corresponding
   fold model. Column names must be complete, non-empty, non-missing, unique,
   and match the fitted fold identities exactly. Any column order is accepted.
-  A correctly named zero-row matrix is accepted.}
+  A correctly named zero-row matrix is accepted. For multiclass, a list
+  named uniquely and completely by fitted fold IDs, each element a numeric
+  class matrix with the same number of new rows and all fitted class columns.
+  Classes and folds are aligned by name. Zero-row matrices are accepted.}
   \item{...}{Must be empty; unsupported arguments are errors.}
   \item{loss}{Exactly \code{"log"} (default) or \code{"brier"}.}
   \item{type}{Exactly \code{"response"} (default), \code{"class"}, or
   \code{"details"}. Supply both options by their full argument names.}
 }
 \value{
-For \code{type = "response"}, a data frame with exactly one double column, \code{probability}, containing
+For binary calibration, \code{type = "response"} returns a data frame with exactly one double column, \code{probability}, containing
 one finite regularized event probability in \code{[0, 1]} per input row,
 in input row order. A zero-row input returns the same empty schema.
 
@@ -35,6 +38,20 @@ Rows are grouped by stored fold order, then new-row order. There is exactly
 one record per new row and fold: zero input rows give an empty fold table,
 and one input row gives one record per fold. These are new-observation
 results, not out-of-fold calibration probabilities.
+
+For multiclass, the standard output is a double class-probability matrix in
+stored factor-level order, with row names from the first stored fold's matrix.
+Class output is a factor with those levels, choosing the highest final
+probability and the first level on exact ties (also for two classes).
+Details contain \code{prediction} plus \code{pairs} for OvO or \code{classes}
+for OvR. The table columns are integer \code{row}, character \code{non_event}
+(OvO only), character \code{event}, character \code{fold}, and double
+\code{lower}, \code{upper}, \code{probability}. Events are the later pair
+class for OvO or the literal class against the rest for OvR. Records follow
+pair/class order, then fold first-appearance order within that subproblem's
+calibration rows, then new-row order. Each row/subproblem/fold appears once.
+The points use the chosen loss; endpoints do not change with loss. Zero or
+one new row retains matrix, factor, and detail-table types and mappings.
 }
 \description{
 Matches new-observation columns to their fold calibrators by identity and
@@ -44,9 +61,12 @@ combines the resulting IVAP results using the chosen equal-weight aggregation.
 Character fold identities match literally. Numeric fitting IDs match their
 Base R character representations. Missing, extra, duplicate, empty, or absent
 column names fail the entire call, as do invalid probability values and
-unsupported types or shapes (including vectors, lists, data frames, logical
+unsupported binary types or shapes (including vectors, lists, data frames, logical
 matrices and character matrices). A column for an unobserved fold is an error.
-Values are never dropped, clamped or rounded.
+Values are never dropped, clamped or rounded. For multiclass, invalid list
+names, unequal row counts, or an invalid class matrix in any fold fail the
+whole call. The class value, name, and row-sum rules match fit time; accepted
+row sums within tolerance are normalized. Row names are not alignment keys.
 
 Use each retained fold model that supplied that fold's calibration
 probabilities; predictions from one all-data refit cannot substitute for the
@@ -72,7 +92,11 @@ No aggregate endpoints are returned. The geometric pair
 \eqn{(1-A, B)} can cross; it is not an ordered interval or confidence interval.
 Neither that pair nor the combined point inherits the IVAP perfect-calibration
 guarantee. There is no universal score-improvement guarantee. The output
-feeds the existing scores and Base R calibration plot directly.
+feeds the existing scores and Base R calibration plot directly. For
+multiclass, apply this binary merger within each pair/class first, then OvO
+coupling or OvR normalization as described in \code{\link{cross_venn_abers}}.
+Reconstruct the final matrix from these per-fold diagnostics; there is no
+average of already coupled/normalized multiclass fold predictions.
 }
 \examples{
 calibrator <- cross_venn_abers(c(0, 1, 0, 1), c(.1, .8, .2, .9), c(1, 1, 2, 2))
