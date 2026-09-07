@@ -21,7 +21,7 @@ venn_abers(truth, probability, precision = NULL, method = "ovo")
   finite numeric whole number, including zero or negative values, passed to
   native R \code{round()} for calibration probabilities only. Logical,
   missing, nonfinite, fractional, and multiple values are errors.}
-  \item{method}{Exactly \code{"ovo"}, the multiclass default. Explicitly
+  \item{method}{Exactly \code{"ovo"} (default) or \code{"ovr"}. Explicitly
   supplying this argument requires factor truth and a class matrix.}
 }
 \value{
@@ -36,7 +36,7 @@ The calibration set must be separate from the fixed predictive model's
 training, including learned preprocessing and tuning. Single-class and
 singleton binary calibration sets are valid. Rows align by position, not names.
 
-Multiclass uses each pair in factor-level order and only that pair's
+One-vs-One (\code{method = "ovo"}) uses each pair in factor-level order and only that pair's
 calibration observations. The later class is the binary event. Its probability
 is divided by the pair sum before optional rounding. An exactly zero pair sum
 uses event probability 0.5, including during prediction. This fit replacement
@@ -46,6 +46,11 @@ There are no separate trained pair models. All global classes must occur,
 so an Inductive OvO pair always has both observed classes. The underlying
 binary calibrator still accepts single-class subsets.
 
+One-vs-Rest (\code{method = "ovr"}) uses all calibration observations for
+each class. That class is the binary event; its class probability is the
+calibration probability, optionally rounded at fit time. The binary points
+are normalized across classes only after the chosen regularization.
+
 Original probabilities are validated before rounding; an out-of-range input
 cannot become valid through rounding. Exact ties after rounding are combined.
 New probabilities supplied to \code{predict()} remain unrounded, and changing
@@ -54,7 +59,10 @@ floating-point boundaries; NumPy rounding is not emulated.
 
 Choose log-loss (default) or Brier regularization at prediction time without
 refitting. See \code{\link{predict.venn_abers}} for probabilities, classes,
-pair coupling, and details. Exactly two factor levels also select the
+pair coupling or class normalization, and details. Manual Brier for both
+multiclass methods is a deliberate R extension over the examined Python
+1.5.4 manual path, which supports log regularization and precision.
+Exactly two factor levels also select the
 multiclass matrix contract, with its distinct tie rule and Brier score scale.
 }
 \examples{
@@ -84,4 +92,13 @@ predict(fit, new_p, loss = "brier", type = "class")
 brier_score(assessment, details$prediction)
 log_loss(assessment, details$prediction)
 calibration_plot(assessment, details$prediction)
+
+ovr <- venn_abers(truth, p, method = "ovr", precision = 2)
+predict(ovr, new_p)
+ovr_details <- predict(ovr, new_p, loss = "brier", type = "details")
+ovr_details$classes
+predict(ovr, new_p, loss = "brier", type = "class")
+brier_score(assessment, ovr_details$prediction)
+log_loss(assessment, ovr_details$prediction)
+calibration_plot(assessment, ovr_details$prediction)
 }

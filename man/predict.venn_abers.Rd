@@ -29,12 +29,18 @@ For multiclass, \code{"response"} returns a numeric class-probability matrix
 in fitted factor-level order, retaining new-row order and matrix row names.
 \code{"class"} returns an unnamed factor with the stored levels; the first
 stored class wins exact ties. This also applies with exactly two classes,
-whereas binary vector ties select the event. \code{"details"} returns a list
+whereas binary vector ties select the event. Classes use the final probabilities
+of the fitted method. For OvO, \code{"details"} returns a list
 with \code{prediction} (the response matrix) and \code{pairs}, a data frame
 with \code{row}, \code{non_event}, \code{event}, \code{lower}, \code{upper},
 and \code{probability}. Row is the integer one-based new-row position;
 the two class names are character columns. The remaining columns are doubles.
-Pairs follow factor-level combination order, then new-row order. Zero or one
+Pairs follow factor-level combination order, then new-row order.
+For OvR, the list contains \code{prediction} and \code{classes}, a data frame
+with integer \code{row}, character \code{event}, and double \code{lower},
+\code{upper}, \code{probability}. The event is the named class against all
+other classes; no artificial rest label is introduced. Records follow stored
+class order, then new-row order. Zero or one
 new rows retain these matrix, factor, list, and table schemas.
 }
 \description{
@@ -50,14 +56,20 @@ Input names are not alignment keys. The endpoints are Venn-Abers bounds,
 not confidence intervals. The probability column can be passed to the
 existing scores and calibration plot with either loss choice.
 
-For multiclass, class and pair normalization precedes prediction, including
+For OvO, class and pair normalization precedes prediction, including
 the zero-pair replacement described in \code{\link{venn_abers}}. New pair
 probabilities remain unrounded. After binary regularization, for class j let
 q[j,i] be its probability in its pair with class i. Reciprocal coupling is
 \code{w[j] = 1 / (sum(1 / q[j,i]) - (K - 2))}, summed over the other K-1
 classes. The response is \code{w / sum(w)}. For each diagnostic record,
 \code{probability} is the event's q and \code{1 - probability} is the
-non-event's q. Thus details reconstruct the final matrix for either loss.
+non-event's q.
+
+For OvR, input class normalization precedes prediction. Each class probability
+enters its binary calibrator unrounded. After log or Brier regularization,
+divide the class points by their sum for each new row to obtain the response.
+The \code{classes} table supplies those pre-normalization points, so details
+reconstruct the final matrix for either method and loss.
 The endpoints describe only the binary subproblems, not multiclass confidence
 intervals. Binary Brier regularization does not imply optimality for the final
 multiclass Brier score or guarantee improvement in assessment scores.

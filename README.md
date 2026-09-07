@@ -1,6 +1,6 @@
 # venn-abers
 
-Dependency-free binary Inductive/Cross and multiclass Inductive OvO calibration for R 4.5
+Dependency-free binary Inductive/Cross and multiclass Inductive OvO/OvR calibration for R 4.5
 and later. This is the v0.3 development branch; version 0.2 added matched-fold
 cross calibration.
 
@@ -173,7 +173,7 @@ The five public functions are `venn_abers()`, `cross_venn_abers()`,
 registered `predict()` and `print()` methods. See `?cross_venn_abers` and
 `?predict.cross_venn_abers` for executable help and the complete contract.
 
-## Multiclass Inductive OvO
+## Multiclass Inductive OvO and OvR
 
 Supply factor truth and a numeric matrix with one named column per factor
 level. Every level must occur in the calibration set. Columns are matched
@@ -202,26 +202,50 @@ log_loss(assessment, details$prediction)
 calibration_plot(assessment, details$prediction)
 ```
 
-Each class pair uses only its calibration observations. Pair probabilities
+OvO (`method = "ovo"`, the default) uses only each class pair's calibration observations. Pair probabilities
 are normalized before optional native R rounding; the later factor level is
 the event. An exactly zero pair sum uses event probability `0.5`. That fit
 replacement is also rounded (`precision = 0` makes it zero); new pair
 probabilities always remain unrounded. No pair models are trained.
 
-The selected binary Log/Brier regularization precedes reciprocal coupling:
+For OvO, the selected binary Log/Brier regularization precedes reciprocal coupling:
 for class `j`, `w[j] = 1 / (sum(1 / q[j,i]) - (K - 2))`, where `q[j,i]`
 is its probability against each other class. Normalize `w` to sum to one.
-The default result is a class matrix. Classes use its maximum, choosing the
+OvR (`method = "ovr"`) instead fits each class against all remaining classes
+using every calibration observation. The class being considered is the event;
+its probability is optionally rounded only during fit. Apply the selected
+binary Log/Brier regularization, then divide those class points by their row
+sum. New class probabilities remain unrounded. To run the same workflow with OvR:
+
+```r
+ovr <- venn_abers(truth, p, method = "ovr", precision = 2)
+predict(ovr, new_p)
+ovr_details <- predict(ovr, new_p, loss = "brier", type = "details")
+ovr_details$classes
+predict(ovr, new_p, loss = "brier", type = "class")
+brier_score(assessment, ovr_details$prediction)
+log_loss(assessment, ovr_details$prediction)
+calibration_plot(assessment, ovr_details$prediction)
+```
+
+For either method, the default result is a class matrix. Classes use its maximum, choosing the
 first stored level on ties, including with exactly two factor levels.
 Binary vector ties continue to choose the event. Existing positional
 `precision` calls remain valid; supply `method` by name.
 
-Details contain `prediction` and `pairs`. Each pair-table record has the
+OvO details contain `prediction` and `pairs`. Each pair-table record has the
 integer new-row position `row`, literal character `non_event`/`event` names,
 and double `lower`, `upper`, `probability`. Records follow factor-level pair
 order and then new-row order. The endpoints stay the same under a loss switch;
 the event point and its complement reconstruct the coupling. These are binary
-diagnostics, not multiclass confidence intervals. Empty new matrices retain
+diagnostics, not multiclass confidence intervals.
+OvR details contain `prediction` and `classes`, with integer `row`, character
+`event`, and double `lower`, `upper`, `probability` columns. Each event is the
+literal class name against every other class, in stored class order then new-row
+order; no synthetic rest label can collide with a real class name. Normalize
+the diagnostic point probabilities across classes per row to reconstruct the
+final matrix. Class predictions always use the chosen method's final matrix.
+Empty new matrices retain
 their class columns; empty classes retain levels; empty details retain schemas.
 
 Assessment may omit observed classes while retaining their factor levels and
@@ -233,22 +257,27 @@ one panel per class and invisibly return `class`, `mean_probability`,
 `event_rate`, and `count` for occupied bins. Neither loss choice guarantees
 an improvement in assessment scores or optimal final multiclass Brier loss.
 
-The [complete example](examples/inductive-ovo.R) verifies reconstruction and
-runs against the installed package. `example(venn_abers)` also includes a
+The complete [OvO](examples/inductive-ovo.R) and [OvR](examples/inductive-ovr.R)
+examples verify reconstruction and run against the installed package. `example(venn_abers)` also includes a
 complete multiclass scoring/plotting workflow in the installed help.
 Stored fixtures cover 33 fixed/seeded cases, two to four classes, both losses,
 and rounding at `NULL`, zero, two, and minus one digits, with tolerance `1e-10`.
-Log OvO uses the pinned Python 1.5.4 manual reference; Brier uses its binary
-reference components followed by independent coupling. The manual Brier API,
-zero-pair replacement, validation and native R rounding are explicit R rules.
-Regeneration and provenance are in `tools/generate-ovo-fixtures.py` and
-`inst/extdata/ovo-environment.json`; ordinary tests need no Python.
+Log OvO/OvR uses the pinned Python 1.5.4 manual reference; two-class OvR uses
+its multiclass component because the Python facade selects a single binary
+calibrator for two classes. Brier uses binary reference components followed by
+independent coupling or normalization. **Manual Brier for both methods is a
+deliberate R extension**: the examined Python manual path does not forward a
+Brier selection. Zero-pair replacement, validation and native R rounding are
+explicit R rules. Regeneration is in `tools/generate-multiclass-fixtures.py`;
+`inst/extdata/ovo-environment.json` and `inst/extdata/ovr-environment.json` record
+provenance and hashes. Both methods share the `ovo-calibration.csv` and
+`ovo-input.csv` inputs. Ordinary tests need no Python.
 
 ## Current scope
 
 The package does not support package-managed predictive-model fitting, fold
 creation, learned preprocessing, tuning or resampling; repeated or overlapping
-partitions; one-fold public cross calibration; multiclass OvR/Cross or regression
+partitions; one-fold public cross calibration; multiclass Cross or regression
 calibration; observation weights; alternate event selection; automatic
 coercion or missing-value handling; fold-size weighting, pooling or averaging
 log-loss fold point predictions; public aggregate cross bounds; formula/data-frame

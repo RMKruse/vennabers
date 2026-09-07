@@ -1,8 +1,9 @@
 """Optional Python 1.5.4 fixture regeneration; package tests read stored CSVs.
 
-Log OvO is checked against the public manual implementation. Brier uses the
+Log OvO/OvR is checked against the manual implementation. Brier uses the
 upstream binary model-backed merger with supplied probability tables, followed
-by independently reconstructed reciprocal coupling (an R API extension).
+by independent reciprocal coupling or class normalization (R API extensions).
+OvR reuses the same stored calibration/input tables as OvO.
 """
 import csv
 import hashlib
@@ -17,6 +18,7 @@ import warnings
 
 import numpy as np
 from venn_abers import VennAbersCV, VennAbersCalibrator
+from venn_abers.venn_abers import predict_proba_prefitted_va
 
 
 OUTPUT = Path(__file__).resolve().parents[1] / "inst" / "extdata"
@@ -25,6 +27,7 @@ assert metadata.version("venn-abers") == "1.5.4"
 assert hashlib.sha256(Path(inspect.getfile(VennAbersCV)).read_bytes()).hexdigest() == PIN["module_sha256"]
 rng = np.random.default_rng(20260907)
 calibration, inputs, pairs_output, output = [], [], [], []
+classes_output, ovr_output = [], []
 
 
 def binary_reference(p, y, new, precision, loss):
@@ -63,6 +66,13 @@ with warnings.catch_warnings():
             for precision in (None, 0, 2, -1):
                 setting = "none" if precision is None else str(precision)
                 manual = VennAbersCalibrator(precision=precision).predict_proba(p_cal=p, y_cal=y, p_test=new)
+                # The facade routes two classes straight to the binary path;
+                # use its multiclass component to preserve OvR with rounding.
+                manual_ovr, _ = predict_proba_prefitted_va(p, y, new, precision, "one_vs_rest")
+                if k > 2:
+                    facade = VennAbersCalibrator(precision=precision).predict_proba(
+                        p_cal=p, y_cal=y, p_test=new, va_type="one_vs_rest")
+                    assert np.max(np.abs(manual_ovr - facade)) <= 1e-10
                 for loss in ("log", "brier"):
                     results = {}
                     for a, b in itertools.combinations(range(k), 2):
@@ -86,12 +96,30 @@ with warnings.catch_warnings():
                         assert np.max(np.abs(coupled - manual)) <= 1e-10
                     for row, values in enumerate(coupled, 1):
                         output.append((name, setting, loss, row, *values, *([""] * (4 - k))))
+                    points = []
+                    for c in range(k):
+                        point, bounds = binary_reference(
+                            np.column_stack((1 - p[:, c], p[:, c])), y == c,
+                            np.column_stack((1 - new[:, c], new[:, c])), precision, loss)
+                        points.append(point[:, 1])
+                        for row in range(len(new)):
+                            classes_output.append((name, setting, loss, c + 1, row + 1,
+                                                   *bounds[row], point[row, 1]))
+                    normalized = np.column_stack(points)
+                    normalized /= normalized.sum(axis=1, keepdims=True)
+                    assert np.isfinite(normalized).all()
+                    if loss == "log":
+                        assert np.max(np.abs(normalized - manual_ovr)) <= 1e-10
+                    for row, values in enumerate(normalized, 1):
+                        ovr_output.append((name, setting, loss, row, *values, *([""] * (4 - k))))
 
 for filename, header, rows in [
     ("ovo-calibration.csv", ["case_id", "classes", "row", "truth", "p1", "p2", "p3", "p4"], calibration),
     ("ovo-input.csv", ["case_id", "classes", "row", "p1", "p2", "p3", "p4"], inputs),
     ("ovo-pairs.csv", ["case_id", "precision", "loss", "non_event", "event", "row", "lower", "upper", "probability"], pairs_output),
     ("ovo-output.csv", ["case_id", "precision", "loss", "row", "p1", "p2", "p3", "p4"], output),
+    ("ovr-classes.csv", ["case_id", "precision", "loss", "event", "row", "lower", "upper", "probability"], classes_output),
+    ("ovr-output.csv", ["case_id", "precision", "loss", "row", "p1", "p2", "p3", "p4"], ovr_output),
 ]:
     with (OUTPUT / filename).open("w", newline="") as stream:
         writer = csv.writer(stream, lineterminator="\n")
@@ -110,4 +138,12 @@ report = {
                        for p in sorted(OUTPUT.glob("ovo-*.csv"))},
 }
 (OUTPUT / "ovo-environment.json").write_text(json.dumps(report, indent=2) + "\n")
-print(f"Generated 33 cases, {len(pairs_output)} pair rows and {len(output)} output rows.")
+report["scope"] = ("Manual log OvR (two classes via its multiclass component, three/four also via facade); "
+                   "binary reference components plus independent Brier normalization. "
+                   "Shared ovo-calibration/input tables; R rounding differences tested separately.")
+report["fixture_sha256"] = {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+                            for p in [OUTPUT / "ovo-calibration.csv", OUTPUT / "ovo-input.csv",
+                                      OUTPUT / "ovr-classes.csv", OUTPUT / "ovr-output.csv"]}
+(OUTPUT / "ovr-environment.json").write_text(json.dumps(report, indent=2) + "\n")
+print(f"Generated 33 cases, {len(pairs_output)} pair rows, {len(classes_output)} class rows "
+      f"and {len(output) + len(ovr_output)} output rows.")

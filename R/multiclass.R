@@ -40,41 +40,59 @@
   result
 }
 
-.fit_inductive_ovo <- function(truth, probability, precision) {
+.fit_inductive_multiclass <- function(truth, probability, precision, method) {
   probability <- .validate_multiclass_input(truth, probability, require_all = TRUE)
   classes <- levels(truth)
-  pairs <- utils::combn(classes, 2L, simplify = FALSE)
-  calibrators <- lapply(pairs, function(pair) {
-    rows <- truth %in% pair
-    venn_abers(truth[rows] == pair[2L],
-               .pair_probability(probability[rows, , drop = FALSE], pair), precision)
-  })
-  structure(list(classes = classes, pairs = pairs, calibrators = calibrators,
+  pairs <- if (method == "ovo") utils::combn(classes, 2L, simplify = FALSE) else NULL
+  calibrators <- if (method == "ovr") {
+    lapply(classes, function(class) venn_abers(truth == class, probability[, class], precision))
+  } else {
+    lapply(pairs, function(pair) {
+      rows <- truth %in% pair
+      venn_abers(truth[rows] == pair[2L],
+                 .pair_probability(probability[rows, , drop = FALSE], pair), precision)
+    })
+  }
+  structure(list(classes = classes, method = method, pairs = pairs, calibrators = calibrators,
                  observations = length(truth)), class = "venn_abers")
 }
 
-.predict_inductive_ovo <- function(object, newdata, loss, type) {
+.predict_inductive_multiclass <- function(object, newdata, loss, type) {
   .validate_choice(type, c("response", "class", "details"), "type")
   newdata <- .class_probability(newdata, object$classes, "newdata")
   n <- nrow(newdata)
   k <- length(object$classes)
-  reciprocal <- matrix(2 - k, n, k, dimnames = dimnames(newdata))
-  details <- vector("list", length(object$pairs))
-  for (i in seq_along(object$pairs)) {
-    pair <- object$pairs[[i]]
-    binary <- stats::predict(object$calibrators[[i]], .pair_probability(newdata, pair), loss = loss)
-    reciprocal[, pair[1L]] <- reciprocal[, pair[1L]] + 1 / (1 - binary$probability)
-    reciprocal[, pair[2L]] <- reciprocal[, pair[2L]] + 1 / binary$probability
-    if (type == "details") {
-      details[[i]] <- data.frame(row = seq_len(n),
-                                non_event = rep(pair[1L], n), event = rep(pair[2L], n), binary)
+  details <- vector("list", length(object$calibrators))
+  ovr <- identical(object$method, "ovr")
+  if (ovr) {
+    prediction <- matrix(0, n, k, dimnames = dimnames(newdata))
+    for (i in seq_along(object$classes)) {
+      class <- object$classes[i]
+      binary <- stats::predict(object$calibrators[[i]], newdata[, class], loss = loss)
+      prediction[, class] <- binary$probability
+      if (type == "details") {
+        details[[i]] <- data.frame(row = seq_len(n), event = rep(class, n), binary)
+      }
     }
+  } else {
+    reciprocal <- matrix(2 - k, n, k, dimnames = dimnames(newdata))
+    for (i in seq_along(object$pairs)) {
+      pair <- object$pairs[[i]]
+      binary <- stats::predict(object$calibrators[[i]], .pair_probability(newdata, pair), loss = loss)
+      reciprocal[, pair[1L]] <- reciprocal[, pair[1L]] + 1 / (1 - binary$probability)
+      reciprocal[, pair[2L]] <- reciprocal[, pair[2L]] + 1 / binary$probability
+      if (type == "details") {
+        details[[i]] <- data.frame(row = seq_len(n),
+                                  non_event = rep(pair[1L], n), event = rep(pair[2L], n), binary)
+      }
+    }
+    prediction <- 1 / reciprocal
   }
-  prediction <- 1 / reciprocal
   prediction <- prediction / rowSums(prediction)
   if (type == "class") {
     return(factor(object$classes[max.col(prediction, ties.method = "first")], levels = object$classes))
   }
   if (type == "response") return(prediction)
-  list(prediction = prediction, pairs = do.call(rbind, details))
+  if (ovr) list(prediction = prediction, classes = do.call(rbind, details)) else
+    list(prediction = prediction, pairs = do.call(rbind, details))
 }

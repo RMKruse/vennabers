@@ -1,5 +1,11 @@
 # vennabers 0.3.0 (development)
 
+- Add explicit `method = "ovr"` to manual Inductive multiclass calibration;
+  OvO remains the default. Calibrate each class against all remaining classes,
+  apply binary Log/Brier regularization, then normalize the class points.
+  Reconstructible class diagnostics, classes, scores and plots use the same
+  stored class order and final probabilities. Manual Brier is an R extension
+  over the pinned Python manual path. Stored fixtures cover both methods.
 - Add manual Inductive one-vs-one multiclass calibration using factor truth
   and named probability matrices. Reuse binary rounding and Log/Brier
   regularization, with factor classes and reconstructible pair diagnostics.
