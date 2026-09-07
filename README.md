@@ -2,8 +2,10 @@
 
 Dependency-free binary Inductive/Cross, multiclass Inductive/Cross OvO/OvR,
 and moderated Inductive/Cross regression calibration for R 4.5 and later.
-The package version is the v0.4.0 source candidate. Release approval remains
-blocked by outstanding evidence; see the [acceptance record](tools/acceptance-v04.md).
+The package version is v0.4.0. The maintainer approved v0.4 under the updated
+criterion of passing local tests; the [acceptance record](tools/acceptance-v04.md)
+identifies the approved candidate and documents the unexecuted platform and
+Linux benchmark checks. Approval does not imply publication.
 
 ## Quick start
 
@@ -272,9 +274,11 @@ across all model columns. Matching names cannot prove model provenance,
 training exclusion, unique observations or semantic row alignment. Vector
 element names and matrix row names are not alignment keys.
 
-The five public functions are `venn_abers()`, `cross_venn_abers()`,
-`brier_score()`, `log_loss()`, and `calibration_plot()`. Both calibrators use
-registered `predict()` and `print()` methods. See `?cross_venn_abers` and
+The seven public functions are `venn_abers()`, `cross_venn_abers()`,
+`venn_abers_regression()`, `cross_venn_abers_regression()`, `brier_score()`,
+`log_loss()`, and `calibration_plot()`. All four calibrators use registered
+`predict()` methods; the classification calibrators also have registered
+`print()` methods. See `?cross_venn_abers` and
 `?predict.cross_venn_abers` for executable help and the complete contract.
 
 ## Multiclass Inductive OvO and OvR
@@ -478,7 +482,7 @@ The active [workflow](.github/workflows/acceptance.yaml) requires R 4.6.1 and
 4.5.3 on Linux x86_64, Windows x86_64, macOS Intel and macOS ARM. Linux R-devel
 is an additional visible, non-blocking early warning. New releases require
 at least the previous R minor series; recheck the matrix and `DESCRIPTION`
-floor at final v0.4 acceptance. Older releases retain their original floor.
+floor for each release. Older releases retain their original floor.
 
 Set `ACCEPTANCE_OUTPUT_DIR` to an empty directory to retain the source artifact,
 logs and environment/package versions. Set `ACCEPTANCE_ARTIFACT` to an existing
@@ -488,8 +492,10 @@ standalone examples ship in the package; find them after installation with
 `system.file("examples", package = "vennabers")`.
 
 See the [v0.4 acceptance record](tools/acceptance-v04.md) for the capability
-map, migration notes, commands, results and remaining release blockers. The
-[v0.3 record](tools/acceptance-v03.md) retains the unapproved predecessor evidence.
+map, migration notes, commands, results and the updated approval criterion.
+The [v0.3 record](tools/acceptance-v03.md) records maintainer approval and retains
+the historical evidence. Unexecuted platform and Linux benchmark checks are
+not blockers under the updated v0.4 criterion and are not claimed as passes.
 
 Benchmarks run separately on the documented Linux x86_64 reference machine:
 

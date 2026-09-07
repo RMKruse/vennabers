@@ -1,10 +1,12 @@
-# vennabers 0.4.0 (release candidate)
+# vennabers 0.4.0
 
 - Identify one regression source candidate for the eight-platform acceptance
   matrix and Linux R-devel. Extend the separate benchmark protocol with IVAR
   and CVAR at `m = 1` and `epsilon = 0.1`, retaining all twelve classification
-  cases for remeasurement against v0.3. Approval remains blocked by missing
-  predecessor, platform and Linux benchmark evidence; see `tools/acceptance-v04.md`.
+  cases for remeasurement against v0.3. The maintainer approved v0.4 under the
+  updated criterion of passing local tests. The approved candidate and unexecuted
+  platform and Linux benchmark checks are documented in `tools/acceptance-v04.md`;
+  those checks are no longer approval prerequisites. Publication remains separate.
 - Migration from v0.3: regression uses separate real-valued entry points; existing
   classification calls, defaults and tolerances are unchanged. R >= 4.5.0 remains
   the previous-minor support floor for September 2026. No tidymodels, Python or
@@ -19,20 +21,21 @@
   regression example with separate training/calibration/assessment data.
   Known reference lower-bound and zero-weight defects are documented in
   `inst/extdata/regression-reference.md`. Existing classification defaults stay
-  unchanged. Release approval remains separate work.
+  unchanged.
 - Add `cross_venn_abers_regression()` with complete IVAR fits per named fold,
   fold-local moderation diagnostics, stable equal-weight means of points and
   bounds, and reconstructible fold details. Include offline component/aggregate
   fixtures and an installed matching-fold `lm()` example with RMSE/MAE.
 
-# vennabers 0.3.0 (release candidate)
+# vennabers 0.3.0
 
 - Package standalone examples under `inst/examples`, available after installation
   through `system.file("examples", package = "vennabers")`. Checkout commands
   formerly using `examples/` now use `inst/examples/`.
 - Prepare one source artifact for all platform checks and a separate comparative
-  benchmark runner. Release approval is pending the evidence in
-  `tools/acceptance-v03.md`; the version number does not assert approval.
+  benchmark runner. The maintainer confirmed v0.3 approval and runs on Linux
+  and Windows; `tools/acceptance-v03.md` retains the historical evidence and
+  records that confirmation.
 
 - Add manual Cross multiclass OvO/OvR with one shared calibration fold plan
   and a fold-named list of new class matrices. Merge binary folds with
@@ -59,7 +62,7 @@
   rounding boundaries without a Python runtime dependency.
 - Raise the minimum R version to 4.5.0, the previous R minor series as of
   September 2026. New releases follow this rolling support window; there is
-  no continuing R 4.1 promise. Recheck the floor at final v0.3 acceptance.
+  no continuing R 4.1 promise. Recheck the floor for each release.
 - Activate installed-package CRAN-mode checks on R 4.6.1 and 4.5.3 across
   Linux x86_64, Windows x86_64, macOS Intel and macOS ARM, with Linux R-devel
   as a non-blocking early warning.
