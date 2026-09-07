@@ -186,15 +186,34 @@ for (constants in list(c(0, 0), c(-7, -7), c(5e-324, 5e-324),
 
 # Cancellation must retain the small residual, regardless of fold order.
 for (magnitude in c(1e16, 1e308)) {
-  constants <- c(magnitude, 1, -magnitude)
-  for (permutation in list(c(1, 2, 3), c(1, 3, 2), c(2, 1, 3),
-                           c(2, 3, 1), c(3, 1, 2), c(3, 2, 1))) {
-    cancellation <- cross_venn_abers_regression(rep(constants[permutation], each = 3),
-                                               rep(1:3, 3), rep(letters[1:3], each = 3))
-    output <- predict(cancellation, cbind(c = 0, a = 0, b = 0))
-    close_regression(as.matrix(output), matrix(1 / 3, 1, 3))
+  for (residual in c(1, 1e-16, 1e-300, 3 * 5e-324)) {
+    constants <- c(magnitude, residual, -magnitude)
+    for (permutation in list(c(1, 2, 3), c(1, 3, 2), c(2, 1, 3),
+                             c(2, 3, 1), c(3, 1, 2), c(3, 2, 1))) {
+      cancellation <- cross_venn_abers_regression(rep(constants[permutation], each = 3),
+                                                 rep(1:3, 3), rep(letters[1:3], each = 3))
+      output <- predict(cancellation, cbind(c = 0, a = 0, b = 0))
+      stopifnot(all(is.finite(as.matrix(output))),
+                all(abs(as.matrix(output) / (residual / 3) - 1) < 1e-14))
+    }
   }
 }
+
+# Overflow in input order must not trigger scaling before cancellation.
+fold_mean <- vennabers:::.regression_mean
+for (residual in c(1e-16, 1e-300, 5 * 5e-324)) {
+  values <- c(1e308, 1e308, residual, -1e308, -1e308)
+  for (direction in c(-1, 1)) {
+    for (x in list(values, rev(values))) {
+      stopifnot(abs(fold_mean(direction * x) / (direction * residual / 5) - 1) < 1e-14)
+    }
+  }
+}
+stopifnot(identical(fold_mean(c(5e-324, 5e-324)), 5e-324),
+          identical(fold_mean(c(1e16, 1, 1)), (1e16 + 2) / 3),
+          identical(fold_mean(rep(.Machine$double.xmax, 3)), .Machine$double.xmax),
+          identical(fold_mean(rep(-.Machine$double.xmax, 3)), -.Machine$double.xmax),
+          identical(fold_mean(c(5e-324, 0, 0)), 0))
 
 local({
   input <- tempfile(fileext = ".rds")

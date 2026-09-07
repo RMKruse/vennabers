@@ -22,6 +22,44 @@ cross_venn_abers_regression <- function(truth, prediction, fold, ..., m = 1, eps
                  observations = length(truth)), class = "cross_venn_abers_regression")
 }
 
+# Mean of a nonempty finite numeric vector, using only double arithmetic.
+# Cancel opposite signs before scaling and divide after compensated summation
+# to retain small residuals and equal subnormals. Scale only if the remaining
+# same-sign sum overflows; the mean stays finite. A mean below the subnormal
+# range can round to zero; this is not a correctly-rounded summation guarantee.
+.regression_mean <- function(values) {
+  values <- sort(values)
+  left <- 1L
+  right <- length(values)
+  total <- correction <- 0
+  while (left <= right) {
+    # Choose the opposite sign when available, so overflow cannot precede
+    # cancellation. Sorting also makes the result independent of fold order.
+    if (total > 0) {
+      value <- values[left]
+      left <- left + 1L
+    } else {
+      value <- values[right]
+      right <- right - 1L
+    }
+    next_total <- total + value
+    if (!is.finite(next_total)) {
+      total <- next_total
+      break
+    }
+    correction <- correction + if (abs(total) >= abs(value)) {
+      (total - next_total) + value
+    } else {
+      (value - next_total) + total
+    }
+    total <- next_total
+  }
+  result <- (total + correction) / length(values)
+  if (is.finite(result)) return(result)
+  scale <- max(abs(values))
+  .regression_mean(values / scale) * scale
+}
+
 predict.cross_venn_abers_regression <- function(object, newdata, ..., type = "response") {
   if (length(list(...))) stop("`...` must be empty; unsupported prediction argument.", call. = FALSE)
   .validate_choice(type, c("response", "details"), "type")
@@ -39,23 +77,7 @@ predict.cross_venn_abers_regression <- function(object, newdata, ..., type = "re
   names(folds) <- object$folds
   prediction <- lapply(c("prediction", "lower", "upper"), function(column) {
     values <- do.call(cbind, lapply(folds, `[[`, column))
-    # Scale to prevent overflow; Neumaier compensation retains small residuals
-    # when large opposite-signed fold results cancel, even without long doubles.
-    vapply(seq_len(nrow(newdata)), function(i) {
-      scale <- max(abs(values[i, ]))
-      if (scale == 0) return(0)
-      total <- correction <- 0
-      for (value in values[i, ] / scale) {
-        next_total <- total + value
-        correction <- correction + if (abs(total) >= abs(value)) {
-          (total - next_total) + value
-        } else {
-          (value - next_total) + total
-        }
-        total <- next_total
-      }
-      ((total + correction) / ncol(values)) * scale
-    }, 0)
+    vapply(seq_len(nrow(newdata)), function(i) .regression_mean(values[i, ]), 0)
   })
   names(prediction) <- c("prediction", "lower", "upper")
   prediction <- as.data.frame(prediction)
