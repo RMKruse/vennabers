@@ -14,8 +14,11 @@ Scope: `.scratch/v0.4-tickets/issues/03-release-abnahme.md`, the
 and [pinned roadmap](https://github.com/RMKruse/venn-abers/blob/73bcd7cceba1d9c3da665945f3d76c79c9370a61/RELEASE-ROADMAP.md),
 sections 3 and 5. Implementation starts at
 `cbd2729b6b13719049779d74cd05fea559e3585a`; IVAR and CVAR are already present
-there. This ticket changes release metadata and external verification tooling,
-not the numerical product or its classification tolerances.
+there. The initial acceptance ticket changed release metadata and verification
+tooling. The refreshed candidate includes the subsequent regression endpoint
+and fold-mean fixes, stricter benchmark metadata checks, and corrected
+README/NEWS approval wording from source commit
+`a4c6acd50b64ae5b1fd550985b7ba9d731d5f684`. Classification tolerances are unchanged.
 
 ## Predecessor: approved; stable comparison reference retained
 
@@ -52,12 +55,21 @@ Future approved predecessor changes require a fresh compatible comparison.
 ## Candidate identity and capability map
 
 The saved candidate is [vennabers_0.4.0.tar.gz](evidence-v04/vennabers_0.4.0.tar.gz),
-SHA-256 `6521d7c38695774813057a4dc55695fca9bce5d904b2e8b7921270c78e102cd2`,
-MD5 `86dffcec1191403d52681d69ca5e74cd`.
+SHA-256 `44846f1e2a6cd5ec1672264516122e5d26e65a2a18f69ec1d5fb7078514ddb69`,
+MD5 `b799a986bf4c685ca5e28470d527ffd0`.
 Both local acceptance runs and the benchmark used this exact archive.
 [SHA256SUMS](evidence-v04/SHA256SUMS) identifies both archives, saved inputs,
 runner/verifier source and evidence. These reports and `tools/evidence-v04/`
 are excluded from the package so adding results cannot change its payload.
+
+Refreshed on 2026-09-07 from `a4c6acd`. This archive supersedes the earlier
+candidate SHA-256
+`6521d7c38695774813057a4dc55695fca9bce5d904b2e8b7921270c78e102cd2`;
+the earlier archive and evidence remain in Git history. The
+[payload check](evidence-v04/payload-match.log) verifies every archived file
+against that checkout, excluding only build-normalized DESCRIPTION, and confirms
+the two acceptance runs used byte-identical archives. The refreshed
+[build log](evidence-v04/source-build.log) is retained alongside the check logs.
 
 All paths below are inside the source/installed artifact. The local gate ran
 all 13 package test files, help examples, nine README R fences and seven
@@ -99,7 +111,7 @@ averaging, not a claim of a corresponding public manual Python wrapper.
 DESCRIPTION, NEWS, README and public help describe manual moderated IVAR/CVAR.
 The [CRAN R source index](https://cran.r-project.org/src/base/R-4/) checked on
 2026-09-07 lists 4.6.1 and 4.5.3 as the current/previous minor patches.
-R >= 4.5.0 remains the release floor; recheck it before actual approval.
+R >= 4.5.0 remains the release floor; recheck it for each release.
 There is no new v0.3-to-v0.4 floor increase or classification API migration.
 Regression uses separate `venn_abers_regression()` and
 `cross_venn_abers_regression()` entry points; numeric 0/1 targets there are
@@ -151,8 +163,10 @@ under `evidence-v04/`. An unchanged candidate needs no rebuild for other platfor
 
 The existing 12 classification inputs are unchanged, including the 100,000 /
 100,000 binary IVAP RNG draw order. Their saved R objects compare identically
-with the historical v0.3 benchmark inputs. Every classification case is run
-against both artifacts: binary Cross, Inductive/Cross OvO/OvR with 3/10 classes,
+with the historical v0.3 benchmark inputs. The refresh additionally verified
+all 16 input RDS files are byte-identical to the prior v0.4 bundle; see
+[input comparison](evidence-v04/historical-inputs.log). Every classification
+case is run against both artifacts: binary Cross, Inductive/Cross OvO/OvR with 3/10 classes,
 plus binary Cross and 3-class Cross OvO using Brier and precision 2.
 
 Four new regression cases append seed 20260909 after the classification draws.
@@ -185,19 +199,19 @@ regression cases, invalid moderation/folds/columns/row IDs and corrupt summaries
 
 | New case (smoke only) | Fit median, s | Predict median, s | Peak process bytes | Model RDS bytes |
 | --- | ---: | ---: | ---: | ---: |
-| IVAR m=1 | 0.048 | 0 | 91,684,864 | 117,834 |
-| IVAR epsilon=0.1 | 0.046 | 0 | 91,619,328 | 100,327 |
-| CVAR m=1 | 0.053 | 0.006 | 97,566,720 | 156,527 |
-| CVAR epsilon=0.1 | 0.051 | 0.006 | 97,075,200 | 129,559 |
+| IVAR m=1 | 0.050 | 0.001 | 94,076,928 | 117,834 |
+| IVAR epsilon=0.1 | 0.047 | 0 | 91,996,160 | 100,327 |
+| CVAR m=1 | 0.053 | 0.046 | 91,521,024 | 156,527 |
+| CVAR epsilon=0.1 | 0.050 | 0.047 | 91,684,864 | 129,559 |
 
 Zero indicates timer resolution, not a zero-cost prediction. Regression has no
 predecessor values or invented ratios. The classification comparisons retain
 all actual values and are marked `requires regression review`. For example,
-binary IVAP fit was 0.416 versus 0.414 s and peak RSS 125,435,904 versus
-114,720,768 bytes; these are unresolved smoke observations, not clearance.
-The smoke ran alongside local checks on macOS, so neither improvements nor
-increases support a controlled release comparison. The non-Linux release-mode
-guard correctly rejected this host before creating output.
+binary IVAP fit was 0.418 versus 0.416 s and peak RSS 116,228,096 versus
+113,016,832 bytes; these are unresolved smoke observations, not clearance.
+The smoke ran after the local gates on macOS, outside the controlled Linux
+protocol, so neither improvements nor increases establish performance clearance.
+The non-Linux release-mode guard correctly rejected this host before creating output.
 
 **No controlled Linux measurement or performance clearance is claimed.** The
 original benchmark protocol calls for a documented Linux x86_64 machine to
@@ -247,7 +261,7 @@ the case command in `/usr/bin/time -v` on Linux to record its process peak.
 Full-run regenerated input hashes must match the stored inputs before treating
 the measurements as comparable. Model/prediction RDS and isolated libraries are
 recreated by the runner; the original local copies remain in
-`.scratch/v04-benchmark-smoke/`.
+`.scratch/v04-refresh-benchmark/`.
 
 For the denied-network local checks, the wrapper was:
 
@@ -259,11 +273,11 @@ For the denied-network local checks, the wrapper was:
 
 The maintainer's local-test approval criterion is satisfied for the saved
 candidate. Changes to package code, metadata, tests, examples or bundled tools
-require a new candidate hash and appropriate local verification. This status
-update changes only the external acceptance record and preserves the checked
-artifact and its identity.
+require a new candidate hash and appropriate local verification. This refresh
+replaces the older archive and reruns its acceptance and benchmark tooling
+checks; the evidence directory and this report are excluded from the package.
 
-## Standards
+## Historical Standards review
 
 Independent review against `cbd2729b6b13719049779d74cd05fea559e3585a`:
 no findings. No documented-standard violations or actionable maintainability
@@ -271,7 +285,7 @@ smells. The changes reuse the existing runner/verifier, add no dependencies or
 unnecessary abstractions, and retain runnable mutation checks. The reviewer
 independently reran the saved bundle and mutation verifiers successfully.
 
-## Spec
+## Historical Spec review
 
 Independent review against the same base: no actionable implementation defects
 or scope creep. At review time, three acceptance gaps were recorded: v0.3 release approval,
@@ -285,8 +299,6 @@ Review totals: Standards 0 findings; Spec 0 actionable implementation findings,
 3 external acceptance gaps at review time. The maintainer subsequently confirmed
 v0.3 approval and accepted passing local tests as sufficient for v0.4 approval.
 The remaining platform and Linux benchmark gaps are therefore not release
-blockers under the updated criterion. The candidate's bundled NEWS/README retain
-their pre-approval status wording; this external report records approval without changing the
-checked artifact. A final payload
-comparison also verified 104 archived files against the checkout, excluding
-only build-normalized DESCRIPTION; the saved SHA-256 manifest verifies.
+blockers under the updated criterion. These reviews describe the original
+acceptance work, before the subsequent numerical fixes and evidence refresh.
+The refreshed candidate includes the corrected NEWS/README approval wording.

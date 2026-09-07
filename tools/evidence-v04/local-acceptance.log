@@ -40,7 +40,7 @@ loaded via a namespace (and not attached):
 ** testing if installed package can be loaded from final location
 ** testing if installed package keeps a record of temporary installation path
 * DONE (vennabers)
-* using log directory ‘/Users/entropy/Git/venn-abers/.scratch/v04-local/vennabers.Rcheck’
+* using log directory ‘/Users/entropy/Git/venn-abers/.scratch/v04-refresh-local/vennabers.Rcheck’
 * using R version 4.6.1 (2026-06-24)
 * using platform: aarch64-apple-darwin25.4.0
 * R was compiled by
@@ -48,7 +48,7 @@ loaded via a namespace (and not attached):
     GNU Fortran (Homebrew GCC 16.1.0) 16.1.0
 * running under: macOS Tahoe 26.6.2
 * using session charset: UTF-8
-* current time: 2026-09-07 18:01:12 UTC
+* current time: 2026-09-07 18:46:48 UTC
 * using options ‘--no-manual --as-cran’
 * checking for file ‘vennabers/DESCRIPTION’ ... OK
 * this is package ‘vennabers’ version ‘0.4.0’
@@ -126,7 +126,7 @@ Warning: unable to access index for repository https://bioconductor.org/packages
 
 Status: OK
 
-Verified installed artifact: /Users/entropy/Git/venn-abers/.scratch/v04-local/library/vennabers version 0.4.0 
+Verified installed artifact: /Users/entropy/Git/venn-abers/.scratch/v04-refresh-local/library/vennabers version 0.4.0 
 $requested
 $requested$epsilon
 [1] 0.1

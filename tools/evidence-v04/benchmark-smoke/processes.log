@@ -1,11 +1,11 @@
 
 ## current-10_cross_ovo-process.log
-        2.36 real         2.26 user         0.05 sys
-           129515520  maximum resident set size
+        2.36 real         2.26 user         0.07 sys
+           132251648  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-               11646  page reclaims
+               11815  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -13,11 +13,11 @@
                    0  messages sent
                    0  messages received
                    0  signals received
-                  10  voluntary context switches
-                1636  involuntary context switches
-         55670927654  instructions retired
-          9834097490  cycles elapsed
-           113803936  peak memory footprint
+                   9  voluntary context switches
+                1371  involuntary context switches
+         55673057253  instructions retired
+          9964705094  cycles elapsed
+           116540064  peak memory footprint
 
 ## current-10_cross_ovo-restore.log
 Fresh-process RDS predictions identical.
@@ -47,12 +47,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## current-10_cross_ovr-process.log
-        2.17 real         2.10 user         0.04 sys
-           116506624  maximum resident set size
+        2.16 real         2.07 user         0.06 sys
+           119291904  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-               10703  page reclaims
+               10872  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -60,11 +60,11 @@ loaded via a namespace (and not attached):
                    0  messages sent
                    0  messages received
                    0  signals received
-                  15  voluntary context switches
-                2377  involuntary context switches
-         55433525644  instructions retired
-          9086890442  cycles elapsed
-           100090504  peak memory footprint
+                   9  voluntary context switches
+                1273  involuntary context switches
+         55428458999  instructions retired
+          9128501934  cycles elapsed
+           102859376  peak memory footprint
 
 ## current-10_cross_ovr-restore.log
 Fresh-process RDS predictions identical.
@@ -94,12 +94,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## current-10_inductive_ovo-process.log
-        1.90 real         1.84 user         0.04 sys
-           113672192  maximum resident set size
+        1.93 real         1.85 user         0.06 sys
+           113442816  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-               10530  page reclaims
+               10513  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -108,10 +108,10 @@ loaded via a namespace (and not attached):
                    0  messages received
                    0  signals received
                    9  voluntary context switches
-                 940  involuntary context switches
-         49916121665  instructions retired
-          8111957933  cycles elapsed
-            97256072  peak memory footprint
+                 847  involuntary context switches
+         49935935343  instructions retired
+          8170609949  cycles elapsed
+            97026696  peak memory footprint
 
 ## current-10_inductive_ovo-restore.log
 Fresh-process RDS predictions identical.
@@ -141,24 +141,24 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## current-10_inductive_ovr-process.log
-        1.98 real         1.91 user         0.05 sys
-           106233856  maximum resident set size
+        2.05 real         1.97 user         0.06 sys
+           107200512  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-               10078  page reclaims
-                  39  page faults
+               10133  page reclaims
+                  37  page faults
                    0  swaps
                    0  block input operations
                    0  block output operations
                    0  messages sent
                    0  messages received
                    0  signals received
-                  10  voluntary context switches
-                 933  involuntary context switches
-         53876802223  instructions retired
-          8479527673  cycles elapsed
-            89850504  peak memory footprint
+                   9  voluntary context switches
+                1263  involuntary context switches
+         53874112124  instructions retired
+          8664222727  cycles elapsed
+            90817160  peak memory footprint
 
 ## current-10_inductive_ovr-restore.log
 Fresh-process RDS predictions identical.
@@ -188,12 +188,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## current-3_cross_ovo-process.log
-        0.61 real         0.57 user         0.03 sys
-            99483648  maximum resident set size
+        0.66 real         0.61 user         0.03 sys
+           100958208  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                9667  page reclaims
+                9754  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -202,10 +202,10 @@ loaded via a namespace (and not attached):
                    0  messages received
                    0  signals received
                    9  voluntary context switches
-                 253  involuntary context switches
-         13400696400  instructions retired
-          2590346813  cycles elapsed
-            83001944  peak memory footprint
+                 562  involuntary context switches
+         13402380237  instructions retired
+          2721162700  cycles elapsed
+            84492912  peak memory footprint
 
 ## current-3_cross_ovo-restore.log
 Fresh-process RDS predictions identical.
@@ -235,12 +235,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## current-3_cross_ovo_brier_p2-process.log
-        0.31 real         0.28 user         0.02 sys
-            95469568  maximum resident set size
+        0.31 real         0.27 user         0.02 sys
+            95453184  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                9419  page reclaims
+                9416  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -248,11 +248,11 @@ loaded via a namespace (and not attached):
                    0  messages sent
                    0  messages received
                    0  signals received
-                  11  voluntary context switches
-                 195  involuntary context switches
-          4034143201  instructions retired
-          1255032712  cycles elapsed
-            79053448  peak memory footprint
+                   9  voluntary context switches
+                 180  involuntary context switches
+          4025821721  instructions retired
+          1245937645  cycles elapsed
+            79020656  peak memory footprint
 
 ## current-3_cross_ovo_brier_p2-restore.log
 Fresh-process RDS predictions identical.
@@ -282,12 +282,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## current-3_cross_ovr-process.log
-        0.80 real         0.76 user         0.03 sys
-           100204544  maximum resident set size
+        0.81 real         0.76 user         0.03 sys
+            97632256  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                9709  page reclaims
+                9548  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -295,11 +295,11 @@ loaded via a namespace (and not attached):
                    0  messages sent
                    0  messages received
                    0  signals received
-                  10  voluntary context switches
-                 578  involuntary context switches
-         18457013287  instructions retired
-          3390817768  cycles elapsed
-            83772016  peak memory footprint
+                   9  voluntary context switches
+                 377  involuntary context switches
+         18449639711  instructions retired
+          3370760393  cycles elapsed
+            81199728  peak memory footprint
 
 ## current-3_cross_ovr-restore.log
 Fresh-process RDS predictions identical.
@@ -329,12 +329,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## current-3_inductive_ovo-process.log
-        0.61 real         0.56 user         0.04 sys
-            93339648  maximum resident set size
+        0.61 real         0.56 user         0.03 sys
+            93470720  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                9289  page reclaims
+                9295  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -343,10 +343,10 @@ loaded via a namespace (and not attached):
                    0  messages received
                    0  signals received
                    9  voluntary context switches
-                 282  involuntary context switches
-         12919032134  instructions retired
-          2510322573  cycles elapsed
-            76923528  peak memory footprint
+                 322  involuntary context switches
+         12914095316  instructions retired
+          2518895223  cycles elapsed
+            77038192  peak memory footprint
 
 ## current-3_inductive_ovo-restore.log
 Fresh-process RDS predictions identical.
@@ -376,12 +376,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## current-3_inductive_ovr-process.log
-        0.75 real         0.71 user         0.03 sys
-            94339072  maximum resident set size
+        0.79 real         0.74 user         0.03 sys
+            94306304  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                9347  page reclaims
+                9348  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -390,10 +390,10 @@ loaded via a namespace (and not attached):
                    0  messages received
                    0  signals received
                    9  voluntary context switches
-                 414  involuntary context switches
-         17939006027  instructions retired
-          3193788285  cycles elapsed
-            77939312  peak memory footprint
+                 447  involuntary context switches
+         17939890964  instructions retired
+          3276111628  cycles elapsed
+            77906544  peak memory footprint
 
 ## current-3_inductive_ovr-restore.log
 Fresh-process RDS predictions identical.
@@ -423,12 +423,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## current-binary_cross-process.log
-        0.48 real         0.43 user         0.03 sys
-            90947584  maximum resident set size
+        0.44 real         0.40 user         0.03 sys
+            89473024  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                9143  page reclaims
+                9053  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -437,10 +437,10 @@ loaded via a namespace (and not attached):
                    0  messages received
                    0  signals received
                    9  voluntary context switches
-                 891  involuntary context switches
-          7919853820  instructions retired
-          1929962040  cycles elapsed
-            74531440  peak memory footprint
+                 239  involuntary context switches
+          7905782481  instructions retired
+          1816094036  cycles elapsed
+            73056904  peak memory footprint
 
 ## current-binary_cross-restore.log
 Fresh-process RDS predictions identical.
@@ -470,12 +470,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## current-binary_cross_brier_p2-process.log
-        0.26 real         0.23 user         0.02 sys
-            78036992  maximum resident set size
+        0.26 real         0.22 user         0.02 sys
+            78135296  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                8355  page reclaims
+                8360  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -483,11 +483,11 @@ loaded via a namespace (and not attached):
                    0  messages sent
                    0  messages received
                    0  signals received
-                  11  voluntary context switches
-                 199  involuntary context switches
-          2982718365  instructions retired
-          1043850109  cycles elapsed
-            61620848  peak memory footprint
+                   9  voluntary context switches
+                 175  involuntary context switches
+          2978682342  instructions retired
+          1026602246  cycles elapsed
+            61719152  peak memory footprint
 
 ## current-binary_cross_brier_p2-restore.log
 Fresh-process RDS predictions identical.
@@ -517,24 +517,24 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## current-binary_inductive-process.log
-        2.37 real         2.28 user         0.05 sys
-           125435904  maximum resident set size
+        2.34 real         2.25 user         0.06 sys
+           116228096  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-               11240  page reclaims
-                  53  page faults
+               10685  page reclaims
+                  37  page faults
                    0  swaps
                    0  block input operations
                    0  block output operations
                    0  messages sent
                    0  messages received
                    0  signals received
-                  10  voluntary context switches
-                2451  involuntary context switches
-         56024559869  instructions retired
-          9893361001  cycles elapsed
-           109068936  peak memory footprint
+                   9  voluntary context switches
+                1605  involuntary context switches
+         56018941570  instructions retired
+          9903056610  cycles elapsed
+            99844744  peak memory footprint
 
 ## current-binary_inductive-restore.log
 Fresh-process RDS predictions identical.
@@ -563,40 +563,25 @@ other attached packages:
 loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
-## current-install.log
-* installing *source* package ‘vennabers’ ...
-** this is package ‘vennabers’ version ‘0.4.0’
-** using staged installation
-** R
-** inst
-** byte-compile and prepare package for lazy loading
-** help
-*** installing help indices
-** building package indices
-** testing if installed package can be loaded from temporary location
-** testing if installed package can be loaded from final location
-** testing if installed package keeps a record of temporary installation path
-* DONE (vennabers)
-
 ## current-regression_cross_epsilon01-process.log
-        0.52 real         0.48 user         0.02 sys
-            97075200  maximum resident set size
+        0.84 real         0.79 user         0.03 sys
+            91684864  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                9508  page reclaims
-                  49  page faults
+                9188  page reclaims
+                  37  page faults
                    0  swaps
                    0  block input operations
                    0  block output operations
                    0  messages sent
                    0  messages received
                    0  signals received
-                  12  voluntary context switches
-                 415  involuntary context switches
-          9941787383  instructions retired
-          2138624295  cycles elapsed
-            80675464  peak memory footprint
+                   9  voluntary context switches
+                 502  involuntary context switches
+         17650187182  instructions retired
+          3495082185  cycles elapsed
+            75285128  peak memory footprint
 
 ## current-regression_cross_epsilon01-restore.log
 Fresh-process RDS predictions identical.
@@ -626,12 +611,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## current-regression_cross_m1-process.log
-        0.54 real         0.50 user         0.03 sys
-            97566720  maximum resident set size
+        0.85 real         0.80 user         0.03 sys
+            91521024  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                9548  page reclaims
+                9177  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -639,11 +624,11 @@ loaded via a namespace (and not attached):
                    0  messages sent
                    0  messages received
                    0  signals received
-                  12  voluntary context switches
-                 564  involuntary context switches
-         10248665406  instructions retired
-          2222222595  cycles elapsed
-            81150576  peak memory footprint
+                   9  voluntary context switches
+                 411  involuntary context switches
+         17953238458  instructions retired
+          3533337254  cycles elapsed
+            75104880  peak memory footprint
 
 ## current-regression_cross_m1-restore.log
 Fresh-process RDS predictions identical.
@@ -673,12 +658,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## current-regression_inductive_epsilon01-process.log
-        0.45 real         0.41 user         0.02 sys
-            91619328  maximum resident set size
+        0.45 real         0.41 user         0.03 sys
+            91996160  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                9183  page reclaims
+                9211  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -686,11 +671,11 @@ loaded via a namespace (and not attached):
                    0  messages sent
                    0  messages received
                    0  signals received
-                  11  voluntary context switches
-                 230  involuntary context switches
-          8395645507  instructions retired
-          1819721256  cycles elapsed
-            75203184  peak memory footprint
+                   9  voluntary context switches
+                 265  involuntary context switches
+          8394389077  instructions retired
+          1848242909  cycles elapsed
+            75563608  peak memory footprint
 
 ## current-regression_inductive_epsilon01-restore.log
 Fresh-process RDS predictions identical.
@@ -720,12 +705,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## current-regression_inductive_m1-process.log
-        0.45 real         0.41 user         0.02 sys
-            91684864  maximum resident set size
+        0.48 real         0.43 user         0.03 sys
+            94076928  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                9187  page reclaims
+                9344  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -733,11 +718,11 @@ loaded via a namespace (and not attached):
                    0  messages sent
                    0  messages received
                    0  signals received
-                  11  voluntary context switches
-                 256  involuntary context switches
-          8606137241  instructions retired
-          1852111663  cycles elapsed
-            75285128  peak memory footprint
+                   9  voluntary context switches
+                 535  involuntary context switches
+          8609788581  instructions retired
+          1938106392  cycles elapsed
+            77660784  peak memory footprint
 
 ## current-regression_inductive_m1-restore.log
 Fresh-process RDS predictions identical.
@@ -767,12 +752,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## previous-10_cross_ovo-process.log
-        2.32 real         2.24 user         0.05 sys
-           127746048  maximum resident set size
+        2.31 real         2.23 user         0.06 sys
+           128352256  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-               11597  page reclaims
+               11576  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -780,11 +765,11 @@ loaded via a namespace (and not attached):
                    0  messages sent
                    0  messages received
                    0  signals received
-                  14  voluntary context switches
-                1948  involuntary context switches
-         55657485044  instructions retired
-          9779497269  cycles elapsed
-           112018056  peak memory footprint
+                   9  voluntary context switches
+                1264  involuntary context switches
+         55650287362  instructions retired
+          9779383392  cycles elapsed
+           112640672  peak memory footprint
 
 ## previous-10_cross_ovo-restore.log
 Fresh-process RDS predictions identical.
@@ -814,12 +799,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## previous-10_cross_ovr-process.log
-        2.15 real         2.07 user         0.05 sys
-           115097600  maximum resident set size
+        2.13 real         2.05 user         0.06 sys
+           117194752  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-               10684  page reclaims
+               10744  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -827,11 +812,11 @@ loaded via a namespace (and not attached):
                    0  messages sent
                    0  messages received
                    0  signals received
-                  15  voluntary context switches
-                2428  involuntary context switches
-         55420359506  instructions retired
-          8997340368  cycles elapsed
-            99402376  peak memory footprint
+                   9  voluntary context switches
+                1232  involuntary context switches
+         55404387207  instructions retired
+          8985446036  cycles elapsed
+           100762224  peak memory footprint
 
 ## previous-10_cross_ovr-restore.log
 Fresh-process RDS predictions identical.
@@ -861,12 +846,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## previous-10_inductive_ovo-process.log
-        2.11 real         1.97 user         0.06 sys
-           114180096  maximum resident set size
+        1.94 real         1.86 user         0.05 sys
+           113360896  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-               10643  page reclaims
+               10508  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -874,11 +859,11 @@ loaded via a namespace (and not attached):
                    0  messages sent
                    0  messages received
                    0  signals received
-                  12  voluntary context switches
-                7230  involuntary context switches
-         50018907352  instructions retired
-          8540057876  cycles elapsed
-            98484872  peak memory footprint
+                   9  voluntary context switches
+                 979  involuntary context switches
+         49900903055  instructions retired
+          8181836930  cycles elapsed
+            96944776  peak memory footprint
 
 ## previous-10_inductive_ovo-restore.log
 Fresh-process RDS predictions identical.
@@ -908,24 +893,24 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## previous-10_inductive_ovr-process.log
-        2.07 real         1.99 user         0.05 sys
-           111575040  maximum resident set size
+        2.06 real         1.98 user         0.06 sys
+           106725376  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-               10401  page reclaims
-                  38  page faults
+               10106  page reclaims
+                  37  page faults
                    0  swaps
                    0  block input operations
                    0  block output operations
                    0  messages sent
                    0  messages received
                    0  signals received
-                  14  voluntary context switches
-                2869  involuntary context switches
-         53873410219  instructions retired
-          8631702195  cycles elapsed
-            95191688  peak memory footprint
+                   9  voluntary context switches
+                1253  involuntary context switches
+         53854053973  instructions retired
+          8713954677  cycles elapsed
+            90342024  peak memory footprint
 
 ## previous-10_inductive_ovr-restore.log
 Fresh-process RDS predictions identical.
@@ -955,12 +940,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## previous-3_cross_ovo-process.log
-        0.69 real         0.62 user         0.04 sys
-            99041280  maximum resident set size
+        0.65 real         0.61 user         0.02 sys
+            98893824  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                9640  page reclaims
+                9629  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -968,11 +953,11 @@ loaded via a namespace (and not attached):
                    0  messages sent
                    0  messages received
                    0  signals received
-                  11  voluntary context switches
-                1990  involuntary context switches
-         13418726380  instructions retired
-          2747193139  cycles elapsed
-            82575984  peak memory footprint
+                   9  voluntary context switches
+                 568  involuntary context switches
+         13386630740  instructions retired
+          2669388091  cycles elapsed
+            82444936  peak memory footprint
 
 ## previous-3_cross_ovo-restore.log
 Fresh-process RDS predictions identical.
@@ -1002,12 +987,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## previous-3_cross_ovo_brier_p2-process.log
-        0.31 real         0.27 user         0.02 sys
-            95715328  maximum resident set size
+        0.33 real         0.29 user         0.03 sys
+            97943552  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                9434  page reclaims
+                9570  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -1015,11 +1000,11 @@ loaded via a namespace (and not attached):
                    0  messages sent
                    0  messages received
                    0  signals received
-                  11  voluntary context switches
-                 188  involuntary context switches
-          4036574027  instructions retired
-          1242398678  cycles elapsed
-            79282800  peak memory footprint
+                   9  voluntary context switches
+                 413  involuntary context switches
+          4030538808  instructions retired
+          1309749755  cycles elapsed
+            81527432  peak memory footprint
 
 ## previous-3_cross_ovo_brier_p2-restore.log
 Fresh-process RDS predictions identical.
@@ -1049,12 +1034,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## previous-3_cross_ovr-process.log
-        0.83 real         0.78 user         0.03 sys
-            99893248  maximum resident set size
+        0.82 real         0.77 user         0.03 sys
+            98402304  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                9690  page reclaims
+                9598  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -1062,11 +1047,11 @@ loaded via a namespace (and not attached):
                    0  messages sent
                    0  messages received
                    0  signals received
-                  11  voluntary context switches
-                1027  involuntary context switches
-         18458486682  instructions retired
-          3419411935  cycles elapsed
-            83477128  peak memory footprint
+                   9  voluntary context switches
+                 587  involuntary context switches
+         18447003636  instructions retired
+          3406338387  cycles elapsed
+            81986184  peak memory footprint
 
 ## previous-3_cross_ovr-restore.log
 Fresh-process RDS predictions identical.
@@ -1096,24 +1081,24 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## previous-3_inductive_ovo-process.log
-        0.83 real         0.66 user         0.05 sys
-            97173504  maximum resident set size
+        0.61 real         0.56 user         0.03 sys
+            93323264  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                9517  page reclaims
-                  39  page faults
+                9286  page reclaims
+                  37  page faults
                    0  swaps
                    0  block input operations
                    0  block output operations
                    0  messages sent
                    0  messages received
                    0  signals received
-                  11  voluntary context switches
-                6283  involuntary context switches
-         12975872661  instructions retired
-          2957477540  cycles elapsed
-            80757384  peak memory footprint
+                   9  voluntary context switches
+                 352  involuntary context switches
+         12899981974  instructions retired
+          2518029514  cycles elapsed
+            76907144  peak memory footprint
 
 ## previous-3_inductive_ovo-restore.log
 Fresh-process RDS predictions identical.
@@ -1143,24 +1128,24 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## previous-3_inductive_ovr-process.log
-        0.90 real         0.81 user         0.05 sys
-            96436224  maximum resident set size
+        0.77 real         0.72 user         0.03 sys
+            94470144  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                9479  page reclaims
-                  38  page faults
+                9358  page reclaims
+                  37  page faults
                    0  swaps
                    0  block input operations
                    0  block output operations
                    0  messages sent
                    0  messages received
                    0  signals received
-                  11  voluntary context switches
-                4565  involuntary context switches
-         17979121644  instructions retired
-          3533495301  cycles elapsed
-            80052872  peak memory footprint
+                   9  voluntary context switches
+                 381  involuntary context switches
+         17929435552  instructions retired
+          3209690940  cycles elapsed
+            78053976  peak memory footprint
 
 ## previous-3_inductive_ovr-restore.log
 Fresh-process RDS predictions identical.
@@ -1190,12 +1175,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## previous-binary_cross-process.log
-        0.47 real         0.42 user         0.03 sys
+        0.44 real         0.40 user         0.02 sys
             89505792  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                9056  page reclaims
+                9055  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -1203,10 +1188,10 @@ loaded via a namespace (and not attached):
                    0  messages sent
                    0  messages received
                    0  signals received
-                  11  voluntary context switches
-                 899  involuntary context switches
-          7913226438  instructions retired
-          1889049100  cycles elapsed
+                   9  voluntary context switches
+                 260  involuntary context switches
+          7898388042  instructions retired
+          1800490853  cycles elapsed
             73073264  peak memory footprint
 
 ## previous-binary_cross-restore.log
@@ -1237,12 +1222,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## previous-binary_cross_brier_p2-process.log
-        0.25 real         0.21 user         0.02 sys
-            78020608  maximum resident set size
+        0.26 real         0.22 user         0.02 sys
+            78102528  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-                8353  page reclaims
+                8354  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -1250,11 +1235,11 @@ loaded via a namespace (and not attached):
                    0  messages sent
                    0  messages received
                    0  signals received
-                  11  voluntary context switches
-                 169  involuntary context switches
-          2984167551  instructions retired
-           994770245  cycles elapsed
-            61604464  peak memory footprint
+                   9  voluntary context switches
+                 161  involuntary context switches
+          2978156730  instructions retired
+          1026685098  cycles elapsed
+            61669976  peak memory footprint
 
 ## previous-binary_cross_brier_p2-restore.log
 Fresh-process RDS predictions identical.
@@ -1284,12 +1269,12 @@ loaded via a namespace (and not attached):
 [1] compiler_4.6.1
 
 ## previous-binary_inductive-process.log
-        2.36 real         2.28 user         0.05 sys
-           114720768  maximum resident set size
+        2.33 real         2.25 user         0.05 sys
+           113016832  maximum resident set size
                    0  average shared memory size
                    0  average unshared data size
                    0  average unshared stack size
-               10593  page reclaims
+               10488  page reclaims
                   37  page faults
                    0  swaps
                    0  block input operations
@@ -1297,11 +1282,11 @@ loaded via a namespace (and not attached):
                    0  messages sent
                    0  messages received
                    0  signals received
-                  11  voluntary context switches
-                2136  involuntary context switches
-         55995203429  instructions retired
-          9912491254  cycles elapsed
-            98337416  peak memory footprint
+                   9  voluntary context switches
+                1344  involuntary context switches
+         55990981155  instructions retired
+          9837730032  cycles elapsed
+            96633480  peak memory footprint
 
 ## previous-binary_inductive-restore.log
 Fresh-process RDS predictions identical.
@@ -1329,18 +1314,3 @@ other attached packages:
 
 loaded via a namespace (and not attached):
 [1] compiler_4.6.1
-
-## previous-install.log
-* installing *source* package ‘vennabers’ ...
-** this is package ‘vennabers’ version ‘0.3.0’
-** using staged installation
-** R
-** inst
-** byte-compile and prepare package for lazy loading
-** help
-*** installing help indices
-** building package indices
-** testing if installed package can be loaded from temporary location
-** testing if installed package can be loaded from final location
-** testing if installed package keeps a record of temporary installation path
-* DONE (vennabers)
