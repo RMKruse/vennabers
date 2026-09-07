@@ -20,3 +20,4 @@ renv/python/
 # Local planning artifacts
 .scratch/
 CONTEXT.md
+tools/

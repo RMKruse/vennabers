@@ -14,6 +14,7 @@
 \description{
 Prints three lines: \code{<cross_venn_abers>}, \code{Folds: K}, and
 \code{Calibration observations: N}, with the actual counts substituted.
+For multiclass, also identifies the method and class names in stored order.
 It exposes neither calibration arrays nor predictive models.
 }
 \examples{

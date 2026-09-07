@@ -5,18 +5,28 @@ if (!file.exists("DESCRIPTION")) {
 
 local({
   root <- normalizePath(".")
+  supplied_artifact <- Sys.getenv("ACCEPTANCE_ARTIFACT")
+  if (nzchar(supplied_artifact)) supplied_artifact <- normalizePath(supplied_artifact, mustWork = TRUE)
   description <- read.dcf("DESCRIPTION", fields = c("Package", "Version"))[1L, ]
-  work_dir <- tempfile("vennabers-acceptance-")
-  dir.create(work_dir)
+  output_dir <- Sys.getenv("ACCEPTANCE_OUTPUT_DIR")
+  work_dir <- if (nzchar(output_dir)) output_dir else tempfile("vennabers-acceptance-")
+  if (dir.exists(work_dir) && length(list.files(work_dir, all.files = TRUE, no.. = TRUE))) {
+    stop("Acceptance output directory must be empty.", call. = FALSE)
+  }
+  dir.create(work_dir, recursive = TRUE, showWarnings = FALSE)
+  work_dir <- normalizePath(work_dir, mustWork = TRUE)
   on.exit({
     setwd(root)
-    unlink(work_dir, recursive = TRUE)
+    if (!nzchar(output_dir)) unlink(work_dir, recursive = TRUE)
   }, add = TRUE)
 
   run <- function(command, arguments) {
-    output_file <- tempfile(tmpdir = work_dir)
+    # R copies the tree before applying .Rbuildignore. On Windows an open
+    # log inside that tree cannot be copied, even when it will be excluded.
+    output_file <- tempfile("acceptance-command-", fileext = ".log")
     on.exit(unlink(output_file), add = TRUE)
     status <- system2(command, arguments, stdout = output_file, stderr = output_file)
+    stopifnot(file.copy(output_file, file.path(work_dir, paste0(tolower(arguments[2L]), ".log"))))
     output <- readLines(output_file, warn = FALSE)
     cat(output, sep = "\n")
     if (!identical(status, 0L)) {
@@ -30,20 +40,45 @@ local({
   cat("Acceptance environment:", R.version.string, "on", R.version$platform, "\n")
   print(Sys.info()[c("sysname", "release", "machine")])
   print(sessionInfo())
+  environment <- capture.output({
+    print(Sys.info())
+    print(sessionInfo())
+    print(Sys.getenv(c("ImageOS", "ImageVersion", "RUNNER_OS", "RUNNER_ARCH",
+                       "GITHUB_SHA", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT")))
+    print(installed.packages()[, c("Package", "Version", "LibPath"), drop = FALSE])
+  })
+  writeLines(environment, file.path(work_dir, "environment.txt"))
+  expected_arch <- Sys.getenv("EXPECTED_R_ARCH")
+  if (nzchar(expected_arch) && !identical(R.version$arch, expected_arch)) {
+    stop("Expected R architecture ", expected_arch, "; got ", R.version$arch)
+  }
+  # CRAN mode without online incoming/repository/clock probes. Tests and examples
+  # still run, including those guarded by NOT_CRAN. No dependency downloads.
+  Sys.setenv(NOT_CRAN = "false", `_R_CHECK_CRAN_INCOMING_` = "false",
+             `_R_CHECK_CRAN_INCOMING_REMOTE_` = "false",
+             `_R_CHECK_SYSTEM_CLOCK_` = "false")
   setwd(work_dir)
-  r_executable <- file.path(R.home("bin"), "R")
-  run(r_executable, c("CMD", "build", shQuote(root)))
-
+  r_executable <- file.path(R.home("bin"), if (.Platform$OS.type == "windows") "R.exe" else "R")
   artifact <- file.path(work_dir, paste0(description[["Package"]], "_", description[["Version"]], ".tar.gz"))
-  run(r_executable, c("CMD", "check", "--no-manual", shQuote(artifact)))
+  if (nzchar(supplied_artifact)) {
+    stopifnot(file.copy(supplied_artifact, artifact))
+  } else {
+    run(r_executable, c("CMD", "build", shQuote(root)))
+  }
+  utils::untar(artifact, files = "vennabers/DESCRIPTION", exdir = work_dir)
+  stopifnot(identical(description, read.dcf("vennabers/DESCRIPTION",
+                                         fields = c("Package", "Version"))[1L, ]))
+  writeLines(paste(basename(artifact), unname(tools::md5sum(artifact))),
+             file.path(work_dir, "artifact-md5.txt"))
+  library_dir <- file.path(work_dir, "library")
+  dir.create(library_dir)
+  run(r_executable, c("CMD", "INSTALL", paste0("--library=", shQuote(library_dir)), shQuote(artifact)))
+  run(r_executable, c("CMD", "check", "--as-cran", "--no-manual",
+                     paste0("--library=", shQuote(library_dir)), shQuote(artifact)))
   check_log <- readLines(file.path(work_dir, paste0(description[["Package"]], ".Rcheck"), "00check.log"))
   if (!identical(tail(grep("^Status:", check_log, value = TRUE), 1L), "Status: OK")) {
     stop("R CMD check did not finish with zero errors, warnings, and notes.", call. = FALSE)
   }
-
-  library_dir <- file.path(work_dir, "library")
-  dir.create(library_dir)
-  run(r_executable, c("CMD", "INSTALL", paste0("--library=", shQuote(library_dir)), shQuote(artifact)))
   # Load only the package just installed from the source artifact. Refuse a
   # previously loaded namespace rather than accidentally testing another build.
   stopifnot(!"vennabers" %in% loadedNamespaces())
@@ -59,8 +94,9 @@ local({
   )
   cat("Verified installed artifact:", installed_path, "version",
       as.character(packageVersion("vennabers")), "\n")
+  options(warn = 2)
 
-  # R 4.1 does not install README.md; read it from the checked source artifact.
+  # Read the README from the checked source artifact, never a stale installation.
   readme_path <- file.path(description[["Package"]], "README.md")
   utils::untar(artifact, files = readme_path, exdir = work_dir)
   # Execute its R fences in order, sharing their environment.
@@ -83,14 +119,13 @@ local({
     cat("README R snippets passed:", length(starts), "\n")
   })
 
-  # This checkout script is not run by R CMD check. Its assertions exercise the
-  # installed API; its temporary graphics device is closed and removed on exit.
-  cat("Running canonical three-fold GLM example.\n")
-  sys.source(file.path(root, "examples", "cross-venn-abers.R"), envir = new.env())
-  cat("Canonical example passed.\n")
-
-  # Preserve the separate IVAP performance step and its existing threshold.
-  cat("Running separate IVAP performance gate.\n")
-  sys.source(file.path(root, "tools", "performance.R"), envir = new.env())
+  # Standalone examples exercise the installed API. Discover new scripts too.
+  examples <- list.files(system.file("examples", package = "vennabers"),
+                         pattern = "\\.[Rr]$", full.names = TRUE, recursive = TRUE)
+  stopifnot(length(examples) > 0L)
+  for (example in examples) {
+    cat("Running example:", basename(example), "\n")
+    sys.source(example, envir = new.env())
+  }
   cat("Acceptance gate passed.\n")
 })

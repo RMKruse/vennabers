@@ -1,4 +1,6 @@
 ^CONTEXT\.md$
 ^\.scratch$
 ^\.github$
-^examples$
+^RELEASE-ROADMAP\.md$
+^tools/acceptance-v03\.md$
+^tools/evidence-v03$

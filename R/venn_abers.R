@@ -62,16 +62,42 @@
 }
 
 brier_score <- function(truth, probability) {
+  if (is.factor(truth)) {
+    probability <- .validate_multiclass_input(truth, probability)
+    probability[cbind(seq_along(truth), as.integer(truth))] <-
+      probability[cbind(seq_along(truth), as.integer(truth))] - 1
+    return(mean(rowSums(probability^2)))
+  }
   .validate_binary_input(truth, probability)
   mean((truth - probability)^2)
 }
 
 log_loss <- function(truth, probability) {
+  if (is.factor(truth)) {
+    probability <- .validate_multiclass_input(truth, probability)
+    return(-mean(log(probability[cbind(seq_along(truth), as.integer(truth))])))
+  }
   .validate_binary_input(truth, probability)
   -mean(ifelse(truth == 1, log(probability), log1p(-probability)))
 }
 
 calibration_plot <- function(truth, probability, bins = 10, ...) {
+  if (is.factor(truth)) {
+    probability <- .validate_multiclass_input(truth, probability)
+    classes <- levels(truth)
+    old <- graphics::par(no.readonly = TRUE)
+    on.exit(graphics::par(old))
+    rows <- ceiling(sqrt(length(classes)))
+    graphics::par(mfrow = c(rows, ceiling(length(classes) / rows)))
+    summaries <- lapply(classes, function(class) {
+      options <- utils::modifyList(list(main = paste("Calibration:", class)), list(...))
+      summary <- do.call(calibration_plot, c(list(
+        truth = truth == class, probability = probability[, class], bins = bins
+      ), options))
+      data.frame(class = factor(rep(class, nrow(summary)), levels = classes), summary)
+    })
+    return(invisible(do.call(rbind, summaries)))
+  }
   .validate_binary_input(truth, probability)
   if (!is.numeric(bins) || !is.null(dim(bins)) || length(bins) != 1L || !is.finite(bins) ||
       bins < 1 || bins != floor(bins)) {
@@ -105,8 +131,20 @@ calibration_plot <- function(truth, probability, bins = 10, ...) {
   invisible(summary)
 }
 
-venn_abers <- function(truth, probability) {
+venn_abers <- function(truth, probability, precision = NULL, method = "ovo") {
+  .validate_choice(method, c("ovo", "ovr"), "method")
+  if (is.factor(truth)) {
+    return(.fit_multiclass(truth, probability, precision, method))
+  }
+  if (!missing(method)) stop("`method` requires factor truth and a class matrix.", call. = FALSE)
   .validate_binary_input(truth, probability)
+  if (!is.null(precision)) {
+    if (!is.numeric(precision) || !is.vector(precision) || length(precision) != 1L ||
+        !is.finite(precision) || precision != floor(precision)) {
+      stop("`precision` must be NULL or one finite numeric whole number.", call. = FALSE)
+    }
+    probability <- round(probability, digits = precision)
+  }
 
   ordered <- order(probability, method = "radix")
   probability <- probability[ordered]
@@ -131,24 +169,48 @@ venn_abers <- function(truth, probability) {
   )
 }
 
-predict.venn_abers <- function(object, newdata, ...) {
-  if (length(list(...))) {
-    stop("`...` must be empty; prediction options are not supported.", call. = FALSE)
+.validate_choice <- function(value, choices, argument) {
+  if (!is.character(value) || !is.vector(value) || length(value) != 1L ||
+      is.na(value) || !value %in% choices) {
+    stop("`", argument, "` must be one of: ", paste(choices, collapse = ", "), ".", call. = FALSE)
   }
+}
+
+.regularized_probability <- function(lower, upper, loss) {
+  if (loss == "brier") upper + (lower^2 - upper^2) / 2 else upper / (1 - lower + upper)
+}
+
+predict.venn_abers <- function(object, newdata, ..., loss = "log", type = "response") {
+  if (length(list(...))) {
+    stop("`...` must be empty; unsupported prediction argument.", call. = FALSE)
+  }
+  .validate_choice(loss, c("log", "brier"), "loss")
+  if (!is.null(object$classes)) return(.predict_multiclass(object, newdata, loss, type))
+  .validate_choice(type, c("response", "class"), "type")
   if (!.valid_probability(newdata)) {
     stop("`newdata` must be a numeric vector of finite values between 0 and 1.", call. = FALSE)
   }
 
   lower <- object$lower[findInterval(newdata, object$knots) + 1L]
   upper <- object$upper[findInterval(newdata, object$knots, left.open = TRUE) + 1L]
+  probability <- .regularized_probability(lower, upper, loss)
+  if (type == "class") return(probability >= .5)
   data.frame(
     lower = lower,
     upper = upper,
-    probability = upper / (1 - lower + upper)
+    probability = probability
   )
 }
 
 print.venn_abers <- function(x, ...) {
+  if (!is.null(x$classes)) {
+    method <- if (identical(x$method, "ovr")) "ovr" else "ovo"
+    cat("<venn_abers: ", method, ">\nCalibration observations: ", x$observations,
+        "\nClasses: ", paste(x$classes, collapse = ", "),
+        if (method == "ovr") "\nClasses against rest: " else "\nClass pairs: ",
+        length(x$calibrators), "\n", sep = "")
+    return(invisible(x))
+  }
   cat(
     "<venn_abers>\n",
     "Calibration observations: ", x$observations, "\n",

@@ -79,7 +79,7 @@ for (bad in invalid_fold) {
 }
 expect_error(cross_venn_abers(truth, probability[-1], fold), "probability")
 expect_error(cross_venn_abers(truth, probability, fold, loss = "log"), "loss")
-expect_error(cross_venn_abers(truth, probability, fold, NULL), "unused argument")
+stopifnot(identical(cross_venn_abers(truth, probability, fold, NULL), calibrator))
 
 invalid_newdata <- list(NULL, numeric(), c(.1, .9), list(A = .1, B = .9),
                         as.data.frame(newdata), array(.5, c(1, 2, 1)),
@@ -97,7 +97,8 @@ for (value in c(NA_real_, NaN, Inf, -Inf, -.1, 1.1)) {
   bad[3, 2] <- value
   expect_error(stats::predict(calibrator, bad), "newdata")
 }
-expect_error(stats::predict(calibrator, newdata, loss = "log"), "...")
+stopifnot(identical(stats::predict(calibrator, newdata, loss = "log"), actual))
+expect_error(stats::predict(calibrator, newdata, loss = "unknown"), "loss")
 expect_error(stats::predict(calibrator, newdata, NULL), "...")
 
 three_folds <- cross_venn_abers(c(0, 1, 0, 1, 0, 1), c(.1, .8, .2, .9, .3, .7),
