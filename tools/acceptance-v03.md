@@ -187,7 +187,7 @@ sha256sum .scratch/v03-final/vennabers_0.3.0.tar.gz vennabers_0.2.0.tar.gz \
   tools/performance.R benchmark-output/*-input.rds > benchmark-output/SHA256SUMS
 ```
 
-The predecessor is the last v0.2 DESCRIPTION source at `b1037eb` (version 0.2.0),
+The predecessor is the last v0.2 DESCRIPTION source at `b1037ebe69e65f07f4123a6273a5805c41a09adc` (version 0.2.0),
 rebuilt under the same runtime as the candidate; no comparison is made to an
 unavailable predecessor multiclass/Brier/precision API. Retain the source archive,
 all SHA-256 manifests, gate outputs and benchmark output together. CI uploads
@@ -197,7 +197,56 @@ the candidate identity.
 
 ## Execution record and release blockers
 
-Final local execution and artifact hashes are recorded here after validation.
+On 2026-09-07, the final local gate and a separate `ACCEPTANCE_ARTIFACT` recheck
+both exited 0 on R 4.6.1 (`aarch64-apple-darwin25.4.0`), macOS 26.6.2 / Darwin
+25.6.0, Apple M5 Pro, 15 logical CPUs, 24 GiB RAM. Both used the identical archive
+(MD5 records compared equal). Standard packages were R 4.6.1 and codetools 0.2-20;
+the complete package set and machine data are retained in the environment log.
+
+| Local verification | Result / retained evidence |
+| --- | --- |
+| Source build, isolated install, CRAN-mode check | Passed; [check log](evidence-v03/local-check.log), zero errors/warnings/NOTEs |
+| Nine package test files and public help examples | Passed against the installed archive; [gate log](evidence-v03/local-acceptance.log) |
+| Seven README R fences, five installed standalone examples | Passed in both runs; [same-artifact recheck](evidence-v03/artifact-recheck.log) |
+| Offline/no-Python execution | Both complete gates and injected-failure checks ran with network and Python process execution denied, including children |
+| Failure propagation | Installed-example and package-test injections each exited 1; [regression log](evidence-v03/gate-regression.log) |
+| R parse checks and actionlint 1.7.12 | Passed; package `R CMD check` also passed static code-problem checks; no separate typechecker is configured |
+| Benchmark CLI smoke using this archive plus rebuilt v0.2 | All 12 current + 2 predecessor cases, 56 warmup/measurement rows, 14 medians, 12 comparison rows; [bundle check](evidence-v03/benchmark-smoke-check.log) |
+| Model restoration | All 14 case/release workers passed fresh-process prediction identity; [process logs](evidence-v03/benchmark-smoke/processes.log) |
+| Platform guard | Non-Linux release measurement rejected before output creation; [guard log](evidence-v03/benchmark-platform-guard.log) |
+
+The two artifact gates and regression checks used this wrapper (with their
+respective environment variables and script arguments):
+
+```sh
+/usr/bin/sandbox-exec \
+  -p '(version 1)(allow default)(deny network*)(deny process-exec (regex #".*/python[^/]*$"))' \
+  /opt/homebrew/opt/r/bin/Rscript --vanilla tools/acceptance.R
+```
+
+Candidate: `.scratch/v03-final/vennabers_0.3.0.tar.gz`, SHA-256
+`c72d953b049de7087372eb065c2198f88855094ca0120a31da3660c62788b825`.
+The local package payload matches the implementation commit `27da771`; later
+changes only append excluded evidence. Source archive, predecessor and runner
+identities plus all prepared-input SHA-256 values are in
+[SHA256SUMS](evidence-v03/SHA256SUMS). Logs and source package remain in
+`.scratch/v03-final/`, with the second gate in `.scratch/v03-recheck/`.
+
+The full-size smoke command was the documented benchmark command with
+`--smoke`, using `.scratch/v03-benchmark-final-smoke` for output. It exercised
+`/usr/bin/time -l` on macOS; the GNU Linux RSS collection path is still unexecuted
+here. The smoke ran alongside other local checks and is **not** controlled
+performance evidence or a regression clearance. Its [plan](evidence-v03/benchmark-smoke/plan.csv),
+[individual results](evidence-v03/benchmark-smoke/runs.csv),
+[medians](evidence-v03/benchmark-smoke/medians.csv),
+[comparisons](evidence-v03/benchmark-smoke/comparison.csv) and environment/process
+logs are retained to verify the runner, not to claim Linux performance. Exact
+input/model/prediction RDS files remain in `.scratch/v03-benchmark-final-smoke/`.
+
+Code review used two independent agents against starting commit `019095e`:
+Standards — no findings. Spec — no fixable implementation defect or scope creep;
+two outstanding evidence groups: final platform/R-devel results and controlled
+Linux predecessor measurement/regression review. Neither finding is waived.
 Outstanding mandatory evidence blocks release approval: the final eight-platform
 matrix, current-candidate R-devel triage, Linux reference benchmarks and investigated
 predecessor comparisons. Later code, fixture, example or metadata changes require
