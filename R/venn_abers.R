@@ -105,8 +105,15 @@ calibration_plot <- function(truth, probability, bins = 10, ...) {
   invisible(summary)
 }
 
-venn_abers <- function(truth, probability) {
+venn_abers <- function(truth, probability, precision = NULL) {
   .validate_binary_input(truth, probability)
+  if (!is.null(precision)) {
+    if (!is.numeric(precision) || !is.vector(precision) || length(precision) != 1L ||
+        !is.finite(precision) || precision != floor(precision)) {
+      stop("`precision` must be NULL or one finite numeric whole number.", call. = FALSE)
+    }
+    probability <- round(probability, digits = precision)
+  }
 
   ordered <- order(probability, method = "radix")
   probability <- probability[ordered]
@@ -131,20 +138,35 @@ venn_abers <- function(truth, probability) {
   )
 }
 
-predict.venn_abers <- function(object, newdata, ...) {
-  if (length(list(...))) {
-    stop("`...` must be empty; prediction options are not supported.", call. = FALSE)
+.validate_choice <- function(value, choices, argument) {
+  if (!is.character(value) || !is.vector(value) || length(value) != 1L ||
+      is.na(value) || !value %in% choices) {
+    stop("`", argument, "` must be one of: ", paste(choices, collapse = ", "), ".", call. = FALSE)
   }
+}
+
+.regularized_probability <- function(lower, upper, loss) {
+  if (loss == "brier") upper + (lower^2 - upper^2) / 2 else upper / (1 - lower + upper)
+}
+
+predict.venn_abers <- function(object, newdata, ..., loss = "log", type = "response") {
+  if (length(list(...))) {
+    stop("`...` must be empty; unsupported prediction argument.", call. = FALSE)
+  }
+  .validate_choice(loss, c("log", "brier"), "loss")
+  .validate_choice(type, c("response", "class"), "type")
   if (!.valid_probability(newdata)) {
     stop("`newdata` must be a numeric vector of finite values between 0 and 1.", call. = FALSE)
   }
 
   lower <- object$lower[findInterval(newdata, object$knots) + 1L]
   upper <- object$upper[findInterval(newdata, object$knots, left.open = TRUE) + 1L]
+  probability <- .regularized_probability(lower, upper, loss)
+  if (type == "class") return(probability >= .5)
   data.frame(
     lower = lower,
     upper = upper,
-    probability = upper / (1 - lower + upper)
+    probability = probability
   )
 }
 

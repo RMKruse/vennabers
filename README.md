@@ -29,8 +29,38 @@ calibration_plot(c(FALSE, TRUE, TRUE), prediction$probability)
 ```
 
 IVAP prediction still returns three double columns: `lower` and `upper` are
-the Venn-Abers interval endpoints; `probability` is the log-loss regularized
-event probability. These endpoints are not confidence intervals.
+the Venn-Abers interval endpoints; `probability` is the regularized event
+probability, using log loss by default. These endpoints are not confidence intervals.
+
+## Binary options
+
+Fit on a separate calibration set after the underlying model and its learned
+preprocessing are fixed. `precision = NULL` preserves calibration probabilities;
+one finite numeric whole number enables native R `round()`, including zero
+or negative digits. Original probabilities must be valid before rounding.
+Only calibration probabilities are rounded, creating new ties if applicable;
+new prediction values stay exact. Changing precision requires refitting.
+
+Choose `loss = "log"` (default) or `loss = "brier"` at prediction time.
+Log loss gives `upper / (1 - lower + upper)`; Brier gives
+`upper + (lower^2 - upper^2) / 2`. Loss changes neither interval endpoints nor
+stored learning state. Request `type = "class"` for an unnamed logical vector:
+`TRUE` when the final event probability is at least `0.5`, including ties.
+The default `type = "response"` preserves the existing data-frame outputs.
+
+```r
+rounded <- venn_abers(truth, uncalibrated_probability, precision = 2)
+predict(rounded, c(.2, .501, .9), loss = "brier")
+predict(rounded, c(.2, .501, .9), loss = "brier", type = "class")
+```
+
+Both fits accept `precision`; both predict methods accept fully named `loss`
+and `type`. Unsupported arguments and unknown option values are errors.
+Logical, missing, nonfinite, fractional, and multiple precision values are
+rejected. R and NumPy can round differently at floating-point boundaries;
+native R behavior is intentional, with separate tests from Python parity.
+See the executable [binary options example](examples/binary-options.R) and
+[reference record](inst/extdata/binary-options-reference.md).
 
 ## Cross Venn-Abers
 
@@ -73,7 +103,31 @@ The package fits one IVAP per calibration fold and performs equal-weight
 log-loss aggregation internally. It returns a data frame with exactly one
 double column, `probability`, one finite value in `[0, 1]` per input row, in
 input row order. Pass that column to the existing scores and calibration plot.
-There is no public aggregate interval or fold diagnostic output. Geometric
+Request `type = "details"` for a list containing `prediction` (the standard
+data frame) and `folds`, with `row`, `fold`, `lower`, `upper`, and `probability`.
+The integer `row` is the new row's one-based position in the current call;
+`fold` is the stored character fold ID. Results are grouped by stored fold
+order, then new-row order. Fold probabilities use the chosen loss. These are
+predictions for new observations, not out-of-fold calibration probabilities.
+
+Cross Brier takes the arithmetic mean of the Brier fold probabilities.
+Cross log loss keeps its stable aggregation of endpoints in log space; it
+does not average log-loss fold probabilities. Both use equal fold weights,
+even for unequal fold sizes. Cross classes use the combined probability.
+Both aggregates can be reconstructed from the public details:
+
+```r
+for (loss in c("log", "brier")) {
+  details <- predict(cross_calibrator, test_probability, loss = loss, type = "details")
+  reconstructed <- vapply(seq_len(nrow(test_probability)), function(i) {
+    f <- details$folds[details$folds$row == i, ]
+    if (loss == "log") plogis(mean(log(f$upper)) - mean(log1p(-f$lower))) else mean(f$probability)
+  }, 0)
+  stopifnot(max(abs(reconstructed - details$prediction$probability)) < 1e-10)
+}
+```
+
+There is no public aggregate interval. Geometric
 aggregate endpoints can cross; neither they nor the combined probability
 inherit the IVAP perfect-calibration guarantee. No confidence-interval
 coverage or improvement in either score is promised.
@@ -97,10 +151,12 @@ non-missing column names matching the fitted fold IDs. Named columns may be
 reordered. Missing, extra, duplicate or unnamed columns and invalid values
 fail the entire call. A correctly named zero-row matrix returns the same
 one-column empty schema. Vectors, lists, data frames, logical matrices and
-character matrices are rejected. Neither fitting options nor prediction
-options in `...` are supported. Inputs with missing values, nonbinary truth,
+character matrices are rejected. A zero-row class output is `logical(0)`;
+zero-row details preserve the empty fold-table schema, and one input row
+produces one detail record per fold. Additional prediction arguments in
+`...` are rejected. Inputs with missing values, nonbinary truth,
 nonfinite values or probabilities outside `[0, 1]` fail without dropping rows,
-coercing representations, clipping or rounding probabilities.
+coercing representations or clipping probabilities.
 
 Keep every calibration fold out of its model's complete learned training
 pipeline, including learned preprocessing and tuning. Keep test truth outside
@@ -117,15 +173,14 @@ The five public functions are `venn_abers()`, `cross_venn_abers()`,
 registered `predict()` and `print()` methods. See `?cross_venn_abers` and
 `?predict.cross_venn_abers` for executable help and the complete contract.
 
-## v0.2 scope
+## Current scope
 
-Version 0.2 does not support package-managed predictive-model fitting, fold
+The package does not support package-managed predictive-model fitting, fold
 creation, learned preprocessing, tuning or resampling; repeated or overlapping
 partitions; one-fold public cross calibration; multiclass or regression
 calibration; observation weights; alternate event selection; automatic
-coercion or missing-value handling; precision/rounding controls; alternate
-aggregation (including Brier-loss, fold-size weighting, pooling or averaging
-fold point predictions); public cross bounds/diagnostics; formula/data-frame
+coercion or missing-value handling; fold-size weighting, pooling or averaging
+log-loss fold point predictions; public aggregate cross bounds; formula/data-frame
 cross interfaces; tidymodels/yardstick integrations; or new metrics, smoothing,
 plotting features or `ggplot2` output.
 

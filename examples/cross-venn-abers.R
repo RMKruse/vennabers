@@ -70,5 +70,6 @@ local({
 })
 
 # Cross output is a regularized event probability, with no public aggregate
-# interval or fold diagnostics. It inherits no IVAP perfect-calibration
+# interval. Individual fold diagnostics are available with type = "details".
+# The combined probability inherits no IVAP perfect-calibration
 # guarantee and makes no confidence-interval coverage claim.

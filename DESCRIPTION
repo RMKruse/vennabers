@@ -5,8 +5,10 @@ Authors@R: person("Venn-Abers", "Authors", email = "authors@invalid.example", ro
 Description: Fits binary Inductive and Cross Venn-Abers calibrators from
     caller-supplied probabilities. Returns Inductive Venn-Abers intervals
     and regularized probabilities, or Cross Venn-Abers regularized
-    probabilities using equal-weight log-loss aggregation across matched
-    folds. Includes Brier score, log loss, and a base R calibration plot.
+    probabilities using equal-weight aggregation across matched folds.
+    Supports log-loss or Brier regularization, calibration probability
+    rounding, binary class predictions, and individual fold results.
+    Includes Brier score, log loss, and a base R calibration plot.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.5.0)

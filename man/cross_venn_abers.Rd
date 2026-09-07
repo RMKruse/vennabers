@@ -2,7 +2,7 @@
 \alias{cross_venn_abers}
 \title{Fit a Binary Cross Venn-Abers Calibrator}
 \usage{
-cross_venn_abers(truth, probability, fold)
+cross_venn_abers(truth, probability, fold, precision = NULL)
 }
 \arguments{
   \item{truth}{A non-empty logical or numeric/integer vector containing only
@@ -15,6 +15,10 @@ cross_venn_abers(truth, probability, fold)
   literal, without trimming or case folding. Numeric IDs match their Base R
   \code{as.character} representations. Repeated IDs indicate membership in
   the same fold. Factors and logical IDs are not supported.}
+  \item{precision}{\code{NULL} (default) disables rounding. Otherwise, one
+  finite numeric whole number, including zero or negative values, used for
+  native R rounding of calibration probabilities in every fold. See
+  \code{\link{venn_abers}} for validation and rounding semantics.}
 }
 \value{
 An opaque S3 object of class \code{"cross_venn_abers"}, retaining fold
@@ -23,23 +27,25 @@ are not public API. Predictive models are retained separately by the caller.
 }
 \description{
 Fits one Inductive Venn-Abers calibrator per calibration fold. Prediction
-combines its endpoints with equal-weight log-loss aggregation to produce a
-regularized event probability.
+combines its results with equal-weight log-loss (default) or Brier aggregation
+to produce a regularized event probability.
 }
 \details{
 All three inputs must be vectors of equal, nonzero length with no missing
 values. Names attached to vector elements are not alignment keys: positions
 must refer to the same observation. Invalid types, shapes, nonbinary truth,
 nonfinite values, or out-of-range probabilities cause an error for the entire
-call. No rows are dropped and probabilities are not clamped, rounded, or
-coerced from other representations. Exact probability ties retain the
-existing \code{\link{venn_abers}} behavior.
+call. No rows are dropped and probabilities are not clamped or coerced from
+other representations. Original probabilities are checked before optional
+rounding; exact ties after rounding are combined. New prediction values are
+never rounded. Changing precision requires refitting, while loss is chosen
+at prediction time. R and NumPy rounding can differ at floating-point boundaries.
 
 Supply one non-overlapping partition with at least two represented non-empty
 folds. Unequal sizes, singleton folds, and single-class folds are supported;
 each fold receives equal aggregation weight regardless of its size. There is
 no separate empty-fold declaration. Use \code{venn_abers()} for one calibration
-set. No fitting options are supported.
+set.
 
 Each fold model must exclude its calibration fold from the entire learned
 training pipeline, including preprocessing and tuning. That same model must
@@ -53,8 +59,9 @@ new-observation rows align across model columns. The supplied arrays cannot
 prove model provenance, training exclusion, absence of leakage, unique
 underlying observations, or semantic row alignment.
 
-Cross output exposes only a regularized probability, with no public aggregate
-interval or fold diagnostics. Geometric aggregate endpoints can cross.
+Cross output defaults to a regularized probability. Classes and individual
+fold results are available via \code{\link{predict.cross_venn_abers}}. There is
+no aggregate interval. Geometric aggregate endpoints can cross.
 Neither those endpoints nor the combined point inherit the IVAP
 perfect-calibration guarantee. They are not confidence intervals, and score
 improvement is not guaranteed on every data set.
@@ -63,9 +70,8 @@ improvement is not guaranteed on every data set.
 Package-managed predictive-model fitting, fold generation, preprocessing,
 tuning or resampling; repeated or overlapping partitions; multiclass or
 regression calibration; observation weights; alternate event-class selection;
-automatic coercion or missing-value handling; precision or rounding controls;
-alternate aggregation (including Brier-loss or fold-size weighting); public
-aggregate endpoints or fold diagnostics; formula or data-frame cross
+automatic coercion or missing-value handling; fold-size weighting or pooling;
+public aggregate endpoints; formula or data-frame cross
 interfaces; tidymodels/yardstick integrations; and new metrics, smoothing or
 plotting features are not supported. Only Base R and standard R distribution
 packages are needed. Installation and acceptance require neither Python nor

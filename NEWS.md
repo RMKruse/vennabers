@@ -1,5 +1,10 @@
 # vennabers 0.3.0 (development)
 
+- Add optional native R rounding of calibration probabilities, prediction-time
+  log-loss/Brier selection, logical binary classes, and public Cross fold
+  details. Defaults, scores, plots, and stable Cross log aggregation remain
+  unchanged. New installed-package tests cover Python 1.5.4 parity and R
+  rounding boundaries without a Python runtime dependency.
 - Raise the minimum R version to 4.5.0, the previous R minor series as of
   September 2026. New releases follow this rolling support window; there is
   no continuing R 4.1 promise. Recheck the floor at final v0.3 acceptance.
