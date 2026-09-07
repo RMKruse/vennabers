@@ -24,6 +24,23 @@ local({
     }
   }
   check(original, TRUE, "original bundle")
+  # Plan configuration must describe the saved input, including unused options.
+  metadata <- list(calibration = 1L, prediction = 1L, classes = 999L, folds = 999L,
+                   method = "ovo", loss = "wrong-loss", precision = 999, m = 999, epsilon = 0.9)
+  for (id in original$plan$case) {
+    row <- match(id, original$plan$case)
+    for (column in intersect(names(metadata), names(original$plan))) {
+      bad <- original
+      value <- metadata[[column]]
+      if (column == "method" && original$plan$method[row] == value) value <- "ovr"
+      bad$plan[[column]][row] <- value
+      check(bad, FALSE, paste("plan/input mismatch", id, column))
+      if (column %in% c("method", "m", "epsilon") && !is.na(original$plan[[column]][row])) {
+        bad$plan[[column]][row] <- NA
+        check(bad, FALSE, paste("missing plan metadata", id, column))
+      }
+    }
+  }
   bad <- original
   bad$medians$case <- "wrong-case"
   check(bad, FALSE, "wrong summary case")
@@ -110,6 +127,11 @@ local({
   }
   if (any(original$plan$method == "regression")) {
     check(original, TRUE, "complete v0.4 coverage", "--v04")
+    for (column in c("method", "m", "epsilon")) {
+      bad <- original
+      bad$plan[[column]][bad$plan$case == "regression_cross_epsilon01"] <- metadata[[column]]
+      check(bad, FALSE, paste("v0.4 plan/input mismatch", column), "--v04")
+    }
     bad <- original
     id <- "regression_cross_epsilon01"
     for (table in names) bad[[table]] <- bad[[table]][bad[[table]]$case != id, ]

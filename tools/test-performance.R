@@ -52,7 +52,7 @@ local({
     # Allow CSV floating-point round trips, comparing each value separately.
     if (any(!is.finite(actual[present])) ||
         any(abs(actual[present] - expected[present]) > 1e-12 * pmax(1, abs(expected[present])))) {
-      stop(label, ": differs from measured runs")
+      stop(label, ": differs from expected values")
     }
   }
   for (metric in metrics) {
@@ -84,6 +84,24 @@ local({
     path <- file.path(output, paste0(id, "-input.rds"))
     stopifnot(unname(tools::md5sum(path)) == plan$input_md5[plan$case == id])
     input <- readRDS(path)
+    # Saved inputs are canonical; reconcile every configuration field by case.
+    descriptor <- list(calibration = length(input$truth), prediction = input$n_new,
+      classes = if (input$method == "regression") NA_integer_ else if (is.factor(input$truth)) nlevels(input$truth) else 2L,
+      folds = if (input$cross) length(unique(input$fold)) else 1L,
+      method = input$method, loss = input$loss,
+      precision = if (is.null(input$precision)) NA_real_ else input$precision)
+    # Older classification-only plans predate moderation columns.
+    if (v04 || !is.null(input$moderation) || any(c("m", "epsilon") %in% names(plan))) {
+      descriptor$m <- if (is.null(input$moderation$m)) NA_real_ else input$moderation$m
+      descriptor$epsilon <- if (is.null(input$moderation$epsilon)) NA_real_ else input$moderation$epsilon
+    }
+    row <- plan[plan$case == id, ]
+    for (field in names(descriptor)) {
+      label <- paste("plan/input", id, field)
+      if (field %in% c("method", "loss")) {
+        if (!identical(as.character(row[[field]]), descriptor[[field]])) stop(label, ": differs from saved input")
+      } else equal_values(row[[field]], descriptor[[field]], label)
+    }
     if (input$cross && is.factor(input$truth)) stopifnot(all(table(input$truth, input$fold) > 0L))
     if (v04 && id %in% regression) {
       cross <- grepl("_cross_", id)
