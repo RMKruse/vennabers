@@ -3,7 +3,7 @@
 calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                                 method = "inductive", classification = "binary",
                                 event_level = "first", calibration_prop = 0.2,
-                                strata = NULL, seed = NULL, precision = NULL,
+                                strata = NULL, splits = NULL, seed = NULL, precision = NULL,
                                 loss = "log") {
   .integration_dots(...)
   # Arguments before ... also need exact names (R otherwise partially matches).
@@ -39,16 +39,24 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                             length(precision) != 1L || !is.finite(precision) || precision != floor(precision))) {
     stop("`precision` must be NULL or one finite numeric whole number.", call. = FALSE)
   }
+  if (!is.null(splits)) {
+    if (!inherits(splits, "rsplit") && !is.function(splits)) {
+      stop("`splits` must be NULL, an IID holdout rsplit, or a function of local data.", call. = FALSE)
+    }
+    if (!missing(calibration_prop) || !missing(strata)) {
+      stop("Explicit `splits` cannot be combined with `calibration_prop` or `strata`.", call. = FALSE)
+    }
+  }
   .integration_packages()
   .validate_base_workflow(workflow, outcome)
   .register_vennabers()
   requested <- list(predictors = predictors, method = method, classification = classification,
                     event_level = event_level, calibration_prop = calibration_prop,
-                    strata = strata, seed = seed, precision = precision, loss = loss)
+                    strata = strata, splits = splits, seed = seed, precision = precision, loss = loss)
   explicit <- c(predictors = !missing(predictors), method = !missing(method),
                 classification = !missing(classification), event_level = !missing(event_level),
                 calibration_prop = !missing(calibration_prop), strata = !missing(strata),
-                seed = !missing(seed), precision = !missing(precision), loss = !missing(loss))
+                splits = !missing(splits), seed = !missing(seed), precision = !missing(precision), loss = !missing(loss))
   spec <- parsnip::new_model_spec("vennabers", args = list(), eng_args = NULL,
                                 mode = "classification", method = NULL, engine = "inductive")
   spec <- parsnip::set_engine(spec, "inductive", base_workflow = workflow,
@@ -142,24 +150,28 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   effective <- settings
   effective$predictors <- names(x)
   effective$strata <- if (is.null(settings$strata)) outcome else FALSE
+  if (!is.null(settings$splits)) {
+    effective$calibration_prop <- effective$strata <- NULL
+  }
   parameters$effective <- effective
   event <- classes[if (settings$event_level == "first") 1L else 2L]
-  # One local RNG scope includes both split generation and base model learning.
+  # One local RNG scope includes the resolver, split generation and model learning.
   if (!is.null(settings$seed)) withr::local_seed(settings$seed)
-  split <- tryCatch(if (identical(effective$strata, FALSE)) {
+  rng_kind <- RNGkind()
+  split <- tryCatch(if (is.function(settings$splits)) {
+    settings$splits(raw)
+  } else if (!is.null(settings$splits)) {
+    settings$splits
+  } else if (identical(effective$strata, FALSE)) {
     rsample::initial_split(raw, prop = 1 - settings$calibration_prop)
   } else {
     rlang::inject(rsample::initial_split(raw, prop = 1 - settings$calibration_prop,
                                        strata = !!outcome, pool = 0))
   }, error = function(e) stop("Inductive1 rsample split failed (nonempty training and calibration required): ",
                               conditionMessage(e), call. = FALSE))
-  analysis <- as.integer(split, data = "analysis")
-  assessment <- as.integer(split, data = "assessment")
-  if (!length(analysis) || !length(assessment) || anyDuplicated(analysis) ||
-      anyDuplicated(assessment) || length(intersect(analysis, assessment)) ||
-      !identical(sort(c(analysis, assessment)), seq_len(nrow(raw)))) {
-    stop("Inductive1 must partition all rows into nonempty, disjoint training and calibration positions.", call. = FALSE)
-  }
+  positions <- .inductive_split(split, raw)
+  analysis <- positions$analysis
+  assessment <- positions$assessment
   model <- tryCatch(generics::fit(base_workflow, raw[analysis, , drop = FALSE]),
                     error = function(e) stop("Inductive1 base workflow training: ", conditionMessage(e), call. = FALSE))
   p <- .base_event_probability(model, raw[assessment, , drop = FALSE], classes, event)
@@ -173,7 +185,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
                  versions = c(R = as.character(getRversion()),
                               vapply(c("vennabers", names(.integration_versions)),
                                      function(p) as.character(utils::packageVersion(p)), "")),
-                 rng_kind = RNGkind()), class = "vennabers_fit")
+                 rng_kind = rng_kind), class = "vennabers_fit")
 }
 
 .base_event_probability <- function(model, data, classes, event) {

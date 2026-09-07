@@ -29,4 +29,7 @@ Suggests:
     withr (>= 3.0.3),
     generics (>= 0.1.4),
     tidyselect (>= 1.2.1),
-    tailor (>= 0.1.0)
+    tailor (>= 0.1.0),
+    tune (>= 2.1.0),
+    yardstick (>= 1.4.0),
+    future (>= 1.67.0)

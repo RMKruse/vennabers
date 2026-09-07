@@ -46,3 +46,38 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "rlang", "tibble"
     'stopifnot(inherits(error, "error"), grepl("foreign", conditionMessage(error)), identical(before, parsnip::get_fit("vennabers")))'
   ))
 }
+
+if (all(vapply(c("tune", "yardstick", "future", "rsample", "workflows"),
+               requireNamespace, logical(1), quietly = TRUE))) {
+  payload <- tempfile(fileext = ".rds")
+  run_process(c(
+    'loadNamespace("vennabers")',
+    'data <- data.frame(x = sin(1:120), truth = factor(rep(c("yes", "no", "no", "yes"), 30)))',
+    'base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |> workflows::add_model(parsnip::logistic_reg(engine = "glm"))',
+    'outer <- withr::with_seed(101, rsample::vfold_cv(data, v = 3, repeats = 2))',
+    'prepared <- withr::with_seed(102, lapply(outer$splits, function(s) rsample::initial_split(rsample::analysis(s), .8)))',
+    'resolver <- vennabers::local_calibration_splits(prepared, names(data))',
+    'model <- vennabers::calibrated_workflow(base, "truth", splits = resolver, seed = 42, loss = "brier")',
+    paste0('saveRDS(list(model = model, outer = outer), ', deparse(payload), ')')
+  ))
+  run_process(c(
+    'loadNamespace("vennabers")', 'loadNamespace("stats")',
+    paste0('saved <- readRDS(', deparse(payload), ')'),
+    'Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")',
+    'future::plan(future::multisession, workers = 2)',
+    'control <- tune::control_resamples(save_pred = TRUE, extract = workflows::extract_fit_engine, event_level = "first", parallel_over = "resamples", pkgs = c("vennabers", "stats"))',
+    'run <- function(outer) withr::with_seed(103, tune::fit_resamples(saved$model, outer, metrics = yardstick::metric_set(yardstick::brier_class, yardstick::mn_log_loss), control = control))',
+    'one <- run(saved$outer)',
+    'two <- run(saved$outer)',
+    'stopifnot(nrow(tune::collect_notes(one)) == 0L, nrow(tune::collect_notes(two)) == 0L, identical(tune::collect_predictions(one), tune::collect_predictions(two)), identical(tune::collect_metrics(one), tune::collect_metrics(two)))',
+    'reversed <- rsample::manual_rset(rev(saved$outer$splits), tibble::as_tibble(saved$outer[nrow(saved$outer):1, c("id", "id2")]))',
+    'three <- run(reversed)',
+    'stopifnot(nrow(tune::collect_notes(three)) == 0L)',
+    'normalize <- function(r) { p <- as.data.frame(tune::collect_predictions(r, summarize = FALSE)); p <- p[order(p$id, p$id2, p$.row), ]; rownames(p) <- NULL; p }',
+    'stopifnot(identical(normalize(one), normalize(three)))',
+    'states <- tune::collect_extracts(one)$.extracts',
+    'stopifnot(length(states) == 6L, all(vapply(states, inherits, logical(1), "vennabers_fit")))',
+    'future::plan(future::sequential)'
+  ))
+  unlink(payload)
+}

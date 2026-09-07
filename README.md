@@ -63,8 +63,46 @@ Keep final assessment data separate. This local split cannot undo prior tuning o
 external transformations using calibration/assessment observations. The statistical
 setting assumes IID data and a model fixed independently of calibration data;
 improved scores on every test set are not guaranteed. This first automatic path
-supports binary Inductive calibration only; explicit plans and outer evaluation
-are separate work. See `?calibrated_workflow` for exact input and naming boundaries.
+supports binary Inductive calibration, direct explicit splits, and complete outer
+IID evaluation. See `?calibrated_workflow` for exact input and naming boundaries.
+
+
+Pass `splits = rsample::initial_split(development)` for a direct explicit fit,
+or `splits = function(data) ...` to construct a split from each local outer analysis
+set. Omit automatic `calibration_prop` and `strata` when supplying a plan.
+`local_calibration_splits(prepared, columns = c("x", "truth"))` builds a serializable
+resolver from a list of prepared local splits. It checks every entry and rejects
+conflicting ordered assignments for identical data. Matching uses selected raw
+columns, types, values, factor levels and row order, ignoring container class and
+row names. Duplicate observations remain distinct positions. Arbitrary callbacks
+must obey this contract themselves; hidden closure state cannot be audited
+automatically. Never use call counters or outer assessment data in a resolver.
+
+The installed evaluation example uses ordinary repeated `fit_resamples()` and a
+prepared resolver, aligns constructor/control event levels, and retains every
+fitted engine via `extract`. It audits all unsummarized predictions and metrics
+against expected resample/repeat/configuration/row identities and checks notes,
+missing truths, finite probabilities and hand-computed scores:
+
+```r
+source(system.file("examples", "calibrated-resampling.R", package = "vennabers"))
+```
+
+The constructor's stored `loss` controls native outer predictions. Yardstick's
+binary Brier matches the binary vector score; log-loss clips only for scoring.
+An inner fit failure, metric error, NA removal, or missing row makes the evaluation
+incomplete, even if collectors or averages succeed. `save_workflow` alone does not
+retain every fitted predictor: use `extract = workflows::extract_fit_engine`,
+`extract = identity` for entire workflows, or select compact diagnostics.
+
+`seed = NULL` uses the caller/tune stream; an explicit seed locally covers both
+plan resolution and training and restores the caller RNG state. Seed outer plans
+separately and retain RNG kind, actual splits and engine configuration. Inner fits
+are serial. Outer parallelism uses `parallel_over = "resamples"`; load `vennabers`
+and base-engine namespaces in fresh workers using `pkgs`. Repeatability requires
+the same RNG kind, versions, seeds, threads, strategy and reproducible engine.
+The engine never sees the outer partition: the example validates each outer
+analysis/assessment pair before fitting. Assessments may overlap across resamples.
 
 ## Inductive regression
 

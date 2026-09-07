@@ -10,7 +10,7 @@ fit the existing binary Inductive Venn-Abers core.}
 \usage{
 calibrated_workflow(workflow, outcome, ..., predictors = NULL,
   method = "inductive", classification = "binary", event_level = "first",
-  calibration_prop = 0.2, strata = NULL, seed = NULL, precision = NULL,
+  calibration_prop = 0.2, strata = NULL, splits = NULL, seed = NULL, precision = NULL,
   loss = "log")
 venn_abers_details(object, new_data, ..., loss = NULL)
 \method{predict}{_vennabers_fit}(object, new_data, type = NULL,
@@ -27,7 +27,7 @@ with exactly two levels, both represented in the development data.}
 outcome. NULL selects all other supplied columns. Their stored order is canonical;
 unused selected columns still have to be supplied for prediction.}
 \item{method, classification}{Only exact values \code{"inductive"} and
-\code{"binary"} are currently supported. Cross, multiclass, explicit split plans,
+\code{"binary"} are currently supported. Cross, multiclass,
 regression and tuning are not enabled by this constructor.}
 \item{event_level}{Exactly \code{"first"} or \code{"second"}, identifying the
 original factor level whose probability is calibrated.}
@@ -35,9 +35,17 @@ original factor level whose probability is calibrated.}
 \code{rsample::initial_split()} uses training proportion \code{1-calibration_prop}.}
 \item{strata}{NULL stratifies by outcome with \code{pool=0}; FALSE disables
 stratification. Other values are rejected. No retry or automatic split adjustment.}
+\item{splits}{NULL generates a local split. Otherwise an IID holdout
+\code{rsplit} from \code{rsample::initial_split()} or \code{rsample::make_splits()},
+or a serializable function receiving only selected local raw predictors followed
+by outcome and returning such a split. Explicit plans cannot be combined with
+explicit \code{calibration_prop} or \code{strata}, even their defaults.
+Use \code{\link{local_calibration_splits}} for prepared assignments.}
 \item{seed}{NULL uses the caller's RNG stream. A finite whole number in R's integer
 seed range sets a local seed for splitting and base fitting, restoring the caller's
-state afterwards. Reproducibility also depends on engine and package versions.}
+state and RNG kind afterwards, including on error. The scope includes the plan
+callback and model learning. Seed the outer plan separately. Reproducibility also
+depends on RNG kind, engine, package versions, thread and parallel configuration.}
 \item{precision}{NULL or a finite numeric whole number, including negative numbers.
 Only calibration probabilities are rounded, following \code{venn_abers()}.}
 \item{loss}{Constructor: stored prediction default, exactly \code{"log"} or
@@ -87,6 +95,39 @@ workflows. RDS restoration for pure R engines works in a fresh process after
 loading vennabers, workflows, and required engine packages. External-pointer engines
 may require their own serialization support.
 
+For an explicit plan, selected raw columns (in canonical predictor order, then
+outcome), values, column types, factor levels and row order must match local fit
+data. Container class and row names are ignored; equal observations still occupy
+distinct positions. Training and calibration indices must be finite, whole,
+unique, in range, disjoint, nonempty and cover all local rows. The single internal
+fold ID is always \code{Inductive1}; rsample's creation/outer IDs are metadata,
+not configurable inner fold IDs. Group, time and other specialized split classes
+are outside this IID contract. An unbound global positions plan cannot be reused
+on different outer analysis data.
+
+Ordinary \code{tune::fit_resamples()} fits the complete predictor independently
+on every outer analysis set. The stored loss controls native predictions even
+when tune calls parsnip directly; there is no loss argument to fit_resamples and
+no implicit control modification. Match \code{event_level} in the constructor and
+\code{tune::control_resamples()}. Yardstick's binary Brier is the binary vector
+score. Its log-loss clipping affects scoring only, never stored predictions.
+
+Use \code{save_pred = TRUE} and all public collectors, including
+\code{collect_notes()}, to check complete unsummarized resample, repeat,
+configuration and assessment-row identities and finite metrics. Inner failures,
+metric errors, NA removal or missing rows mean incomplete evaluation. All fits
+failing may make a collector itself error; a mean of surviving fits is insufficient.
+The installed \code{examples/calibrated-resampling.R} is an executable check.
+
+Use \code{control_resamples(extract = workflows::extract_fit_engine)} for all
+fitted engine states, \code{extract = identity} for full fitted workflows, or a
+function selecting compact diagnostics. \code{save_workflow = TRUE} alone does
+not preserve each fitted composite. Inner training is serial; use
+\code{parallel_over = "resamples"} for outer parallelism. Fresh workers must load
+vennabers and required base-engine namespaces through \code{pkgs}. Reproducibility
+is checked for the same versions, seeds, threads, strategy and deterministic
+engine; changing strategies or external engine RNGs is not covered.
+
 Integration packages are optional Suggests and version-checked on use. Neither
 core loading nor manual calibration requires or loads parsnip. Registration uses
 public parsnip APIs, is idempotent in either load order, and rejects foreign model
@@ -99,7 +140,9 @@ assessment observations separate from all training, selection and calibration.
 The statistical setting assumes IID observations and a predictive procedure fixed
 independently of its calibration data. The bounds are Venn-Abers probability
 intervals, not confidence intervals; improved scores on every data set are not
-promised. Outer evaluation and explicit local plans are separate work.}
+promised. The engine cannot validate an outer partition it never receives.
+Validate outer analysis/assessment disjointness before calling fit_resamples;
+assessment sets from different outer resamples may overlap.}
 \examples{
 source(system.file("examples", "calibrated-workflow.R", package = "vennabers"))
 }

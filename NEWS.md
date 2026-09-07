@@ -84,3 +84,7 @@
   prediction, loss overrides, and `venn_abers_details()` diagnostics.
 - Preserve class names, split positions, complete base workflows and calibration
   state; validate unsupported options and naming collisions before inner learning.
+- Add data-bound explicit IID holdouts and serializable local prepared-plan
+  resolution, rejecting conflicting assignments before model training.
+- Validate complete binary outer resampling with public collectors, local data-role
+  checks, stored loss defaults, failure cases and fresh parallel worker repeats.

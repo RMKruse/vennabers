@@ -17,3 +17,5 @@ export(fit_vennabers)
 export(predict_vennabers_prob)
 export(predict_vennabers_class)
 S3method(predict,"_vennabers_fit")
+
+export(local_calibration_splits)

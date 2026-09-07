@@ -172,7 +172,7 @@ if (all(vapply(integration_packages, requireNamespace, logical(1), quietly = TRU
   for (outcome in list(c("truth", "p"), "", NA_character_)) expect_error(calibrated_workflow(base, outcome), "outcome")
   expect_error(calibrated_workflow(base, "truth", predictors = c("p", "truth")), "truth")
   expect_error(calibrated_workflow(base, "truth", predictors = c("p", "p")), "p")
-  for (option in c("v", "splits", "m", "epsilon", "calibration_p", "clas", "unknown")) {
+  for (option in c("v", "m", "epsilon", "calibration_p", "clas", "unknown")) {
     expect_error(do.call(calibrated_workflow, c(list(base, "truth"), setNames(list(NULL), option))), option)
   }
   expect_error(calibrated_workflow(work = base, outcome = "truth"), "work")
