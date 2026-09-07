@@ -1,7 +1,8 @@
 # venn-abers
 
-Dependency-free binary Inductive and Cross Venn-Abers calibration for R 4.1
-and later. Version 0.2 adds matched-fold cross calibration.
+Dependency-free binary Inductive and Cross Venn-Abers calibration for R 4.5
+and later. This is the v0.3 development branch; version 0.2 added matched-fold
+cross calibration.
 
 ## Quick start
 
@@ -128,30 +129,44 @@ fold point predictions); public cross bounds/diagnostics; formula/data-frame
 cross interfaces; tidymodels/yardstick integrations; or new metrics, smoothing,
 plotting features or `ggplot2` output.
 
-There is no vignette. R-devel, R releases older than 4.1, CRAN-mode checks, and
-PDF-manual checks are outside acceptance, as are CRAN submission guarantees
-and release publishing. Only Base R and standard R distribution packages are
-needed. Installation and acceptance require neither Python nor networking;
+There is no vignette. PDF-manual checks, CRAN submission guarantees and release
+publishing are outside this package gate. Only Base R and standard R
+distribution packages are needed. Installation and acceptance require neither Python nor networking;
 regenerating the stored Python reference fixtures is optional and separate.
 
 ## Acceptance
 
-Run the complete local gate from the package root:
+Run the package gate from the package root:
 
 ```sh
 Rscript tools/acceptance.R
 ```
 
-It records the R and performance environments, builds the source package,
-runs `R CMD check --no-manual` on that artifact with zero errors, warnings and
-notes, and executes all IVAP and cross contract/parity tests and help examples.
-It installs the artifact into an isolated library, verifies its loaded path
-and version, executes the README R snippets and the canonical standalone
-script, and separately runs the preserved IVAP performance check: the median
-of three runs fitting 100,000 and predicting 100,000 observations must be at
-most 10 seconds. No Cross Venn-Abers timing ceiling is imposed.
+It builds and installs the source artifact into an isolated library, runs
+`R CMD check --as-cran --no-manual` (all package tests and help examples),
+verifies the loaded package path and version, and executes the README R
+snippets and every R script under `examples/` against that installation.
+Errors, warnings and NOTEs fail the gate. Online CRAN incoming checks and
+clock probes are disabled so the prepared R environment can run offline.
 
-Run the same complete gate on R 4.1.3 and latest stable R. The preserved CI
-matrix specifies `4.1.3` and `release`; its workflow is currently disabled.
-Successful local evidence for both versions is recorded in
-[the v0.2 acceptance record](tools/acceptance-v02.md).
+The active [workflow](.github/workflows/acceptance.yaml) requires R 4.6.1 and
+4.5.3 on Linux x86_64, Windows x86_64, macOS Intel and macOS ARM. Linux R-devel
+is an additional visible, non-blocking early warning. New releases require
+at least the previous R minor series; recheck the matrix and `DESCRIPTION`
+floor at final v0.3 acceptance. Older releases retain their original floor.
+
+Set `ACCEPTANCE_OUTPUT_DIR` to an empty directory to retain the source artifact,
+logs and environment/package versions; CI uploads this evidence even on failure.
+See the [v0.3 CI record](tools/acceptance-v03-ci.md) for configuration, evidence
+and the distinction between local checks and hosted matrix results.
+
+Benchmarks run separately after installing the built artifact:
+
+```sh
+Rscript tools/performance.R
+```
+
+The 100,000-calibration / 100,000-prediction IVAP case is preserved, without
+the historical 10-second ceiling. The full comparative benchmark protocol in
+[the release roadmap](RELEASE-ROADMAP.md#35-performance) belongs to overall
+release acceptance. Historical results remain in the [v0.2 record](tools/acceptance-v02.md).

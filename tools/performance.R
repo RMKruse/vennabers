@@ -1,4 +1,5 @@
-# Run from the package root after `R CMD INSTALL .`.
+# Run separately after installing the built artifact: Rscript tools/performance.R
+# Release comparisons and peak-memory measurement belong to overall acceptance.
 library(vennabers)
 
 performance_environment <- paste(
@@ -22,4 +23,3 @@ cat("Performance environment:", performance_environment, "\n")
 cat("Fit/predict observations: 100000 / 100000\n")
 cat("Elapsed seconds:", paste(format(elapsed, digits = 4), collapse = ", "), "\n")
 cat("Median seconds:", format(median_elapsed, digits = 4), "\n")
-stopifnot(median_elapsed <= 10)

@@ -1,3 +1,14 @@
+# vennabers 0.3.0 (development)
+
+- Raise the minimum R version to 4.5.0, the previous R minor series as of
+  September 2026. New releases follow this rolling support window; there is
+  no continuing R 4.1 promise. Recheck the floor at final v0.3 acceptance.
+- Activate installed-package CRAN-mode checks on R 4.6.1 and 4.5.3 across
+  Linux x86_64, Windows x86_64, macOS Intel and macOS ARM, with Linux R-devel
+  as a non-blocking early warning.
+- Separate package acceptance from the large IVAP benchmark; remove the
+  historical fixed 10-second performance threshold.
+
 # vennabers 0.2.0
 
 - Add binary Cross Venn-Abers calibration for matched fold-model probabilities,
