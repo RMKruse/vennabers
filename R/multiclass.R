@@ -57,7 +57,7 @@
            "] in fold [", absent[1L], "].", call. = FALSE)
     }
     event <- truth[rows] == problem[length(problem)]
-    scores <- .subproblem_probability(probability[rows, , drop = FALSE], problem)
+    scores <- .subproblem_probability(probability[rows, problem, drop = FALSE], problem)
     if (is.null(fold)) venn_abers(event, scores, precision) else
       cross_venn_abers(event, scores, fold[rows], precision)
   })
