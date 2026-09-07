@@ -1,0 +1,437 @@
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:103: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide(P1[:, 1], P1[:, 0])
+/tmp/venn-abers-python-154/src/venn_abers.py:111: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P1[i:, 1] - P1[i, 1]), (P1[i:, 0] - P1[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:129: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:137: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:103: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide(P1[:, 1], P1[:, 0])
+/tmp/venn-abers-python-154/src/venn_abers.py:111: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P1[i:, 1] - P1[i, 1]), (P1[i:, 0] - P1[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:129: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:137: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:103: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide(P1[:, 1], P1[:, 0])
+/tmp/venn-abers-python-154/src/venn_abers.py:111: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P1[i:, 1] - P1[i, 1]), (P1[i:, 0] - P1[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:129: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:137: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:103: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide(P1[:, 1], P1[:, 0])
+/tmp/venn-abers-python-154/src/venn_abers.py:111: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P1[i:, 1] - P1[i, 1]), (P1[i:, 0] - P1[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:129: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:137: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:103: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide(P1[:, 1], P1[:, 0])
+/tmp/venn-abers-python-154/src/venn_abers.py:111: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P1[i:, 1] - P1[i, 1]), (P1[i:, 0] - P1[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:129: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:137: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:103: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide(P1[:, 1], P1[:, 0])
+/tmp/venn-abers-python-154/src/venn_abers.py:111: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P1[i:, 1] - P1[i, 1]), (P1[i:, 0] - P1[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:129: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:137: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:103: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide(P1[:, 1], P1[:, 0])
+/tmp/venn-abers-python-154/src/venn_abers.py:111: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P1[i:, 1] - P1[i, 1]), (P1[i:, 0] - P1[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:129: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:137: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:103: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide(P1[:, 1], P1[:, 0])
+/tmp/venn-abers-python-154/src/venn_abers.py:111: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P1[i:, 1] - P1[i, 1]), (P1[i:, 0] - P1[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:129: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:137: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:103: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide(P1[:, 1], P1[:, 0])
+/tmp/venn-abers-python-154/src/venn_abers.py:111: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P1[i:, 1] - P1[i, 1]), (P1[i:, 0] - P1[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:129: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:137: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:103: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide(P1[:, 1], P1[:, 0])
+/tmp/venn-abers-python-154/src/venn_abers.py:111: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P1[i:, 1] - P1[i, 1]), (P1[i:, 0] - P1[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:129: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:137: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:103: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide(P1[:, 1], P1[:, 0])
+/tmp/venn-abers-python-154/src/venn_abers.py:111: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P1[i:, 1] - P1[i, 1]), (P1[i:, 0] - P1[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:129: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:137: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:103: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide(P1[:, 1], P1[:, 0])
+/tmp/venn-abers-python-154/src/venn_abers.py:111: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P1[i:, 1] - P1[i, 1]), (P1[i:, 0] - P1[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:129: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:137: RuntimeWarning: invalid value encountered in divide
+  grads = np.divide((P0[:, 1] - P0[i, 1]), (P0[:, 0] - P0[i, 0]))
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:112: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:179: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:179: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:179: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:179: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+/tmp/venn-abers-python-154/src/venn_abers.py:179: RuntimeWarning: All-NaN slice encountered
+  if np.sum(np.isnan(np.nanmin(grads))) == 0:
+PROVENANCE source/sdist/Git/issue-3 hashes match
+VERSIONS Python 3.14.6 NumPy 2.5.3 pandas 3.0.5 sklearn 1.9.0
+NEGATIVE manual raw ('class', 'other') one_vs_one TypeError the resolved dtypes are not compatible with add.accumulate. Resolved (dtype('<U32'), dtype('<U32'), dtype('<U64'))
+NEGATIVE manual raw ('.pred_class', '.pred_yes') one_vs_one TypeError the resolved dtypes are not compatible with add.accumulate. Resolved (dtype('<U32'), dtype('<U32'), dtype('<U64'))
+NEGATIVE manual raw ('a b', 'a-b') one_vs_one TypeError the resolved dtypes are not compatible with add.accumulate. Resolved (dtype('<U32'), dtype('<U32'), dtype('<U64'))
+NEGATIVE manual raw ('1yes', 'a/b') one_vs_one TypeError the resolved dtypes are not compatible with add.accumulate. Resolved (dtype('<U32'), dtype('<U32'), dtype('<U64'))
+NEGATIVE manual raw ('a b', 'a.b', 'a-b') one_vs_one IndexError only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+NEGATIVE manual raw ('a b', 'a.b', 'a-b') one_vs_rest IndexError only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+NAMES 20 trained label/mode cases; raw manual failures and reversible mapping passed
+PLANS native shuffle=False accepts two prescribed contiguous IVAP plans (36/54 calibration rows)
+NEGATIVE native constructor cv TypeError VennAbersCalibrator.__init__() got an unexpected keyword argument 'cv'
+NEGATIVE native n_splits=PredefinedSplit ValueError The number of folds must be of Integral type. PredefinedSplit(test_fold=array([0, 0, ..., 2, 2], shape=(180,))) of type
+NEGATIVE native fit cv is forwarded, not VA plan TypeError LoggedClassifier.fit() got an unexpected keyword argument 'cv'
+NEGATIVE global CCC local-position plan is invalid after VA shrinking IndexError index 122 is out of bounds for axis 0 with size 120
+NEGATIVE global CCC local-position plan is invalid after VA shrinking IndexError index 124 is out of bounds for axis 0 with size 120
+PLANS explicit occurrence IDs + serialized data/plan bundles; prescribed distinct folds;
+PLANS repeat, reverse invocation order, thread-parallel fits reproduce membership and probabilities
+NESTED 12 row-audited modes; 16 classification pair domains; numeric public facade + stacking IV/CV calls passed
+ALL integration-boundary assertions passed
