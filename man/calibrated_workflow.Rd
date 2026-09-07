@@ -2,16 +2,15 @@
 \alias{calibrated_workflow}
 \alias{venn_abers_details}
 \alias{predict._vennabers_fit}
-\title{Train a Binary Inductive Calibrated Workflow}
+\title{Train a Binary Inductive or Cross Calibrated Workflow}
 \description{Wrap an unfitted, fully configured classification workflow in a normal
-outer workflow. The outer XY blueprint transports selected raw columns. A single
-complete base workflow learns on a local training split; its held-out probabilities
-fit the existing binary Inductive Venn-Abers core.}
+outer workflow. The outer XY blueprint transports selected raw columns. Complete base workflows learn only on their local training splits; held-out
+probabilities fit the existing binary Inductive or Cross Venn-Abers core.}
 \usage{
 calibrated_workflow(workflow, outcome, ..., predictors = NULL,
   method = "inductive", classification = "binary", event_level = "first",
-  calibration_prop = 0.2, strata = NULL, splits = NULL, seed = NULL, precision = NULL,
-  loss = "log")
+  calibration_prop = 0.2, v = 5L, strata = NULL, splits = NULL, seed = NULL,
+  precision = NULL, loss = "log")
 venn_abers_details(object, new_data, ..., loss = NULL)
 \method{predict}{_vennabers_fit}(object, new_data, type = NULL,
   opts = list(), ..., loss = NULL)
@@ -26,20 +25,26 @@ with exactly two levels, both represented in the development data.}
 \item{predictors}{Optional character vector of raw predictor names, excluding
 outcome. NULL selects all other supplied columns. Their stored order is canonical;
 unused selected columns still have to be supplied for prediction.}
-\item{method, classification}{Only exact values \code{"inductive"} and
-\code{"binary"} are currently supported. Cross, multiclass,
+\item{method}{Exactly \code{"inductive"} (default) or \code{"cross"}.}
+\item{classification}{Only \code{"binary"} is currently supported. Multiclass,
 regression and tuning are not enabled by this constructor.}
 \item{event_level}{Exactly \code{"first"} or \code{"second"}, identifying the
 original factor level whose probability is calibrated.}
 \item{calibration_prop}{A number strictly between zero and one.
-\code{rsample::initial_split()} uses training proportion \code{1-calibration_prop}.}
+\code{rsample::initial_split()} uses training proportion \code{1-calibration_prop}.
+Explicitly supplying this option requires Inductive.}
+\item{v}{Cross fold count, a whole number of at least two, default five.
+Automatic \code{rsample::vfold_cv()} uses one repetition and never reduces this
+count; it must not exceed the local row count. Explicitly supplying \code{v}
+requires Cross.}
 \item{strata}{NULL stratifies by outcome with \code{pool=0}; FALSE disables
 stratification. Other values are rejected. No retry or automatic split adjustment.}
 \item{splits}{NULL generates a local split. Otherwise an IID holdout
 \code{rsplit} from \code{rsample::initial_split()} or \code{rsample::make_splits()},
-or a serializable function receiving only selected local raw predictors followed
-by outcome and returning such a split. Explicit plans cannot be combined with
-explicit \code{calibration_prop} or \code{strata}, even their defaults.
+for Inductive; a simple \code{rset} from \code{rsample::vfold_cv()} or
+\code{rsample::manual_rset()} for Cross; or a serializable function receiving only
+selected local raw predictors followed by outcome and returning such a plan. Explicit plans cannot be combined with
+explicit \code{calibration_prop}, \code{v} or \code{strata}, even their defaults.
 Use \code{\link{local_calibration_splits}} for prepared assignments.}
 \item{seed}{NULL uses the caller's RNG stream. A finite whole number in R's integer
 seed range sets a local seed for splitting and base fitting, restoring the caller's
@@ -67,8 +72,10 @@ at exactly 0.5. Empty predictions keep the schema without calling the inner engi
 
 \code{venn_abers_details()} returns a list with \code{prediction} (the same native
 probability table) and \code{details}: integer \code{row}, character \code{fold}
-(always \code{"Inductive1"}), character \code{event_class}, and double
-\code{lower}, \code{upper}, \code{probability}.}
+(\code{"Inductive1"} for Inductive; the supplied fold IDs for Cross), character \code{event_class}, and double
+\code{lower}, \code{upper}, \code{probability}. Cross details contain one row per
+new observation and fold; their probability is the fold point, while
+\code{prediction} contains the final aggregate.}
 \details{
 All learned preprocessing belongs in the base workflow; the outer Variables
 preprocessor only carries raw data. Training and calibration positions must form a
@@ -87,9 +94,11 @@ as \code{a b} and \code{a.b} require a compatible base engine. Raw predictor
 \code{parameters} (\code{requested}, logical \code{explicit} flags and
 \code{effective}), \code{outcome}, \code{predictors}, \code{columns} (predictors
 then outcome), \code{class_levels}, \code{event_class}, \code{loss},
-\code{folds$Inductive1} (integer \code{analysis}/\code{assessment} positions and
-\code{training_size}/\code{calibration_size}), \code{models$Inductive1} (the full
-fitted base workflow), \code{calibrator}, \code{versions}, and \code{rng_kind}.
+\code{folds} (by fold ID, with integer \code{analysis}/\code{assessment} positions and
+\code{training_size}/\code{calibration_size}), \code{models} (full
+fitted base workflows named by the same IDs), \code{calibrator}, \code{versions}, and \code{rng_kind}.
+For Cross, \code{calibrator} is a \code{cross_venn_abers} core with
+\code{folds} and a correspondingly named \code{calibrators} list.
 Inspect learned recipes with the public workflow extractors; predict with full
 workflows. RDS restoration for pure R engines works in a fresh process after
 loading vennabers, workflows, and required engine packages. External-pointer engines
@@ -101,9 +110,21 @@ data. Container class and row names are ignored; equal observations still occupy
 distinct positions. Training and calibration indices must be finite, whole,
 unique, in range, disjoint, nonempty and cover all local rows. The single internal
 fold ID is always \code{Inductive1}; rsample's creation/outer IDs are metadata,
-not configurable inner fold IDs. Group, time and other specialized split classes
+not configurable inner fold IDs. Cross requires unique nonempty character IDs,
+at least two folds, exactly one assessment assignment for every local row, and
+the exact complementary analysis set in each fold. All folds are checked before
+any learning starts. Repeated inner folds and bootstrap duplicates are rejected.
+Group, time and other specialized split classes
 are outside this IID contract. An unbound global positions plan cannot be reused
 on different outer analysis data.
+
+Cross retains exactly one full base workflow and calibrator per fold, with no
+additional full-data model. New data traverse every matching learned recipe/model
+path. A failed fold fails the entire fit. Log loss uses the core's stable logarithmic
+aggregation of endpoints; Brier uses the equal-weight mean of fold Brier points.
+Neither merger weights by fold size or pools calibration data. Precision rounds
+only calibration probabilities, never new model probabilities. Fold details
+reconstruct the final probability using these mergers.
 
 Ordinary \code{tune::fit_resamples()} fits the complete predictor independently
 on every outer analysis set. The stored loss controls native predictions even
@@ -117,7 +138,11 @@ Use \code{save_pred = TRUE} and all public collectors, including
 configuration and assessment-row identities and finite metrics. Inner failures,
 metric errors, NA removal or missing rows mean incomplete evaluation. All fits
 failing may make a collector itself error; a mean of surviving fits is insufficient.
-The installed \code{examples/calibrated-resampling.R} is an executable check.
+The installed \code{examples/calibrated-resampling.R} shows both methods with an
+executable completeness check. Five outer by five inner Cross folds require exactly
+25 base fits; no final fit runs automatically. Keeping extracted Cross states retains
+all 25 workflows and their recipes/calibrators, so memory scales with the number
+of retained base fits. A separate final development fit costs another five fits.
 
 Use \code{control_resamples(extract = workflows::extract_fit_engine)} for all
 fitted engine states, \code{extract = identity} for full fitted workflows, or a
@@ -137,6 +162,9 @@ registrations under the name \code{vennabers}. Packages are never auto-installed
 calibration observations. An unfitted workflow does not prove that earlier tuning,
 feature choices, or external transformations excluded these observations. Keep
 assessment observations separate from all training, selection and calibration.
+Calibration is not an independent evaluation. Cross model parameters must be
+fixed using independent data or suitable selection nested inside the allowed
+training portions; this constructor does not perform that selection.
 The statistical setting assumes IID observations and a predictive procedure fixed
 independently of its calibration data. The bounds are Venn-Abers probability
 intervals, not confidence intervals; improved scores on every data set are not
@@ -146,4 +174,4 @@ assessment sets from different outer resamples may overlap.}
 \examples{
 source(system.file("examples", "calibrated-workflow.R", package = "vennabers"))
 }
-\seealso{\code{\link{venn_abers}}}
+\seealso{\code{\link{venn_abers}}, \code{\link{cross_venn_abers}}}

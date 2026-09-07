@@ -1,3 +1,11 @@
+# Development
+
+- Add binary `method = "cross"` to `calibrated_workflow()`: default five-fold
+  local training, validated explicit/prepared partitions, matching retained
+  workflows/calibrators, and native Cross predictions and fold diagnostics.
+  Complete outer resampling uses one base fit per inner fold without a full model.
+  Log/Brier loss, calibration rounding, names and local RNG contracts are preserved.
+
 # vennabers 0.4.0
 
 - Identify one regression source candidate for the eight-platform acceptance

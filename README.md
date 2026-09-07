@@ -44,6 +44,15 @@ preprocessor carries raw columns; put recipes in `base`. One complete base workf
 learns on 80% of the data by default, and its held-out probabilities calibrate the
 binary Inductive core. Both factor levels must exist in the development data.
 
+Use `method = "cross"` to retain five complete base workflows by default (`v`
+sets the count, at least two). Each workflow learns its recipe/model on one fold's
+complement and calibrates on that held-out fold. New data follow all matching
+paths; the existing Cross core combines them with stable log aggregation or the
+equal-weight mean of Brier fold points. There is no full-data model, size weighting
+or pooled calibration. Invalid partitions fail before training, and any failed
+fold fails the whole fit. `strata = FALSE` disables default outcome stratification;
+otherwise splitting uses `pool = 0`, without retries or fold-count reduction.
+
 `venn_abers_details(fitted, new_data)` returns native probabilities plus row/fold
 bounds. `workflows::extract_fit_engine(fitted)` exposes the model, calibrator,
 original class names, split positions, options and versions. Set `event_level`
@@ -63,13 +72,14 @@ Keep final assessment data separate. This local split cannot undo prior tuning o
 external transformations using calibration/assessment observations. The statistical
 setting assumes IID data and a model fixed independently of calibration data;
 improved scores on every test set are not guaranteed. This first automatic path
-supports binary Inductive calibration, direct explicit splits, and complete outer
+supports binary Inductive and Cross calibration, direct explicit splits, and complete outer
 IID evaluation. See `?calibrated_workflow` for exact input and naming boundaries.
 
 
 Pass `splits = rsample::initial_split(development)` for a direct explicit fit,
 or `splits = function(data) ...` to construct a split from each local outer analysis
-set. Omit automatic `calibration_prop` and `strata` when supplying a plan.
+set. Cross accepts a simple `vfold_cv()` or `manual_rset()` partition. Omit automatic
+`calibration_prop`, `v` and `strata` when supplying a plan.
 `local_calibration_splits(prepared, columns = c("x", "truth"))` builds a serializable
 resolver from a list of prepared local splits. It checks every entry and rejects
 conflicting ordered assignments for identical data. Matching uses selected raw
@@ -87,6 +97,13 @@ missing truths, finite probabilities and hand-computed scores:
 ```r
 source(system.file("examples", "calibrated-resampling.R", package = "vennabers"))
 ```
+
+The same example shows Cross fit, predict and fold diagnostics, then five outer
+by five inner folds: 25 base fits, with no automatic final fit. Extracting all
+states retains all 25 workflows plus recipes/calibrators. Calibration is not an
+independent evaluation; keep outer assessment and final test data separate from
+training, calibration and parameter selection. Cross requires independently fixed
+parameters or suitable nested selection, which this constructor does not perform.
 
 The constructor's stored `loss` controls native outer predictions. Yardstick's
 binary Brier matches the binary vector score; log-loss clips only for scoring.

@@ -18,14 +18,16 @@ run_process(c(
   'stopifnot(!"parsnip" %in% loadedNamespaces())'
 ), libraries = .Library)
 
+for (method in c("inductive", "cross")) {
 if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "rlang", "tibble", "withr", "generics", "tidyselect"),
                requireNamespace, logical(1), quietly = TRUE))) {
   construction <- c(
+    paste0("method <- ", deparse(method)),
     'data <- data.frame(x = sin(1:80), truth = factor(rep(c("yes", "no", "no", "yes"), 20)))',
     'base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |> workflows::add_model(parsnip::logistic_reg(engine = "glm"))',
-    'model <- vennabers::calibrated_workflow(base, "truth", seed = 42)',
-    'second <- vennabers::calibrated_workflow(base, "truth", seed = 42)',
-    'stopifnot(nrow(parsnip::get_fit("vennabers")) == 1L)',
+    'model <- vennabers::calibrated_workflow(base, "truth", method = method, seed = 42)',
+    'second <- vennabers::calibrated_workflow(base, "truth", method = method, seed = 42)',
+    'stopifnot(nrow(parsnip::get_fit("vennabers")) == 2L)',
     'fit <- generics::fit(model, data)',
     'stopifnot(identical(predict(fit, data, type = "prob"), vennabers::venn_abers_details(fit, data)$prediction))'
   )
@@ -51,13 +53,14 @@ if (all(vapply(c("tune", "yardstick", "future", "rsample", "workflows"),
                requireNamespace, logical(1), quietly = TRUE))) {
   payload <- tempfile(fileext = ".rds")
   run_process(c(
+    paste0("method <- ", deparse(method)),
     'loadNamespace("vennabers")',
     'data <- data.frame(x = sin(1:120), truth = factor(rep(c("yes", "no", "no", "yes"), 30)))',
     'base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |> workflows::add_model(parsnip::logistic_reg(engine = "glm"))',
     'outer <- withr::with_seed(101, rsample::vfold_cv(data, v = 3, repeats = 2))',
-    'prepared <- withr::with_seed(102, lapply(outer$splits, function(s) rsample::initial_split(rsample::analysis(s), .8)))',
+    'prepared <- withr::with_seed(102, lapply(outer$splits, function(s) if (method == "cross") rsample::vfold_cv(rsample::analysis(s), v = 5) else rsample::initial_split(rsample::analysis(s), .8)))',
     'resolver <- vennabers::local_calibration_splits(prepared, names(data))',
-    'model <- vennabers::calibrated_workflow(base, "truth", splits = resolver, seed = 42, loss = "brier")',
+    'model <- vennabers::calibrated_workflow(base, "truth", method = method, splits = resolver, seed = 42, loss = "brier")',
     paste0('saveRDS(list(model = model, outer = outer), ', deparse(payload), ')')
   ))
   run_process(c(
@@ -80,4 +83,5 @@ if (all(vapply(c("tune", "yardstick", "future", "rsample", "workflows"),
     'future::plan(future::sequential)'
   ))
   unlink(payload)
+}
 }

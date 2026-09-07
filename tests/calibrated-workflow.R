@@ -177,7 +177,7 @@ if (all(vapply(integration_packages, requireNamespace, logical(1), quietly = TRU
   }
   expect_error(calibrated_workflow(work = base, outcome = "truth"), "work")
   expect_error(calibrated_workflow(base, out = "truth"), "out")
-  for (method in c("cross", "ind", "inductive ")) expect_error(calibrated_workflow(base, "truth", method = method), "method")
+  for (method in c("cro", "ind", "inductive ")) expect_error(calibrated_workflow(base, "truth", method = method), "method")
   for (classification in c("ovo", "ovr", "bin")) expect_error(calibrated_workflow(base, "truth", classification = classification), "classification")
   for (prop in list(0, 1, -.1, Inf, NA_real_, TRUE, numeric(), c(.1, .2))) {
     expect_error(calibrated_workflow(base, "truth", calibration_prop = prop), "calibration_prop")

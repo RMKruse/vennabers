@@ -2,7 +2,7 @@
 # workflow after the local split, including any recipe preparation.
 calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                                 method = "inductive", classification = "binary",
-                                event_level = "first", calibration_prop = 0.2,
+                                event_level = "first", calibration_prop = 0.2, v = 5L,
                                 strata = NULL, splits = NULL, seed = NULL, precision = NULL,
                                 loss = "log") {
   .integration_dots(...)
@@ -19,10 +19,18 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     .integration_names(predictors, "predictor")
     if (outcome %in% predictors) stop("Outcome ", sQuote(outcome), " is also a predictor.", call. = FALSE)
   }
-  .validate_choice(method, "inductive", "method")
+  .validate_choice(method, c("inductive", "cross"), "method")
   .validate_choice(classification, "binary", "classification")
   .validate_choice(event_level, c("first", "second"), "event_level")
   .validate_choice(loss, c("log", "brier"), "loss")
+  if (method == "inductive" && !missing(v)) stop("`v` requires method = 'cross'.", call. = FALSE)
+  if (method == "cross" && !missing(calibration_prop)) {
+    stop("`calibration_prop` requires method = 'inductive'.", call. = FALSE)
+  }
+  if (!is.numeric(v) || !is.vector(v) || length(v) != 1L || !is.finite(v) ||
+      v != floor(v) || v < 2 || v > .Machine$integer.max) {
+    stop("`v` must be one finite whole number of at least two folds.", call. = FALSE)
+  }
   if (!is.numeric(calibration_prop) || !is.vector(calibration_prop) ||
       length(calibration_prop) != 1L || !is.finite(calibration_prop) ||
       calibration_prop <= 0 || calibration_prop >= 1) {
@@ -40,26 +48,27 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     stop("`precision` must be NULL or one finite numeric whole number.", call. = FALSE)
   }
   if (!is.null(splits)) {
-    if (!inherits(splits, "rsplit") && !is.function(splits)) {
-      stop("`splits` must be NULL, an IID holdout rsplit, or a function of local data.", call. = FALSE)
+    if (!inherits(splits, if (method == "cross") "rset" else "rsplit") && !is.function(splits)) {
+      stop("`splits` must be NULL, an IID ", if (method == "cross") "Cross rset" else "holdout rsplit",
+           ", or a function of local data.", call. = FALSE)
     }
-    if (!missing(calibration_prop) || !missing(strata)) {
-      stop("Explicit `splits` cannot be combined with `calibration_prop` or `strata`.", call. = FALSE)
+    if (!missing(calibration_prop) || !missing(v) || !missing(strata)) {
+      stop("Explicit `splits` cannot be combined with `calibration_prop`, `v` or `strata`.", call. = FALSE)
     }
   }
   .integration_packages()
   .validate_base_workflow(workflow, outcome)
   .register_vennabers()
   requested <- list(predictors = predictors, method = method, classification = classification,
-                    event_level = event_level, calibration_prop = calibration_prop,
+                    event_level = event_level, calibration_prop = calibration_prop, v = v,
                     strata = strata, splits = splits, seed = seed, precision = precision, loss = loss)
   explicit <- c(predictors = !missing(predictors), method = !missing(method),
                 classification = !missing(classification), event_level = !missing(event_level),
-                calibration_prop = !missing(calibration_prop), strata = !missing(strata),
+                calibration_prop = !missing(calibration_prop), v = !missing(v), strata = !missing(strata),
                 splits = !missing(splits), seed = !missing(seed), precision = !missing(precision), loss = !missing(loss))
   spec <- parsnip::new_model_spec("vennabers", args = list(), eng_args = NULL,
-                                mode = "classification", method = NULL, engine = "inductive")
-  spec <- parsnip::set_engine(spec, "inductive", base_workflow = workflow,
+                                mode = "classification", method = NULL, engine = method)
+  spec <- parsnip::set_engine(spec, method, base_workflow = workflow,
                              outcome = outcome, parameters = list(requested = requested, explicit = explicit))
   selection <- if (is.null(predictors)) quote(everything()) else predictors
   carrier <- rlang::inject(workflows::add_variables(
@@ -150,53 +159,72 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   effective <- settings
   effective$predictors <- names(x)
   effective$strata <- if (is.null(settings$strata)) outcome else FALSE
+  if (settings$method == "cross") effective$calibration_prop <- NULL else effective$v <- NULL
   if (!is.null(settings$splits)) {
-    effective$calibration_prop <- effective$strata <- NULL
+    effective$calibration_prop <- effective$v <- effective$strata <- NULL
   }
   parameters$effective <- effective
   event <- classes[if (settings$event_level == "first") 1L else 2L]
   # One local RNG scope includes the resolver, split generation and model learning.
   if (!is.null(settings$seed)) withr::local_seed(settings$seed)
   rng_kind <- RNGkind()
+  if (settings$method == "cross" && is.null(settings$splits) && settings$v > nrow(raw)) {
+    stop("`v` cannot exceed the number of local rows; the fold count is not reduced.", call. = FALSE)
+  }
   split <- tryCatch(if (is.function(settings$splits)) {
     settings$splits(raw)
   } else if (!is.null(settings$splits)) {
     settings$splits
+  } else if (settings$method == "cross") {
+    if (identical(effective$strata, FALSE)) rsample::vfold_cv(raw, v = settings$v) else
+      rlang::inject(rsample::vfold_cv(raw, v = settings$v, strata = !!outcome, pool = 0))
   } else if (identical(effective$strata, FALSE)) {
     rsample::initial_split(raw, prop = 1 - settings$calibration_prop)
   } else {
     rlang::inject(rsample::initial_split(raw, prop = 1 - settings$calibration_prop,
                                        strata = !!outcome, pool = 0))
-  }, error = function(e) stop("Inductive1 rsample split failed (nonempty training and calibration required): ",
+  }, error = function(e) stop(settings$method, " rsample split failed (nonempty training and calibration required): ",
                               conditionMessage(e), call. = FALSE))
-  positions <- .inductive_split(split, raw)
-  analysis <- positions$analysis
-  assessment <- positions$assessment
-  model <- tryCatch(generics::fit(base_workflow, raw[analysis, , drop = FALSE]),
-                    error = function(e) stop("Inductive1 base workflow training: ", conditionMessage(e), call. = FALSE))
-  p <- .base_event_probability(model, raw[assessment, , drop = FALSE], classes, event)
-  calibrator <- venn_abers(y[assessment] == event, p, precision = settings$precision)
+  folds <- if (settings$method == "cross") .cross_splits(split, raw) else
+    list(Inductive1 = .inductive_split(split, raw))
+  models <- probabilities <- truths <- fold_ids <- vector("list", length(folds))
+  names(models) <- names(folds)
+  for (id in names(folds)) {
+    analysis <- folds[[id]]$analysis
+    assessment <- folds[[id]]$assessment
+    models[[id]] <- tryCatch(generics::fit(base_workflow, raw[analysis, , drop = FALSE]),
+      error = function(e) stop(id, " base workflow training: ", conditionMessage(e), call. = FALSE))
+    k <- match(id, names(folds))
+    probabilities[[k]] <- .base_event_probability(models[[id]], raw[assessment, , drop = FALSE], classes, event, id)
+    truths[[k]] <- y[assessment] == event
+    fold_ids[[k]] <- rep(id, length(assessment))
+    folds[[id]]$training_size <- length(analysis)
+    folds[[id]]$calibration_size <- length(assessment)
+  }
+  calibrator <- if (settings$method == "cross") {
+    core <- cross_venn_abers(unlist(truths), unlist(probabilities), unlist(fold_ids), precision = settings$precision)
+    names(core$calibrators) <- core$folds
+    core
+  } else venn_abers(truths[[1L]], probabilities[[1L]], precision = settings$precision)
   structure(list(parameters = parameters, outcome = outcome,
                  predictors = names(x), columns = names(raw), class_levels = classes,
                  event_class = event, loss = settings$loss,
-                 folds = list(Inductive1 = list(analysis = analysis, assessment = assessment,
-                                              training_size = length(analysis), calibration_size = length(assessment))),
-                 models = list(Inductive1 = model), calibrator = calibrator,
+                 folds = folds, models = models, calibrator = calibrator,
                  versions = c(R = as.character(getRversion()),
                               vapply(c("vennabers", names(.integration_versions)),
                                      function(p) as.character(utils::packageVersion(p)), "")),
                  rng_kind = rng_kind), class = "vennabers_fit")
 }
 
-.base_event_probability <- function(model, data, classes, event) {
+.base_event_probability <- function(model, data, classes, event, id = "Inductive1") {
   p <- tryCatch(stats::predict(model, data, type = "prob"),
-                error = function(e) stop("Inductive1 base workflow probability prediction: ", conditionMessage(e), call. = FALSE))
-  .integration_names(names(p), "base probability column")
+                error = function(e) stop(id, " base workflow probability prediction: ", conditionMessage(e), call. = FALSE))
+  .integration_names(names(p), paste(id, "base probability column"))
   expected <- paste0(".pred_", classes)
   if (!setequal(names(p), expected) || nrow(p) != nrow(data) ||
       !all(vapply(p, .valid_probability, logical(1))) ||
       any(abs(rowSums(p) - 1) > 1e-8)) {
-    stop("Inductive1 base workflow must return finite probabilities for original classes ",
+    stop(id, " base workflow must return finite probabilities for original classes ",
          paste(sQuote(classes), collapse = ", "), " in columns ",
          paste(sQuote(expected), collapse = ", "), ".", call. = FALSE)
   }
@@ -204,20 +232,28 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
 }
 
 .integration_prediction <- function(object, new_data) {
-  p <- if (nrow(new_data)) {
-    .base_event_probability(object$models$Inductive1, new_data, object$class_levels, object$event_class)
-  } else numeric()
-  bounds <- stats::predict(object$calibrator, p, loss = object$loss)
+  p <- lapply(names(object$models), function(id) {
+    if (nrow(new_data)) .base_event_probability(object$models[[id]], new_data, object$class_levels, object$event_class, id)
+    else numeric()
+  })
+  if (object$parameters$requested$method == "cross") {
+    p <- do.call(cbind, p)
+    colnames(p) <- names(object$models)
+    result <- stats::predict(object$calibrator, p, loss = object$loss, type = "details")
+    probability <- result$prediction$probability
+    details <- result$folds
+  } else {
+    bounds <- stats::predict(object$calibrator, p[[1L]], loss = object$loss)
+    probability <- bounds$probability
+    details <- data.frame(row = seq_len(nrow(new_data)), fold = rep("Inductive1", nrow(new_data)), bounds)
+  }
+  details$event_class <- rep(object$event_class, nrow(details))
   probabilities <- lapply(object$class_levels, function(cl) {
-    if (cl == object$event_class) bounds$probability else 1 - bounds$probability
+    if (cl == object$event_class) probability else 1 - probability
   })
   names(probabilities) <- paste0(".pred_", object$class_levels)
   list(prediction = tibble::as_tibble(probabilities, .name_repair = "minimal"),
-       details = tibble::tibble(row = seq_len(nrow(new_data)),
-                               fold = rep("Inductive1", nrow(new_data)),
-                               event_class = rep(object$event_class, nrow(new_data)),
-                               lower = bounds$lower, upper = bounds$upper,
-                               probability = bounds$probability))
+       details = tibble::as_tibble(details[c("row", "fold", "event_class", "lower", "upper", "probability")]))
 }
 
 predict_vennabers_prob <- function(object, new_data) {
@@ -225,7 +261,7 @@ predict_vennabers_prob <- function(object, new_data) {
 }
 
 predict_vennabers_class <- function(object, new_data) {
-  p <- .integration_prediction(object, new_data)$details$probability
+  p <- .integration_prediction(object, new_data)$prediction[[paste0(".pred_", object$event_class)]]
   factor(ifelse(p >= .5, object$event_class,
                 object$class_levels[object$class_levels != object$event_class]), levels = object$class_levels)
 }

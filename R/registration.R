@@ -25,19 +25,21 @@
   }
   parsnip::set_new_model(model)
   parsnip::set_model_mode(model, "classification")
-  parsnip::set_model_engine(model, "classification", "inductive")
-  parsnip::set_dependency(model, "inductive", pkg = "vennabers", mode = "classification")
-  parsnip::set_fit(model, "classification", "inductive",
-                   list(interface = "data.frame", protect = c("x", "y"),
-                        func = c(pkg = "vennabers", fun = "fit_vennabers"), defaults = list()))
-  parsnip::set_encoding(model, "classification", "inductive",
-                        list(predictor_indicators = "none", compute_intercept = FALSE,
-                             remove_intercept = FALSE, allow_sparse_x = FALSE))
-  for (type in c("prob", "class")) {
-    parsnip::set_pred(model, "classification", "inductive", type,
-                      list(pre = NULL, post = NULL,
-                           func = c(pkg = "vennabers", fun = paste0("predict_vennabers_", type)),
-                           args = list(object = quote(object$fit), new_data = quote(new_data))))
+  for (engine in c("inductive", "cross")) {
+    parsnip::set_model_engine(model, "classification", engine)
+    parsnip::set_dependency(model, engine, pkg = "vennabers", mode = "classification")
+    parsnip::set_fit(model, "classification", engine,
+                     list(interface = "data.frame", protect = c("x", "y"),
+                          func = c(pkg = "vennabers", fun = "fit_vennabers"), defaults = list()))
+    parsnip::set_encoding(model, "classification", engine,
+                          list(predictor_indicators = "none", compute_intercept = FALSE,
+                               remove_intercept = FALSE, allow_sparse_x = FALSE))
+    for (type in c("prob", "class")) {
+      parsnip::set_pred(model, "classification", engine, type,
+                        list(pre = NULL, post = NULL,
+                             func = c(pkg = "vennabers", fun = paste0("predict_vennabers_", type)),
+                             args = list(object = quote(object$fit), new_data = quote(new_data))))
+    }
   }
   .registration$fit <- parsnip::get_fit(model)
   invisible(NULL)

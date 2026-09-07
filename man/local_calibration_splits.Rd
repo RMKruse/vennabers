@@ -1,12 +1,14 @@
 \name{local_calibration_splits}
 \alias{local_calibration_splits}
-\title{Resolve Prepared Local Inductive Calibration Splits}
+\title{Resolve Prepared Local Calibration Splits}
 \description{Validate all prepared assignments and return a serializable function
-mapping selected local raw data to one Inductive IID holdout.}
+mapping selected local raw data to one Inductive IID holdout or Cross partition.}
 \usage{local_calibration_splits(splits, columns)}
 \arguments{
 \item{splits}{A nonempty list of data-bound holdouts from
-\code{rsample::initial_split()} or \code{rsample::make_splits()}. Each split's
+\code{rsample::initial_split()} or \code{rsample::make_splits()}, or simple Cross
+\code{rset} partitions from \code{rsample::vfold_cv()} or
+\code{rsample::manual_rset()}. Each split's
 stored data is its local fitting domain, typically one outer analysis set.}
 \item{columns}{Unique selected raw predictor names in carrier order followed by
 the outcome name. These columns, including outcome, define data identity. They
@@ -14,13 +16,15 @@ must exactly match the canonical columns received by the resolver; an omitted
 outcome or selected predictor is an error.}
 }
 \value{A function of local raw \code{data}, suitable for the \code{splits} argument
-of \code{calibrated_workflow()}. It returns a data-bound \code{rsplit}.}
+of \code{calibrated_workflow()}. It returns a data-bound \code{rsplit} or Cross \code{rset}.}
 \details{Every prepared split is validated before the function is returned.
 Identity includes column values, types, factor levels and row order. Container
 class and row names are ignored. Extra unselected columns are ignored; duplicate
-observations remain distinct positions. All plans use method \code{inductive}
-and the fixed single fold ID \code{Inductive1}; rsample creation/outer IDs are
-metadata. Identical data require identical ordered analysis/assessment indices.
+observations remain distinct positions. Inductive uses the fixed single fold ID
+\code{Inductive1}; Cross retains the ordered unique fold IDs. Repeated, overlapping,
+incomplete and noncomplementary inner Cross partitions are rejected before fitting.
+Identical data require the same method, ordered fold IDs and ordered
+analysis/assessment indices. Equivalent rset containers normalize to the same plan.
 Duplicate identical plans are allowed; conflicting entries are errors identifying
 their positions. A lookup without a matching snapshot is an error. No call counter,
 first conflicting match, or outer assessment access is used. Construction compares

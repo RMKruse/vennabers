@@ -95,3 +95,31 @@ if (all(vapply(c("vennabers", "tune", "yardstick", "rsample", "workflows"),
   states <- tune::collect_extracts(result)
   stopifnot(nrow(states) == nrow(outer), all(vapply(states$.extracts, inherits, logical(1), "vennabers_fit")))
 }
+
+if (all(vapply(c("vennabers", "tune", "yardstick", "rsample", "workflows"),
+               requireNamespace, logical(1), quietly = TRUE))) {
+  # Parameters were fixed independently; a final test set remains untouched.
+  # Cross keeps each learned recipe/model paired with its held-out calibrator.
+  cross <- vennabers::calibrated_workflow(base, "truth", method = "cross", seed = 106)
+  fitted_cross <- generics::fit(cross, development)
+  new_data <- data.frame(x = c(-.75, .25, .8))
+  cross_probability <- predict(fitted_cross, new_data, type = "prob")
+  cross_class <- predict(fitted_cross, new_data, type = "class")
+  cross_details <- vennabers::venn_abers_details(fitted_cross, new_data, loss = "brier")
+  stopifnot(identical(cross_details$prediction, predict(fitted_cross, new_data, type = "prob", loss = "brier")),
+            nrow(cross_details$details) == 5L * nrow(new_data))
+
+  # Calibration is not independent evaluation. Refit the full procedure inside
+  # every outer analysis set and score only its untouched assessment observations.
+  cross_outer <- withr::with_seed(107, rsample::vfold_cv(development, v = 5))
+  cross_result <- withr::with_seed(108, tune::fit_resamples(cross, cross_outer,
+    metrics = yardstick::metric_set(yardstick::brier_class, yardstick::mn_log_loss), control = control))
+  cross_checked <- check_evaluation(cross_result, cross_outer)
+  cross_states <- tune::collect_extracts(cross_result)$.extracts
+  stopifnot(length(cross_states) == 5L,
+            sum(vapply(cross_states, function(s) length(s$models), integer(1))) == 25L)
+  # These extracts retain 25 full workflows, recipes and calibrators. There is no
+  # hidden full-data or final fit. Fitting a final Cross workflow costs five more.
+  # For prepared inner Cross plans use local_calibration_splits() on a list of
+  # vfold_cv(analysis(outer_split), v = 5) rsets, then pass that resolver as splits.
+}
