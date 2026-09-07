@@ -1,7 +1,9 @@
 # venn-abers
 
-Dependency-free binary Inductive/Cross and multiclass Inductive/Cross OvO/OvR calibration for R 4.5
-and later. The v0.3.0 source candidate includes the manual classification scope below.
+Dependency-free binary Inductive/Cross, multiclass Inductive/Cross OvO/OvR,
+and moderated Inductive regression calibration for R 4.5 and later.
+The development tree adds Inductive regression toward v0.4; the package version
+remains the v0.3.0 source candidate until release work is complete.
 Release approval remains pending; see the [acceptance record](tools/acceptance-v03.md).
 
 ## Quick start
@@ -31,6 +33,50 @@ calibration_plot(c(FALSE, TRUE, TRUE), prediction$probability)
 IVAP prediction still returns three double columns: `lower` and `upper` are
 the Venn-Abers interval endpoints; `probability` is the regularized event
 probability, using log loss by default. These endpoints are not confidence intervals.
+
+## Inductive regression
+
+`venn_abers_regression(truth, prediction)` fits from finite real-valued vectors
+of equal nonzero length. Numeric 0/1 truth remains regression; factors, logical
+values, matrices, missing/nonfinite values and unknown options are errors.
+Names do not align rows. Inputs are never rounded, clipped or dropped.
+
+```r
+regression_fit <- venn_abers_regression(c(-10, 0, 2, 6, 20), rep(0, 5))
+predict(regression_fit, c(-1, 0, 1))
+# Double columns: prediction, lower, upper, in target units and input order.
+regression_fit$m
+regression_fit$epsilon
+source(system.file("examples", "inductive-regression.R", package = "vennabers"))
+```
+
+The installed example fits `lm()` on training data, calibrates on separate
+observations and reports Base R RMSE/MAE on an untouched assessment set.
+The theoretical setting assumes IID observations and a model fixed
+independently of calibration data, including preprocessing and tuning.
+The bounds concern regularized conditional expectations, not individual-outcome
+coverage. Neither improved scores nor a general selector guarantee for this
+point merger is promised.
+
+The default is `m=1`. Explicit `m` must be a finite numeric whole number between
+1 and `floor((k-1)/2)`; at least three calibration rows are needed. Alternatively,
+`epsilon` must be a finite numeric scalar strictly between zero and one:
+`m=floor(epsilon*(k+1)/2)` must still satisfy the same domain. Invalid values
+are not capped, and both parameters cannot be supplied explicitly. The fit
+records `requested`, effective `m`, effective `epsilon=2*m/(k+1)`, and outer
+bounds `a`, `b`. Asymmetric moderation replaces extreme truths without deleting
+observations; see `?venn_abers_regression` for the exact order statistics.
+
+For bounds `L,U`, the point uses weights `L-a` and `b-U`. Only two exactly zero
+weights trigger the midpoint. Constant truths and coincident bounds return
+their common finite value. Empty and singleton prediction inputs preserve the
+three-column data frame; saved fits work in fresh R processes without training.
+
+This manual entry point is an R extension. The
+[reference record](inst/extdata/regression-reference.md) distinguishes valid
+Python 1.5.4 regression components from lower-bound and zero-weight defects.
+Training, automatic splits, regression score/plot helpers, exact minimax,
+observation weights and rounding options remain outside this implementation.
 
 ## Binary options
 

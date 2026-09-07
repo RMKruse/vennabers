@@ -1,3 +1,16 @@
+# Development toward 0.4.0
+
+- Add `venn_abers_regression()` and its `predict()` method: asymmetric
+  moderation, explicit `m` or `epsilon`, weighted point merging, and finite
+  constant/zero-weight cases. Outputs are `prediction`, `lower`, `upper` in
+  target units. Requested and effective moderation remain visible on the fit.
+- Add offline Python 1.5.4 component fixtures, independent isotonic and merger
+  checks, strict input contracts, saved-fit restoration, and an installed
+  regression example with separate training/calibration/assessment data.
+  Known reference lower-bound and zero-weight defects are documented in
+  `inst/extdata/regression-reference.md`. Existing classification defaults stay
+  unchanged. Cross regression and release approval remain separate work.
+
 # vennabers 0.3.0 (release candidate)
 
 - Package standalone examples under `inst/examples`, available after installation
