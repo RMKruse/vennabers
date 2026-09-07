@@ -1,5 +1,13 @@
 # v0.3 source candidate and acceptance
 
+**Status update, 2026-09-07:** The maintainer confirms that v0.3 is approved
+and has been run on Linux and Windows machines. This supersedes the pending
+approval status in the historical local report below. Exact remote run logs,
+runtime versions and artifact hashes were not supplied with that confirmation;
+the historical measurements and identities are preserved as recorded.
+
+## Historical local report (before maintainer confirmation)
+
 Status: **not approved for release**. This ticket prepares `vennabers_0.3.0.tar.gz`
 and a repeatable acceptance path; a version number, configured matrix or local
 smoke run is not a release approval. No tag, publishing or CRAN submission is

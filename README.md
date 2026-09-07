@@ -1,8 +1,11 @@
 # venn-abers
 
-Dependency-free binary Inductive/Cross and multiclass Inductive/Cross OvO/OvR calibration for R 4.5
-and later. The v0.3.0 source candidate includes the manual classification scope below.
-Release approval remains pending; see the [acceptance record](tools/acceptance-v03.md).
+Dependency-free binary Inductive/Cross, multiclass Inductive/Cross OvO/OvR,
+and moderated Inductive/Cross regression calibration for R 4.5 and later.
+The package version is v0.4.0. The maintainer approved v0.4 under the updated
+criterion of passing local tests; the [acceptance record](tools/acceptance-v04.md)
+identifies the approved candidate and documents the unexecuted platform and
+Linux benchmark checks. Approval does not imply publication.
 
 ## Quick start
 
@@ -31,6 +34,109 @@ calibration_plot(c(FALSE, TRUE, TRUE), prediction$probability)
 IVAP prediction still returns three double columns: `lower` and `upper` are
 the Venn-Abers interval endpoints; `probability` is the regularized event
 probability, using log loss by default. These endpoints are not confidence intervals.
+
+## Inductive regression
+
+`venn_abers_regression(truth, prediction)` fits from finite real-valued vectors
+of equal nonzero length. Numeric 0/1 truth remains regression; factors, logical
+values, matrices, missing/nonfinite values and unknown options are errors.
+Names do not align rows. Inputs are never rounded, clipped or dropped.
+
+```r
+regression_fit <- venn_abers_regression(c(-10, 0, 2, 6, 20), rep(0, 5))
+predict(regression_fit, c(-1, 0, 1))
+# Double columns: prediction, lower, upper, in target units and input order.
+regression_fit$m
+regression_fit$epsilon
+source(system.file("examples", "inductive-regression.R", package = "vennabers"))
+```
+
+The installed example fits `lm()` on training data, calibrates on separate
+observations and reports Base R RMSE/MAE on an untouched assessment set.
+The theoretical setting assumes IID observations and a model fixed
+independently of calibration data, including preprocessing and tuning.
+The bounds concern regularized conditional expectations, not individual-outcome
+coverage. Neither improved scores nor a general selector guarantee for this
+point merger is promised.
+
+The default is `m=1`. Explicit `m` must be a finite numeric whole number between
+1 and `floor((k-1)/2)`; at least three calibration rows are needed. Alternatively,
+`epsilon` must be a finite numeric scalar strictly between zero and one:
+`m=floor(epsilon*(k+1)/2)` must still satisfy the same domain. Invalid values
+are not capped, and both parameters cannot be supplied explicitly. The fit
+records `requested`, effective `m`, effective `epsilon=2*m/(k+1)`, and outer
+bounds `a`, `b`. Asymmetric moderation replaces extreme truths without deleting
+observations; see `?venn_abers_regression` for the exact order statistics.
+
+For bounds `L,U`, the point uses weights `L-a` and `b-U`. Only two exactly zero
+weights trigger the midpoint. Constant truths and coincident bounds return
+their common finite value. Empty and singleton prediction inputs preserve the
+three-column data frame; saved fits work in fresh R processes without training.
+
+This manual entry point is an R extension. The
+[reference record](inst/extdata/regression-reference.md) distinguishes valid
+Python 1.5.4 regression components from lower-bound and zero-weight defects.
+Training, automatic splits, regression score/plot helpers, exact minimax,
+observation weights and rounding options remain outside this implementation.
+
+## Cross regression
+
+`cross_venn_abers_regression(truth, prediction, fold)` accepts finite real-valued
+truth and out-of-fold model predictions, aligned by position. Supply one fold
+ID per observation and at least two represented folds: nonempty character
+labels or finite positive whole-number numeric IDs, with no factors or logical
+IDs. Every fold must satisfy the IVAR moderation domain. Unequal sizes are valid.
+
+```r
+cross_regression <- cross_venn_abers_regression(
+  c(-10, 0, 2, 6, 20, 10, 10, 10), rep(0, 8),
+  rep(c("A", "B"), c(5, 3))
+)
+# Each column comes from its retained model, for the same new rows.
+regression_details <- predict(cross_regression,
+                              cbind(B = c(1, 0), A = c(-1, 0)), type = "details")
+regression_details
+lapply(cross_regression$calibrators, function(x) x[c("requested", "m", "epsilon")])
+source(system.file("examples", "cross-regression.R", package = "vennabers"))
+```
+
+Each fold receives a complete IVAR fit. The default `m=1`, explicit `m`, and
+alternative `epsilon` follow the Inductive contract above. With epsilon,
+`m_f=floor(epsilon*(k_f+1)/2)` and effective `epsilon_f=2*m_f/(k_f+1)` may
+differ across folds. The named `calibrators` list retains each fold's requested
+and effective parameters and size. Invalid moderation in any fold fails the
+entire fit with fold context, without capping or omission.
+
+Predict requires a finite numeric matrix with exactly one uniquely named column
+per fold. Column order may change; missing, additional, duplicate, empty or
+absent names are errors. Rows align by position, regardless of row names.
+Inputs are never rounded or clipped, including tied and exterior scores.
+Unsupported options are errors. Predict trains nothing.
+
+First compute complete IVAR points and bounds per fold. Then take separate
+equal-weight arithmetic means of points, lower bounds and upper bounds, even
+for unequal fold sizes. No pooling, size weighting or new point merger on
+averaged bounds occurs. Default output has double columns `prediction`, `lower`,
+`upper`; details add the named list `folds` with the same complete schema.
+Zero and one row retain their schema, and empty details retain every fold ID.
+All three aggregates can be reconstructed from these fold results. Fits survive
+`saveRDS()`/`readRDS()` in a fresh R process with the package loaded.
+
+The installed example retains three `lm()` models, excluding each held-out
+fold from the entire learned procedure, then uses those same models for the
+new matrix columns. Separate assessment outcomes enter only the RMSE/MAE
+evaluation. The caller is responsible for model provenance, including learned
+preprocessing and tuning, and semantic row identity across columns; matching
+names cannot verify these. A model retrained on all development data cannot
+replace the fold models. The theoretical setting assumes IID observations
+and a model fixed independently of its calibration observations.
+
+Aggregated bounds are descriptive fold summaries without an additional
+coverage or selector guarantee. They are not confidence or prediction intervals
+for individual outcomes, and no score improvement is promised. The
+[Cross reference record](inst/extdata/cross-regression-reference.md) documents
+offline Python 1.5.4 IVAR component evidence and independent aggregation;
+there is no corresponding public manual Python CVAR wrapper.
 
 ## Binary options
 
@@ -168,9 +274,11 @@ across all model columns. Matching names cannot prove model provenance,
 training exclusion, unique observations or semantic row alignment. Vector
 element names and matrix row names are not alignment keys.
 
-The five public functions are `venn_abers()`, `cross_venn_abers()`,
-`brier_score()`, `log_loss()`, and `calibration_plot()`. Both calibrators use
-registered `predict()` and `print()` methods. See `?cross_venn_abers` and
+The seven public functions are `venn_abers()`, `cross_venn_abers()`,
+`venn_abers_regression()`, `cross_venn_abers_regression()`, `brier_score()`,
+`log_loss()`, and `calibration_plot()`. All four calibrators use registered
+`predict()` methods; the classification calibrators also have registered
+`print()` methods. See `?cross_venn_abers` and
 `?predict.cross_venn_abers` for executable help and the complete contract.
 
 ## Multiclass Inductive OvO and OvR
@@ -343,10 +451,10 @@ extension, distinct from Python's trained pairwise model/fold plans.
 
 The package does not support package-managed predictive-model fitting, fold
 creation, learned preprocessing, tuning or resampling; repeated or overlapping
-partitions; one-fold public cross calibration; regression
-calibration; separate pairwise model training or pair-specific fold plans; observation weights; alternate event selection; automatic
+partitions; one-fold public cross calibration;
+separate pairwise model training or pair-specific fold plans; observation weights; alternate event selection; automatic
 coercion or missing-value handling; fold-size weighting, pooling or averaging
-log-loss fold point predictions; public aggregate cross bounds; formula/data-frame
+log-loss fold point predictions; public aggregate classification cross bounds; formula/data-frame
 cross interfaces; tidymodels/yardstick integrations; or new metrics, smoothing,
 plotting features or `ggplot2` output.
 
@@ -374,35 +482,39 @@ The active [workflow](.github/workflows/acceptance.yaml) requires R 4.6.1 and
 4.5.3 on Linux x86_64, Windows x86_64, macOS Intel and macOS ARM. Linux R-devel
 is an additional visible, non-blocking early warning. New releases require
 at least the previous R minor series; recheck the matrix and `DESCRIPTION`
-floor at final v0.3 acceptance. Older releases retain their original floor.
+floor for each release. Older releases retain their original floor.
 
 Set `ACCEPTANCE_OUTPUT_DIR` to an empty directory to retain the source artifact,
 logs and environment/package versions. Set `ACCEPTANCE_ARTIFACT` to an existing
 source tarball to check that exact candidate instead of rebuilding. CI builds
-once, verifies SHA-256, and checks the same archive on every platform. The five
+once, verifies SHA-256, and checks the same archive on every platform. The
 standalone examples ship in the package; find them after installation with
 `system.file("examples", package = "vennabers")`.
 
-See the [v0.3 acceptance record](tools/acceptance-v03.md) for the capability
-map, migration notes, commands, results and remaining release blockers. The
-[earlier CI record](tools/acceptance-v03-ci.md) describes its starting point.
+See the [v0.4 acceptance record](tools/acceptance-v04.md) for the capability
+map, migration notes, commands, results and the updated approval criterion.
+The [v0.3 record](tools/acceptance-v03.md) records maintainer approval and retains
+the historical evidence. Unexecuted platform and Linux benchmark checks are
+not blockers under the updated v0.4 criterion and are not claimed as passes.
 
 Benchmarks run separately on the documented Linux x86_64 reference machine:
 
 ```sh
-Rscript tools/performance.R vennabers_0.3.0.tar.gz vennabers_0.2.0.tar.gz benchmark-output
-Rscript tools/test-performance.R benchmark-output
+Rscript tools/performance.R vennabers_0.4.0.tar.gz vennabers_0.3.0.tar.gz benchmark-output
+Rscript tools/test-performance.R benchmark-output --v04
 ```
 
 The runner prepares fixed inputs outside measurement, installs both artifacts,
 and runs cases serially in fresh R processes with one warmup and three measured
 runs. It records separate fit/predict times, process peak memory, RDS sizes,
-individual results, medians and predecessor comparisons. Only shared v0.2
-capabilities receive comparisons; new capabilities receive baselines. Increased
+individual results, medians and predecessor comparisons. All twelve classification
+cases are compared with v0.3. IVAR and CVAR each add baselines for `m = 1` and
+`epsilon = 0.1`, with 10,000 calibration rows, 1,000 new rows and five CVAR folds.
+The runner checks moderation per fold and saves exact inputs and row assignments. Increased
 costs require investigation before approval. `--smoke` permits another platform
 for runner validation and explicitly does not produce release evidence.
 
 The unchanged 100,000-calibration / 100,000-prediction IVAP case is retained.
 The comparative protocol replaces the historical 10-second ceiling. Historical
 measurements remain in the [v0.2 record](tools/acceptance-v02.md); they cannot
-substitute for remeasuring v0.2 on the same reference machine.
+substitute for remeasuring v0.3 on the same reference machine.

@@ -12,11 +12,11 @@ local({
   original <- setNames(lapply(names, function(name) {
     read.csv(file.path(work, paste0(name, ".csv")))
   }), names)
-  check <- function(bundle, valid, label) {
+  check <- function(bundle, valid, label, flags = character()) {
     for (name in names) write.csv(bundle[[name]], file.path(work, paste0(name, ".csv")), row.names = FALSE)
     log <- file.path(work, "verifier.log")
     status <- system2(file.path(R.home("bin"), "Rscript"),
-      c("--vanilla", "tools/test-performance.R", shQuote(work)), stdout = log, stderr = log)
+      c("--vanilla", "tools/test-performance.R", shQuote(work), flags), stdout = log, stderr = log)
     passed <- any(readLines(log) == "Benchmark bundle checks passed.")
     if ((status == 0L) != valid || passed != valid) {
       cat(readLines(log), sep = "\n")
@@ -24,6 +24,23 @@ local({
     }
   }
   check(original, TRUE, "original bundle")
+  # Plan configuration must describe the saved input, including unused options.
+  metadata <- list(calibration = 1L, prediction = 1L, classes = 999L, folds = 999L,
+                   method = "ovo", loss = "wrong-loss", precision = 999, m = 999, epsilon = 0.9)
+  for (id in original$plan$case) {
+    row <- match(id, original$plan$case)
+    for (column in intersect(names(metadata), names(original$plan))) {
+      bad <- original
+      value <- metadata[[column]]
+      if (column == "method" && original$plan$method[row] == value) value <- "ovr"
+      bad$plan[[column]][row] <- value
+      check(bad, FALSE, paste("plan/input mismatch", id, column))
+      if (column %in% c("method", "m", "epsilon") && !is.na(original$plan[[column]][row])) {
+        bad$plan[[column]][row] <- NA
+        check(bad, FALSE, paste("missing plan metadata", id, column))
+      }
+    }
+  }
   bad <- original
   bad$medians$case <- "wrong-case"
   check(bad, FALSE, "wrong summary case")
@@ -96,7 +113,7 @@ local({
 
   # Expected coverage follows the plan, including a bundle with no predecessor cases.
   good <- original
-  id <- good$plan$case[!good$plan$previous_supported & good$plan$loss == "log"][1L]
+  id <- good$plan$case[!good$plan$previous_supported][1L]
   for (table in names) good[[table]] <- good[[table]][good[[table]]$case != id, ]
   good$plan$previous_supported <- FALSE
   for (table in c("runs", "medians")) good[[table]] <- good[[table]][good[[table]]$release == "current", ]
@@ -107,6 +124,31 @@ local({
     bad <- good
     bad$comparison[[column]][1L] <- 1
     check(bad, FALSE, paste("unsupported comparison", column))
+  }
+  if (any(original$plan$method == "regression")) {
+    check(original, TRUE, "complete v0.4 coverage", "--v04")
+    for (column in c("method", "m", "epsilon")) {
+      bad <- original
+      bad$plan[[column]][bad$plan$case == "regression_cross_epsilon01"] <- metadata[[column]]
+      check(bad, FALSE, paste("v0.4 plan/input mismatch", column), "--v04")
+    }
+    bad <- original
+    id <- "regression_cross_epsilon01"
+    for (table in names) bad[[table]] <- bad[[table]][bad[[table]]$case != id, ]
+    check(bad, FALSE, "coherently missing regression case", "--v04")
+    path <- file.path(work, paste0(id, "-input.rds"))
+    input <- readRDS(path)
+    for (fault in c("moderation", "fold", "new_row", "newdata")) {
+      broken <- input
+      if (fault == "moderation") broken$moderation <- list(epsilon = 0.0001)
+      if (fault == "fold") broken$fold[1L] <- "extra-fold"
+      if (fault == "new_row") broken$new_row <- rev(broken$new_row)
+      if (fault == "newdata") colnames(broken$newdata) <- NULL
+      saveRDS(broken, path, version = 3)
+      bad <- original
+      bad$plan$input_md5[bad$plan$case == id] <- unname(tools::md5sum(path))
+      check(bad, FALSE, paste("invalid regression", fault), "--v04")
+    }
   }
   cat("Benchmark verifier regression checks passed.\n")
 })

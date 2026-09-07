@@ -57,6 +57,12 @@ local({
   Sys.setenv(NOT_CRAN = "false", `_R_CHECK_CRAN_INCOMING_` = "false",
              `_R_CHECK_CRAN_INCOMING_REMOTE_` = "false",
              `_R_CHECK_SYSTEM_CLOCK_` = "false")
+  capture.output({
+    cat("R CMD check --as-cran --no-manual\nPDF manual and online incoming/clock probes are not checked.\n")
+    print(Sys.getenv(c("NOT_CRAN", "_R_CHECK_CRAN_INCOMING_",
+                       "_R_CHECK_CRAN_INCOMING_REMOTE_", "_R_CHECK_SYSTEM_CLOCK_")))
+    print(Sys.getenv()[grepl("^_R_CHECK_", names(Sys.getenv()))])
+  }, file = file.path(work_dir, "check-settings.txt"))
   setwd(work_dir)
   r_executable <- file.path(R.home("bin"), if (.Platform$OS.type == "windows") "R.exe" else "R")
   artifact <- file.path(work_dir, paste0(description[["Package"]], "_", description[["Version"]], ".tar.gz"))

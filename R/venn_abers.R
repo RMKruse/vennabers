@@ -2,10 +2,10 @@
   (x[b] - x[a]) * (y[c] - y[b]) - (y[b] - y[a]) * (x[c] - x[b])
 }
 
-.upper_scan <- function(weight, events) {
+.upper_scan <- function(weight, events, upper = 1) {
   k <- length(weight)
   x <- c(-1, 0, cumsum(weight))
-  y <- c(-1, 0, cumsum(events))
+  y <- c(-upper, 0, cumsum(events))
   stack <- integer(k + 2L)
   stack[1:2] <- 1:2
   size <- 2L
