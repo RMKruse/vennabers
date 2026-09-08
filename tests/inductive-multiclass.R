@@ -10,6 +10,8 @@ calibration <- fixture("ovo-calibration.csv")
 inputs <- fixture("ovo-input.csv")
 case_ids <- unique(calibration$case_id)
 stopifnot(length(case_ids) == 33L, sum(startsWith(case_ids, "random")) == 30L)
+# fixed_3_00 at precision 2 also protects binary64 row normalization: extended
+# row sums on x86 otherwise move unrounded predictions across calibration knots.
 
 # Independent coupling from the public table, using odds rather than the
 # implementation's reciprocal accumulator. Class identity never relies on names
@@ -202,7 +204,9 @@ for (method in c("ovo", "ovr")) {
     expect_error(calibration_plot(truth, bad), "probability")
   }
   near <- x * (1 - 5e-9)
-  close(predict(fit, near), predict(fit, near / rowSums(near)))
+  # Explicit binary64 normalization also keeps this oracle stable on x86.
+  normalized <- near / (near[, 1L] + near[, 2L] + near[, 3L])
+  close(predict(fit, near), predict(fit, normalized))
   expect_error(predict(fit, x * (1 - 2e-8)), "row sums")
   tiny <- x[1, , drop = FALSE]
   tiny[1, ] <- c(1, 1e-310, 2e-310)

@@ -5,6 +5,8 @@ if (!file.exists("DESCRIPTION")) {
 
 local({
   root <- normalizePath(".")
+  profile <- Sys.getenv("ACCEPTANCE_PROFILE", "current")
+  stopifnot(profile %in% c("core", "current", "minimum"))
   supplied_artifact <- Sys.getenv("ACCEPTANCE_ARTIFACT")
   if (nzchar(supplied_artifact)) supplied_artifact <- normalizePath(supplied_artifact, mustWork = TRUE)
   description <- read.dcf("DESCRIPTION", fields = c("Package", "Version"))[1L, ]
@@ -32,7 +34,8 @@ local({
     if (!identical(status, 0L)) {
       stop(command, " failed with status ", status, ".", call. = FALSE)
     }
-    if (any(grepl("\\b(ERROR|WARNING|NOTE)\\b", output))) {
+    pattern <- if (profile == "core" && arguments[2L] == "check") "\\b(ERROR|WARNING)\\b" else "\\b(ERROR|WARNING|NOTE)\\b"
+    if (any(grepl(pattern, output))) {
       stop("Build/check/install reported an error, warning, or note.", call. = FALSE)
     }
   }
@@ -48,6 +51,28 @@ local({
     print(installed.packages()[, c("Package", "Version", "LibPath"), drop = FALSE])
   })
   writeLines(environment, file.path(work_dir, "environment.txt"))
+  # A green package check with skipped integration tests is not v0.5 acceptance.
+  suggests <- trimws(strsplit(read.dcf("DESCRIPTION")[1L, "Suggests"], ",")[[1L]])
+  packages <- sub("[[:space:]]*\\(.*", "", suggests)
+  versions <- ifelse(grepl("\\(", suggests), sub(".*>= ([^)]+)\\).*", "\\1", suggests), "0")
+  installed <- installed.packages()
+  writeLines(profile, file.path(work_dir, "profile.txt"))
+  if (profile == "core") {
+    stopifnot(!any(setdiff(packages, "nnet") %in% rownames(installed)))
+    Sys.setenv(`_R_CHECK_FORCE_SUGGESTS_` = "false")
+  } else {
+    for (i in seq_along(packages)) {
+      package <- packages[i]
+      if (!package %in% rownames(installed) || package_version(installed[package, "Version"]) < versions[i]) {
+        stop("Acceptance requires ", package, " >= ", versions[i], "; integration checks must not skip.")
+      }
+    }
+    if (profile == "minimum") {
+      pins <- read.csv(file.path(root, "tools/minimum-dependencies.csv"))
+      stopifnot(all(pins$Package %in% rownames(installed)),
+                identical(unname(installed[pins$Package, "Version"]), pins$Version))
+    }
+  }
   expected_arch <- Sys.getenv("EXPECTED_R_ARCH")
   if (nzchar(expected_arch) && !identical(R.version$arch, expected_arch)) {
     stop("Expected R architecture ", expected_arch, "; got ", R.version$arch)
@@ -58,7 +83,8 @@ local({
              `_R_CHECK_CRAN_INCOMING_REMOTE_` = "false",
              `_R_CHECK_SYSTEM_CLOCK_` = "false")
   capture.output({
-    cat("R CMD check --as-cran --no-manual\nPDF manual and online incoming/clock probes are not checked.\n")
+    cat("R CMD check --as-cran --no-manual\nPDF manual and online incoming/clock probes are not checked.\n",
+        "Profile:", profile, "\n")
     print(Sys.getenv(c("NOT_CRAN", "_R_CHECK_CRAN_INCOMING_",
                        "_R_CHECK_CRAN_INCOMING_REMOTE_", "_R_CHECK_SYSTEM_CLOCK_")))
     print(Sys.getenv()[grepl("^_R_CHECK_", names(Sys.getenv()))])
@@ -82,15 +108,22 @@ local({
   run(r_executable, c("CMD", "check", "--as-cran", "--no-manual",
                      paste0("--library=", shQuote(library_dir)), shQuote(artifact)))
   check_log <- readLines(file.path(work_dir, paste0(description[["Package"]], ".Rcheck"), "00check.log"))
-  if (!identical(tail(grep("^Status:", check_log, value = TRUE), 1L), "Status: OK")) {
+  status <- tail(grep("^Status:", check_log, value = TRUE), 1L)
+  core_note <- profile == "core" && identical(status, "Status: 1 NOTE") &&
+    sum(grepl("^\\* checking .* NOTE$", check_log)) == 1L &&
+    any(grepl("^\\* checking package dependencies .* NOTE$", check_log)) &&
+    any(grepl("Packages suggested but not available", check_log, fixed = TRUE))
+  if (!identical(status, "Status: OK") && !core_note) {
     stop("R CMD check did not finish with zero errors, warnings, and notes.", call. = FALSE)
   }
+  if (core_note) writeLines("The sole dependency NOTE is expected: this profile intentionally excludes optional integration packages.",
+                            file.path(work_dir, "note-justification.txt"))
   # Load only the package just installed from the source artifact. Refuse a
   # previously loaded namespace rather than accidentally testing another build.
   stopifnot(!"vennabers" %in% loadedNamespaces())
   original_libraries <- .libPaths()
   on.exit(.libPaths(original_libraries), add = TRUE)
-  .libPaths(c(library_dir, .Library))
+  .libPaths(c(library_dir, original_libraries))
   library(vennabers, lib.loc = library_dir)
   installed_path <- normalizePath(file.path(library_dir, description[["Package"]]))
   stopifnot(

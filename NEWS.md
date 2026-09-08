@@ -1,3 +1,54 @@
+# vennabers 0.5.0
+
+- Normalize class matrices with binary64 column-order additions on every
+  platform. Extended-precision row sums on x86 could move a prediction across
+  a calibration knot after calibration-only rounding. This fixes the existing
+  multiclass reference checks without relaxing their tolerance or changing the
+  rounding rule; affected x86 predictions may change.
+
+- Prepare the eight native integration paths for acceptance, with one source
+  candidate, mandatory current/minimum dependency checks and a separate manual
+  core check without tidymodels. Extend benchmarks with complete Fit/Predict and
+  outer evaluation; retain all 16 manual cases for comparison to approved v0.4.
+  `tools/acceptance-v05.md` records actual results and missing release evidence.
+  The historical local-only v0.4 approval does not approve v0.5.
+- Migration: manual APIs, numerical tolerances and R >= 4.5.0 are unchanged.
+  Install optional integration packages explicitly; the core does not load them.
+  Frozen workflows, name encoding and ordered reference holdouts follow in v0.6;
+  pair training/full-model transfer in v0.7, tuning in v0.8 and learned
+  postprocessing in v0.9. No complete Python training parity is claimed.
+
+- Add Inductive and Cross regression to `calibrated_workflow()`, using the base
+  model's regression mode and existing IVAR/CVAR cores. Validate every fold's
+  moderation before training; retain requested/effective moderation and sizes.
+  Native double `.pred` outputs, separate fold bounds and descriptive Cross
+  aggregates support complete outer RMSE/MAE evaluation with local preprocessing.
+  Add scale-aware parity, data-role, fresh-process and worker checks and examples.
+
+- Add Cross `classification = "ovo"` and `"ovr"` workflows with one shared
+  multiclass model per fold complement and the existing manual Cross cores.
+  Binary fold aggregation precedes OvO coupling/OvR normalization; details retain
+  fold, row, event and pair/class identities for reconstruction. Empty OvO pairs
+  fail before model learning; incomplete but nonempty subcalibrations stay valid.
+  Add manual comparisons, complete outer evaluation, fresh-process restoration,
+  reproducible workers and installed examples. This shared-fold procedure does
+  not claim Python pair-model training parity.
+
+- Add Inductive `classification = "ovo"` and `"ovr"` to `calibrated_workflow()`.
+  One shared multiclass model feeds the existing factor/matrix cores, including
+  for two classes. Preserve original class order, enforce complete named
+  probabilities and calibration classes, and expose reconstructible binary
+  subproblem details. Native Log/Brier predictions, local plans, repeated outer
+  evaluation and fresh-process restoration have installed-package checks.
+  `event_level` is binary-only; multiclass ties favor the first stored level.
+  Installed examples use the optional recommended `nnet` package.
+
+- Add binary `method = "cross"` to `calibrated_workflow()`: default five-fold
+  local training, validated explicit/prepared partitions, matching retained
+  workflows/calibrators, and native Cross predictions and fold diagnostics.
+  Complete outer resampling uses one base fit per inner fold without a full model.
+  Log/Brier loss, calibration rounding, names and local RNG contracts are preserved.
+
 # vennabers 0.4.0
 
 - Identify one regression source candidate for the eight-platform acceptance
@@ -77,3 +128,14 @@
   acceptance gate to cover it and the README examples.
 - Preserve the v0.1 IVAP intervals, regularized probabilities, scores, plot,
   and printing behavior. R 4.1.0 remains the minimum; no dependencies added.
+# Development
+
+- Add optional `calibrated_workflow()` for automatic binary Inductive calibration
+  with raw-variable transport, local recipe learning, native probability/class
+  prediction, loss overrides, and `venn_abers_details()` diagnostics.
+- Preserve class names, split positions, complete base workflows and calibration
+  state; validate unsupported options and naming collisions before inner learning.
+- Add data-bound explicit IID holdouts and serializable local prepared-plan
+  resolution, rejecting conflicting assignments before model training.
+- Validate complete binary outer resampling with public collectors, local data-role
+  checks, stored loss defaults, failure cases and fresh parallel worker repeats.

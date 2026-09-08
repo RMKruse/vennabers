@@ -1,3 +1,4 @@
+#' @export
 cross_venn_abers_regression <- function(truth, prediction, fold, ..., m = 1, epsilon = NULL) {
   if (length(list(...))) stop("`...` must be empty; unsupported fit argument.", call. = FALSE)
   .validate_regression_vector(truth, "truth")
@@ -60,6 +61,7 @@ cross_venn_abers_regression <- function(truth, prediction, fold, ..., m = 1, eps
   .regression_mean(values / scale) * scale
 }
 
+#' @export
 predict.cross_venn_abers_regression <- function(object, newdata, ..., type = "response") {
   if (length(list(...))) stop("`...` must be empty; unsupported prediction argument.", call. = FALSE)
   .validate_choice(type, c("response", "details"), "type")

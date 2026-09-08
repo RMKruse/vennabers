@@ -1,0 +1,819 @@
+
+R version 4.6.1 (2026-06-24) -- "Happy Hop"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin20
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> pkgname <- "vennabers"
+> source(file.path(R.home("share"), "R", "examples-header.R"))
+> options(warn = 1)
+> base::assign(".ExTimings", "vennabers-Ex.timings", pos = 'CheckExEnv')
+> base::cat("name\tuser\tsystem\telapsed\n", file=base::get(".ExTimings", pos = 'CheckExEnv'))
+> base::assign(".format_ptime",
++ function(x) {
++   if(!is.na(x[4L])) x[1L] <- x[1L] + x[4L]
++   if(!is.na(x[5L])) x[2L] <- x[2L] + x[5L]
++   options(OutDec = '.')
++   format(x[1L:3L], digits = 7L)
++ },
++ pos = 'CheckExEnv')
+> 
+> ### * </HEADER>
+> library('vennabers')
+> 
+> base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
+> base::assign(".old_wd", base::getwd(), pos = 'CheckExEnv')
+> cleanEx()
+> nameEx("calibrated_workflow")
+> ### * calibrated_workflow
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: calibrated_workflow
+> ### Title: Train a Calibrated Classification or Regression Workflow
+> ### Aliases: calibrated_workflow venn_abers_details predict._vennabers_fit
+> 
+> ### ** Examples
+> 
+> source(system.file("examples", "calibrated-workflow.R", package = "vennabers"))
+# A tibble: 6 × 2
+  .pred_yes .pred_no
+      <dbl>    <dbl>
+1     0.182    0.818
+2     0.583    0.417
+3     0.769    0.231
+4     0.222    0.778
+5     0.324    0.676
+6     0.769    0.231
+# A tibble: 6 × 6
+    row fold       event_class lower upper probability
+  <int> <chr>      <chr>       <dbl> <dbl>       <dbl>
+1     1 Inductive1 yes         0     0.222       0.182
+2     2 Inductive1 yes         0.5   0.7         0.583
+3     3 Inductive1 yes         0.7   1           0.769
+4     4 Inductive1 yes         0     0.286       0.222
+5     5 Inductive1 yes         0.167 0.4         0.324
+6     6 Inductive1 yes         0.7   1           0.769
+[1] 0.2128896
+
+── Recipe ──────────────────────────────────────────────────────────────────────
+
+── Inputs 
+Number of variables by role
+outcome:   1
+predictor: 1
+
+── Training information 
+Training data contained 160 data points and no incomplete rows.
+
+── Operations 
+• Median imputation for: x | Trained
+• Centering and scaling for: x | Trained
+# A tibble: 6 × 9
+    row fold  method event_class class_1 class_2    lower upper probability
+  <int> <chr> <chr>  <chr>       <chr>   <chr>      <dbl> <dbl>       <dbl>
+1     1 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+2     2 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+3     3 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+4     4 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+5     5 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+6     6 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+    brier  log_loss 
+0.4452066 0.7816807 
+# A tibble: 6 × 8
+    row fold  method event_class class  lower upper probability
+  <int> <chr> <chr>  <chr>       <chr>  <dbl> <dbl>       <dbl>
+1     1 Fold1 ovr    setosa      setosa     0     1         0.5
+2     2 Fold1 ovr    setosa      setosa     0     1         0.5
+3     3 Fold1 ovr    setosa      setosa     0     1         0.5
+4     4 Fold1 ovr    setosa      setosa     0     1         0.5
+5     5 Fold1 ovr    setosa      setosa     0     1         0.5
+6     6 Fold1 ovr    setosa      setosa     0     1         0.5
+    brier  log_loss 
+0.4825278 0.8357005 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("calibrated_workflow", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("calibration_plot")
+> ### * calibration_plot
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: calibration_plot
+> ### Title: Plot Classification Probability Calibration
+> ### Aliases: calibration_plot
+> 
+> ### ** Examples
+> 
+> truth <- c(FALSE, TRUE, FALSE, TRUE)
+> uncalibrated_probability <- c(0.1, 0.4, 0.35, 0.8)
+> calibrator <- venn_abers(truth, uncalibrated_probability)
+> prediction <- predict(calibrator, uncalibrated_probability)
+> 
+> calibration_plot(truth, prediction$probability)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("calibration_plot", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("cross_venn_abers")
+> ### * cross_venn_abers
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: cross_venn_abers
+> ### Title: Fit a Binary or Multiclass Cross Venn-Abers Calibrator
+> ### Aliases: cross_venn_abers
+> 
+> ### ** Examples
+> 
+> # Precomputed probabilities from three retained fold models. Each model
+> # excluded its corresponding calibration fold from its learned pipeline.
+> calibrator <- cross_venn_abers(
++   truth = c(FALSE, TRUE, FALSE, TRUE, FALSE, TRUE),
++   probability = c(.1, .8, .2, .9, .3, .7),
++   fold = c("A", "A", "B", "B", "C", "C")
++ )
+> print(calibrator)
+<cross_venn_abers>
+Folds: 3
+Calibration observations: 6
+> 
+> # Each row is the same new observation across all corresponding fold models.
+> newdata <- cbind(A = c(.2, .8), B = c(.3, .7), C = c(.1, .9))
+> result <- predict(calibrator, newdata)
+> result
+  probability
+1   0.4424933
+2   0.6135118
+> test_truth <- c(FALSE, TRUE)  # Untouched by fitting and calibration.
+> brier_score(test_truth, result$probability)
+[1] 0.1725867
+> log_loss(test_truth, result$probability)
+[1] 0.5364183
+> calibration_plot(test_truth, result$probability)
+> 
+> # After installation, find the standalone example with:
+> # system.file("examples", "cross-multiclass.R", package = "vennabers")
+> library(vennabers)
+> 
+> # Precomputed out-of-fold probabilities from two retained multiclass models.
+> # Model A excluded rows 1:2; model B excluded rows 3:6, including preprocessing
+> # and tuning. Retain both models yourself. No model is trained by this package.
+> classes <- c("cat", "dog", "bird")
+> truth <- factor(c("cat", "dog", "cat", "bird", "dog", "bird"), levels = classes)
+> fold <- c("A", "A", "B", "B", "B", "B")
+> p <- rbind(c(.7, .2, .1), c(.2, .6, .2), c(.5, .3, .2),
++            c(.1, .2, .7), c(.3, .5, .2), c(.2, .3, .5))
+> colnames(p) <- classes
+> # The same three untouched assessment observations, in the same row order,
+> # predicted by each corresponding retained model. List order is immaterial.
+> new_p <- list(B = rbind(c(.6, .3, .1), c(.1, .4, .5), c(.1, .8, .1)),
++               A = rbind(c(.5, .4, .1), c(.2, .2, .6), c(.2, .7, .1)))
+> new_p <- lapply(new_p, function(x) { colnames(x) <- classes; x })
+> assessment <- factor(c("cat", "bird", "dog"), levels = classes)
+> 
+> local({
++   plot_file <- tempfile(fileext = ".pdf")
++   grDevices::pdf(plot_file)
++   on.exit({ grDevices::dev.off(); unlink(plot_file) })
++   for (method in c("ovo", "ovr")) {
++     fit <- cross_venn_abers(truth, p, fold, method = method, precision = 2)
++     print(fit)
++     for (loss in c("log", "brier")) {
++       details <- predict(fit, new_p, loss = loss, type = "details")
++       probability <- predict(fit, new_p, loss = loss)
++       predicted_class <- predict(fit, new_p, loss = loss, type = "class")
++       # Reconstruct from the fold endpoints/points, then combine subproblems.
++       parts <- details[[2L]]
++       problems <- unique(parts[c(if (method == "ovo") "non_event", "event")])
++       merged <- vapply(seq_len(nrow(problems)), function(i) {
++         selected <- parts$event == problems$event[i]
++         if (method == "ovo") selected <- selected & parts$non_event == problems$non_event[i]
++         vapply(seq_len(nrow(probability)), function(row) {
++           f <- parts[selected & parts$row == row, ]
++           if (loss == "log") {
++             plogis(mean(log(f$upper)) - mean(log1p(-f$lower)))
++           } else mean(f$probability)
++         }, 0)
++       }, numeric(nrow(probability)))
++       recovered <- if (method == "ovr") merged else vapply(classes, function(class) {
++         q <- cbind(1 - merged[, problems$non_event == class, drop = FALSE],
++                    merged[, problems$event == class, drop = FALSE])
++         1 / (1 + rowSums((1 - q) / q))
++       }, numeric(nrow(probability)))
++       recovered <- recovered / rowSums(recovered)
++       stopifnot(max(abs(recovered - probability)) <= 1e-10,
++                 identical(probability, details$prediction),
++                 identical(predicted_class,
++                           factor(classes[max.col(probability, ties.method = "first")],
++                                  levels = classes)))
++       print(details)
++       print(predicted_class)
++       print(c(brier = brier_score(assessment, probability),
++               log = log_loss(assessment, probability)))
++       groups <- calibration_plot(assessment, probability, bins = 1)
++       stopifnot(max(abs(groups$mean_probability - colMeans(probability))) <= 1e-10,
++                 all(groups$count == length(assessment)), all(groups$event_rate == 1 / 3))
++       print(groups)
++     }
++   }
++ })
+<cross_venn_abers: ovo>
+Classes: cat, dog, bird
+Folds: 2
+Calibration observations: 6
+$prediction
+           cat       dog      bird
+[1,] 0.4209914 0.3487607 0.2302479
+[2,] 0.2612039 0.3693981 0.3693981
+[3,] 0.2500000 0.5000000 0.2500000
+
+$pairs
+   row non_event event fold lower upper probability
+1    1       cat   dog    A   0.0   1.0   0.5000000
+2    2       cat   dog    A   0.0   1.0   0.5000000
+3    3       cat   dog    A   0.5   1.0   0.6666667
+4    1       cat   dog    B   0.0   0.5   0.3333333
+5    2       cat   dog    B   0.5   1.0   0.6666667
+6    3       cat   dog    B   0.5   1.0   0.6666667
+7    1       cat  bird    A   0.0   1.0   0.5000000
+8    2       cat  bird    A   0.0   1.0   0.5000000
+9    3       cat  bird    A   0.0   1.0   0.5000000
+10   1       cat  bird    B   0.0   0.5   0.3333333
+11   2       cat  bird    B   0.5   1.0   0.6666667
+12   3       cat  bird    B   0.0   1.0   0.5000000
+13   1       dog  bird    A   0.0   0.5   0.3333333
+14   2       dog  bird    A   0.0   1.0   0.5000000
+15   3       dog  bird    A   0.0   0.5   0.3333333
+16   1       dog  bird    B   0.0   0.5   0.3333333
+17   2       dog  bird    B   0.0   1.0   0.5000000
+18   3       dog  bird    B   0.0   0.5   0.3333333
+
+[1] cat dog dog
+Levels: cat dog bird
+    brier       log 
+0.4957467 0.8513901 
+  class mean_probability event_rate count
+1   cat        0.3107318  0.3333333     3
+2   dog        0.4060529  0.3333333     3
+3  bird        0.2832153  0.3333333     3
+$prediction
+           cat       dog      bird
+[1,] 0.3949174 0.3497344 0.2553482
+[2,] 0.2800000 0.3600000 0.3600000
+[3,] 0.2727273 0.4545455 0.2727273
+
+$pairs
+   row non_event event fold lower upper probability
+1    1       cat   dog    A   0.0   1.0       0.500
+2    2       cat   dog    A   0.0   1.0       0.500
+3    3       cat   dog    A   0.5   1.0       0.625
+4    1       cat   dog    B   0.0   0.5       0.375
+5    2       cat   dog    B   0.5   1.0       0.625
+6    3       cat   dog    B   0.5   1.0       0.625
+7    1       cat  bird    A   0.0   1.0       0.500
+8    2       cat  bird    A   0.0   1.0       0.500
+9    3       cat  bird    A   0.0   1.0       0.500
+10   1       cat  bird    B   0.0   0.5       0.375
+11   2       cat  bird    B   0.5   1.0       0.625
+12   3       cat  bird    B   0.0   1.0       0.500
+13   1       dog  bird    A   0.0   0.5       0.375
+14   2       dog  bird    A   0.0   1.0       0.500
+15   3       dog  bird    A   0.0   0.5       0.375
+16   1       dog  bird    B   0.0   0.5       0.375
+17   2       dog  bird    B   0.0   1.0       0.500
+18   3       dog  bird    B   0.0   0.5       0.375
+
+[1] cat dog dog
+Levels: cat dog bird
+    brier       log 
+0.5391742 0.9130624 
+  class mean_probability event_rate count
+1   cat        0.3158816  0.3333333     3
+2   dog        0.3880933  0.3333333     3
+3  bird        0.2960252  0.3333333     3
+<cross_venn_abers: ovr>
+Classes: cat, dog, bird
+Folds: 2
+Calibration observations: 6
+$prediction
+           cat       dog      bird
+[1,] 0.4385330 0.3743113 0.1871557
+[2,] 0.2071068 0.3284271 0.4644661
+[3,] 0.2584184 0.5168368 0.2247449
+
+$classes
+   row event fold lower     upper probability
+1    1   cat    A   0.0 1.0000000   0.5000000
+2    2   cat    A   0.0 0.5000000   0.3333333
+3    3   cat    A   0.0 1.0000000   0.5000000
+4    1   cat    B   0.5 1.0000000   0.6666667
+5    2   cat    B   0.0 0.2500000   0.2000000
+6    3   cat    B   0.0 0.2500000   0.2000000
+7    1   dog    A   0.0 1.0000000   0.5000000
+8    2   dog    A   0.0 0.5000000   0.3333333
+9    3   dog    A   0.5 1.0000000   0.6666667
+10   1   dog    B   0.0 1.0000000   0.5000000
+11   2   dog    B   0.0 1.0000000   0.5000000
+12   3   dog    B   0.5 1.0000000   0.6666667
+13   1  bird    A   0.0 0.3333333   0.2500000
+14   2  bird    A   0.0 1.0000000   0.5000000
+15   3  bird    A   0.0 0.5000000   0.3333333
+16   1  bird    B   0.0 0.3333333   0.2500000
+17   2  bird    B   0.5 1.0000000   0.6666667
+18   3  bird    B   0.0 0.3333333   0.2500000
+
+[1] cat  bird dog 
+Levels: cat dog bird
+    brier       log 
+0.4262242 0.7504050 
+  class mean_probability event_rate count
+1   cat        0.3013527  0.3333333     3
+2   dog        0.4065251  0.3333333     3
+3  bird        0.2921222  0.3333333     3
+$prediction
+           cat       dog      bird
+[1,] 0.4196891 0.3730570 0.2072539
+[2,] 0.2289157 0.3373494 0.4337349
+[3,] 0.2741722 0.4768212 0.2490066
+
+$classes
+   row event fold lower     upper probability
+1    1   cat    A   0.0 1.0000000   0.5000000
+2    2   cat    A   0.0 0.5000000   0.3750000
+3    3   cat    A   0.0 1.0000000   0.5000000
+4    1   cat    B   0.5 1.0000000   0.6250000
+5    2   cat    B   0.0 0.2500000   0.2187500
+6    3   cat    B   0.0 0.2500000   0.2187500
+7    1   dog    A   0.0 1.0000000   0.5000000
+8    2   dog    A   0.0 0.5000000   0.3750000
+9    3   dog    A   0.5 1.0000000   0.6250000
+10   1   dog    B   0.0 1.0000000   0.5000000
+11   2   dog    B   0.0 1.0000000   0.5000000
+12   3   dog    B   0.5 1.0000000   0.6250000
+13   1  bird    A   0.0 0.3333333   0.2777778
+14   2  bird    A   0.0 1.0000000   0.5000000
+15   3  bird    A   0.0 0.5000000   0.3750000
+16   1  bird    B   0.0 0.3333333   0.2777778
+17   2  bird    B   0.5 1.0000000   0.6250000
+18   3  bird    B   0.0 0.3333333   0.2777778
+
+[1] cat  bird dog 
+Levels: cat dog bird
+    brier       log 
+0.4722134 0.8147255 
+  class mean_probability event_rate count
+1   cat        0.3075923  0.3333333     3
+2   dog        0.3957425  0.3333333     3
+3  bird        0.2966651  0.3333333     3
+> # One shared fold plan serves all pairs/classes. Fold A lacks bird but every
+> # OvO pair remains nonempty. Empty pairs fail with the pair and fold identified.
+> # Endpoints describe binary subproblems, with no aggregate confidence interval.
+> # Manual Cross multiclass is an R extension; Python has no matching public
+> # manual whole-procedure API. Numerical tests reconstruct binary components.
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("cross_venn_abers", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("cross_venn_abers_regression")
+> ### * cross_venn_abers_regression
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: cross_venn_abers_regression
+> ### Title: Manual Cross Venn-Abers Regression with Matched Fold Models
+> ### Aliases: cross_venn_abers_regression
+> ###   predict.cross_venn_abers_regression
+> 
+> ### ** Examples
+> 
+> # Fits retained lm() fold models with the held-out observations excluded,
+> # reconstructs the aggregates, and scores on separate assessment data.
+> source(system.file("examples", "cross-regression.R", package = "vennabers"))
+$B
+$B$observations
+[1] 60
+
+$B$requested
+$B$requested$epsilon
+[1] 0.1
+
+
+$B$m
+[1] 3
+
+$B$epsilon
+[1] 0.09836066
+
+
+$C
+$C$observations
+[1] 70
+
+$C$requested
+$C$requested$epsilon
+[1] 0.1
+
+
+$C$m
+[1] 3
+
+$C$epsilon
+[1] 0.08450704
+
+
+$A
+$A$observations
+[1] 50
+
+$A$requested
+$A$requested$epsilon
+[1] 0.1
+
+
+$A$m
+[1] 2
+
+$A$epsilon
+[1] 0.07843137
+
+
+     uncalibrated calibrated
+RMSE    1.1990933  1.0587165
+MAE     0.9279984  0.8343754
+> 
+> fit <- cross_venn_abers_regression(
++   c(-10, 0, 2, 6, 20, 10, 10, 10), rep(0, 8),
++   rep(c("A", "B"), c(5, 3))
++ )
+> predict(fit, cbind(B = c(1, 0), A = c(-1, 0)), type = "details")
+$prediction
+  prediction lower upper
+1   9.000000   0.0     9
+2   7.071429   4.5     9
+
+$folds
+$folds$A
+  prediction lower upper
+1   8.000000   -10     8
+2   4.142857    -1     8
+
+$folds$B
+  prediction lower upper
+1         10    10    10
+2         10    10    10
+
+
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("cross_venn_abers_regression", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("local_calibration_splits")
+> ### * local_calibration_splits
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: local_calibration_splits
+> ### Title: Resolve Prepared Local Calibration Splits
+> ### Aliases: local_calibration_splits
+> 
+> ### ** Examples
+> 
+> if (all(vapply(c("rsample", "parsnip", "workflows", "withr"),
++                requireNamespace, logical(1), quietly = TRUE))) {
++   data <- data.frame(x = 1:20, truth = factor(rep(c("yes", "no"), 10)))
++   split <- withr::with_seed(42, rsample::initial_split(data))
++   resolve <- local_calibration_splits(list(split, split), c("x", "truth"))
++   stopifnot(identical(as.integer(resolve(data)), as.integer(split)))
++ }
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("local_calibration_splits", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("predict.cross_venn_abers")
+> ### * predict.cross_venn_abers
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: predict.cross_venn_abers
+> ### Title: Predict with Matched Fold-Model Probabilities
+> ### Aliases: predict.cross_venn_abers
+> 
+> ### ** Examples
+> 
+> calibrator <- cross_venn_abers(c(0, 1, 0, 1), c(.1, .8, .2, .9), c(1, 1, 2, 2))
+> newdata <- cbind("1" = c(.2, .8), "2" = c(.3, .7))
+> predict(calibrator, newdata)
+  probability
+1   0.5000000
+2   0.5857864
+> stopifnot(identical(predict(calibrator, newdata), predict(calibrator, newdata[, 2:1])))
+> predict(calibrator, newdata[FALSE, ])
+[1] probability
+<0 rows> (or 0-length row.names)
+> details <- predict(calibrator, newdata, loss = "brier", type = "details")
+> details$folds
+  row fold lower upper probability
+1   1    1   0.0     1       0.500
+2   2    1   0.5     1       0.625
+3   1    2   0.0     1       0.500
+4   2    2   0.0     1       0.500
+> reconstructed <- vapply(seq_len(nrow(newdata)), function(i) {
++   mean(details$folds$probability[details$folds$row == i])
++ }, 0)
+> stopifnot(max(abs(reconstructed - details$prediction$probability)) < 1e-10)
+> predict(calibrator, newdata, loss = "brier", type = "class")
+[1] TRUE TRUE
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("predict.cross_venn_abers", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("predict.venn_abers")
+> ### * predict.venn_abers
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: predict.venn_abers
+> ### Title: Predict with a Venn-Abers Calibrator
+> ### Aliases: predict.venn_abers
+> 
+> ### ** Examples
+> 
+> calibrator <- venn_abers(c(0, 1, 0), c(0.1, 0.2, 0.3))
+> predict(calibrator, c(0.05, 0.2, 0.4))
+      lower     upper probability
+1 0.0000000 0.5000000   0.3333333
+2 0.3333333 0.6666667   0.5000000
+3 0.3333333 1.0000000   0.6000000
+> predict(calibrator, c(0.05, 0.2, 0.4), loss = "brier")
+      lower     upper probability
+1 0.0000000 0.5000000   0.3750000
+2 0.3333333 0.6666667   0.5000000
+3 0.3333333 1.0000000   0.5555556
+> predict(calibrator, c(0.05, 0.2, 0.4), loss = "brier", type = "class")
+[1] FALSE  TRUE  TRUE
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("predict.venn_abers", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("print.cross_venn_abers")
+> ### * print.cross_venn_abers
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: print.cross_venn_abers
+> ### Title: Print a Cross Venn-Abers Calibrator
+> ### Aliases: print.cross_venn_abers
+> 
+> ### ** Examples
+> 
+> calibrator <- cross_venn_abers(c(0, 1, 0, 1, 0, 1), c(.1, .8, .2, .9, .3, .7),
++                                c("A", "A", "B", "B", "C", "C"))
+> print(calibrator)
+<cross_venn_abers>
+Folds: 3
+Calibration observations: 6
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("print.cross_venn_abers", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("print.venn_abers")
+> ### * print.venn_abers
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: print.venn_abers
+> ### Title: Print a Venn-Abers Calibrator
+> ### Aliases: print.venn_abers
+> 
+> ### ** Examples
+> 
+> venn_abers(c(0, 1, 0), c(0.1, 0.2, 0.3))
+<venn_abers>
+Calibration observations: 3
+Event observations: 1
+Unique probability knots: 3
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("print.venn_abers", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("scoring")
+> ### * scoring
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: brier_score
+> ### Title: Score Classification Probabilities
+> ### Aliases: brier_score log_loss
+> 
+> ### ** Examples
+> 
+> truth <- c(FALSE, TRUE, FALSE, TRUE)
+> uncalibrated_probability <- c(0.1, 0.4, 0.35, 0.8)
+> calibrator <- venn_abers(truth, uncalibrated_probability)
+> prediction <- predict(calibrator, uncalibrated_probability)
+> 
+> brier_score(truth, prediction$probability)
+[1] 0.08680556
+> log_loss(truth, prediction$probability)
+[1] 0.3465736
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("scoring", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("venn_abers")
+> ### * venn_abers
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: venn_abers
+> ### Title: Fit an Inductive Venn-Abers Calibrator
+> ### Aliases: venn_abers
+> 
+> ### ** Examples
+> 
+> calibrator <- venn_abers(
++   truth = c(FALSE, TRUE, FALSE, TRUE),
++   probability = c(0.1, 0.4, 0.35, 0.8)
++ )
+> calibrator
+<venn_abers>
+Calibration observations: 4
+Event observations: 2
+Unique probability knots: 4
+> 
+> predict(calibrator, c(0.2, 0.5, 0.9))
+      lower upper probability
+1 0.0000000   0.5   0.3333333
+2 0.5000000   1.0   0.6666667
+3 0.6666667   1.0   0.7500000
+> rounded <- venn_abers(c(0, 1, 0, 1), c(.501, .502, .509, .510), precision = 2)
+> predict(rounded, c(.501, .505, .51), loss = "brier")
+      lower     upper probability
+1 0.3333333 0.6666667   0.5000000
+2 0.3333333 0.6666667   0.5000000
+3 0.4000000 0.6666667   0.5244444
+> 
+> # Fixed-model probabilities on a separate calibration set.
+> classes <- c("cat", "dog", "bird")
+> truth <- factor(rep(classes, 2), levels = classes)
+> p <- rbind(c(.7, .2, .1), c(.2, .6, .2), c(.1, .2, .7),
++            c(.5, .3, .2), c(.3, .5, .2), c(.2, .3, .5))
+> colnames(p) <- classes
+> fit <- venn_abers(truth, p, precision = 2)
+> new_p <- rbind(c(.6, .3, .1), c(.1, .4, .5))
+> colnames(new_p) <- classes
+> assessment <- factor(c("cat", "bird"), levels = classes)
+> details <- predict(fit, new_p, loss = "brier", type = "details")
+> details$pairs
+  row non_event event     lower     upper probability
+1   1       cat   dog 0.0000000 0.5000000   0.3750000
+2   2       cat   dog 0.6666667 1.0000000   0.7222222
+3   1       cat  bird 0.0000000 0.5000000   0.3750000
+4   2       cat  bird 0.5000000 1.0000000   0.6250000
+5   1       dog  bird 0.0000000 0.3333333   0.2777778
+6   2       dog  bird 0.0000000 1.0000000   0.5000000
+> predict(fit, new_p, loss = "brier", type = "class")
+[1] cat dog
+Levels: cat dog bird
+> brier_score(assessment, details$prediction)
+[1] 0.5127985
+> log_loss(assessment, details$prediction)
+[1] 0.8547741
+> calibration_plot(assessment, details$prediction)
+> 
+> ovr <- venn_abers(truth, p, method = "ovr", precision = 2)
+> predict(ovr, new_p)
+           cat       dog      bird
+[1,] 0.4878049 0.3658537 0.1463415
+[2,] 0.1250000 0.3750000 0.5000000
+> ovr_details <- predict(ovr, new_p, loss = "brier", type = "details")
+> ovr_details$classes
+  row event lower upper probability
+1   1   cat   0.5  1.00     0.62500
+2   2   cat   0.0  0.20     0.18000
+3   1   dog   0.0  1.00     0.50000
+4   2   dog   0.0  1.00     0.50000
+5   1  bird   0.0  0.25     0.21875
+6   2  bird   0.5  1.00     0.62500
+> predict(ovr, new_p, loss = "brier", type = "class")
+[1] cat  bird
+Levels: cat dog bird
+> brier_score(assessment, ovr_details$prediction)
+[1] 0.444197
+> log_loss(assessment, ovr_details$prediction)
+[1] 0.7508373
+> calibration_plot(assessment, ovr_details$prediction)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("venn_abers", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("venn_abers_regression")
+> ### * venn_abers_regression
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: venn_abers_regression
+> ### Title: Moderated Inductive Venn-Abers Regression
+> ### Aliases: venn_abers_regression predict.venn_abers_regression
+> 
+> ### ** Examples
+> 
+> # The installed example fixes disjoint training/calibration/assessment roles,
+> # fits lm() only on training data, and reports Base R RMSE and MAE.
+> source(system.file("examples", "inductive-regression.R", package = "vennabers"))
+$requested
+$requested$epsilon
+[1] 0.1
+
+
+$m
+[1] 3
+
+$epsilon
+[1] 0.09836066
+
+     uncalibrated calibrated
+RMSE     1.395241   1.350256
+MAE      1.119748   1.065058
+> 
+> fit <- venn_abers_regression(c(-10, 0, 2, 6, 20), rep(0, 5))
+> fit$requested
+list()
+> fit$m
+[1] 1
+> fit$epsilon
+[1] 0.3333333
+> predict(fit, c(-1, 0, 1))
+  prediction lower upper
+1   8.000000   -10     8
+2   4.142857    -1     8
+3  -1.000000    -1    20
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("venn_abers_regression", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> ### * <FOOTER>
+> ###
+> cleanEx()
+> options(digits = 7L)
+> base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
+Time elapsed:  5.429 0.237 5.697 0 0 
+> grDevices::dev.off()
+null device 
+          1 
+> ###
+> ### Local variables: ***
+> ### mode: outline-minor ***
+> ### outline-regexp: "\\(> \\)?### [*]+" ***
+> ### End: ***
+> quit('no')

@@ -1,0 +1,20 @@
+.libPaths(c(Sys.getenv('PROBE_LIBRARY', '.scratch/issue-35/evidence-minimum/library'), .libPaths()))
+library(vennabers)
+p <- rbind(c(2/3,1/6,1/6),c(1/6,2/3,1/6),c(1/6,1/6,2/3))
+colnames(p) <- c('a','b','c')
+y <- factor(rep(colnames(p),2),levels=colnames(p))
+cal <- p[rep(1:3,2),]
+normal_fit <- venn_abers(y,cal,precision=2)
+normal <- predict(normal_fit,p)
+# Summing these particular rows in increasing order gives exactly the same
+# totals (one) as x86 long-double rowSums, on this binary64-only ARM host.
+f <- getFromNamespace('.class_probability','vennabers')
+environment(f) <- list2env(list(rowSums = function(x) apply(x, 1L, function(z) sum(sort(z)))), parent = environment(f))
+assignInNamespace('.class_probability',f,'vennabers')
+extended_fit <- venn_abers(y,cal,precision=2)
+extended <- predict(extended_fit,p)
+cat('Raw row sums:',sprintf('%a',rowSums(p)),'\n')
+cat('Extended-equivalent totals:',sprintf('%a',apply(p,1,function(x)sum(sort(x)))),'\n')
+cat('Calibration models identical:',identical(normal_fit,extended_fit),'\n')
+print(normal);print(extended)
+stopifnot(all(abs(normal-extended)<=1e-10))

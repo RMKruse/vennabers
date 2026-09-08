@@ -1,0 +1,82 @@
+* using log directory 'D:/a/venn-abers/venn-abers/.scratch/ci/vennabers.Rcheck'
+* using R version 4.5.3 (2026-03-11 ucrt)
+* using platform: x86_64-w64-mingw32
+* R was compiled by
+    gcc.exe (GCC) 14.3.0
+    GNU Fortran (GCC) 14.3.0
+* running under: Windows Server 2022 x64 (build 26100)
+* using session charset: UTF-8
+* using options '--no-manual --as-cran'
+* checking for file 'vennabers/DESCRIPTION' ... OK
+* this is package 'vennabers' version '0.5.0'
+* package encoding: UTF-8
+* checking package namespace information ... OK
+* checking package dependencies ... OK
+* checking if this is a source package ... OK
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... OK
+* checking for portable file names ... OK
+* checking whether package 'vennabers' can be installed ... OK
+* checking installed package size ... INFO
+  installed size is  7.8Mb
+  sub-directories of 1Mb or more:
+    extdata   7.5Mb
+* checking package directory ... OK
+* checking for future file timestamps ... OK
+* checking DESCRIPTION meta-information ... OK
+* checking top-level files ... OK
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... OK
+* checking code files for non-ASCII characters ... OK
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking loading without being on the library search path ... OK
+* checking whether startup messages can be suppressed ... OK
+* checking dependencies in R code ... OK
+* checking S3 generic/method consistency ... OK
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... OK
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd line widths ... OK
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... OK
+* checking Rd \usage sections ... OK
+* checking Rd contents ... OK
+* checking for unstated dependencies in examples ... OK
+* checking examples ... OK
+* checking for unstated dependencies in 'tests' ... OK
+* checking tests ... [10m] OK
+  Running 'binary-options-parity.R'
+  Running 'binary-options.R'
+  Running 'calibrated-workflow.R' [12s]
+  Running 'cross-multiclass-workflow.R' [81s]
+  Running 'cross-multiclass.R'
+  Running 'cross-parity.R'
+  Running 'cross-regression-parity.R'
+  Running 'cross-regression.R'
+  Running 'cross-venn-abers.R'
+  Running 'cross-workflow.R' [36s]
+  Running 'inductive-multiclass.R'
+  Running 'inductive-ovr.R'
+  Running 'inductive-regression.R'
+  Running 'integration-processes.R' [222s]
+  Running 'local-plans.R'
+  Running 'multiclass-workflow.R' [70s]
+  Running 'outer-resampling.R' [106s]
+  Running 'randomized-parity.R'
+  Running 'regression-parity.R'
+  Running 'regression-workflow.R' [45s]
+  Running 'venn-abers.R'
+* checking for non-standard things in the check directory ... OK
+* checking for detritus in the temp directory ... OK
+* DONE
+Status: OK

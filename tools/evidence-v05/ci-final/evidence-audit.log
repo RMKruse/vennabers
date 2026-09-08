@@ -1,0 +1,14 @@
+acceptance-4.5.3-macos-15-aarch64 : matching archive; 21 test logs; Status OK
+acceptance-4.5.3-macos-15-intel-x86_64 : matching archive; 21 test logs; Status OK
+acceptance-4.5.3-ubuntu-24.04-x86_64 : matching archive; 21 test logs; Status OK
+acceptance-4.5.3-windows-2025-x86_64 : matching archive; 21 test logs; Status OK
+acceptance-4.6.1-macos-15-aarch64 : matching archive; 21 test logs; Status OK
+acceptance-4.6.1-macos-15-intel-x86_64 : matching archive; 21 test logs; Status OK
+acceptance-4.6.1-ubuntu-24.04-x86_64 : matching archive; 21 test logs; Status OK
+acceptance-4.6.1-windows-2025-x86_64 : matching archive; 21 test logs; Status OK
+acceptance-core : matching archive; 21 test logs; Status OK
+acceptance-devel-ubuntu-24.04-x86_64 : matching archive; 21 test logs; Status OK
+acceptance-minimum : matching archive; 21 test logs; Status OK
+All 11 retained job logs contain 12 README blocks, 9 example executions, and a gate pass. Core integration blocks skip by design.
+12 jobs successful; Windows job cancelled after normal gate pass. Repository Actions and workflow disabled.
+Every local report link resolves.

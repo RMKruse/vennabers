@@ -1,0 +1,4 @@
+Commit: e69a9b4f52175200530cc0e0c07cd12422191f49
+SHA256: 813e435f232b51cbaf36158bafc75ed3922e5905cd80dfee8ff69539d599effa
+MD5: d370424fc5cb59105b51f800951779d6
+123 CI candidate files match the checkout byte-for-byte; DESCRIPTION source fields match after build normalization (generated packaging fields excluded).

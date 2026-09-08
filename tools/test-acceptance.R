@@ -11,7 +11,19 @@ local({
   stopifnot(all(file.copy(files, checkout, recursive = TRUE)))
   setwd(checkout)
   on.exit(setwd(root), add = TRUE, after = FALSE)
-  Sys.unsetenv(c("ACCEPTANCE_OUTPUT_DIR", "ACCEPTANCE_ARTIFACT"))
+  Sys.unsetenv(c("ACCEPTANCE_OUTPUT_DIR", "ACCEPTANCE_ARTIFACT", "ACCEPTANCE_PROFILE"))
+
+  # Fail before any build when integration coverage would silently be skipped.
+  description <- readLines("DESCRIPTION")
+  for (requirement in c("parsnip (>= 999.0.0)", "vennabersMissingDependencyProbe")) {
+    writeLines(sub("parsnip \\(>= 1.6.0\\)", requirement, description), "DESCRIPTION")
+    log <- file.path(work, "dependency-gate.log")
+    status <- system2(file.path(R.home("bin"), "Rscript"),
+      c("--vanilla", "tools/acceptance.R"), stdout = log, stderr = log)
+    stopifnot(status != 0L, any(grepl("integration checks must not skip", readLines(log), fixed = TRUE)))
+  }
+  writeLines(description, "DESCRIPTION")
+  cat("Missing/old integration dependency requirements fail the gate.\n")
 
   # Each new file must be discovered automatically and fail the whole command.
   for (directory in c("inst/examples", "tests")) {

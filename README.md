@@ -2,10 +2,12 @@
 
 Dependency-free binary Inductive/Cross, multiclass Inductive/Cross OvO/OvR,
 and moderated Inductive/Cross regression calibration for R 4.5 and later.
-The package version is v0.4.0. The maintainer approved v0.4 under the updated
-criterion of passing local tests; the [acceptance record](tools/acceptance-v04.md)
-identifies the approved candidate and documents the unexecuted platform and
-Linux benchmark checks. Approval does not imply publication.
+The v0.5.0 candidate adds optional native workflows for all eight combinations
+of binary/OvO/OvR/regression and Inductive/Cross calibration. The
+[v0.5 acceptance record](tools/acceptance-v05.md) identifies the candidate,
+support/dependency matrix and missing release evidence. The maintainer's
+[v0.4 approval](tools/acceptance-v04.md) remains a completed predecessor decision;
+its local-only rule does not approve v0.5. Publication is separate.
 
 ## Quick start
 
@@ -34,6 +36,154 @@ calibration_plot(c(FALSE, TRUE, TRUE), prediction$probability)
 IVAP prediction still returns three double columns: `lower` and `upper` are
 the Venn-Abers interval endpoints; `probability` is the regularized event
 probability, using log loss by default. These endpoints are not confidence intervals.
+
+## Automatic classification workflow calibration
+
+`calibrated_workflow(base, outcome = "truth", seed = 42)` wraps a configured,
+unfitted tidymodels workflow. Use `generics::fit()` on development data, then
+ordinary `predict(..., type = "prob")` or `type = "class"`. The outer Variables
+preprocessor carries raw columns; put recipes in `base`. One complete base workflow
+learns on 80% of the data by default, and its held-out probabilities calibrate the
+binary Inductive core. Both factor levels must exist in the development data.
+
+Use `method = "cross"` to retain five complete base workflows by default (`v`
+sets the count, at least two). Each workflow learns its recipe/model on one fold's
+complement and calibrates on that held-out fold. New data follow all matching
+paths; the existing Cross core combines them with stable log aggregation or the
+equal-weight mean of Brier fold points. There is no full-data model, size weighting
+or pooled calibration. Invalid partitions fail before training, and any failed
+fold fails the whole fit. `strata = FALSE` disables default outcome stratification;
+otherwise splitting uses `pool = 0`, without retries or fold-count reduction.
+
+`venn_abers_details(fitted, new_data)` returns native probabilities plus row/fold
+bounds. `workflows::extract_fit_engine(fitted)` exposes the model, calibrator,
+original class names, split positions, options and versions. Set `event_level`
+to `"first"` (default) or `"second"`; the event class wins ties. Set `loss` at
+construction or override it in predict/details without refitting. Calibration-only
+`precision` accepts NULL and whole numbers, including negatives.
+
+The integration packages listed in DESCRIPTION are optional and must be installed
+explicitly; manual calibration still loads without parsnip. The installed example
+runs fit, prediction, diagnostics and a comparison to its stored default:
+
+```r
+source(system.file("examples", "calibrated-workflow.R", package = "vennabers"))
+```
+
+Keep final assessment data separate. This local split cannot undo prior tuning or
+external transformations using calibration/assessment observations. The statistical
+setting assumes IID data and a model fixed independently of calibration data;
+improved scores on every test set are not guaranteed. This first automatic path
+supports binary and multiclass Inductive/Cross calibration, direct explicit splits, and complete outer
+IID evaluation. See `?calibrated_workflow` for exact input and naming boundaries.
+
+
+Pass `splits = rsample::initial_split(development)` for a direct explicit fit,
+or `splits = function(data) ...` to construct a split from each local outer analysis
+set. Cross accepts a simple `vfold_cv()` or `manual_rset()` partition. Omit automatic
+`calibration_prop`, `v` and `strata` when supplying a plan.
+`local_calibration_splits(prepared, columns = c("x", "truth"))` builds a serializable
+resolver from a list of prepared local splits. It checks every entry and rejects
+conflicting ordered assignments for identical data. Matching uses selected raw
+columns, types, values, factor levels and row order, ignoring container class and
+row names. Duplicate observations remain distinct positions. Arbitrary callbacks
+must obey this contract themselves; hidden closure state cannot be audited
+automatically. Never use call counters or outer assessment data in a resolver.
+
+Use `classification = "ovo"` or `"ovr"` with a multiclass base workflow for
+Inductive or Cross calibration. Both use shared multiclass models and the existing
+factor/matrix core, including for two classes. Inductive's holdout must contain
+every stored class. Cross uses one shared model per fold complement and requires
+every class globally in out-of-fold calibration. A fold may omit classes;
+nonempty single-class or singleton subcalibrations are valid. Empty OvO pairs
+fail before model training with pair and fold context. Probability columns must exactly match `.pred_` plus the original
+class names; values must be finite in [0,1] and sum to one within 1e-8. The core
+normalizes within that tolerance. Distinct names such as `a b` and `a.b` remain
+distinct with a compatible engine; reserved `class` and `.pred_*` levels fail
+before learning. Class predictions favor the first maximal stored level.
+
+OvO normalizes each pair, uses 0.5 for zero-sum pairs, then optionally rounds
+calibration scores (including 0.5 to 0 at `precision = 0`). OvR calibrates every
+class against all remaining observations. New scores remain unrounded. Details
+add `method`, `event_class`, and `class_1`/`class_2` or `class`; their binary points
+reconstruct final probabilities through OvO coupling or OvR normalization. For
+Cross, first merge each binary subproblem across folds using Log/Brier, then
+couple or normalize. Never average completed multiclass fold matrices.
+`event_level` is binary-only. This shared R plan does not establish parity with
+Python's separate pair-model training; pair training and full-model transfer
+remain outside this path.
+
+The installed evaluation example uses ordinary repeated `fit_resamples()` and a
+prepared resolver, aligns constructor/control event levels, and retains every
+fitted engine via `extract`. It audits all unsummarized predictions and metrics
+against expected resample/repeat/configuration/row identities and checks notes,
+missing truths, finite probabilities and hand-computed scores:
+
+```r
+source(system.file("examples", "calibrated-resampling.R", package = "vennabers"))
+```
+
+It also runs Inductive/Cross OvO and OvR with an `nnet` multinomial model and locally learned
+normalization: automatic/explicit fit, probability/class prediction, details,
+and repeated outer evaluation. Yardstick's multiclass Brier is half the manual
+matrix score, including the two-class matrix path; Log/Brier prediction defaults
+and overrides retain the manual core's behavior.
+
+The same example shows Cross fit, predict and fold diagnostics, then five outer
+by five inner folds: 25 base fits, with no automatic final fit. Extracting all
+states retains all 25 workflows plus recipes/calibrators. Calibration is not an
+independent evaluation; keep outer assessment and final test data separate from
+training, calibration and parameter selection. Cross requires independently fixed
+parameters or suitable nested selection, which this constructor does not perform.
+
+The constructor's stored `loss` controls native outer predictions. Yardstick's
+binary Brier matches the binary vector score; log-loss clips only for scoring.
+An inner fit failure, metric error, NA removal, or missing row makes the evaluation
+incomplete, even if collectors or averages succeed. `save_workflow` alone does not
+retain every fitted predictor: use `extract = workflows::extract_fit_engine`,
+`extract = identity` for entire workflows, or select compact diagnostics.
+
+`seed = NULL` uses the caller/tune stream; an explicit seed locally covers both
+plan resolution and training and restores the caller RNG state. Seed outer plans
+separately and retain RNG kind, actual splits and engine configuration. Inner fits
+are serial. Outer parallelism uses `parallel_over = "resamples"`; load `vennabers`
+and base-engine namespaces in fresh workers using `pkgs`. Repeatability requires
+the same RNG kind, versions, seeds, threads, strategy and reproducible engine.
+The engine never sees the outer partition: the example validates each outer
+analysis/assessment pair before fitting. Assessments may overlap across resamples.
+
+## Automatic regression workflow calibration
+
+The base model's `regression` mode selects IVAR/CVAR, including for numeric 0/1
+truth. Both methods reuse the same local split plans and complete base workflows:
+
+```r
+if (all(vapply(c("workflows", "parsnip", "rsample"), requireNamespace,
+               logical(1), quietly = TRUE))) {
+  development <- data.frame(x = sin(1:100), truth = 10 + 3*sin(1:100) + cos(1:100))
+  base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
+    workflows::add_model(parsnip::linear_reg(engine = "lm"))
+  for (method in c("inductive", "cross")) {
+    model <- calibrated_workflow(base, "truth", method = method, epsilon = .3, seed = 42)
+    fitted <- generics::fit(model, development)
+    predict(fitted, data.frame(x = c(-.8, .7)), type = "numeric")
+    venn_abers_details(fitted, data.frame(x = c(-.8, .7)))
+    workflows::extract_fit_engine(fitted)$parameters$effective
+  }
+}
+```
+
+Omit both `m` and `epsilon` for effective `m=1`, or set one moderation option.
+Every calibration fold must satisfy the core's domain before any training begins.
+Explicit classification, event, precision and loss options are errors for regression.
+Preprocessing learns only within each corresponding model's training portion.
+`.pred` contains weighted IVAR points or equal-weight CVAR points in outcome units.
+The separate bounds concern regularized conditional expectations; Cross aggregate
+bounds are descriptive. Neither confidence/prediction intervals nor improved scores
+are promised. The installed `examples/calibrated-resampling.R` demonstrates both
+methods with imputation/scaling, automatic/prepared local plans, and full outer
+RMSE/MAE evaluation, auditing every assessment row and metric with normal yardstick
+conventions. Calibration data are not an independent evaluation set.
 
 ## Inductive regression
 
@@ -76,7 +226,8 @@ three-column data frame; saved fits work in fresh R processes without training.
 This manual entry point is an R extension. The
 [reference record](inst/extdata/regression-reference.md) distinguishes valid
 Python 1.5.4 regression components from lower-bound and zero-weight defects.
-Training, automatic splits, regression score/plot helpers, exact minimax,
+The manual core does not train models or create splits. Regression score/plot
+helpers, exact minimax,
 observation weights and rounding options remain outside this implementation.
 
 ## Cross regression

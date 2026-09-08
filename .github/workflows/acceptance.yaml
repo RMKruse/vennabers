@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      benchmarks:
+        description: Run the separate serial Linux benchmark and v0.4 comparison
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -53,7 +58,7 @@ jobs:
     env:
       EXPECTED_R_ARCH: ${{ matrix.platform.arch }}
       ACCEPTANCE_OUTPUT_DIR: ${{ github.workspace }}/.scratch/ci
-      ACCEPTANCE_ARTIFACT: ${{ github.workspace }}/.scratch/source/vennabers_0.4.0.tar.gz
+      ACCEPTANCE_ARTIFACT: ${{ github.workspace }}/.scratch/source/vennabers_0.5.0.tar.gz
     steps:
       - uses: actions/checkout@v6
       - uses: r-lib/actions/setup-r@v2
@@ -63,6 +68,10 @@ jobs:
         with:
           name: source-candidate
           path: .scratch/source
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"Suggests"'
+          upgrade: 'TRUE'
       - name: Verify source identity
         shell: bash
         working-directory: .scratch/source
@@ -75,6 +84,9 @@ jobs:
       - name: Verify failures propagate
         if: matrix.r == '4.6.1' && (matrix.platform.os == 'ubuntu-24.04' || matrix.platform.os == 'windows-2025')
         run: Rscript --vanilla tools/test-acceptance.R
+      - name: Verify missing and old optional dependency errors
+        shell: bash
+        run: Rscript --vanilla tools/test-optional-dependencies.R "$ACCEPTANCE_ARTIFACT" > "$ACCEPTANCE_OUTPUT_DIR/optional-dependencies.log" 2>&1
       - name: Preserve evidence (including failures)
         if: always()
         uses: actions/upload-artifact@v4
@@ -86,3 +98,100 @@ jobs:
             .scratch/ci/*.log
             .scratch/ci/*.tar.gz
             .scratch/ci/*.Rcheck
+
+  optional-dependencies:
+    needs: source
+    name: Optional dependencies / ${{ matrix.profile }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {profile: core, r: "4.6.1"}
+          - {profile: minimum, r: "4.5.3"}
+    env:
+      ACCEPTANCE_PROFILE: ${{ matrix.profile }}
+      EXPECTED_R_ARCH: x86_64
+      ACCEPTANCE_OUTPUT_DIR: ${{ github.workspace }}/.scratch/ci
+      ACCEPTANCE_ARTIFACT: ${{ github.workspace }}/.scratch/source/vennabers_0.5.0.tar.gz
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.r }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: source-candidate
+          path: .scratch/source
+      - name: Verify source identity
+        working-directory: .scratch/source
+        run: sha256sum -c SHA256SUMS
+      - name: Install pinned minimum environment
+        if: matrix.profile == 'minimum'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libuv1-dev
+          Rscript --vanilla tools/install-minimum-dependencies.R "$R_LIBS_USER" 2>&1 | tee .scratch/minimum-setup.log
+      - name: Check installed package and dependency profile
+        run: Rscript --vanilla tools/acceptance.R
+      - name: Verify missing and old optional dependency errors
+        run: Rscript --vanilla tools/test-optional-dependencies.R "$ACCEPTANCE_ARTIFACT" > "$ACCEPTANCE_OUTPUT_DIR/optional-dependencies.log" 2>&1
+      - name: Preserve evidence (including failures)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-${{ matrix.profile }}
+          include-hidden-files: true
+          path: |
+            .scratch/minimum-setup.log
+            .scratch/ci/*.txt
+            .scratch/ci/*.log
+            .scratch/ci/*.tar.gz
+            .scratch/ci/*.Rcheck
+
+  benchmarks:
+    if: github.event_name == 'workflow_dispatch' && inputs.benchmarks
+    needs: source
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: "4.6.1"
+      - uses: actions/download-artifact@v4
+        with:
+          name: source-candidate
+          path: .scratch/source
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"Suggests"'
+          upgrade: 'TRUE'
+      - name: Verify candidate and approved predecessor identities
+        shell: bash
+        run: |
+          (cd .scratch/source && sha256sum -c SHA256SUMS)
+          echo '44846f1e2a6cd5ec1672264516122e5d26e65a2a18f69ec1d5fb7078514ddb69  tools/evidence-v04/vennabers_0.4.0.tar.gz' | sha256sum -c -
+      - name: Measure both releases serially on this runner
+        run: Rscript --vanilla tools/performance.R .scratch/source/vennabers_0.5.0.tar.gz tools/evidence-v04/vennabers_0.4.0.tar.gz .scratch/benchmark
+      - name: Verify measurements and failure detection
+        run: |
+          Rscript --vanilla tools/test-performance.R .scratch/benchmark --v05
+          Rscript --vanilla tools/test-performance-verifier.R .scratch/benchmark
+      - name: Record evidence identities
+        if: always()
+        shell: bash
+        run: |
+          if test -d .scratch/benchmark; then
+            cd .scratch/benchmark
+            find . -type f ! -path '*-library/*' ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+          fi
+      - name: Preserve benchmark evidence (including failures)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmarks
+          include-hidden-files: true
+          path: |
+            .scratch/benchmark/*
+            !.scratch/benchmark/*-library/**
