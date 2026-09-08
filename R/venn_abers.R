@@ -61,6 +61,7 @@
   }
 }
 
+#' @export
 brier_score <- function(truth, probability) {
   if (is.factor(truth)) {
     probability <- .validate_multiclass_input(truth, probability)
@@ -72,6 +73,7 @@ brier_score <- function(truth, probability) {
   mean((truth - probability)^2)
 }
 
+#' @export
 log_loss <- function(truth, probability) {
   if (is.factor(truth)) {
     probability <- .validate_multiclass_input(truth, probability)
@@ -81,6 +83,7 @@ log_loss <- function(truth, probability) {
   -mean(ifelse(truth == 1, log(probability), log1p(-probability)))
 }
 
+#' @export
 calibration_plot <- function(truth, probability, bins = 10, ...) {
   if (is.factor(truth)) {
     probability <- .validate_multiclass_input(truth, probability)
@@ -131,6 +134,7 @@ calibration_plot <- function(truth, probability, bins = 10, ...) {
   invisible(summary)
 }
 
+#' @export
 venn_abers <- function(truth, probability, precision = NULL, method = "ovo") {
   .validate_choice(method, c("ovo", "ovr"), "method")
   if (is.factor(truth)) {
@@ -180,6 +184,7 @@ venn_abers <- function(truth, probability, precision = NULL, method = "ovo") {
   if (loss == "brier") upper + (lower^2 - upper^2) / 2 else upper / (1 - lower + upper)
 }
 
+#' @export
 predict.venn_abers <- function(object, newdata, ..., loss = "log", type = "response") {
   if (length(list(...))) {
     stop("`...` must be empty; unsupported prediction argument.", call. = FALSE)
@@ -202,6 +207,7 @@ predict.venn_abers <- function(object, newdata, ..., loss = "log", type = "respo
   )
 }
 
+#' @export
 print.venn_abers <- function(x, ...) {
   if (!is.null(x$classes)) {
     method <- if (identical(x$method, "ovr")) "ovr" else "ovo"

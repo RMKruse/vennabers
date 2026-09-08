@@ -58,6 +58,7 @@
 }
 
 # A prepared mapping is checked in full before a resolver can be used for fitting.
+#' @export
 local_calibration_splits <- function(splits, columns) {
   .integration_packages()
   .integration_names(columns, "selected raw column")

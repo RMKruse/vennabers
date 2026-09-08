@@ -8,3 +8,5 @@
 ^tools/evidence-v04$
 ^tools/acceptance-v05\.md$
 ^tools/evidence-v05$
+^.*\.Rproj$
+^\.Rproj\.user$

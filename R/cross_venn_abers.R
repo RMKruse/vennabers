@@ -1,3 +1,4 @@
+#' @export
 cross_venn_abers <- function(truth, probability, fold, precision = NULL, method = "ovo") {
   .validate_choice(method, c("ovo", "ovr"), "method")
   if (is.factor(truth)) {
@@ -44,6 +45,7 @@ cross_venn_abers <- function(truth, probability, fold, precision = NULL, method 
   stats::plogis(rowMeans(log(upper)) - rowMeans(log1p(-lower)))
 }
 
+#' @export
 predict.cross_venn_abers <- function(object, newdata, ..., loss = "log", type = "response") {
   if (length(list(...))) {
     stop("`...` must be empty; unsupported prediction argument.", call. = FALSE)
@@ -85,6 +87,7 @@ predict.cross_venn_abers <- function(object, newdata, ..., loss = "log", type = 
   )
 }
 
+#' @export
 print.cross_venn_abers <- function(x, ...) {
   if (!is.null(x$classes)) {
     cat("<cross_venn_abers: ", x$method, ">\nClasses: ",

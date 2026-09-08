@@ -51,6 +51,7 @@
   .regression_interpolate(lower, upper, fraction)
 }
 
+#' @export
 venn_abers_regression <- function(truth, prediction, ..., m = 1, epsilon = NULL) {
   if (length(list(...))) stop("`...` must be empty; unsupported fit argument.", call. = FALSE)
   .validate_regression_vector(truth, "truth")
@@ -98,6 +99,7 @@ venn_abers_regression <- function(truth, prediction, ..., m = 1, epsilon = NULL)
             class = "venn_abers_regression")
 }
 
+#' @export
 predict.venn_abers_regression <- function(object, newdata, ...) {
   if (length(list(...))) stop("`...` must be empty; unsupported prediction argument.", call. = FALSE)
   .validate_regression_vector(newdata, "newdata")

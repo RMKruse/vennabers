@@ -37,3 +37,4 @@ Suggests:
     tune (>= 2.1.0),
     yardstick (>= 1.4.0),
     future (>= 1.67.0)
+Config/roxygen2/version: 8.1.0

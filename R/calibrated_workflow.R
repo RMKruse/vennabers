@@ -1,5 +1,6 @@
 # The outer workflow only carries raw variables. Learning belongs to the base
 # workflow after the local split, including any recipe preparation.
+#' @export
 calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                                 method = "inductive", classification = "binary",
                                 event_level = "first", calibration_prop = 0.2, v = 5L,
@@ -175,6 +176,7 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
 }
 
 # Public only as a parsnip engine entry point; use calibrated_workflow().
+#' @export
 fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   .integration_packages()
   settings <- parameters$requested
@@ -397,14 +399,17 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   result
 }
 
+#' @export
 predict_vennabers_numeric <- function(object, new_data) {
   .integration_prediction(object, new_data)$prediction$.pred
 }
 
+#' @export
 predict_vennabers_prob <- function(object, new_data) {
   .integration_prediction(object, new_data)$prediction
 }
 
+#' @export
 predict_vennabers_class <- function(object, new_data) {
   probabilities <- .integration_prediction(object, new_data)$prediction
   if (object$parameters$requested$classification != "binary") {
@@ -416,6 +421,7 @@ predict_vennabers_class <- function(object, new_data) {
                 object$class_levels[object$class_levels != object$event_class]), levels = object$class_levels)
 }
 
+#' @export
 predict._vennabers_fit <- function(object, new_data, type = NULL, opts = list(), ..., loss = NULL) {
   .integration_dots(...)
   if (!missing(loss)) {
@@ -430,6 +436,7 @@ predict._vennabers_fit <- function(object, new_data, type = NULL, opts = list(),
   parsnip::predict.model_fit(object, new_data, type = type, opts = opts)
 }
 
+#' @export
 venn_abers_details <- function(object, new_data, ..., loss = NULL) {
   .integration_dots(...)
   .integration_packages()
