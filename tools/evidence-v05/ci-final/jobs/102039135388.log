@@ -1,0 +1,2305 @@
+﻿2026-09-08T11:13:22.0832599Z Current runner version: '2.337.0'
+2026-09-08T11:13:22.0910338Z ##[group]Runner Image Provisioner
+2026-09-08T11:13:22.0911664Z Hosted Compute Agent
+2026-09-08T11:13:22.0912514Z Version: 20260828.587
+2026-09-08T11:13:22.0913579Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+2026-09-08T11:13:22.0914690Z Build Date: 2026-08-28T16:44:25Z
+2026-09-08T11:13:22.0915740Z Worker ID: {bcc77aaa-676f-496d-9a87-64dbd1b62f3e}
+2026-09-08T11:13:22.0916814Z Azure Region: westus3
+2026-09-08T11:13:22.0917672Z ##[endgroup]
+2026-09-08T11:13:22.0940567Z ##[group]Operating System
+2026-09-08T11:13:22.0941666Z Ubuntu
+2026-09-08T11:13:22.0942446Z 24.04.4
+2026-09-08T11:13:22.0943335Z LTS
+2026-09-08T11:13:22.0944082Z ##[endgroup]
+2026-09-08T11:13:22.0944996Z ##[group]Runner Image
+2026-09-08T11:13:22.0945913Z Image: ubuntu-24.04
+2026-09-08T11:13:22.0946779Z Version: 20260831.293.1
+2026-09-08T11:13:22.0949165Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260831.293/images/ubuntu/Ubuntu2404-Readme.md
+2026-09-08T11:13:22.0951707Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260831.293
+2026-09-08T11:13:22.0953143Z ##[endgroup]
+2026-09-08T11:13:22.0954870Z ##[group]GITHUB_TOKEN Permissions
+2026-09-08T11:13:22.0958007Z Contents: read
+2026-09-08T11:13:22.0979412Z Metadata: read
+2026-09-08T11:13:22.0980836Z ##[endgroup]
+2026-09-08T11:13:22.0983948Z Secret source: Actions
+2026-09-08T11:13:22.0985916Z Prepare workflow directory
+2026-09-08T11:13:22.1871041Z Prepare all required actions
+2026-09-08T11:13:22.1947658Z Getting action download info
+2026-09-08T11:13:22.6007304Z Download action repository 'actions/checkout@v6' (SHA:d23441a48e516b6c34aea4fa41551a30e30af803)
+2026-09-08T11:13:24.1366661Z Download action repository 'r-lib/actions@v2' (SHA:465b7d8e732ca3921382b1674c59bada9cbf3399)
+2026-09-08T11:13:25.0009408Z Download action repository 'actions/download-artifact@v4' (SHA:d3f86a106a0bac45b974a628896c90dbdf5c8093)
+2026-09-08T11:13:25.7062228Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-09-08T11:13:25.8852513Z Complete job name: Optional dependencies / core
+2026-09-08T11:13:25.9582223Z ##[group]Run actions/checkout@v6
+2026-09-08T11:13:25.9582807Z with:
+2026-09-08T11:13:25.9583043Z   repository: RMKruse/venn-abers
+2026-09-08T11:13:25.9585596Z   token: ***
+2026-09-08T11:13:25.9585812Z   ssh-strict: true
+2026-09-08T11:13:25.9586024Z   ssh-user: git
+2026-09-08T11:13:25.9586245Z   persist-credentials: true
+2026-09-08T11:13:25.9586484Z   clean: true
+2026-09-08T11:13:25.9586708Z   sparse-checkout-cone-mode: true
+2026-09-08T11:13:25.9586990Z   fetch-depth: 1
+2026-09-08T11:13:25.9587204Z   fetch-tags: false
+2026-09-08T11:13:25.9587432Z   show-progress: true
+2026-09-08T11:13:25.9587644Z   lfs: false
+2026-09-08T11:13:25.9587842Z   submodules: false
+2026-09-08T11:13:25.9588062Z   set-safe-directory: true
+2026-09-08T11:13:25.9588489Z   allow-unsafe-pr-checkout: false
+2026-09-08T11:13:25.9588983Z env:
+2026-09-08T11:13:25.9589182Z   ACCEPTANCE_PROFILE: core
+2026-09-08T11:13:25.9589434Z   EXPECTED_R_ARCH: x86_64
+2026-09-08T11:13:25.9589859Z   ACCEPTANCE_OUTPUT_DIR: /home/runner/work/venn-abers/venn-abers/.scratch/ci
+2026-09-08T11:13:25.9590444Z   ACCEPTANCE_ARTIFACT: /home/runner/work/venn-abers/venn-abers/.scratch/source/vennabers_0.5.0.tar.gz
+2026-09-08T11:13:25.9590898Z ##[endgroup]
+2026-09-08T11:13:26.0820990Z Syncing repository: RMKruse/venn-abers
+2026-09-08T11:13:26.0824029Z ##[group]Getting Git version info
+2026-09-08T11:13:26.0826665Z Working directory is '/home/runner/work/venn-abers/venn-abers'
+2026-09-08T11:13:26.0827681Z [command]/usr/bin/git version
+2026-09-08T11:13:26.0828079Z git version 2.55.0
+2026-09-08T11:13:26.0829631Z ##[endgroup]
+2026-09-08T11:13:26.0834426Z Temporarily overriding HOME='/home/runner/work/_temp/53322e90-ca27-46d0-8d38-fb5519067885' before making global git config changes
+2026-09-08T11:13:26.0835628Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-08T11:13:26.0836563Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/venn-abers/venn-abers
+2026-09-08T11:13:26.0856721Z Deleting the contents of '/home/runner/work/venn-abers/venn-abers'
+2026-09-08T11:13:26.0862087Z ##[group]Determining repository object format
+2026-09-08T11:13:26.0864894Z ##[endgroup]
+2026-09-08T11:13:26.0866020Z ##[group]Initializing the repository
+2026-09-08T11:13:26.0870421Z [command]/usr/bin/git init /home/runner/work/venn-abers/venn-abers
+2026-09-08T11:13:26.0966343Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-09-08T11:13:26.0967882Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-09-08T11:13:26.0969594Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-09-08T11:13:26.0970646Z hint: call:
+2026-09-08T11:13:26.0971456Z hint:
+2026-09-08T11:13:26.0972221Z hint: 	git config --global init.defaultBranch <name>
+2026-09-08T11:13:26.0973246Z hint:
+2026-09-08T11:13:26.0976539Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-09-08T11:13:26.0977496Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-09-08T11:13:26.0978137Z hint:
+2026-09-08T11:13:26.0978707Z hint: 	git branch -m <name>
+2026-09-08T11:13:26.0979102Z hint:
+2026-09-08T11:13:26.0979634Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-09-08T11:13:26.0980451Z Initialized empty Git repository in /home/runner/work/venn-abers/venn-abers/.git/
+2026-09-08T11:13:26.0984367Z [command]/usr/bin/git remote add origin https://github.com/RMKruse/venn-abers
+2026-09-08T11:13:26.1028864Z ##[endgroup]
+2026-09-08T11:13:26.1031006Z ##[group]Disabling automatic garbage collection
+2026-09-08T11:13:26.1039507Z [command]/usr/bin/git config --local gc.auto 0
+2026-09-08T11:13:26.1070197Z ##[endgroup]
+2026-09-08T11:13:26.1071194Z ##[group]Setting up auth
+2026-09-08T11:13:26.1071739Z Removing SSH command configuration
+2026-09-08T11:13:26.1079180Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-08T11:13:26.1105142Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-08T11:13:26.2329332Z Removing HTTP extra header
+2026-09-08T11:13:26.2330792Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-08T11:13:26.2334610Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-08T11:13:26.2337841Z Removing includeIf entries pointing to credentials config files
+2026-09-08T11:13:26.2338920Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-08T11:13:26.2341510Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-08T11:13:26.2346188Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-037e25d0-5dcb-47f4-8423-4c34d9d5f81d.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-09-08T11:13:26.2351187Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/venn-abers/venn-abers/.git.path /home/runner/work/_temp/git-credentials-037e25d0-5dcb-47f4-8423-4c34d9d5f81d.config
+2026-09-08T11:13:26.2354007Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/venn-abers/venn-abers/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-037e25d0-5dcb-47f4-8423-4c34d9d5f81d.config
+2026-09-08T11:13:26.2356509Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-037e25d0-5dcb-47f4-8423-4c34d9d5f81d.config
+2026-09-08T11:13:26.2359118Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-037e25d0-5dcb-47f4-8423-4c34d9d5f81d.config
+2026-09-08T11:13:26.2360703Z ##[endgroup]
+2026-09-08T11:13:26.2361095Z ##[group]Fetching the repository
+2026-09-08T11:13:26.2362213Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +e69a9b4f52175200530cc0e0c07cd12422191f49:refs/remotes/origin/v0.5
+2026-09-08T11:13:28.4192036Z From https://github.com/RMKruse/venn-abers
+2026-09-08T11:13:28.4208488Z  * [new ref]         e69a9b4f52175200530cc0e0c07cd12422191f49 -> origin/v0.5
+2026-09-08T11:13:28.4219799Z [command]/usr/bin/git branch --list --remote origin/v0.5
+2026-09-08T11:13:28.4236060Z   origin/v0.5
+2026-09-08T11:13:28.4258998Z [command]/usr/bin/git rev-parse refs/remotes/origin/v0.5
+2026-09-08T11:13:28.4279650Z e69a9b4f52175200530cc0e0c07cd12422191f49
+2026-09-08T11:13:28.4299807Z ##[endgroup]
+2026-09-08T11:13:28.4305677Z ##[group]Determining the checkout info
+2026-09-08T11:13:28.4306645Z ##[endgroup]
+2026-09-08T11:13:28.4307365Z [command]/usr/bin/git sparse-checkout disable
+2026-09-08T11:13:28.4346498Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-09-08T11:13:28.4371020Z ##[group]Checking out the ref
+2026-09-08T11:13:28.4380474Z [command]/usr/bin/git checkout --progress --force -B v0.5 refs/remotes/origin/v0.5
+2026-09-08T11:13:28.5405371Z Switched to a new branch 'v0.5'
+2026-09-08T11:13:28.5439494Z branch 'v0.5' set up to track 'origin/v0.5'.
+2026-09-08T11:13:28.5459766Z ##[endgroup]
+2026-09-08T11:13:28.5495318Z [command]/usr/bin/git log -1 --format=%H
+2026-09-08T11:13:28.5523154Z e69a9b4f52175200530cc0e0c07cd12422191f49
+2026-09-08T11:13:28.5756655Z ##[group]Run r-lib/actions/setup-r@v2
+2026-09-08T11:13:28.5756963Z with:
+2026-09-08T11:13:28.5757158Z   r-version: 4.6.1
+2026-09-08T11:13:28.5757357Z   Ncpus: 1
+2026-09-08T11:13:28.5757557Z   remove-openmp-macos: true
+2026-09-08T11:13:28.5757797Z   http-user-agent: default
+2026-09-08T11:13:28.5758027Z   install-r: true
+2026-09-08T11:13:28.5758264Z   windows-path-include-rtools: true
+2026-09-08T11:13:28.5758889Z   windows-path-include-mingw: true
+2026-09-08T11:13:28.5759149Z   update-rtools: false
+2026-09-08T11:13:28.5759363Z   use-public-rspm: true
+2026-09-08T11:13:28.5759611Z   working-directory: .
+2026-09-08T11:13:28.5759846Z env:
+2026-09-08T11:13:28.5760032Z   ACCEPTANCE_PROFILE: core
+2026-09-08T11:13:28.5760262Z   EXPECTED_R_ARCH: x86_64
+2026-09-08T11:13:28.5760593Z   ACCEPTANCE_OUTPUT_DIR: /home/runner/work/venn-abers/venn-abers/.scratch/ci
+2026-09-08T11:13:28.5761146Z   ACCEPTANCE_ARTIFACT: /home/runner/work/venn-abers/venn-abers/.scratch/source/vennabers_0.5.0.tar.gz
+2026-09-08T11:13:28.5761636Z ##[endgroup]
+2026-09-08T11:13:28.9190146Z ##[group]Downloading R
+2026-09-08T11:13:29.3197388Z ##[endgroup]
+2026-09-08T11:13:29.3197977Z ##[group]Updating system package data
+2026-09-08T11:13:29.3269911Z [command]/usr/bin/sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
+2026-09-08T11:13:29.4850479Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-09-08T11:13:29.5339974Z Get:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2026-09-08T11:13:29.5511648Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2026-09-08T11:13:29.5539157Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2026-09-08T11:13:29.5579895Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2026-09-08T11:13:29.5584764Z Get:7 https://dl.google.com/linux/chrome-stable/deb stable InRelease [2548 B]
+2026-09-08T11:13:29.5596105Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2026-09-08T11:13:29.6733404Z Get:8 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [441 kB]
+2026-09-08T11:13:29.6964805Z Get:9 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [394 kB]
+2026-09-08T11:13:29.7890592Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1260 kB]
+2026-09-08T11:13:29.8010130Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [292 kB]
+2026-09-08T11:13:29.8230976Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [180 kB]
+2026-09-08T11:13:29.8440175Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1691 kB]
+2026-09-08T11:13:29.8531781Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [339 kB]
+2026-09-08T11:13:29.8549952Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+2026-09-08T11:13:29.8633459Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1536 kB]
+2026-09-08T11:13:29.8643867Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [352 kB]
+2026-09-08T11:13:29.8669687Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+2026-09-08T11:13:29.8671289Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5760 B]
+2026-09-08T11:13:29.9165697Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [12.6 kB]
+2026-09-08T11:13:29.9800773Z Get:21 https://dl.google.com/linux/chrome-stable/deb stable/main amd64 Packages [1401 B]
+2026-09-08T11:13:29.9949697Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1002 kB]
+2026-09-08T11:13:29.9973837Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [212 kB]
+2026-09-08T11:13:29.9977114Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Components [46.3 kB]
+2026-09-08T11:13:30.0000736Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1206 kB]
+2026-09-08T11:13:30.0070905Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [241 kB]
+2026-09-08T11:13:30.0119594Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Components [76.2 kB]
+2026-09-08T11:13:30.0165046Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1437 kB]
+2026-09-08T11:13:30.0191216Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [334 kB]
+2026-09-08T11:13:35.0533429Z Fetched 11.8 MB in 2s (7460 kB/s)
+2026-09-08T11:13:35.9098078Z Reading package lists...
+2026-09-08T11:13:35.9221583Z ##[endgroup]
+2026-09-08T11:13:35.9222685Z ##[group]Installing R system requirements
+2026-09-08T11:13:35.9233725Z [command]/usr/bin/sudo DEBIAN_FRONTEND=noninteractive apt-get install -y gdebi-core qpdf devscripts ghostscript
+2026-09-08T11:13:35.9451214Z Reading package lists...
+2026-09-08T11:13:36.1416208Z Building dependency tree...
+2026-09-08T11:13:36.1423866Z Reading state information...
+2026-09-08T11:13:36.3260209Z The following additional packages will be installed:
+2026-09-08T11:13:36.3263127Z   dctrl-tools diffstat dput fonts-droid-fallback fonts-noto-mono
+2026-09-08T11:13:36.3264276Z   fonts-urw-base35 gettext intltool-debian libaliased-perl libapt-pkg-perl
+2026-09-08T11:13:36.3265273Z   libarchive-zip-perl libarray-intspan-perl libauthen-sasl-perl
+2026-09-08T11:13:36.3266225Z   libb-hooks-endofscope-perl libb-hooks-op-check-perl libberkeleydb-perl
+2026-09-08T11:13:36.3267114Z   libcapture-tiny-perl libclass-data-inheritable-perl
+2026-09-08T11:13:36.3267991Z   libclass-method-modifiers-perl libclass-xsaccessor-perl libconfig-tiny-perl
+2026-09-08T11:13:36.3269116Z   libconst-fast-perl libcpanel-json-xs-perl libdata-dpath-perl
+2026-09-08T11:13:36.3269959Z   libdata-dump-perl libdata-messagepack-perl libdata-optlist-perl
+2026-09-08T11:13:36.3271007Z   libdata-validate-domain-perl libdata-validate-ip-perl
+2026-09-08T11:13:36.3289168Z   libdata-validate-uri-perl libdevel-callchecker-perl libdevel-size-perl
+2026-09-08T11:13:36.3290233Z   libdevel-stacktrace-perl libdistro-info-perl libdynaloader-functions-perl
+2026-09-08T11:13:36.3295848Z   libemail-address-xs-perl libexception-class-perl libexporter-tiny-perl
+2026-09-08T11:13:36.3297490Z   libfile-basedir-perl libfile-chdir-perl libfile-dirlist-perl
+2026-09-08T11:13:36.3298279Z   libfile-find-rule-perl libfile-homedir-perl libfile-listing-perl
+2026-09-08T11:13:36.3299337Z   libfile-touch-perl libfile-which-perl libfont-afm-perl libfont-ttf-perl
+2026-09-08T11:13:36.3300283Z   libfreezethaw-perl libgit-wrapper-perl libgs-common libgs10 libgs10-common
+2026-09-08T11:13:36.3301149Z   libhtml-form-perl libhtml-format-perl libhtml-html5-entities-perl
+2026-09-08T11:13:36.3301956Z   libhtml-tokeparser-simple-perl libhtml-tree-perl libhttp-cookies-perl
+2026-09-08T11:13:36.3302793Z   libhttp-daemon-perl libhttp-negotiate-perl libidn12 libijs-0.35
+2026-09-08T11:13:36.3303609Z   libimport-into-perl libindirect-perl libio-interactive-perl libio-pty-perl
+2026-09-08T11:13:36.3304487Z   libio-socket-ssl-perl libio-string-perl libipc-run-perl libipc-run3-perl
+2026-09-08T11:13:36.3305435Z   libipc-system-simple-perl libiterator-perl libiterator-util-perl
+2026-09-08T11:13:36.3306326Z   libjbig2dec0 libjson-maybexs-perl liblist-compare-perl
+2026-09-08T11:13:36.3307151Z   liblist-someutils-perl liblist-someutils-xs-perl liblist-utilsby-perl
+2026-09-08T11:13:36.3308017Z   liblog-any-adapter-screen-perl liblog-any-perl liblwp-protocol-https-perl
+2026-09-08T11:13:36.3309105Z   libmailtools-perl libmarkdown2 libmath-base85-perl libmldbm-perl
+2026-09-08T11:13:36.3309765Z   libmodule-implementation-perl libmodule-runtime-perl libmoo-perl
+2026-09-08T11:13:36.3310410Z   libmoox-aliases-perl libmouse-perl libnamespace-clean-perl
+2026-09-08T11:13:36.3310989Z   libnet-domain-tld-perl libnet-http-perl libnet-ipv6addr-perl
+2026-09-08T11:13:36.3311902Z   libnet-netmask-perl libnet-smtp-ssl-perl libnet-ssleay-perl
+2026-09-08T11:13:36.3312554Z   libnetaddr-ip-perl libnumber-compare-perl libobject-pad-perl
+2026-09-08T11:13:36.3313195Z   libpackage-stash-perl libpackage-stash-xs-perl libpaper-utils libpaper1
+2026-09-08T11:13:36.3313931Z   libparams-classify-perl libparams-util-perl libpath-iterator-rule-perl
+2026-09-08T11:13:36.3314643Z   libpath-tiny-perl libperlio-gzip-perl libperlio-utf8-strict-perl
+2026-09-08T11:13:36.3315463Z   libpod-constants-perl libpod-parser-perl libqpdf29t64 libre-engine-re2-perl
+2026-09-08T11:13:36.3316266Z   libregexp-pattern-license-perl libregexp-pattern-perl
+2026-09-08T11:13:36.3317007Z   libregexp-wildcards-perl librole-tiny-perl libsereal-decoder-perl
+2026-09-08T11:13:36.3317793Z   libsereal-encoder-perl libset-intspan-perl libsocket6-perl
+2026-09-08T11:13:36.3318694Z   libsort-versions-perl libstrictures-perl libstring-copyright-perl
+2026-09-08T11:13:36.3319478Z   libstring-escape-perl libstring-license-perl libstring-shellquote-perl
+2026-09-08T11:13:36.3319997Z   libsub-exporter-perl libsub-exporter-progressive-perl libsub-identify-perl
+2026-09-08T11:13:36.3320493Z   libsub-install-perl libsub-name-perl libsub-quote-perl
+2026-09-08T11:13:36.3320919Z   libsyntax-keyword-try-perl libtext-glob-perl libtext-levenshteinxs-perl
+2026-09-08T11:13:36.3321416Z   libtext-markdown-discount-perl libtext-xslate-perl libtime-duration-perl
+2026-09-08T11:13:36.3322073Z   libtime-moment-perl libtry-tiny-perl libunicode-utf8-perl
+2026-09-08T11:13:36.3322465Z   libvariable-magic-perl libwww-mechanize-perl libwww-perl
+2026-09-08T11:13:36.3323247Z   libwww-robotrules-perl libxs-parse-keyword-perl libxs-parse-sublike-perl
+2026-09-08T11:13:36.3323716Z   libyaml-libyaml-perl licensecheck lintian lzip lzop patchutils
+2026-09-08T11:13:36.3324276Z   perl-openssl-defaults poppler-data python3-gpg python3-nacl python3-paramiko
+2026-09-08T11:13:36.3325020Z   python3-unidiff python3-xdg t1utils wdiff xfonts-encodings xfonts-utils
+2026-09-08T11:13:36.3325662Z Suggested packages:
+2026-09-08T11:13:36.3326134Z   debtags adequate at autopkgtest bls-standalone bsd-mailx | mailx
+2026-09-08T11:13:36.3326872Z   build-essential check-all-the-things cvs-buildpackage debhelper diffoscope
+2026-09-08T11:13:36.3327385Z   disorderfs dose-extra duck elpa-devscripts faketime gnuplot how-can-i-help
+2026-09-08T11:13:36.3328073Z   libdbd-pg-perl libfile-desktopentry-perl libterm-size-perl libyaml-syck-perl
+2026-09-08T11:13:36.3328762Z   mmdebstrap mutt piuparts pristine-lfs quilt ratt reprotest svn-buildpackage
+2026-09-08T11:13:36.3329526Z   w3m debian-keyring equivs libgitlab-api-v4-perl libsoap-lite-perl
+2026-09-08T11:13:36.3330251Z   pristine-tar mini-dinstall fonts-noto fonts-freefont-otf
+2026-09-08T11:13:36.3330857Z   | fonts-freefont-ttf fonts-texgyre autopoint gettext-doc libasprintf-dev
+2026-09-08T11:13:36.3331320Z   libgettextpo-dev texlive-binaries libdigest-hmac-perl libgssapi-perl
+2026-09-08T11:13:36.3331764Z   libxml-parser-perl libcrypt-ssleay-perl libscalar-number-perl
+2026-09-08T11:13:36.3332212Z   libbareword-filehandles-perl libmultidimensional-perl libxstring-perl
+2026-09-08T11:13:36.3332959Z   libauthen-ntlm-perl binutils-multiarch libtext-template-perl poppler-utils
+2026-09-08T11:13:36.3333895Z   fonts-japanese-mincho | fonts-ipafont-mincho fonts-japanese-gothic
+2026-09-08T11:13:36.3334862Z   | fonts-ipafont-gothic fonts-arphic-ukai fonts-arphic-uming fonts-nanum
+2026-09-08T11:13:36.3335904Z   python-nacl-doc python3-gssapi python3-invoke python-pyxdg-doc qpdf-doc
+2026-09-08T11:13:36.3336574Z   wdiff-doc
+2026-09-08T11:13:36.3794779Z The following NEW packages will be installed:
+2026-09-08T11:13:36.3795955Z   dctrl-tools devscripts diffstat dput fonts-droid-fallback fonts-noto-mono
+2026-09-08T11:13:36.3798569Z   fonts-urw-base35 gdebi-core gettext ghostscript intltool-debian
+2026-09-08T11:13:36.3799560Z   libaliased-perl libapt-pkg-perl libarchive-zip-perl libarray-intspan-perl
+2026-09-08T11:13:36.3801104Z   libauthen-sasl-perl libb-hooks-endofscope-perl libb-hooks-op-check-perl
+2026-09-08T11:13:36.3802178Z   libberkeleydb-perl libcapture-tiny-perl libclass-data-inheritable-perl
+2026-09-08T11:13:36.3803091Z   libclass-method-modifiers-perl libclass-xsaccessor-perl libconfig-tiny-perl
+2026-09-08T11:13:36.3803925Z   libconst-fast-perl libcpanel-json-xs-perl libdata-dpath-perl
+2026-09-08T11:13:36.3804653Z   libdata-dump-perl libdata-messagepack-perl libdata-optlist-perl
+2026-09-08T11:13:36.3805414Z   libdata-validate-domain-perl libdata-validate-ip-perl
+2026-09-08T11:13:36.3806153Z   libdata-validate-uri-perl libdevel-callchecker-perl libdevel-size-perl
+2026-09-08T11:13:36.3807105Z   libdevel-stacktrace-perl libdistro-info-perl libdynaloader-functions-perl
+2026-09-08T11:13:36.3808158Z   libemail-address-xs-perl libexception-class-perl libexporter-tiny-perl
+2026-09-08T11:13:36.3809312Z   libfile-basedir-perl libfile-chdir-perl libfile-dirlist-perl
+2026-09-08T11:13:36.3810115Z   libfile-find-rule-perl libfile-homedir-perl libfile-listing-perl
+2026-09-08T11:13:36.3811006Z   libfile-touch-perl libfile-which-perl libfont-afm-perl libfont-ttf-perl
+2026-09-08T11:13:36.3811911Z   libfreezethaw-perl libgit-wrapper-perl libgs-common libgs10 libgs10-common
+2026-09-08T11:13:36.3812878Z   libhtml-form-perl libhtml-format-perl libhtml-html5-entities-perl
+2026-09-08T11:13:36.3813762Z   libhtml-tokeparser-simple-perl libhtml-tree-perl libhttp-cookies-perl
+2026-09-08T11:13:36.3814659Z   libhttp-daemon-perl libhttp-negotiate-perl libidn12 libijs-0.35
+2026-09-08T11:13:36.3815506Z   libimport-into-perl libindirect-perl libio-interactive-perl libio-pty-perl
+2026-09-08T11:13:36.3816405Z   libio-socket-ssl-perl libio-string-perl libipc-run-perl libipc-run3-perl
+2026-09-08T11:13:36.3817197Z   libipc-system-simple-perl libiterator-perl libiterator-util-perl
+2026-09-08T11:13:36.3817887Z   libjbig2dec0 libjson-maybexs-perl liblist-compare-perl
+2026-09-08T11:13:36.3818753Z   liblist-someutils-perl liblist-someutils-xs-perl liblist-utilsby-perl
+2026-09-08T11:13:36.3819597Z   liblog-any-adapter-screen-perl liblog-any-perl liblwp-protocol-https-perl
+2026-09-08T11:13:36.3820353Z   libmailtools-perl libmarkdown2 libmath-base85-perl libmldbm-perl
+2026-09-08T11:13:36.3821119Z   libmodule-implementation-perl libmodule-runtime-perl libmoo-perl
+2026-09-08T11:13:36.3821827Z   libmoox-aliases-perl libmouse-perl libnamespace-clean-perl
+2026-09-08T11:13:36.3822509Z   libnet-domain-tld-perl libnet-http-perl libnet-ipv6addr-perl
+2026-09-08T11:13:36.3823462Z   libnet-netmask-perl libnet-smtp-ssl-perl libnet-ssleay-perl
+2026-09-08T11:13:36.3824186Z   libnetaddr-ip-perl libnumber-compare-perl libobject-pad-perl
+2026-09-08T11:13:36.3824987Z   libpackage-stash-perl libpackage-stash-xs-perl libpaper-utils libpaper1
+2026-09-08T11:13:36.3825859Z   libparams-classify-perl libparams-util-perl libpath-iterator-rule-perl
+2026-09-08T11:13:36.3826693Z   libpath-tiny-perl libperlio-gzip-perl libperlio-utf8-strict-perl
+2026-09-08T11:13:36.3827580Z   libpod-constants-perl libpod-parser-perl libqpdf29t64 libre-engine-re2-perl
+2026-09-08T11:13:36.3828634Z   libregexp-pattern-license-perl libregexp-pattern-perl
+2026-09-08T11:13:36.3829502Z   libregexp-wildcards-perl librole-tiny-perl libsereal-decoder-perl
+2026-09-08T11:13:36.3830336Z   libsereal-encoder-perl libset-intspan-perl libsocket6-perl
+2026-09-08T11:13:36.3831126Z   libsort-versions-perl libstrictures-perl libstring-copyright-perl
+2026-09-08T11:13:36.3832007Z   libstring-escape-perl libstring-license-perl libstring-shellquote-perl
+2026-09-08T11:13:36.3832889Z   libsub-exporter-perl libsub-exporter-progressive-perl libsub-identify-perl
+2026-09-08T11:13:36.3833717Z   libsub-install-perl libsub-name-perl libsub-quote-perl
+2026-09-08T11:13:36.3834501Z   libsyntax-keyword-try-perl libtext-glob-perl libtext-levenshteinxs-perl
+2026-09-08T11:13:36.3835377Z   libtext-markdown-discount-perl libtext-xslate-perl libtime-duration-perl
+2026-09-08T11:13:36.3836204Z   libtime-moment-perl libtry-tiny-perl libunicode-utf8-perl
+2026-09-08T11:13:36.3837166Z   libvariable-magic-perl libwww-mechanize-perl libwww-perl
+2026-09-08T11:13:36.3838607Z   libwww-robotrules-perl libxs-parse-keyword-perl libxs-parse-sublike-perl
+2026-09-08T11:13:36.3839888Z   libyaml-libyaml-perl licensecheck lintian lzip lzop patchutils
+2026-09-08T11:13:36.3840885Z   perl-openssl-defaults poppler-data python3-gpg python3-nacl python3-paramiko
+2026-09-08T11:13:36.3841903Z   python3-unidiff python3-xdg qpdf t1utils wdiff xfonts-encodings xfonts-utils
+2026-09-08T11:13:36.4033975Z 0 upgraded, 172 newly installed, 0 to remove and 44 not upgraded.
+2026-09-08T11:13:36.4035721Z Need to get 30.9 MB of archives.
+2026-09-08T11:13:36.4036616Z After this operation, 105 MB of additional disk space will be used.
+2026-09-08T11:13:36.4037575Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-09-08T11:13:36.4656722Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 fonts-droid-fallback all 1:6.0.1r16-1.1build1 [1805 kB]
+2026-09-08T11:13:36.5260431Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 poppler-data all 0.4.12-1 [2060 kB]
+2026-09-08T11:13:36.5833344Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 dctrl-tools amd64 2.24-3build3 [106 kB]
+2026-09-08T11:13:36.6295595Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libfile-dirlist-perl all 0.05-3 [7286 B]
+2026-09-08T11:13:36.6755129Z Get:6 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libfile-which-perl all 1.27-2 [12.5 kB]
+2026-09-08T11:13:36.7209328Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libfile-homedir-perl all 1.006-2 [37.0 kB]
+2026-09-08T11:13:36.7664055Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libfile-touch-perl all 0.12-2 [7498 B]
+2026-09-08T11:13:36.8109749Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libio-pty-perl amd64 1:1.20-1build2 [31.2 kB]
+2026-09-08T11:13:36.8563180Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libipc-run-perl all 20231003.0-1 [92.1 kB]
+2026-09-08T11:13:36.9029314Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libclass-method-modifiers-perl all 2.15-1 [16.1 kB]
+2026-09-08T11:13:36.9486835Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libclass-xsaccessor-perl amd64 1.19-4build4 [33.1 kB]
+2026-09-08T11:13:36.9944408Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libb-hooks-op-check-perl amd64 0.22-3build1 [9518 B]
+2026-09-08T11:13:37.0404325Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdynaloader-functions-perl all 0.003-3 [12.1 kB]
+2026-09-08T11:13:37.0856107Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdevel-callchecker-perl amd64 0.008-2build3 [13.2 kB]
+2026-09-08T11:13:37.1311672Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libparams-classify-perl amd64 0.015-2build5 [20.1 kB]
+2026-09-08T11:13:37.1767338Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libmodule-runtime-perl all 0.016-2 [16.4 kB]
+2026-09-08T11:13:37.2224743Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libimport-into-perl all 1.002005-2 [10.7 kB]
+2026-09-08T11:13:37.2692205Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 librole-tiny-perl all 2.002004-1 [16.3 kB]
+2026-09-08T11:13:37.3139613Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsub-quote-perl all 2.006008-1ubuntu1 [20.7 kB]
+2026-09-08T11:13:37.3589678Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libmoo-perl all 2.005005-1 [47.4 kB]
+2026-09-08T11:13:37.4049492Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libfile-listing-perl all 6.16-1 [11.3 kB]
+2026-09-08T11:13:37.4517510Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libhtml-tree-perl all 5.07-3 [200 kB]
+2026-09-08T11:13:37.4972915Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libhttp-cookies-perl all 6.11-1 [18.2 kB]
+2026-09-08T11:13:37.5429303Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libhttp-negotiate-perl all 6.01-2 [12.4 kB]
+2026-09-08T11:13:37.5888888Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 perl-openssl-defaults amd64 7build3 [6626 B]
+2026-09-08T11:13:37.6341201Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libnet-ssleay-perl amd64 1.94-1build4 [316 kB]
+2026-09-08T11:13:37.6818995Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libio-socket-ssl-perl all 2.085-1 [195 kB]
+2026-09-08T11:13:37.7285598Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libnet-http-perl all 6.23-1 [22.3 kB]
+2026-09-08T11:13:37.7741773Z Get:30 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 liblwp-protocol-https-perl all 6.13-1 [9006 B]
+2026-09-08T11:13:37.8197307Z Get:31 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtry-tiny-perl all 0.31-2 [20.8 kB]
+2026-09-08T11:13:37.8653562Z Get:32 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libwww-robotrules-perl all 6.02-1 [12.6 kB]
+2026-09-08T11:13:37.9120875Z Get:33 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libwww-perl all 6.76-1ubuntu0.1 [139 kB]
+2026-09-08T11:13:37.9580084Z Get:34 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 patchutils amd64 0.4.2-1build3 [77.0 kB]
+2026-09-08T11:13:38.0046517Z Get:35 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 wdiff amd64 1.2.2-6build1 [29.1 kB]
+2026-09-08T11:13:38.0519838Z Get:36 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 devscripts all 2.23.7ubuntu0.2 [1048 kB]
+2026-09-08T11:13:38.1042203Z Get:37 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 diffstat amd64 1.66-1build1 [29.7 kB]
+2026-09-08T11:13:38.1505646Z Get:38 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 python3-gpg amd64 1.18.0-4.1ubuntu4 [209 kB]
+2026-09-08T11:13:38.1981348Z Get:39 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 python3-xdg all 0.28-2 [38.3 kB]
+2026-09-08T11:13:38.2444606Z Get:40 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 dput all 1.1.3ubuntu3 [46.5 kB]
+2026-09-08T11:13:38.2915728Z Get:41 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 fonts-noto-mono all 20201225-2 [435 kB]
+2026-09-08T11:13:38.3415130Z Get:42 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 xfonts-encodings all 1:1.0.5-0ubuntu2 [578 kB]
+2026-09-08T11:13:38.3911466Z Get:43 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 xfonts-utils amd64 1:7.7+6build3 [94.4 kB]
+2026-09-08T11:13:38.4379860Z Get:44 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 fonts-urw-base35 all 20200910-8 [11.0 MB]
+2026-09-08T11:13:38.6279486Z Get:45 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 gdebi-core all 0.9.5.7+nmu7 [132 kB]
+2026-09-08T11:13:38.6740177Z Get:46 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 gettext amd64 0.21-14ubuntu2 [864 kB]
+2026-09-08T11:13:38.7259557Z Get:47 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libgs-common all 10.02.1~dfsg1-0ubuntu7.8 [176 kB]
+2026-09-08T11:13:38.7737761Z Get:48 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libgs10-common all 10.02.1~dfsg1-0ubuntu7.8 [488 kB]
+2026-09-08T11:13:38.8237280Z Get:49 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libidn12 amd64 1.42-1ubuntu0.1 [56.1 kB]
+2026-09-08T11:13:38.8697927Z Get:50 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libijs-0.35 amd64 0.35-15.1build1 [15.3 kB]
+2026-09-08T11:13:38.9154817Z Get:51 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libjbig2dec0 amd64 0.20-1ubuntu0.24.04.1 [65.2 kB]
+2026-09-08T11:13:38.9616252Z Get:52 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpaper1 amd64 1.1.29build1 [13.4 kB]
+2026-09-08T11:13:39.0069878Z Get:53 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libgs10 amd64 10.02.1~dfsg1-0ubuntu7.8 [3897 kB]
+2026-09-08T11:13:39.1017810Z Get:54 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 ghostscript amd64 10.02.1~dfsg1-0ubuntu7.8 [43.4 kB]
+2026-09-08T11:13:39.1482583Z Get:55 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 intltool-debian all 0.35.0+20060710.6 [23.2 kB]
+2026-09-08T11:13:39.1938691Z Get:56 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libaliased-perl all 0.34-3 [12.8 kB]
+2026-09-08T11:13:39.2396271Z Get:57 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libapt-pkg-perl amd64 0.1.40build7 [68.4 kB]
+2026-09-08T11:13:39.2856669Z Get:58 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libarchive-zip-perl all 1.68-1 [90.2 kB]
+2026-09-08T11:13:39.3319285Z Get:59 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libarray-intspan-perl all 2.004-2 [25.0 kB]
+2026-09-08T11:13:39.3777722Z Get:60 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libmodule-implementation-perl all 0.09-2 [12.0 kB]
+2026-09-08T11:13:39.4232301Z Get:61 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsub-exporter-progressive-perl all 0.001013-3 [6718 B]
+2026-09-08T11:13:39.4687975Z Get:62 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libvariable-magic-perl amd64 0.63-1build3 [35.1 kB]
+2026-09-08T11:13:39.5148967Z Get:63 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libb-hooks-endofscope-perl all 0.28-1 [15.8 kB]
+2026-09-08T11:13:39.5601521Z Get:64 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libberkeleydb-perl amd64 0.64-2build4 [120 kB]
+2026-09-08T11:13:39.6064140Z Get:65 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libcapture-tiny-perl all 0.48-2 [20.2 kB]
+2026-09-08T11:13:39.6520628Z Get:66 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libclass-data-inheritable-perl all 0.08-3 [8084 B]
+2026-09-08T11:13:39.6975049Z Get:67 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libconfig-tiny-perl all 2.30-1 [14.7 kB]
+2026-09-08T11:13:39.7440319Z Get:68 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libparams-util-perl amd64 1.102-2build3 [21.2 kB]
+2026-09-08T11:13:39.7888033Z Get:69 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsub-install-perl all 0.929-1 [9764 B]
+2026-09-08T11:13:39.8339958Z Get:70 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdata-optlist-perl all 0.114-1 [9708 B]
+2026-09-08T11:13:39.8798965Z Get:71 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsub-exporter-perl all 0.990-1 [49.0 kB]
+2026-09-08T11:13:39.9253532Z Get:72 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libconst-fast-perl all 0.014-2 [8034 B]
+2026-09-08T11:13:39.9707427Z Get:73 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libcpanel-json-xs-perl amd64 4.37-1ubuntu0.1 [114 kB]
+2026-09-08T11:13:40.0177688Z Get:74 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdevel-stacktrace-perl all 2.0500-1 [22.1 kB]
+2026-09-08T11:13:40.0629214Z Get:75 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libexception-class-perl all 1.45-1 [28.6 kB]
+2026-09-08T11:13:40.1090554Z Get:76 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libiterator-perl all 0.03+ds1-2 [18.8 kB]
+2026-09-08T11:13:40.1548217Z Get:77 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libiterator-util-perl all 0.02+ds1-2 [14.1 kB]
+2026-09-08T11:13:40.2001046Z Get:78 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdata-dpath-perl all 0.59-1 [39.2 kB]
+2026-09-08T11:13:40.2460067Z Get:79 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdata-dump-perl all 1.25-1 [25.9 kB]
+2026-09-08T11:13:40.2913596Z Get:80 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdata-messagepack-perl amd64 1.02-1build4 [31.1 kB]
+2026-09-08T11:13:40.3371603Z Get:81 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libnet-domain-tld-perl all 1.75-3 [29.4 kB]
+2026-09-08T11:13:40.3829270Z Get:82 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdata-validate-domain-perl all 0.10-1.1 [9992 B]
+2026-09-08T11:13:40.4283392Z Get:83 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libnet-ipv6addr-perl all 1.02-1 [21.0 kB]
+2026-09-08T11:13:40.4739893Z Get:84 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libnet-netmask-perl all 2.0002-2 [24.8 kB]
+2026-09-08T11:13:40.5211408Z Get:85 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libnetaddr-ip-perl amd64 4.079+dfsg-2build4 [79.9 kB]
+2026-09-08T11:13:40.5663322Z Get:86 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdata-validate-ip-perl all 0.31-1 [17.2 kB]
+2026-09-08T11:13:40.6117471Z Get:87 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdata-validate-uri-perl all 0.07-3 [10.8 kB]
+2026-09-08T11:13:40.6572169Z Get:88 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdistro-info-perl all 1.7build1 [5616 B]
+2026-09-08T11:13:40.7025599Z Get:89 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libemail-address-xs-perl amd64 1.05-1build4 [29.1 kB]
+2026-09-08T11:13:40.7490826Z Get:90 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libexporter-tiny-perl all 1.006002-1 [36.8 kB]
+2026-09-08T11:13:40.7950923Z Get:91 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libipc-system-simple-perl all 1.30-2 [22.3 kB]
+2026-09-08T11:13:40.8407424Z Get:92 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libfile-basedir-perl all 0.09-2 [14.4 kB]
+2026-09-08T11:13:40.8864691Z Get:93 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libfile-chdir-perl all 0.1008-1.1 [10.6 kB]
+2026-09-08T11:13:40.9318501Z Get:94 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libnumber-compare-perl all 0.03-3 [5974 B]
+2026-09-08T11:13:40.9774322Z Get:95 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtext-glob-perl all 0.11-3 [6780 B]
+2026-09-08T11:13:41.0229704Z Get:96 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libfile-find-rule-perl all 0.34-3ubuntu0.24.04.1 [23.8 kB]
+2026-09-08T11:13:41.0685411Z Get:97 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libfont-afm-perl all 1.20-4 [13.0 kB]
+2026-09-08T11:13:41.1139462Z Get:98 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libio-string-perl all 1.08-4 [11.1 kB]
+2026-09-08T11:13:41.1598129Z Get:99 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libfont-ttf-perl all 1.06-2 [323 kB]
+2026-09-08T11:13:41.2092977Z Get:100 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libfreezethaw-perl all 0.5001-3 [14.6 kB]
+2026-09-08T11:13:41.2546908Z Get:101 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsort-versions-perl all 1.62-3 [7378 B]
+2026-09-08T11:13:41.3001175Z Get:102 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libgit-wrapper-perl all 0.048-2 [29.5 kB]
+2026-09-08T11:13:41.3467019Z Get:103 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libhtml-form-perl all 6.11-1 [32.1 kB]
+2026-09-08T11:13:41.3952391Z Get:104 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libhtml-format-perl all 2.16-2 [36.9 kB]
+2026-09-08T11:13:41.4409232Z Get:105 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libhtml-html5-entities-perl all 0.004-3 [21.6 kB]
+2026-09-08T11:13:41.4865701Z Get:106 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libhtml-tokeparser-simple-perl all 3.16-4 [38.0 kB]
+2026-09-08T11:13:41.5326252Z Get:107 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libhttp-daemon-perl all 6.16-1ubuntu0.24.04.1 [22.8 kB]
+2026-09-08T11:13:41.5780036Z Get:108 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libindirect-perl amd64 0.39-2build4 [22.1 kB]
+2026-09-08T11:13:41.6238202Z Get:109 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libio-interactive-perl all 1.025-1 [10.4 kB]
+2026-09-08T11:13:41.6693153Z Get:110 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libjson-maybexs-perl all 1.004005-1 [11.3 kB]
+2026-09-08T11:13:41.7147414Z Get:111 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 liblist-compare-perl all 0.55-2 [62.9 kB]
+2026-09-08T11:13:41.7608060Z Get:112 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 liblist-someutils-perl all 0.59-1 [30.4 kB]
+2026-09-08T11:13:41.8070805Z Get:113 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 liblist-someutils-xs-perl amd64 0.58-3build4 [35.0 kB]
+2026-09-08T11:13:41.8522244Z Get:114 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 liblist-utilsby-perl all 0.12-2 [14.9 kB]
+2026-09-08T11:13:41.8979911Z Get:115 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 liblog-any-perl all 1.717-1 [73.2 kB]
+2026-09-08T11:13:41.9442600Z Get:116 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 liblog-any-adapter-screen-perl all 0.140-2 [12.4 kB]
+2026-09-08T11:13:41.9899490Z Get:117 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libnet-smtp-ssl-perl all 1.04-2 [6218 B]
+2026-09-08T11:13:42.0355994Z Get:118 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libmailtools-perl all 2.21-2 [80.4 kB]
+2026-09-08T11:13:42.0819725Z Get:119 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libmarkdown2 amd64 2.2.7-2build1 [37.5 kB]
+2026-09-08T11:13:42.1278743Z Get:120 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libmath-base85-perl all 0.5+dfsg-2 [6124 B]
+2026-09-08T11:13:42.1738019Z Get:121 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libmldbm-perl all 2.05-4 [16.0 kB]
+2026-09-08T11:13:42.2194742Z Get:122 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libstrictures-perl all 2.000006-1 [16.3 kB]
+2026-09-08T11:13:42.2651221Z Get:123 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libmoox-aliases-perl all 0.001006-2 [6796 B]
+2026-09-08T11:13:42.3116363Z Get:124 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libmouse-perl amd64 2.5.10-1build8 [133 kB]
+2026-09-08T11:13:42.3576370Z Get:125 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpackage-stash-perl all 0.40-1 [19.5 kB]
+2026-09-08T11:13:42.4028197Z Get:126 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsub-identify-perl amd64 0.14-3build3 [9786 B]
+2026-09-08T11:13:42.4480908Z Get:127 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsub-name-perl amd64 0.27-1build3 [10.8 kB]
+2026-09-08T11:13:42.4939288Z Get:128 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libnamespace-clean-perl all 0.27-2 [14.0 kB]
+2026-09-08T11:13:42.5396885Z Get:129 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libxs-parse-keyword-perl amd64 0.39-1build3 [54.7 kB]
+2026-09-08T11:13:42.5854200Z Get:130 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libxs-parse-sublike-perl amd64 0.21-2build3 [39.9 kB]
+2026-09-08T11:13:42.6321830Z Get:131 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libobject-pad-perl amd64 0.808-1build3 [108 kB]
+2026-09-08T11:13:42.6777590Z Get:132 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpackage-stash-xs-perl amd64 0.30-1build4 [18.7 kB]
+2026-09-08T11:13:42.7233789Z Get:133 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpaper-utils amd64 1.1.29build1 [8650 B]
+2026-09-08T11:13:42.7689307Z Get:134 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpath-iterator-rule-perl all 1.015-2 [39.9 kB]
+2026-09-08T11:13:42.8147749Z Get:135 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpath-tiny-perl all 0.144-1 [47.7 kB]
+2026-09-08T11:13:42.8607608Z Get:136 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libperlio-gzip-perl amd64 0.20-1build4 [14.6 kB]
+2026-09-08T11:13:42.9066507Z Get:137 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libperlio-utf8-strict-perl amd64 0.010-1build3 [11.1 kB]
+2026-09-08T11:13:42.9520063Z Get:138 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpod-parser-perl all 1.67-1 [80.6 kB]
+2026-09-08T11:13:42.9982652Z Get:139 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpod-constants-perl all 0.19-2 [16.3 kB]
+2026-09-08T11:13:43.0450522Z Get:140 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libqpdf29t64 amd64 11.9.0-1.1ubuntu0.1 [798 kB]
+2026-09-08T11:13:43.0955839Z Get:141 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libre-engine-re2-perl amd64 0.18+ds-1build3 [18.6 kB]
+2026-09-08T11:13:43.1411221Z Get:142 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libregexp-pattern-license-perl all 3.11.0-1 [85.8 kB]
+2026-09-08T11:13:43.1880207Z Get:143 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libregexp-pattern-perl all 0.2.14-2 [17.6 kB]
+2026-09-08T11:13:43.2328717Z Get:144 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libregexp-wildcards-perl all 1.05-3 [12.9 kB]
+2026-09-08T11:13:43.2791170Z Get:145 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsereal-decoder-perl amd64 5.004+ds-1build3 [99.5 kB]
+2026-09-08T11:13:43.3261057Z Get:146 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsereal-encoder-perl amd64 5.004+ds-1build3 [103 kB]
+2026-09-08T11:13:43.3713431Z Get:147 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libset-intspan-perl all 1.19-3 [24.8 kB]
+2026-09-08T11:13:43.4196602Z Get:148 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsocket6-perl amd64 0.29-3build3 [17.5 kB]
+2026-09-08T11:13:43.4669794Z Get:149 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libstring-copyright-perl all 0.003014-1 [20.5 kB]
+2026-09-08T11:13:43.5143604Z Get:150 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libstring-escape-perl all 2010.002-3 [16.1 kB]
+2026-09-08T11:13:43.5614695Z Get:151 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libstring-license-perl all 0.0.9-2ubuntu1 [35.0 kB]
+2026-09-08T11:13:43.6117042Z Get:152 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libstring-shellquote-perl all 1.04-3 [11.3 kB]
+2026-09-08T11:13:43.6582173Z Get:153 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsyntax-keyword-try-perl amd64 0.29-1build3 [24.3 kB]
+2026-09-08T11:13:43.7068648Z Get:154 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtext-levenshteinxs-perl amd64 0.03-5build4 [7966 B]
+2026-09-08T11:13:43.7520737Z Get:155 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtext-markdown-discount-perl amd64 0.16-1build3 [12.1 kB]
+2026-09-08T11:13:43.7980254Z Get:156 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtext-xslate-perl amd64 3.5.9-1build5 [161 kB]
+2026-09-08T11:13:43.8434923Z Get:157 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtime-duration-perl all 1.21-2 [12.3 kB]
+2026-09-08T11:13:43.8890177Z Get:158 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtime-moment-perl amd64 0.44-2build4 [70.9 kB]
+2026-09-08T11:13:43.9351210Z Get:159 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libunicode-utf8-perl amd64 0.62-2build3 [18.1 kB]
+2026-09-08T11:13:43.9811815Z Get:160 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libwww-mechanize-perl all 2.18-1ubuntu1 [93.1 kB]
+2026-09-08T11:13:44.0270796Z Get:161 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libyaml-libyaml-perl amd64 0.89+ds-1ubuntu0.24.04.1 [30.7 kB]
+2026-09-08T11:13:44.0732213Z Get:162 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 licensecheck all 3.3.9-1ubuntu1 [37.7 kB]
+2026-09-08T11:13:44.1189089Z Get:163 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdevel-size-perl amd64 0.83-2build4 [19.6 kB]
+2026-09-08T11:13:44.1644798Z Get:164 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libipc-run3-perl all 0.049-1 [28.8 kB]
+2026-09-08T11:13:44.2099747Z Get:165 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 lzip amd64 1.24.1-1build1 [83.1 kB]
+2026-09-08T11:13:44.2555346Z Get:166 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 lzop amd64 1.04-2build3 [82.2 kB]
+2026-09-08T11:13:44.3013048Z Get:167 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 t1utils amd64 1.41-4build3 [61.3 kB]
+2026-09-08T11:13:44.3471345Z Get:168 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 lintian all 2.117.0ubuntu1.5 [1063 kB]
+2026-09-08T11:13:44.3996291Z Get:169 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 python3-nacl amd64 1.5.0-4build1 [57.9 kB]
+2026-09-08T11:13:44.4453056Z Get:170 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 python3-paramiko all 2.12.0-2ubuntu4.1 [137 kB]
+2026-09-08T11:13:44.5946639Z Get:171 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 python3-unidiff all 0.7.3-1 [11.0 kB]
+2026-09-08T11:13:44.6416488Z Get:172 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 qpdf amd64 11.9.0-1.1ubuntu0.1 [86.6 kB]
+2026-09-08T11:13:44.7052313Z Get:173 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libauthen-sasl-perl all 2.1700-1 [42.9 kB]
+2026-09-08T11:13:45.0750982Z Preconfiguring packages ...
+2026-09-08T11:13:45.1289336Z Fetched 30.9 MB in 8s (3708 kB/s)
+2026-09-08T11:13:45.1530962Z Selecting previously unselected package fonts-droid-fallback.
+2026-09-08T11:13:45.1729652Z (Reading database ... 
+2026-09-08T11:13:45.1730563Z (Reading database ... 5%
+2026-09-08T11:13:45.1731335Z (Reading database ... 10%
+2026-09-08T11:13:45.1732182Z (Reading database ... 15%
+2026-09-08T11:13:45.1733009Z (Reading database ... 20%
+2026-09-08T11:13:45.1733605Z (Reading database ... 25%
+2026-09-08T11:13:45.1734347Z (Reading database ... 30%
+2026-09-08T11:13:45.1735015Z (Reading database ... 35%
+2026-09-08T11:13:45.1735646Z (Reading database ... 40%
+2026-09-08T11:13:45.1736355Z (Reading database ... 45%
+2026-09-08T11:13:45.1736874Z (Reading database ... 50%
+2026-09-08T11:13:45.1774612Z (Reading database ... 55%
+2026-09-08T11:13:45.3213358Z (Reading database ... 60%
+2026-09-08T11:13:45.4748594Z (Reading database ... 65%
+2026-09-08T11:13:45.6817296Z (Reading database ... 70%
+2026-09-08T11:13:45.7731304Z (Reading database ... 75%
+2026-09-08T11:13:45.9310533Z (Reading database ... 80%
+2026-09-08T11:13:46.1145374Z (Reading database ... 85%
+2026-09-08T11:13:46.2179719Z (Reading database ... 90%
+2026-09-08T11:13:46.3261838Z (Reading database ... 95%
+2026-09-08T11:13:46.3263118Z (Reading database ... 100%
+2026-09-08T11:13:46.3264117Z (Reading database ... 201676 files and directories currently installed.)
+2026-09-08T11:13:46.3289317Z Preparing to unpack .../000-fonts-droid-fallback_1%3a6.0.1r16-1.1build1_all.deb ...
+2026-09-08T11:13:46.3477116Z Unpacking fonts-droid-fallback (1:6.0.1r16-1.1build1) ...
+2026-09-08T11:13:46.4961759Z Selecting previously unselected package poppler-data.
+2026-09-08T11:13:46.5070345Z Preparing to unpack .../001-poppler-data_0.4.12-1_all.deb ...
+2026-09-08T11:13:46.5084368Z Unpacking poppler-data (0.4.12-1) ...
+2026-09-08T11:13:46.6049977Z Selecting previously unselected package dctrl-tools.
+2026-09-08T11:13:46.6147799Z Preparing to unpack .../002-dctrl-tools_2.24-3build3_amd64.deb ...
+2026-09-08T11:13:46.6211399Z Unpacking dctrl-tools (2.24-3build3) ...
+2026-09-08T11:13:46.6482857Z Selecting previously unselected package libfile-dirlist-perl.
+2026-09-08T11:13:46.6594381Z Preparing to unpack .../003-libfile-dirlist-perl_0.05-3_all.deb ...
+2026-09-08T11:13:46.6604455Z Unpacking libfile-dirlist-perl (0.05-3) ...
+2026-09-08T11:13:46.6779117Z Selecting previously unselected package libfile-which-perl.
+2026-09-08T11:13:46.6894145Z Preparing to unpack .../004-libfile-which-perl_1.27-2_all.deb ...
+2026-09-08T11:13:46.6912880Z Unpacking libfile-which-perl (1.27-2) ...
+2026-09-08T11:13:46.7099450Z Selecting previously unselected package libfile-homedir-perl.
+2026-09-08T11:13:46.7210960Z Preparing to unpack .../005-libfile-homedir-perl_1.006-2_all.deb ...
+2026-09-08T11:13:46.7221111Z Unpacking libfile-homedir-perl (1.006-2) ...
+2026-09-08T11:13:46.7439809Z Selecting previously unselected package libfile-touch-perl.
+2026-09-08T11:13:46.7537929Z Preparing to unpack .../006-libfile-touch-perl_0.12-2_all.deb ...
+2026-09-08T11:13:46.7547761Z Unpacking libfile-touch-perl (0.12-2) ...
+2026-09-08T11:13:46.7725006Z Selecting previously unselected package libio-pty-perl.
+2026-09-08T11:13:46.7837469Z Preparing to unpack .../007-libio-pty-perl_1%3a1.20-1build2_amd64.deb ...
+2026-09-08T11:13:46.7849447Z Unpacking libio-pty-perl (1:1.20-1build2) ...
+2026-09-08T11:13:46.8040235Z Selecting previously unselected package libipc-run-perl.
+2026-09-08T11:13:46.8155502Z Preparing to unpack .../008-libipc-run-perl_20231003.0-1_all.deb ...
+2026-09-08T11:13:46.8170345Z Unpacking libipc-run-perl (20231003.0-1) ...
+2026-09-08T11:13:46.8371923Z Selecting previously unselected package libclass-method-modifiers-perl.
+2026-09-08T11:13:46.8485848Z Preparing to unpack .../009-libclass-method-modifiers-perl_2.15-1_all.deb ...
+2026-09-08T11:13:46.8492477Z Unpacking libclass-method-modifiers-perl (2.15-1) ...
+2026-09-08T11:13:46.8658199Z Selecting previously unselected package libclass-xsaccessor-perl.
+2026-09-08T11:13:46.8769802Z Preparing to unpack .../010-libclass-xsaccessor-perl_1.19-4build4_amd64.deb ...
+2026-09-08T11:13:46.8785552Z Unpacking libclass-xsaccessor-perl (1.19-4build4) ...
+2026-09-08T11:13:46.8969636Z Selecting previously unselected package libb-hooks-op-check-perl:amd64.
+2026-09-08T11:13:46.9066882Z Preparing to unpack .../011-libb-hooks-op-check-perl_0.22-3build1_amd64.deb ...
+2026-09-08T11:13:46.9078628Z Unpacking libb-hooks-op-check-perl:amd64 (0.22-3build1) ...
+2026-09-08T11:13:46.9250747Z Selecting previously unselected package libdynaloader-functions-perl.
+2026-09-08T11:13:46.9362574Z Preparing to unpack .../012-libdynaloader-functions-perl_0.003-3_all.deb ...
+2026-09-08T11:13:46.9369885Z Unpacking libdynaloader-functions-perl (0.003-3) ...
+2026-09-08T11:13:46.9545020Z Selecting previously unselected package libdevel-callchecker-perl:amd64.
+2026-09-08T11:13:46.9650306Z Preparing to unpack .../013-libdevel-callchecker-perl_0.008-2build3_amd64.deb ...
+2026-09-08T11:13:46.9669335Z Unpacking libdevel-callchecker-perl:amd64 (0.008-2build3) ...
+2026-09-08T11:13:46.9826461Z Selecting previously unselected package libparams-classify-perl:amd64.
+2026-09-08T11:13:46.9941859Z Preparing to unpack .../014-libparams-classify-perl_0.015-2build5_amd64.deb ...
+2026-09-08T11:13:46.9958156Z Unpacking libparams-classify-perl:amd64 (0.015-2build5) ...
+2026-09-08T11:13:47.0127178Z Selecting previously unselected package libmodule-runtime-perl.
+2026-09-08T11:13:47.0241631Z Preparing to unpack .../015-libmodule-runtime-perl_0.016-2_all.deb ...
+2026-09-08T11:13:47.0250631Z Unpacking libmodule-runtime-perl (0.016-2) ...
+2026-09-08T11:13:47.0423563Z Selecting previously unselected package libimport-into-perl.
+2026-09-08T11:13:47.0538672Z Preparing to unpack .../016-libimport-into-perl_1.002005-2_all.deb ...
+2026-09-08T11:13:47.0551462Z Unpacking libimport-into-perl (1.002005-2) ...
+2026-09-08T11:13:47.0722206Z Selecting previously unselected package librole-tiny-perl.
+2026-09-08T11:13:47.0838096Z Preparing to unpack .../017-librole-tiny-perl_2.002004-1_all.deb ...
+2026-09-08T11:13:47.0847984Z Unpacking librole-tiny-perl (2.002004-1) ...
+2026-09-08T11:13:47.1035567Z Selecting previously unselected package libsub-quote-perl.
+2026-09-08T11:13:47.1149166Z Preparing to unpack .../018-libsub-quote-perl_2.006008-1ubuntu1_all.deb ...
+2026-09-08T11:13:47.1156673Z Unpacking libsub-quote-perl (2.006008-1ubuntu1) ...
+2026-09-08T11:13:47.1329824Z Selecting previously unselected package libmoo-perl.
+2026-09-08T11:13:47.1439872Z Preparing to unpack .../019-libmoo-perl_2.005005-1_all.deb ...
+2026-09-08T11:13:47.1455571Z Unpacking libmoo-perl (2.005005-1) ...
+2026-09-08T11:13:47.1639840Z Selecting previously unselected package libfile-listing-perl.
+2026-09-08T11:13:47.1740277Z Preparing to unpack .../020-libfile-listing-perl_6.16-1_all.deb ...
+2026-09-08T11:13:47.1753127Z Unpacking libfile-listing-perl (6.16-1) ...
+2026-09-08T11:13:47.1929490Z Selecting previously unselected package libhtml-tree-perl.
+2026-09-08T11:13:47.2033809Z Preparing to unpack .../021-libhtml-tree-perl_5.07-3_all.deb ...
+2026-09-08T11:13:47.2041702Z Unpacking libhtml-tree-perl (5.07-3) ...
+2026-09-08T11:13:47.2246195Z Selecting previously unselected package libhttp-cookies-perl.
+2026-09-08T11:13:47.2373248Z Preparing to unpack .../022-libhttp-cookies-perl_6.11-1_all.deb ...
+2026-09-08T11:13:47.2389354Z Unpacking libhttp-cookies-perl (6.11-1) ...
+2026-09-08T11:13:47.2557653Z Selecting previously unselected package libhttp-negotiate-perl.
+2026-09-08T11:13:47.2671671Z Preparing to unpack .../023-libhttp-negotiate-perl_6.01-2_all.deb ...
+2026-09-08T11:13:47.2686699Z Unpacking libhttp-negotiate-perl (6.01-2) ...
+2026-09-08T11:13:47.2847334Z Selecting previously unselected package perl-openssl-defaults:amd64.
+2026-09-08T11:13:47.2956417Z Preparing to unpack .../024-perl-openssl-defaults_7build3_amd64.deb ...
+2026-09-08T11:13:47.2967868Z Unpacking perl-openssl-defaults:amd64 (7build3) ...
+2026-09-08T11:13:47.3153835Z Selecting previously unselected package libnet-ssleay-perl:amd64.
+2026-09-08T11:13:47.3265096Z Preparing to unpack .../025-libnet-ssleay-perl_1.94-1build4_amd64.deb ...
+2026-09-08T11:13:47.3275945Z Unpacking libnet-ssleay-perl:amd64 (1.94-1build4) ...
+2026-09-08T11:13:47.3589793Z Selecting previously unselected package libio-socket-ssl-perl.
+2026-09-08T11:13:47.3686752Z Preparing to unpack .../026-libio-socket-ssl-perl_2.085-1_all.deb ...
+2026-09-08T11:13:47.3699085Z Unpacking libio-socket-ssl-perl (2.085-1) ...
+2026-09-08T11:13:47.3907246Z Selecting previously unselected package libnet-http-perl.
+2026-09-08T11:13:47.4017399Z Preparing to unpack .../027-libnet-http-perl_6.23-1_all.deb ...
+2026-09-08T11:13:47.4026917Z Unpacking libnet-http-perl (6.23-1) ...
+2026-09-08T11:13:47.4190061Z Selecting previously unselected package liblwp-protocol-https-perl.
+2026-09-08T11:13:47.4300236Z Preparing to unpack .../028-liblwp-protocol-https-perl_6.13-1_all.deb ...
+2026-09-08T11:13:47.4309214Z Unpacking liblwp-protocol-https-perl (6.13-1) ...
+2026-09-08T11:13:47.4490027Z Selecting previously unselected package libtry-tiny-perl.
+2026-09-08T11:13:47.4686744Z Preparing to unpack .../029-libtry-tiny-perl_0.31-2_all.deb ...
+2026-09-08T11:13:47.4687922Z Unpacking libtry-tiny-perl (0.31-2) ...
+2026-09-08T11:13:47.4821562Z Selecting previously unselected package libwww-robotrules-perl.
+2026-09-08T11:13:47.4932304Z Preparing to unpack .../030-libwww-robotrules-perl_6.02-1_all.deb ...
+2026-09-08T11:13:47.4951759Z Unpacking libwww-robotrules-perl (6.02-1) ...
+2026-09-08T11:13:47.5122188Z Selecting previously unselected package libwww-perl.
+2026-09-08T11:13:47.5233719Z Preparing to unpack .../031-libwww-perl_6.76-1ubuntu0.1_all.deb ...
+2026-09-08T11:13:47.5249456Z Unpacking libwww-perl (6.76-1ubuntu0.1) ...
+2026-09-08T11:13:47.5499414Z Selecting previously unselected package patchutils.
+2026-09-08T11:13:47.5586495Z Preparing to unpack .../032-patchutils_0.4.2-1build3_amd64.deb ...
+2026-09-08T11:13:47.5599111Z Unpacking patchutils (0.4.2-1build3) ...
+2026-09-08T11:13:47.5800220Z Selecting previously unselected package wdiff.
+2026-09-08T11:13:47.5911232Z Preparing to unpack .../033-wdiff_1.2.2-6build1_amd64.deb ...
+2026-09-08T11:13:47.5918656Z Unpacking wdiff (1.2.2-6build1) ...
+2026-09-08T11:13:47.6104267Z Selecting previously unselected package devscripts.
+2026-09-08T11:13:47.6214484Z Preparing to unpack .../034-devscripts_2.23.7ubuntu0.2_all.deb ...
+2026-09-08T11:13:47.6377815Z Unpacking devscripts (2.23.7ubuntu0.2) ...
+2026-09-08T11:13:47.7399505Z Selecting previously unselected package diffstat.
+2026-09-08T11:13:47.7504467Z Preparing to unpack .../035-diffstat_1.66-1build1_amd64.deb ...
+2026-09-08T11:13:47.7518871Z Unpacking diffstat (1.66-1build1) ...
+2026-09-08T11:13:47.7673842Z Selecting previously unselected package python3-gpg.
+2026-09-08T11:13:47.7785851Z Preparing to unpack .../036-python3-gpg_1.18.0-4.1ubuntu4_amd64.deb ...
+2026-09-08T11:13:47.7791706Z Unpacking python3-gpg (1.18.0-4.1ubuntu4) ...
+2026-09-08T11:13:47.8079772Z Selecting previously unselected package python3-xdg.
+2026-09-08T11:13:47.8178609Z Preparing to unpack .../037-python3-xdg_0.28-2_all.deb ...
+2026-09-08T11:13:47.8189214Z Unpacking python3-xdg (0.28-2) ...
+2026-09-08T11:13:47.8379767Z Selecting previously unselected package dput.
+2026-09-08T11:13:47.8490196Z Preparing to unpack .../038-dput_1.1.3ubuntu3_all.deb ...
+2026-09-08T11:13:47.8544931Z Unpacking dput (1.1.3ubuntu3) ...
+2026-09-08T11:13:47.8760041Z Selecting previously unselected package fonts-noto-mono.
+2026-09-08T11:13:47.8858956Z Preparing to unpack .../039-fonts-noto-mono_20201225-2_all.deb ...
+2026-09-08T11:13:47.8869158Z Unpacking fonts-noto-mono (20201225-2) ...
+2026-09-08T11:13:47.9091209Z Selecting previously unselected package xfonts-encodings.
+2026-09-08T11:13:47.9199514Z Preparing to unpack .../040-xfonts-encodings_1%3a1.0.5-0ubuntu2_all.deb ...
+2026-09-08T11:13:47.9208176Z Unpacking xfonts-encodings (1:1.0.5-0ubuntu2) ...
+2026-09-08T11:13:47.9437752Z Selecting previously unselected package xfonts-utils.
+2026-09-08T11:13:47.9549569Z Preparing to unpack .../041-xfonts-utils_1%3a7.7+6build3_amd64.deb ...
+2026-09-08T11:13:47.9557098Z Unpacking xfonts-utils (1:7.7+6build3) ...
+2026-09-08T11:13:47.9795241Z Selecting previously unselected package fonts-urw-base35.
+2026-09-08T11:13:47.9908649Z Preparing to unpack .../042-fonts-urw-base35_20200910-8_all.deb ...
+2026-09-08T11:13:48.0416955Z Unpacking fonts-urw-base35 (20200910-8) ...
+2026-09-08T11:13:48.1208247Z Selecting previously unselected package gdebi-core.
+2026-09-08T11:13:48.1323559Z Preparing to unpack .../043-gdebi-core_0.9.5.7+nmu7_all.deb ...
+2026-09-08T11:13:48.1328872Z Unpacking gdebi-core (0.9.5.7+nmu7) ...
+2026-09-08T11:13:48.1838841Z Selecting previously unselected package gettext.
+2026-09-08T11:13:48.1950862Z Preparing to unpack .../044-gettext_0.21-14ubuntu2_amd64.deb ...
+2026-09-08T11:13:48.1964534Z Unpacking gettext (0.21-14ubuntu2) ...
+2026-09-08T11:13:48.2289810Z Selecting previously unselected package libgs-common.
+2026-09-08T11:13:48.2403151Z Preparing to unpack .../045-libgs-common_10.02.1~dfsg1-0ubuntu7.8_all.deb ...
+2026-09-08T11:13:48.2410205Z Unpacking libgs-common (10.02.1~dfsg1-0ubuntu7.8) ...
+2026-09-08T11:13:48.2601232Z Selecting previously unselected package libgs10-common.
+2026-09-08T11:13:48.2706593Z Preparing to unpack .../046-libgs10-common_10.02.1~dfsg1-0ubuntu7.8_all.deb ...
+2026-09-08T11:13:48.2715339Z Unpacking libgs10-common (10.02.1~dfsg1-0ubuntu7.8) ...
+2026-09-08T11:13:48.3211888Z Selecting previously unselected package libidn12:amd64.
+2026-09-08T11:13:48.3324542Z Preparing to unpack .../047-libidn12_1.42-1ubuntu0.1_amd64.deb ...
+2026-09-08T11:13:48.3332294Z Unpacking libidn12:amd64 (1.42-1ubuntu0.1) ...
+2026-09-08T11:13:48.3497375Z Selecting previously unselected package libijs-0.35:amd64.
+2026-09-08T11:13:48.3608032Z Preparing to unpack .../048-libijs-0.35_0.35-15.1build1_amd64.deb ...
+2026-09-08T11:13:48.3619286Z Unpacking libijs-0.35:amd64 (0.35-15.1build1) ...
+2026-09-08T11:13:48.3771742Z Selecting previously unselected package libjbig2dec0:amd64.
+2026-09-08T11:13:48.3884638Z Preparing to unpack .../049-libjbig2dec0_0.20-1ubuntu0.24.04.1_amd64.deb ...
+2026-09-08T11:13:48.3891763Z Unpacking libjbig2dec0:amd64 (0.20-1ubuntu0.24.04.1) ...
+2026-09-08T11:13:48.4065101Z Selecting previously unselected package libpaper1:amd64.
+2026-09-08T11:13:48.4178914Z Preparing to unpack .../050-libpaper1_1.1.29build1_amd64.deb ...
+2026-09-08T11:13:48.4190391Z Unpacking libpaper1:amd64 (1.1.29build1) ...
+2026-09-08T11:13:48.4350680Z Selecting previously unselected package libgs10:amd64.
+2026-09-08T11:13:48.4464010Z Preparing to unpack .../051-libgs10_10.02.1~dfsg1-0ubuntu7.8_amd64.deb ...
+2026-09-08T11:13:48.4472127Z Unpacking libgs10:amd64 (10.02.1~dfsg1-0ubuntu7.8) ...
+2026-09-08T11:13:48.5430245Z Selecting previously unselected package ghostscript.
+2026-09-08T11:13:48.5547179Z Preparing to unpack .../052-ghostscript_10.02.1~dfsg1-0ubuntu7.8_amd64.deb ...
+2026-09-08T11:13:48.5555882Z Unpacking ghostscript (10.02.1~dfsg1-0ubuntu7.8) ...
+2026-09-08T11:13:48.5756135Z Selecting previously unselected package intltool-debian.
+2026-09-08T11:13:48.5868187Z Preparing to unpack .../053-intltool-debian_0.35.0+20060710.6_all.deb ...
+2026-09-08T11:13:48.5878698Z Unpacking intltool-debian (0.35.0+20060710.6) ...
+2026-09-08T11:13:48.6031291Z Selecting previously unselected package libaliased-perl.
+2026-09-08T11:13:48.6142694Z Preparing to unpack .../054-libaliased-perl_0.34-3_all.deb ...
+2026-09-08T11:13:48.6149528Z Unpacking libaliased-perl (0.34-3) ...
+2026-09-08T11:13:48.6297344Z Selecting previously unselected package libapt-pkg-perl.
+2026-09-08T11:13:48.6408982Z Preparing to unpack .../055-libapt-pkg-perl_0.1.40build7_amd64.deb ...
+2026-09-08T11:13:48.6416425Z Unpacking libapt-pkg-perl (0.1.40build7) ...
+2026-09-08T11:13:48.6619498Z Selecting previously unselected package libarchive-zip-perl.
+2026-09-08T11:13:48.6716479Z Preparing to unpack .../056-libarchive-zip-perl_1.68-1_all.deb ...
+2026-09-08T11:13:48.6730011Z Unpacking libarchive-zip-perl (1.68-1) ...
+2026-09-08T11:13:48.7241945Z Selecting previously unselected package libarray-intspan-perl.
+2026-09-08T11:13:48.7343551Z Preparing to unpack .../057-libarray-intspan-perl_2.004-2_all.deb ...
+2026-09-08T11:13:48.7357387Z Unpacking libarray-intspan-perl (2.004-2) ...
+2026-09-08T11:13:48.7514031Z Selecting previously unselected package libmodule-implementation-perl.
+2026-09-08T11:13:48.7628212Z Preparing to unpack .../058-libmodule-implementation-perl_0.09-2_all.deb ...
+2026-09-08T11:13:48.7647833Z Unpacking libmodule-implementation-perl (0.09-2) ...
+2026-09-08T11:13:48.7818706Z Selecting previously unselected package libsub-exporter-progressive-perl.
+2026-09-08T11:13:48.7931280Z Preparing to unpack .../059-libsub-exporter-progressive-perl_0.001013-3_all.deb ...
+2026-09-08T11:13:48.7938751Z Unpacking libsub-exporter-progressive-perl (0.001013-3) ...
+2026-09-08T11:13:48.8110432Z Selecting previously unselected package libvariable-magic-perl.
+2026-09-08T11:13:48.8220878Z Preparing to unpack .../060-libvariable-magic-perl_0.63-1build3_amd64.deb ...
+2026-09-08T11:13:48.8228618Z Unpacking libvariable-magic-perl (0.63-1build3) ...
+2026-09-08T11:13:48.8397322Z Selecting previously unselected package libb-hooks-endofscope-perl.
+2026-09-08T11:13:48.8510688Z Preparing to unpack .../061-libb-hooks-endofscope-perl_0.28-1_all.deb ...
+2026-09-08T11:13:48.8519614Z Unpacking libb-hooks-endofscope-perl (0.28-1) ...
+2026-09-08T11:13:48.8689886Z Selecting previously unselected package libberkeleydb-perl:amd64.
+2026-09-08T11:13:48.8805495Z Preparing to unpack .../062-libberkeleydb-perl_0.64-2build4_amd64.deb ...
+2026-09-08T11:13:48.8872231Z Unpacking libberkeleydb-perl:amd64 (0.64-2build4) ...
+2026-09-08T11:13:48.9041791Z Selecting previously unselected package libcapture-tiny-perl.
+2026-09-08T11:13:48.9155069Z Preparing to unpack .../063-libcapture-tiny-perl_0.48-2_all.deb ...
+2026-09-08T11:13:48.9162015Z Unpacking libcapture-tiny-perl (0.48-2) ...
+2026-09-08T11:13:48.9329842Z Selecting previously unselected package libclass-data-inheritable-perl.
+2026-09-08T11:13:48.9444138Z Preparing to unpack .../064-libclass-data-inheritable-perl_0.08-3_all.deb ...
+2026-09-08T11:13:48.9458507Z Unpacking libclass-data-inheritable-perl (0.08-3) ...
+2026-09-08T11:13:48.9625984Z Selecting previously unselected package libconfig-tiny-perl.
+2026-09-08T11:13:48.9731220Z Preparing to unpack .../065-libconfig-tiny-perl_2.30-1_all.deb ...
+2026-09-08T11:13:48.9743022Z Unpacking libconfig-tiny-perl (2.30-1) ...
+2026-09-08T11:13:48.9923800Z Selecting previously unselected package libparams-util-perl.
+2026-09-08T11:13:49.0044950Z Preparing to unpack .../066-libparams-util-perl_1.102-2build3_amd64.deb ...
+2026-09-08T11:13:49.0050786Z Unpacking libparams-util-perl (1.102-2build3) ...
+2026-09-08T11:13:49.0210323Z Selecting previously unselected package libsub-install-perl.
+2026-09-08T11:13:49.0328545Z Preparing to unpack .../067-libsub-install-perl_0.929-1_all.deb ...
+2026-09-08T11:13:49.0372679Z Unpacking libsub-install-perl (0.929-1) ...
+2026-09-08T11:13:49.0530410Z Selecting previously unselected package libdata-optlist-perl.
+2026-09-08T11:13:49.0636420Z Preparing to unpack .../068-libdata-optlist-perl_0.114-1_all.deb ...
+2026-09-08T11:13:49.0644121Z Unpacking libdata-optlist-perl (0.114-1) ...
+2026-09-08T11:13:49.0819465Z Selecting previously unselected package libsub-exporter-perl.
+2026-09-08T11:13:49.0913191Z Preparing to unpack .../069-libsub-exporter-perl_0.990-1_all.deb ...
+2026-09-08T11:13:49.0928207Z Unpacking libsub-exporter-perl (0.990-1) ...
+2026-09-08T11:13:49.1099654Z Selecting previously unselected package libconst-fast-perl.
+2026-09-08T11:13:49.1207356Z Preparing to unpack .../070-libconst-fast-perl_0.014-2_all.deb ...
+2026-09-08T11:13:49.1217760Z Unpacking libconst-fast-perl (0.014-2) ...
+2026-09-08T11:13:49.1397476Z Selecting previously unselected package libcpanel-json-xs-perl:amd64.
+2026-09-08T11:13:49.1509976Z Preparing to unpack .../071-libcpanel-json-xs-perl_4.37-1ubuntu0.1_amd64.deb ...
+2026-09-08T11:13:49.1518060Z Unpacking libcpanel-json-xs-perl:amd64 (4.37-1ubuntu0.1) ...
+2026-09-08T11:13:49.1737652Z Selecting previously unselected package libdevel-stacktrace-perl.
+2026-09-08T11:13:49.1852558Z Preparing to unpack .../072-libdevel-stacktrace-perl_2.0500-1_all.deb ...
+2026-09-08T11:13:49.1859045Z Unpacking libdevel-stacktrace-perl (2.0500-1) ...
+2026-09-08T11:13:49.2017395Z Selecting previously unselected package libexception-class-perl.
+2026-09-08T11:13:49.2130124Z Preparing to unpack .../073-libexception-class-perl_1.45-1_all.deb ...
+2026-09-08T11:13:49.2137474Z Unpacking libexception-class-perl (1.45-1) ...
+2026-09-08T11:13:49.2294663Z Selecting previously unselected package libiterator-perl.
+2026-09-08T11:13:49.2409726Z Preparing to unpack .../074-libiterator-perl_0.03+ds1-2_all.deb ...
+2026-09-08T11:13:49.2416918Z Unpacking libiterator-perl (0.03+ds1-2) ...
+2026-09-08T11:13:49.2609665Z Selecting previously unselected package libiterator-util-perl.
+2026-09-08T11:13:49.2685561Z Preparing to unpack .../075-libiterator-util-perl_0.02+ds1-2_all.deb ...
+2026-09-08T11:13:49.2693719Z Unpacking libiterator-util-perl (0.02+ds1-2) ...
+2026-09-08T11:13:49.2850335Z Selecting previously unselected package libdata-dpath-perl.
+2026-09-08T11:13:49.2963573Z Preparing to unpack .../076-libdata-dpath-perl_0.59-1_all.deb ...
+2026-09-08T11:13:49.2976791Z Unpacking libdata-dpath-perl (0.59-1) ...
+2026-09-08T11:13:49.3144671Z Selecting previously unselected package libdata-dump-perl.
+2026-09-08T11:13:49.3257450Z Preparing to unpack .../077-libdata-dump-perl_1.25-1_all.deb ...
+2026-09-08T11:13:49.3271615Z Unpacking libdata-dump-perl (1.25-1) ...
+2026-09-08T11:13:49.3444811Z Selecting previously unselected package libdata-messagepack-perl.
+2026-09-08T11:13:49.3559467Z Preparing to unpack .../078-libdata-messagepack-perl_1.02-1build4_amd64.deb ...
+2026-09-08T11:13:49.3567279Z Unpacking libdata-messagepack-perl (1.02-1build4) ...
+2026-09-08T11:13:49.3759680Z Selecting previously unselected package libnet-domain-tld-perl.
+2026-09-08T11:13:49.3865523Z Preparing to unpack .../079-libnet-domain-tld-perl_1.75-3_all.deb ...
+2026-09-08T11:13:49.3872065Z Unpacking libnet-domain-tld-perl (1.75-3) ...
+2026-09-08T11:13:49.4038198Z Selecting previously unselected package libdata-validate-domain-perl.
+2026-09-08T11:13:49.4151620Z Preparing to unpack .../080-libdata-validate-domain-perl_0.10-1.1_all.deb ...
+2026-09-08T11:13:49.4158664Z Unpacking libdata-validate-domain-perl (0.10-1.1) ...
+2026-09-08T11:13:49.4333382Z Selecting previously unselected package libnet-ipv6addr-perl.
+2026-09-08T11:13:49.4446562Z Preparing to unpack .../081-libnet-ipv6addr-perl_1.02-1_all.deb ...
+2026-09-08T11:13:49.4463688Z Unpacking libnet-ipv6addr-perl (1.02-1) ...
+2026-09-08T11:13:49.4732306Z Selecting previously unselected package libnet-netmask-perl.
+2026-09-08T11:13:49.4847743Z Preparing to unpack .../082-libnet-netmask-perl_2.0002-2_all.deb ...
+2026-09-08T11:13:49.4855883Z Unpacking libnet-netmask-perl (2.0002-2) ...
+2026-09-08T11:13:49.5023427Z Selecting previously unselected package libnetaddr-ip-perl.
+2026-09-08T11:13:49.5136732Z Preparing to unpack .../083-libnetaddr-ip-perl_4.079+dfsg-2build4_amd64.deb ...
+2026-09-08T11:13:49.5146058Z Unpacking libnetaddr-ip-perl (4.079+dfsg-2build4) ...
+2026-09-08T11:13:49.5370082Z Selecting previously unselected package libdata-validate-ip-perl.
+2026-09-08T11:13:49.5482532Z Preparing to unpack .../084-libdata-validate-ip-perl_0.31-1_all.deb ...
+2026-09-08T11:13:49.5489794Z Unpacking libdata-validate-ip-perl (0.31-1) ...
+2026-09-08T11:13:49.5655105Z Selecting previously unselected package libdata-validate-uri-perl.
+2026-09-08T11:13:49.5768211Z Preparing to unpack .../085-libdata-validate-uri-perl_0.07-3_all.deb ...
+2026-09-08T11:13:49.5775724Z Unpacking libdata-validate-uri-perl (0.07-3) ...
+2026-09-08T11:13:49.5950990Z Selecting previously unselected package libdistro-info-perl.
+2026-09-08T11:13:49.6065778Z Preparing to unpack .../086-libdistro-info-perl_1.7build1_all.deb ...
+2026-09-08T11:13:49.6079842Z Unpacking libdistro-info-perl (1.7build1) ...
+2026-09-08T11:13:49.6231268Z Selecting previously unselected package libemail-address-xs-perl.
+2026-09-08T11:13:49.6338877Z Preparing to unpack .../087-libemail-address-xs-perl_1.05-1build4_amd64.deb ...
+2026-09-08T11:13:49.6349475Z Unpacking libemail-address-xs-perl (1.05-1build4) ...
+2026-09-08T11:13:49.6517110Z Selecting previously unselected package libexporter-tiny-perl.
+2026-09-08T11:13:49.6633034Z Preparing to unpack .../088-libexporter-tiny-perl_1.006002-1_all.deb ...
+2026-09-08T11:13:49.6641609Z Unpacking libexporter-tiny-perl (1.006002-1) ...
+2026-09-08T11:13:49.6838057Z Selecting previously unselected package libipc-system-simple-perl.
+2026-09-08T11:13:49.6954773Z Preparing to unpack .../089-libipc-system-simple-perl_1.30-2_all.deb ...
+2026-09-08T11:13:49.6969346Z Unpacking libipc-system-simple-perl (1.30-2) ...
+2026-09-08T11:13:49.7130216Z Selecting previously unselected package libfile-basedir-perl.
+2026-09-08T11:13:49.7249643Z Preparing to unpack .../090-libfile-basedir-perl_0.09-2_all.deb ...
+2026-09-08T11:13:49.7261196Z Unpacking libfile-basedir-perl (0.09-2) ...
+2026-09-08T11:13:49.7438615Z Selecting previously unselected package libfile-chdir-perl.
+2026-09-08T11:13:49.7555085Z Preparing to unpack .../091-libfile-chdir-perl_0.1008-1.1_all.deb ...
+2026-09-08T11:13:49.7565035Z Unpacking libfile-chdir-perl (0.1008-1.1) ...
+2026-09-08T11:13:49.7740076Z Selecting previously unselected package libnumber-compare-perl.
+2026-09-08T11:13:49.7857311Z Preparing to unpack .../092-libnumber-compare-perl_0.03-3_all.deb ...
+2026-09-08T11:13:49.7863787Z Unpacking libnumber-compare-perl (0.03-3) ...
+2026-09-08T11:13:49.8039434Z Selecting previously unselected package libtext-glob-perl.
+2026-09-08T11:13:49.8137238Z Preparing to unpack .../093-libtext-glob-perl_0.11-3_all.deb ...
+2026-09-08T11:13:49.8149195Z Unpacking libtext-glob-perl (0.11-3) ...
+2026-09-08T11:13:49.8308639Z Selecting previously unselected package libfile-find-rule-perl.
+2026-09-08T11:13:49.8426715Z Preparing to unpack .../094-libfile-find-rule-perl_0.34-3ubuntu0.24.04.1_all.deb ...
+2026-09-08T11:13:49.8442263Z Unpacking libfile-find-rule-perl (0.34-3ubuntu0.24.04.1) ...
+2026-09-08T11:13:49.8619729Z Selecting previously unselected package libfont-afm-perl.
+2026-09-08T11:13:49.8734095Z Preparing to unpack .../095-libfont-afm-perl_1.20-4_all.deb ...
+2026-09-08T11:13:49.8745795Z Unpacking libfont-afm-perl (1.20-4) ...
+2026-09-08T11:13:49.8923377Z Selecting previously unselected package libio-string-perl.
+2026-09-08T11:13:49.9037782Z Preparing to unpack .../096-libio-string-perl_1.08-4_all.deb ...
+2026-09-08T11:13:49.9054168Z Unpacking libio-string-perl (1.08-4) ...
+2026-09-08T11:13:49.9211150Z Selecting previously unselected package libfont-ttf-perl.
+2026-09-08T11:13:49.9325005Z Preparing to unpack .../097-libfont-ttf-perl_1.06-2_all.deb ...
+2026-09-08T11:13:49.9338892Z Unpacking libfont-ttf-perl (1.06-2) ...
+2026-09-08T11:13:49.9671944Z Selecting previously unselected package libfreezethaw-perl.
+2026-09-08T11:13:49.9779371Z Preparing to unpack .../098-libfreezethaw-perl_0.5001-3_all.deb ...
+2026-09-08T11:13:49.9799360Z Unpacking libfreezethaw-perl (0.5001-3) ...
+2026-09-08T11:13:49.9950864Z Selecting previously unselected package libsort-versions-perl.
+2026-09-08T11:13:50.0059321Z Preparing to unpack .../099-libsort-versions-perl_1.62-3_all.deb ...
+2026-09-08T11:13:50.0066074Z Unpacking libsort-versions-perl (1.62-3) ...
+2026-09-08T11:13:50.0233401Z Selecting previously unselected package libgit-wrapper-perl.
+2026-09-08T11:13:50.0353320Z Preparing to unpack .../100-libgit-wrapper-perl_0.048-2_all.deb ...
+2026-09-08T11:13:50.0359716Z Unpacking libgit-wrapper-perl (0.048-2) ...
+2026-09-08T11:13:50.0550854Z Selecting previously unselected package libhtml-form-perl.
+2026-09-08T11:13:50.0648434Z Preparing to unpack .../101-libhtml-form-perl_6.11-1_all.deb ...
+2026-09-08T11:13:50.0658432Z Unpacking libhtml-form-perl (6.11-1) ...
+2026-09-08T11:13:50.0842408Z Selecting previously unselected package libhtml-format-perl.
+2026-09-08T11:13:50.0960944Z Preparing to unpack .../102-libhtml-format-perl_2.16-2_all.deb ...
+2026-09-08T11:13:50.0969611Z Unpacking libhtml-format-perl (2.16-2) ...
+2026-09-08T11:13:50.1149397Z Selecting previously unselected package libhtml-html5-entities-perl.
+2026-09-08T11:13:50.1265501Z Preparing to unpack .../103-libhtml-html5-entities-perl_0.004-3_all.deb ...
+2026-09-08T11:13:50.1276160Z Unpacking libhtml-html5-entities-perl (0.004-3) ...
+2026-09-08T11:13:50.1442226Z Selecting previously unselected package libhtml-tokeparser-simple-perl.
+2026-09-08T11:13:50.1558967Z Preparing to unpack .../104-libhtml-tokeparser-simple-perl_3.16-4_all.deb ...
+2026-09-08T11:13:50.1564085Z Unpacking libhtml-tokeparser-simple-perl (3.16-4) ...
+2026-09-08T11:13:50.1744431Z Selecting previously unselected package libhttp-daemon-perl.
+2026-09-08T11:13:50.1859979Z Preparing to unpack .../105-libhttp-daemon-perl_6.16-1ubuntu0.24.04.1_all.deb ...
+2026-09-08T11:13:50.1868427Z Unpacking libhttp-daemon-perl (6.16-1ubuntu0.24.04.1) ...
+2026-09-08T11:13:50.2036651Z Selecting previously unselected package libindirect-perl.
+2026-09-08T11:13:50.2153671Z Preparing to unpack .../106-libindirect-perl_0.39-2build4_amd64.deb ...
+2026-09-08T11:13:50.2164525Z Unpacking libindirect-perl (0.39-2build4) ...
+2026-09-08T11:13:50.2330271Z Selecting previously unselected package libio-interactive-perl.
+2026-09-08T11:13:50.2450289Z Preparing to unpack .../107-libio-interactive-perl_1.025-1_all.deb ...
+2026-09-08T11:13:50.2459348Z Unpacking libio-interactive-perl (1.025-1) ...
+2026-09-08T11:13:50.2626181Z Selecting previously unselected package libjson-maybexs-perl.
+2026-09-08T11:13:50.2742522Z Preparing to unpack .../108-libjson-maybexs-perl_1.004005-1_all.deb ...
+2026-09-08T11:13:50.2749874Z Unpacking libjson-maybexs-perl (1.004005-1) ...
+2026-09-08T11:13:50.2913523Z Selecting previously unselected package liblist-compare-perl.
+2026-09-08T11:13:50.3033731Z Preparing to unpack .../109-liblist-compare-perl_0.55-2_all.deb ...
+2026-09-08T11:13:50.3040788Z Unpacking liblist-compare-perl (0.55-2) ...
+2026-09-08T11:13:50.3224202Z Selecting previously unselected package liblist-someutils-perl.
+2026-09-08T11:13:50.3339652Z Preparing to unpack .../110-liblist-someutils-perl_0.59-1_all.deb ...
+2026-09-08T11:13:50.3349172Z Unpacking liblist-someutils-perl (0.59-1) ...
+2026-09-08T11:13:50.3517454Z Selecting previously unselected package liblist-someutils-xs-perl:amd64.
+2026-09-08T11:13:50.3631770Z Preparing to unpack .../111-liblist-someutils-xs-perl_0.58-3build4_amd64.deb ...
+2026-09-08T11:13:50.3645247Z Unpacking liblist-someutils-xs-perl:amd64 (0.58-3build4) ...
+2026-09-08T11:13:50.3804225Z Selecting previously unselected package liblist-utilsby-perl.
+2026-09-08T11:13:50.3920586Z Preparing to unpack .../112-liblist-utilsby-perl_0.12-2_all.deb ...
+2026-09-08T11:13:50.3939190Z Unpacking liblist-utilsby-perl (0.12-2) ...
+2026-09-08T11:13:50.4121403Z Selecting previously unselected package liblog-any-perl.
+2026-09-08T11:13:50.4216544Z Preparing to unpack .../113-liblog-any-perl_1.717-1_all.deb ...
+2026-09-08T11:13:50.4221319Z Unpacking liblog-any-perl (1.717-1) ...
+2026-09-08T11:13:50.4420458Z Selecting previously unselected package liblog-any-adapter-screen-perl.
+2026-09-08T11:13:50.4534804Z Preparing to unpack .../114-liblog-any-adapter-screen-perl_0.140-2_all.deb ...
+2026-09-08T11:13:50.4540119Z Unpacking liblog-any-adapter-screen-perl (0.140-2) ...
+2026-09-08T11:13:50.4739581Z Selecting previously unselected package libnet-smtp-ssl-perl.
+2026-09-08T11:13:50.4817648Z Preparing to unpack .../115-libnet-smtp-ssl-perl_1.04-2_all.deb ...
+2026-09-08T11:13:50.4837829Z Unpacking libnet-smtp-ssl-perl (1.04-2) ...
+2026-09-08T11:13:50.4995849Z Selecting previously unselected package libmailtools-perl.
+2026-09-08T11:13:50.5108665Z Preparing to unpack .../116-libmailtools-perl_2.21-2_all.deb ...
+2026-09-08T11:13:50.5119264Z Unpacking libmailtools-perl (2.21-2) ...
+2026-09-08T11:13:50.5339404Z Selecting previously unselected package libmarkdown2:amd64.
+2026-09-08T11:13:50.5456716Z Preparing to unpack .../117-libmarkdown2_2.2.7-2build1_amd64.deb ...
+2026-09-08T11:13:50.5469237Z Unpacking libmarkdown2:amd64 (2.2.7-2build1) ...
+2026-09-08T11:13:50.5669530Z Selecting previously unselected package libmath-base85-perl.
+2026-09-08T11:13:50.5746732Z Preparing to unpack .../118-libmath-base85-perl_0.5+dfsg-2_all.deb ...
+2026-09-08T11:13:50.5759364Z Unpacking libmath-base85-perl (0.5+dfsg-2) ...
+2026-09-08T11:13:50.5959456Z Selecting previously unselected package libmldbm-perl.
+2026-09-08T11:13:50.6040909Z Preparing to unpack .../119-libmldbm-perl_2.05-4_all.deb ...
+2026-09-08T11:13:50.6050753Z Unpacking libmldbm-perl (2.05-4) ...
+2026-09-08T11:13:50.6242018Z Selecting previously unselected package libstrictures-perl.
+2026-09-08T11:13:50.6340536Z Preparing to unpack .../120-libstrictures-perl_2.000006-1_all.deb ...
+2026-09-08T11:13:50.6350401Z Unpacking libstrictures-perl (2.000006-1) ...
+2026-09-08T11:13:50.6549612Z Selecting previously unselected package libmoox-aliases-perl.
+2026-09-08T11:13:50.6664249Z Preparing to unpack .../121-libmoox-aliases-perl_0.001006-2_all.deb ...
+2026-09-08T11:13:50.6671191Z Unpacking libmoox-aliases-perl (0.001006-2) ...
+2026-09-08T11:13:50.6849843Z Selecting previously unselected package libmouse-perl.
+2026-09-08T11:13:50.6954361Z Preparing to unpack .../122-libmouse-perl_2.5.10-1build8_amd64.deb ...
+2026-09-08T11:13:50.6963139Z Unpacking libmouse-perl (2.5.10-1build8) ...
+2026-09-08T11:13:50.7209444Z Selecting previously unselected package libpackage-stash-perl.
+2026-09-08T11:13:50.7327716Z Preparing to unpack .../123-libpackage-stash-perl_0.40-1_all.deb ...
+2026-09-08T11:13:50.7336562Z Unpacking libpackage-stash-perl (0.40-1) ...
+2026-09-08T11:13:50.7510182Z Selecting previously unselected package libsub-identify-perl.
+2026-09-08T11:13:50.7628689Z Preparing to unpack .../124-libsub-identify-perl_0.14-3build3_amd64.deb ...
+2026-09-08T11:13:50.7636189Z Unpacking libsub-identify-perl (0.14-3build3) ...
+2026-09-08T11:13:50.7845298Z Selecting previously unselected package libsub-name-perl:amd64.
+2026-09-08T11:13:50.7966318Z Preparing to unpack .../125-libsub-name-perl_0.27-1build3_amd64.deb ...
+2026-09-08T11:13:50.7984307Z Unpacking libsub-name-perl:amd64 (0.27-1build3) ...
+2026-09-08T11:13:50.8147624Z Selecting previously unselected package libnamespace-clean-perl.
+2026-09-08T11:13:50.8267783Z Preparing to unpack .../126-libnamespace-clean-perl_0.27-2_all.deb ...
+2026-09-08T11:13:50.8275743Z Unpacking libnamespace-clean-perl (0.27-2) ...
+2026-09-08T11:13:50.8448113Z Selecting previously unselected package libxs-parse-keyword-perl.
+2026-09-08T11:13:50.8569116Z Preparing to unpack .../127-libxs-parse-keyword-perl_0.39-1build3_amd64.deb ...
+2026-09-08T11:13:50.8582421Z Unpacking libxs-parse-keyword-perl (0.39-1build3) ...
+2026-09-08T11:13:50.8771289Z Selecting previously unselected package libxs-parse-sublike-perl:amd64.
+2026-09-08T11:13:50.8889767Z Preparing to unpack .../128-libxs-parse-sublike-perl_0.21-2build3_amd64.deb ...
+2026-09-08T11:13:50.8894518Z Unpacking libxs-parse-sublike-perl:amd64 (0.21-2build3) ...
+2026-09-08T11:13:50.9091057Z Selecting previously unselected package libobject-pad-perl.
+2026-09-08T11:13:50.9203514Z Preparing to unpack .../129-libobject-pad-perl_0.808-1build3_amd64.deb ...
+2026-09-08T11:13:50.9212069Z Unpacking libobject-pad-perl (0.808-1build3) ...
+2026-09-08T11:13:50.9420932Z Selecting previously unselected package libpackage-stash-xs-perl:amd64.
+2026-09-08T11:13:50.9526323Z Preparing to unpack .../130-libpackage-stash-xs-perl_0.30-1build4_amd64.deb ...
+2026-09-08T11:13:50.9536295Z Unpacking libpackage-stash-xs-perl:amd64 (0.30-1build4) ...
+2026-09-08T11:13:50.9721090Z Selecting previously unselected package libpaper-utils.
+2026-09-08T11:13:50.9819851Z Preparing to unpack .../131-libpaper-utils_1.1.29build1_amd64.deb ...
+2026-09-08T11:13:50.9836139Z Unpacking libpaper-utils (1.1.29build1) ...
+2026-09-08T11:13:51.0002616Z Selecting previously unselected package libpath-iterator-rule-perl.
+2026-09-08T11:13:51.0112835Z Preparing to unpack .../132-libpath-iterator-rule-perl_1.015-2_all.deb ...
+2026-09-08T11:13:51.0122026Z Unpacking libpath-iterator-rule-perl (1.015-2) ...
+2026-09-08T11:13:51.0287806Z Selecting previously unselected package libpath-tiny-perl.
+2026-09-08T11:13:51.0404419Z Preparing to unpack .../133-libpath-tiny-perl_0.144-1_all.deb ...
+2026-09-08T11:13:51.0413786Z Unpacking libpath-tiny-perl (0.144-1) ...
+2026-09-08T11:13:51.0581641Z Selecting previously unselected package libperlio-gzip-perl.
+2026-09-08T11:13:51.0697183Z Preparing to unpack .../134-libperlio-gzip-perl_0.20-1build4_amd64.deb ...
+2026-09-08T11:13:51.0709790Z Unpacking libperlio-gzip-perl (0.20-1build4) ...
+2026-09-08T11:13:51.0892682Z Selecting previously unselected package libperlio-utf8-strict-perl.
+2026-09-08T11:13:51.1013963Z Preparing to unpack .../135-libperlio-utf8-strict-perl_0.010-1build3_amd64.deb ...
+2026-09-08T11:13:51.1020860Z Unpacking libperlio-utf8-strict-perl (0.010-1build3) ...
+2026-09-08T11:13:51.1191936Z Selecting previously unselected package libpod-parser-perl.
+2026-09-08T11:13:51.1311072Z Preparing to unpack .../136-libpod-parser-perl_1.67-1_all.deb ...
+2026-09-08T11:13:51.1454773Z Adding 'diversion of /usr/bin/podselect to /usr/bin/podselect.bundled by libpod-parser-perl'
+2026-09-08T11:13:51.1579945Z Adding 'diversion of /usr/share/man/man1/podselect.1.gz to /usr/share/man/man1/podselect.bundled.1.gz by libpod-parser-perl'
+2026-09-08T11:13:51.1593795Z Unpacking libpod-parser-perl (1.67-1) ...
+2026-09-08T11:13:51.1796556Z Selecting previously unselected package libpod-constants-perl.
+2026-09-08T11:13:51.1913361Z Preparing to unpack .../137-libpod-constants-perl_0.19-2_all.deb ...
+2026-09-08T11:13:51.1922178Z Unpacking libpod-constants-perl (0.19-2) ...
+2026-09-08T11:13:51.2113535Z Selecting previously unselected package libqpdf29t64:amd64.
+2026-09-08T11:13:51.2230710Z Preparing to unpack .../138-libqpdf29t64_11.9.0-1.1ubuntu0.1_amd64.deb ...
+2026-09-08T11:13:51.2238420Z Unpacking libqpdf29t64:amd64 (11.9.0-1.1ubuntu0.1) ...
+2026-09-08T11:13:51.2530362Z Selecting previously unselected package libre-engine-re2-perl:amd64.
+2026-09-08T11:13:51.2632517Z Preparing to unpack .../139-libre-engine-re2-perl_0.18+ds-1build3_amd64.deb ...
+2026-09-08T11:13:51.2640407Z Unpacking libre-engine-re2-perl:amd64 (0.18+ds-1build3) ...
+2026-09-08T11:13:51.2822040Z Selecting previously unselected package libregexp-pattern-license-perl.
+2026-09-08T11:13:51.2932354Z Preparing to unpack .../140-libregexp-pattern-license-perl_3.11.0-1_all.deb ...
+2026-09-08T11:13:51.2941311Z Unpacking libregexp-pattern-license-perl (3.11.0-1) ...
+2026-09-08T11:13:51.3142159Z Selecting previously unselected package libregexp-pattern-perl.
+2026-09-08T11:13:51.3254797Z Preparing to unpack .../141-libregexp-pattern-perl_0.2.14-2_all.deb ...
+2026-09-08T11:13:51.3262151Z Unpacking libregexp-pattern-perl (0.2.14-2) ...
+2026-09-08T11:13:51.3428835Z Selecting previously unselected package libregexp-wildcards-perl.
+2026-09-08T11:13:51.3544149Z Preparing to unpack .../142-libregexp-wildcards-perl_1.05-3_all.deb ...
+2026-09-08T11:13:51.3553438Z Unpacking libregexp-wildcards-perl (1.05-3) ...
+2026-09-08T11:13:51.3722010Z Selecting previously unselected package libsereal-decoder-perl.
+2026-09-08T11:13:51.3838106Z Preparing to unpack .../143-libsereal-decoder-perl_5.004+ds-1build3_amd64.deb ...
+2026-09-08T11:13:51.3845540Z Unpacking libsereal-decoder-perl (5.004+ds-1build3) ...
+2026-09-08T11:13:51.4032205Z Selecting previously unselected package libsereal-encoder-perl.
+2026-09-08T11:13:51.4149253Z Preparing to unpack .../144-libsereal-encoder-perl_5.004+ds-1build3_amd64.deb ...
+2026-09-08T11:13:51.4157713Z Unpacking libsereal-encoder-perl (5.004+ds-1build3) ...
+2026-09-08T11:13:51.4351669Z Selecting previously unselected package libset-intspan-perl.
+2026-09-08T11:13:51.4465317Z Preparing to unpack .../145-libset-intspan-perl_1.19-3_all.deb ...
+2026-09-08T11:13:51.4478564Z Unpacking libset-intspan-perl (1.19-3) ...
+2026-09-08T11:13:51.4652842Z Selecting previously unselected package libsocket6-perl.
+2026-09-08T11:13:51.4769987Z Preparing to unpack .../146-libsocket6-perl_0.29-3build3_amd64.deb ...
+2026-09-08T11:13:51.4777246Z Unpacking libsocket6-perl (0.29-3build3) ...
+2026-09-08T11:13:51.4943148Z Selecting previously unselected package libstring-copyright-perl.
+2026-09-08T11:13:51.5063059Z Preparing to unpack .../147-libstring-copyright-perl_0.003014-1_all.deb ...
+2026-09-08T11:13:51.5071047Z Unpacking libstring-copyright-perl (0.003014-1) ...
+2026-09-08T11:13:51.5243540Z Selecting previously unselected package libstring-escape-perl.
+2026-09-08T11:13:51.5359964Z Preparing to unpack .../148-libstring-escape-perl_2010.002-3_all.deb ...
+2026-09-08T11:13:51.5369570Z Unpacking libstring-escape-perl (2010.002-3) ...
+2026-09-08T11:13:51.5543475Z Selecting previously unselected package libstring-license-perl.
+2026-09-08T11:13:51.5657533Z Preparing to unpack .../149-libstring-license-perl_0.0.9-2ubuntu1_all.deb ...
+2026-09-08T11:13:51.5666725Z Unpacking libstring-license-perl (0.0.9-2ubuntu1) ...
+2026-09-08T11:13:51.5841023Z Selecting previously unselected package libstring-shellquote-perl.
+2026-09-08T11:13:51.5957842Z Preparing to unpack .../150-libstring-shellquote-perl_1.04-3_all.deb ...
+2026-09-08T11:13:51.5963923Z Unpacking libstring-shellquote-perl (1.04-3) ...
+2026-09-08T11:13:51.6133142Z Selecting previously unselected package libsyntax-keyword-try-perl.
+2026-09-08T11:13:51.6247088Z Preparing to unpack .../151-libsyntax-keyword-try-perl_0.29-1build3_amd64.deb ...
+2026-09-08T11:13:51.6255742Z Unpacking libsyntax-keyword-try-perl (0.29-1build3) ...
+2026-09-08T11:13:51.6428941Z Selecting previously unselected package libtext-levenshteinxs-perl.
+2026-09-08T11:13:51.6541567Z Preparing to unpack .../152-libtext-levenshteinxs-perl_0.03-5build4_amd64.deb ...
+2026-09-08T11:13:51.6548674Z Unpacking libtext-levenshteinxs-perl (0.03-5build4) ...
+2026-09-08T11:13:51.6707499Z Selecting previously unselected package libtext-markdown-discount-perl.
+2026-09-08T11:13:51.6821766Z Preparing to unpack .../153-libtext-markdown-discount-perl_0.16-1build3_amd64.deb ...
+2026-09-08T11:13:51.6828269Z Unpacking libtext-markdown-discount-perl (0.16-1build3) ...
+2026-09-08T11:13:51.6993670Z Selecting previously unselected package libtext-xslate-perl:amd64.
+2026-09-08T11:13:51.7108003Z Preparing to unpack .../154-libtext-xslate-perl_3.5.9-1build5_amd64.deb ...
+2026-09-08T11:13:51.7115351Z Unpacking libtext-xslate-perl:amd64 (3.5.9-1build5) ...
+2026-09-08T11:13:51.7383739Z Selecting previously unselected package libtime-duration-perl.
+2026-09-08T11:13:51.7502340Z Preparing to unpack .../155-libtime-duration-perl_1.21-2_all.deb ...
+2026-09-08T11:13:51.7510173Z Unpacking libtime-duration-perl (1.21-2) ...
+2026-09-08T11:13:51.7685408Z Selecting previously unselected package libtime-moment-perl.
+2026-09-08T11:13:51.7804225Z Preparing to unpack .../156-libtime-moment-perl_0.44-2build4_amd64.deb ...
+2026-09-08T11:13:51.7812084Z Unpacking libtime-moment-perl (0.44-2build4) ...
+2026-09-08T11:13:51.8005093Z Selecting previously unselected package libunicode-utf8-perl.
+2026-09-08T11:13:51.8122926Z Preparing to unpack .../157-libunicode-utf8-perl_0.62-2build3_amd64.deb ...
+2026-09-08T11:13:51.8130510Z Unpacking libunicode-utf8-perl (0.62-2build3) ...
+2026-09-08T11:13:51.8303962Z Selecting previously unselected package libwww-mechanize-perl.
+2026-09-08T11:13:51.8424345Z Preparing to unpack .../158-libwww-mechanize-perl_2.18-1ubuntu1_all.deb ...
+2026-09-08T11:13:51.8431808Z Unpacking libwww-mechanize-perl (2.18-1ubuntu1) ...
+2026-09-08T11:13:51.8616576Z Selecting previously unselected package libyaml-libyaml-perl.
+2026-09-08T11:13:51.8732798Z Preparing to unpack .../159-libyaml-libyaml-perl_0.89+ds-1ubuntu0.24.04.1_amd64.deb ...
+2026-09-08T11:13:51.8740181Z Unpacking libyaml-libyaml-perl (0.89+ds-1ubuntu0.24.04.1) ...
+2026-09-08T11:13:51.8929475Z Selecting previously unselected package licensecheck.
+2026-09-08T11:13:51.9038110Z Preparing to unpack .../160-licensecheck_3.3.9-1ubuntu1_all.deb ...
+2026-09-08T11:13:51.9051605Z Unpacking licensecheck (3.3.9-1ubuntu1) ...
+2026-09-08T11:13:51.9229692Z Selecting previously unselected package libdevel-size-perl.
+2026-09-08T11:13:51.9335726Z Preparing to unpack .../161-libdevel-size-perl_0.83-2build4_amd64.deb ...
+2026-09-08T11:13:51.9352487Z Unpacking libdevel-size-perl (0.83-2build4) ...
+2026-09-08T11:13:51.9516256Z Selecting previously unselected package libipc-run3-perl.
+2026-09-08T11:13:51.9634985Z Preparing to unpack .../162-libipc-run3-perl_0.049-1_all.deb ...
+2026-09-08T11:13:51.9648750Z Unpacking libipc-run3-perl (0.049-1) ...
+2026-09-08T11:13:51.9829740Z Selecting previously unselected package lzip.
+2026-09-08T11:13:51.9933543Z Preparing to unpack .../163-lzip_1.24.1-1build1_amd64.deb ...
+2026-09-08T11:13:51.9952619Z Unpacking lzip (1.24.1-1build1) ...
+2026-09-08T11:13:52.0130400Z Selecting previously unselected package lzop.
+2026-09-08T11:13:52.0244109Z Preparing to unpack .../164-lzop_1.04-2build3_amd64.deb ...
+2026-09-08T11:13:52.0252150Z Unpacking lzop (1.04-2build3) ...
+2026-09-08T11:13:52.0427360Z Selecting previously unselected package t1utils.
+2026-09-08T11:13:52.0544018Z Preparing to unpack .../165-t1utils_1.41-4build3_amd64.deb ...
+2026-09-08T11:13:52.0557986Z Unpacking t1utils (1.41-4build3) ...
+2026-09-08T11:13:52.0879395Z Selecting previously unselected package lintian.
+2026-09-08T11:13:52.0984043Z Preparing to unpack .../166-lintian_2.117.0ubuntu1.5_all.deb ...
+2026-09-08T11:13:52.1042951Z Unpacking lintian (2.117.0ubuntu1.5) ...
+2026-09-08T11:13:52.5633085Z Selecting previously unselected package python3-nacl.
+2026-09-08T11:13:52.5735565Z Preparing to unpack .../167-python3-nacl_1.5.0-4build1_amd64.deb ...
+2026-09-08T11:13:52.5746980Z Unpacking python3-nacl (1.5.0-4build1) ...
+2026-09-08T11:13:52.5967394Z Selecting previously unselected package python3-paramiko.
+2026-09-08T11:13:52.6085197Z Preparing to unpack .../168-python3-paramiko_2.12.0-2ubuntu4.1_all.deb ...
+2026-09-08T11:13:52.6099260Z Unpacking python3-paramiko (2.12.0-2ubuntu4.1) ...
+2026-09-08T11:13:52.6349799Z Selecting previously unselected package python3-unidiff.
+2026-09-08T11:13:52.6457041Z Preparing to unpack .../169-python3-unidiff_0.7.3-1_all.deb ...
+2026-09-08T11:13:52.6470303Z Unpacking python3-unidiff (0.7.3-1) ...
+2026-09-08T11:13:52.6661305Z Selecting previously unselected package qpdf.
+2026-09-08T11:13:52.6765541Z Preparing to unpack .../170-qpdf_11.9.0-1.1ubuntu0.1_amd64.deb ...
+2026-09-08T11:13:52.6775126Z Unpacking qpdf (11.9.0-1.1ubuntu0.1) ...
+2026-09-08T11:13:52.6967675Z Selecting previously unselected package libauthen-sasl-perl.
+2026-09-08T11:13:52.7091944Z Preparing to unpack .../171-libauthen-sasl-perl_2.1700-1_all.deb ...
+2026-09-08T11:13:52.7099008Z Unpacking libauthen-sasl-perl (2.1700-1) ...
+2026-09-08T11:13:52.7507143Z Setting up libapt-pkg-perl (0.1.40build7) ...
+2026-09-08T11:13:52.7531491Z Setting up libstring-escape-perl (2010.002-3) ...
+2026-09-08T11:13:52.7548789Z Setting up libberkeleydb-perl:amd64 (0.64-2build4) ...
+2026-09-08T11:13:52.7566088Z Setting up wdiff (1.2.2-6build1) ...
+2026-09-08T11:13:52.7583108Z Setting up libpaper1:amd64 (1.1.29build1) ...
+2026-09-08T11:13:52.8752916Z 
+2026-09-08T11:13:52.8753753Z Creating config file /etc/papersize with new version
+2026-09-08T11:13:52.9126428Z Setting up libhttp-negotiate-perl (6.01-2) ...
+2026-09-08T11:13:52.9142593Z Setting up libfile-which-perl (1.27-2) ...
+2026-09-08T11:13:52.9161818Z Setting up gettext (0.21-14ubuntu2) ...
+2026-09-08T11:13:52.9197540Z Setting up libunicode-utf8-perl (0.62-2build3) ...
+2026-09-08T11:13:52.9214746Z Setting up libset-intspan-perl (1.19-3) ...
+2026-09-08T11:13:52.9231190Z Setting up libmouse-perl (2.5.10-1build8) ...
+2026-09-08T11:13:52.9247243Z Setting up libfile-listing-perl (6.16-1) ...
+2026-09-08T11:13:52.9264547Z Setting up fonts-noto-mono (20201225-2) ...
+2026-09-08T11:13:52.9288076Z Setting up gdebi-core (0.9.5.7+nmu7) ...
+2026-09-08T11:13:53.0294530Z /usr/share/gdebi/GDebi/GDebiCli.py:159: SyntaxWarning: invalid escape sequence '\S'
+2026-09-08T11:13:53.0295718Z   c = findall("[[(](\S+)/\S+[])]", msg)[0].lower()
+2026-09-08T11:13:53.0443242Z Setting up libregexp-pattern-perl (0.2.14-2) ...
+2026-09-08T11:13:53.0464670Z Setting up libdata-messagepack-perl (1.02-1build4) ...
+2026-09-08T11:13:53.0478961Z Setting up libfont-afm-perl (1.20-4) ...
+2026-09-08T11:13:53.0498739Z Setting up libdynaloader-functions-perl (0.003-3) ...
+2026-09-08T11:13:53.0516329Z Setting up libtext-glob-perl (0.11-3) ...
+2026-09-08T11:13:53.0533897Z Setting up libclass-method-modifiers-perl (2.15-1) ...
+2026-09-08T11:13:53.0550847Z Setting up liblist-compare-perl (0.55-2) ...
+2026-09-08T11:13:53.0572398Z Setting up libio-pty-perl (1:1.20-1build2) ...
+2026-09-08T11:13:53.0595437Z Setting up libhttp-cookies-perl (6.11-1) ...
+2026-09-08T11:13:53.0622028Z Setting up libarchive-zip-perl (1.68-1) ...
+2026-09-08T11:13:53.0639856Z Setting up libsub-identify-perl (0.14-3build3) ...
+2026-09-08T11:13:53.0662543Z Setting up libdistro-info-perl (1.7build1) ...
+2026-09-08T11:13:53.0679157Z Setting up libcpanel-json-xs-perl:amd64 (4.37-1ubuntu0.1) ...
+2026-09-08T11:13:53.0696540Z Setting up liblog-any-perl (1.717-1) ...
+2026-09-08T11:13:53.0718122Z Setting up libijs-0.35:amd64 (0.35-15.1build1) ...
+2026-09-08T11:13:53.0734633Z Setting up libauthen-sasl-perl (2.1700-1) ...
+2026-09-08T11:13:53.0753060Z Setting up libhtml-tree-perl (5.07-3) ...
+2026-09-08T11:13:53.0770298Z Setting up libdevel-size-perl (0.83-2build4) ...
+2026-09-08T11:13:53.0784970Z Setting up libgs-common (10.02.1~dfsg1-0ubuntu7.8) ...
+2026-09-08T11:13:53.0803003Z Setting up libregexp-pattern-license-perl (3.11.0-1) ...
+2026-09-08T11:13:53.0819253Z Setting up libyaml-libyaml-perl (0.89+ds-1ubuntu0.24.04.1) ...
+2026-09-08T11:13:53.0837085Z Setting up libio-interactive-perl (1.025-1) ...
+2026-09-08T11:13:53.0858847Z Setting up libtry-tiny-perl (0.31-2) ...
+2026-09-08T11:13:53.0874567Z Setting up perl-openssl-defaults:amd64 (7build3) ...
+2026-09-08T11:13:53.0899043Z Setting up libmldbm-perl (2.05-4) ...
+2026-09-08T11:13:53.0916673Z Setting up libqpdf29t64:amd64 (11.9.0-1.1ubuntu0.1) ...
+2026-09-08T11:13:53.0935339Z Setting up libnet-http-perl (6.23-1) ...
+2026-09-08T11:13:53.0956893Z Setting up libtime-moment-perl (0.44-2build4) ...
+2026-09-08T11:13:53.0979243Z Setting up libhtml-format-perl (2.16-2) ...
+2026-09-08T11:13:53.0996741Z Setting up libpaper-utils (1.1.29build1) ...
+2026-09-08T11:13:53.1018131Z Setting up libmath-base85-perl (0.5+dfsg-2) ...
+2026-09-08T11:13:53.1268152Z Setting up python3-xdg (0.28-2) ...
+2026-09-08T11:13:53.2656463Z Setting up libconfig-tiny-perl (2.30-1) ...
+2026-09-08T11:13:53.2680961Z Setting up libsereal-encoder-perl (5.004+ds-1build3) ...
+2026-09-08T11:13:53.2706383Z Setting up liblist-utilsby-perl (0.12-2) ...
+2026-09-08T11:13:53.2727608Z Setting up libstring-shellquote-perl (1.04-3) ...
+2026-09-08T11:13:53.2752621Z Setting up libnet-netmask-perl (2.0002-2) ...
+2026-09-08T11:13:53.2769743Z Setting up libsub-install-perl (0.929-1) ...
+2026-09-08T11:13:53.2790989Z Setting up libindirect-perl (0.39-2build4) ...
+2026-09-08T11:13:53.2809156Z Setting up poppler-data (0.4.12-1) ...
+2026-09-08T11:13:53.2904701Z Setting up libxs-parse-sublike-perl:amd64 (0.21-2build3) ...
+2026-09-08T11:13:53.2923669Z Setting up libnumber-compare-perl (0.03-3) ...
+2026-09-08T11:13:53.2940120Z Setting up intltool-debian (0.35.0+20060710.6) ...
+2026-09-08T11:13:53.2959252Z Setting up libfreezethaw-perl (0.5001-3) ...
+2026-09-08T11:13:53.2977015Z Setting up patchutils (0.4.2-1build3) ...
+2026-09-08T11:13:53.2994868Z Setting up libjson-maybexs-perl (1.004005-1) ...
+2026-09-08T11:13:53.3015409Z Setting up libio-string-perl (1.08-4) ...
+2026-09-08T11:13:53.3031696Z Setting up libnetaddr-ip-perl (4.079+dfsg-2build4) ...
+2026-09-08T11:13:53.3049306Z Setting up libpackage-stash-xs-perl:amd64 (0.30-1build4) ...
+2026-09-08T11:13:53.3070497Z Setting up libclass-data-inheritable-perl (0.08-3) ...
+2026-09-08T11:13:53.3089739Z Setting up libxs-parse-keyword-perl (0.39-1build3) ...
+2026-09-08T11:13:53.3107123Z Setting up python3-gpg (1.18.0-4.1ubuntu4) ...
+2026-09-08T11:13:53.4589648Z Setting up libdata-dump-perl (1.25-1) ...
+2026-09-08T11:13:53.4607586Z Setting up libfile-find-rule-perl (0.34-3ubuntu0.24.04.1) ...
+2026-09-08T11:13:53.4628223Z Setting up libjbig2dec0:amd64 (0.20-1ubuntu0.24.04.1) ...
+2026-09-08T11:13:53.4644200Z Setting up libipc-system-simple-perl (1.30-2) ...
+2026-09-08T11:13:53.4661100Z Setting up libnet-domain-tld-perl (1.75-3) ...
+2026-09-08T11:13:53.4679031Z Setting up libperlio-utf8-strict-perl (0.010-1build3) ...
+2026-09-08T11:13:53.4693855Z Setting up libsocket6-perl (0.29-3build3) ...
+2026-09-08T11:13:53.4712606Z Setting up lzip (1.24.1-1build1) ...
+2026-09-08T11:13:53.4763280Z update-alternatives: using /usr/bin/lzip.lzip to provide /usr/bin/lzip (lzip) in auto mode
+2026-09-08T11:13:53.4798257Z update-alternatives: using /usr/bin/lzip.lzip to provide /usr/bin/lzip-compressor (lzip-compressor) in auto mode
+2026-09-08T11:13:53.4833671Z update-alternatives: using /usr/bin/lzip.lzip to provide /usr/bin/lzip-decompressor (lzip-decompressor) in auto mode
+2026-09-08T11:13:53.4855031Z Setting up qpdf (11.9.0-1.1ubuntu0.1) ...
+2026-09-08T11:13:53.4872899Z Setting up xfonts-encodings (1:1.0.5-0ubuntu2) ...
+2026-09-08T11:13:53.4898103Z Setting up t1utils (1.41-4build3) ...
+2026-09-08T11:13:53.4916943Z Setting up diffstat (1.66-1build1) ...
+2026-09-08T11:13:53.4935545Z Setting up libvariable-magic-perl (0.63-1build3) ...
+2026-09-08T11:13:53.4953811Z Setting up libidn12:amd64 (1.42-1ubuntu0.1) ...
+2026-09-08T11:13:53.4973698Z Setting up libpod-parser-perl (1.67-1) ...
+2026-09-08T11:13:53.4991988Z Setting up libb-hooks-op-check-perl:amd64 (0.22-3build1) ...
+2026-09-08T11:13:53.5097779Z Setting up libipc-run-perl (20231003.0-1) ...
+2026-09-08T11:13:53.5112384Z Setting up libparams-util-perl (1.102-2build3) ...
+2026-09-08T11:13:53.5132019Z Setting up libtime-duration-perl (1.21-2) ...
+2026-09-08T11:13:53.5150271Z Setting up libtext-xslate-perl:amd64 (3.5.9-1build5) ...
+2026-09-08T11:13:53.5167231Z Setting up libsub-exporter-progressive-perl (0.001013-3) ...
+2026-09-08T11:13:53.5185229Z Setting up libarray-intspan-perl (2.004-2) ...
+2026-09-08T11:13:53.5201537Z Setting up libcapture-tiny-perl (0.48-2) ...
+2026-09-08T11:13:53.5226114Z Setting up libsub-name-perl:amd64 (0.27-1build3) ...
+2026-09-08T11:13:53.5243445Z Setting up libwww-robotrules-perl (6.02-1) ...
+2026-09-08T11:13:53.5261186Z Setting up libsyntax-keyword-try-perl (0.29-1build3) ...
+2026-09-08T11:13:53.5277141Z Setting up libdata-validate-domain-perl (0.10-1.1) ...
+2026-09-08T11:13:53.5293580Z Setting up libhttp-daemon-perl (6.16-1ubuntu0.24.04.1) ...
+2026-09-08T11:13:53.5313194Z Setting up libfile-chdir-perl (0.1008-1.1) ...
+2026-09-08T11:13:53.5327655Z Setting up libpath-tiny-perl (0.144-1) ...
+2026-09-08T11:13:53.5342349Z Setting up lzop (1.04-2build3) ...
+2026-09-08T11:13:53.5361593Z Setting up liblog-any-adapter-screen-perl (0.140-2) ...
+2026-09-08T11:13:53.5381127Z Setting up librole-tiny-perl (2.002004-1) ...
+2026-09-08T11:13:53.5401870Z Setting up libipc-run3-perl (0.049-1) ...
+2026-09-08T11:13:53.5419708Z Setting up libregexp-wildcards-perl (1.05-3) ...
+2026-09-08T11:13:53.5438630Z Setting up libaliased-perl (0.34-3) ...
+2026-09-08T11:13:53.5458214Z Setting up python3-unidiff (0.7.3-1) ...
+2026-09-08T11:13:53.6598269Z Setting up libstrictures-perl (2.000006-1) ...
+2026-09-08T11:13:53.6617605Z Setting up libsub-quote-perl (2.006008-1ubuntu1) ...
+2026-09-08T11:13:53.6634371Z Setting up libdevel-stacktrace-perl (2.0500-1) ...
+2026-09-08T11:13:53.6658049Z Setting up libclass-xsaccessor-perl (1.19-4build4) ...
+2026-09-08T11:13:53.6675262Z Setting up fonts-droid-fallback (1:6.0.1r16-1.1build1) ...
+2026-09-08T11:13:53.6849935Z Setting up libsort-versions-perl (1.62-3) ...
+2026-09-08T11:13:53.6873743Z Setting up libexporter-tiny-perl (1.006002-1) ...
+2026-09-08T11:13:53.6892138Z Setting up libre-engine-re2-perl:amd64 (0.18+ds-1build3) ...
+2026-09-08T11:13:53.6909010Z Setting up libfile-dirlist-perl (0.05-3) ...
+2026-09-08T11:13:53.6925303Z Setting up libfont-ttf-perl (1.06-2) ...
+2026-09-08T11:13:53.6941129Z Setting up libfile-homedir-perl (1.006-2) ...
+2026-09-08T11:13:53.6960079Z Setting up libtext-levenshteinxs-perl (0.03-5build4) ...
+2026-09-08T11:13:53.6976287Z Setting up libperlio-gzip-perl (0.20-1build4) ...
+2026-09-08T11:13:53.6994230Z Setting up libhtml-html5-entities-perl (0.004-3) ...
+2026-09-08T11:13:53.7009325Z Setting up libsereal-decoder-perl (5.004+ds-1build3) ...
+2026-09-08T11:13:53.7027729Z Setting up libmarkdown2:amd64 (2.2.7-2build1) ...
+2026-09-08T11:13:53.7048197Z Setting up libnet-ipv6addr-perl (1.02-1) ...
+2026-09-08T11:13:53.7068985Z Setting up libfile-touch-perl (0.12-2) ...
+2026-09-08T11:13:53.7088870Z Setting up python3-nacl (1.5.0-4build1) ...
+2026-09-08T11:13:53.8428732Z Setting up dctrl-tools (2.24-3build3) ...
+2026-09-08T11:13:53.8485900Z Setting up libdata-validate-ip-perl (0.31-1) ...
+2026-09-08T11:13:53.8501881Z Setting up libhtml-form-perl (6.11-1) ...
+2026-09-08T11:13:53.8518165Z Setting up libemail-address-xs-perl (1.05-1build4) ...
+2026-09-08T11:13:53.8536867Z Setting up libnet-ssleay-perl:amd64 (1.94-1build4) ...
+2026-09-08T11:13:53.8553021Z Setting up libfile-basedir-perl (0.09-2) ...
+2026-09-08T11:13:53.8570387Z Setting up libpod-constants-perl (0.19-2) ...
+2026-09-08T11:13:53.8587340Z Setting up libpath-iterator-rule-perl (1.015-2) ...
+2026-09-08T11:13:53.8608637Z Setting up libtext-markdown-discount-perl (0.16-1build3) ...
+2026-09-08T11:13:53.8626762Z Setting up libexception-class-perl (1.45-1) ...
+2026-09-08T11:13:53.8642532Z Setting up xfonts-utils (1:7.7+6build3) ...
+2026-09-08T11:13:53.8682146Z Setting up libdevel-callchecker-perl:amd64 (0.008-2build3) ...
+2026-09-08T11:13:53.8701408Z Setting up dput (1.1.3ubuntu3) ...
+2026-09-08T11:13:54.0035021Z Setting up libobject-pad-perl (0.808-1build3) ...
+2026-09-08T11:13:54.0047289Z Setting up libdata-validate-uri-perl (0.07-3) ...
+2026-09-08T11:13:54.0062875Z Setting up libstring-copyright-perl (0.003014-1) ...
+2026-09-08T11:13:54.0081671Z Setting up libdata-optlist-perl (0.114-1) ...
+2026-09-08T11:13:54.0098114Z Setting up libgit-wrapper-perl (0.048-2) ...
+2026-09-08T11:13:54.0117125Z Setting up python3-paramiko (2.12.0-2ubuntu4.1) ...
+2026-09-08T11:13:54.2084836Z Setting up libio-socket-ssl-perl (2.085-1) ...
+2026-09-08T11:13:54.2110453Z Setting up libsub-exporter-perl (0.990-1) ...
+2026-09-08T11:13:54.2131610Z Setting up libiterator-perl (0.03+ds1-2) ...
+2026-09-08T11:13:54.2153621Z Setting up libiterator-util-perl (0.02+ds1-2) ...
+2026-09-08T11:13:54.2178833Z Setting up libparams-classify-perl:amd64 (0.015-2build5) ...
+2026-09-08T11:13:54.2192291Z Setting up fonts-urw-base35 (20200910-8) ...
+2026-09-08T11:13:54.3350576Z Setting up libnet-smtp-ssl-perl (1.04-2) ...
+2026-09-08T11:13:54.3373075Z Setting up libmodule-runtime-perl (0.016-2) ...
+2026-09-08T11:13:54.3391971Z Setting up libmailtools-perl (2.21-2) ...
+2026-09-08T11:13:54.3415009Z Setting up libconst-fast-perl (0.014-2) ...
+2026-09-08T11:13:54.3436751Z Setting up libdata-dpath-perl (0.59-1) ...
+2026-09-08T11:13:54.3453050Z Setting up libgs10-common (10.02.1~dfsg1-0ubuntu7.8) ...
+2026-09-08T11:13:54.3473111Z Setting up libmodule-implementation-perl (0.09-2) ...
+2026-09-08T11:13:54.3496171Z Setting up libpackage-stash-perl (0.40-1) ...
+2026-09-08T11:13:54.3512497Z Setting up libimport-into-perl (1.002005-2) ...
+2026-09-08T11:13:54.3535481Z Setting up libmoo-perl (2.005005-1) ...
+2026-09-08T11:13:54.3552728Z Setting up liblist-someutils-perl (0.59-1) ...
+2026-09-08T11:13:54.3573717Z Setting up liblist-someutils-xs-perl:amd64 (0.58-3build4) ...
+2026-09-08T11:13:54.3593660Z Setting up libmoox-aliases-perl (0.001006-2) ...
+2026-09-08T11:13:54.3608663Z Setting up libb-hooks-endofscope-perl (0.28-1) ...
+2026-09-08T11:13:54.3633165Z Setting up libgs10:amd64 (10.02.1~dfsg1-0ubuntu7.8) ...
+2026-09-08T11:13:54.3651907Z Setting up ghostscript (10.02.1~dfsg1-0ubuntu7.8) ...
+2026-09-08T11:13:54.3708002Z Setting up libnamespace-clean-perl (0.27-2) ...
+2026-09-08T11:13:54.3802258Z Setting up libstring-license-perl (0.0.9-2ubuntu1) ...
+2026-09-08T11:13:54.3822348Z Setting up licensecheck (3.3.9-1ubuntu1) ...
+2026-09-08T11:13:54.3876864Z Setting up liblwp-protocol-https-perl (6.13-1) ...
+2026-09-08T11:13:54.3897062Z Setting up libwww-perl (6.76-1ubuntu0.1) ...
+2026-09-08T11:13:54.3931241Z Setting up libhtml-tokeparser-simple-perl (3.16-4) ...
+2026-09-08T11:13:54.3952179Z Setting up libwww-mechanize-perl (2.18-1ubuntu1) ...
+2026-09-08T11:13:54.3981976Z Setting up devscripts (2.23.7ubuntu0.2) ...
+2026-09-08T11:13:54.5287147Z Setting up lintian (2.117.0ubuntu1.5) ...
+2026-09-08T11:13:54.5350361Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-09-08T11:13:54.5367820Z Not building database; man-db/auto-update is not 'true'.
+2026-09-08T11:13:54.5382197Z Processing triggers for install-info (7.1-3build2) ...
+2026-09-08T11:13:54.6411679Z Processing triggers for fontconfig (2.15.0-1.1ubuntu2) ...
+2026-09-08T11:13:54.7899939Z Processing triggers for libc-bin (2.39-0ubuntu8.8) ...
+2026-09-08T11:13:55.3789241Z 
+2026-09-08T11:13:55.3790252Z Running kernel seems to be up-to-date.
+2026-09-08T11:13:55.3790811Z 
+2026-09-08T11:13:55.3791272Z No services need to be restarted.
+2026-09-08T11:13:55.3791676Z 
+2026-09-08T11:13:55.3791962Z No containers need to be restarted.
+2026-09-08T11:13:55.3792413Z 
+2026-09-08T11:13:55.3792712Z No user sessions are running outdated binaries.
+2026-09-08T11:13:55.3793167Z 
+2026-09-08T11:13:55.3793616Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-09-08T11:13:56.5007407Z ##[endgroup]
+2026-09-08T11:13:56.5008154Z ##[group]Installing R
+2026-09-08T11:13:56.5015204Z [command]/usr/bin/sudo gdebi --non-interactive /home/runner/work/_temp/r-4.6.1_1_amd64.deb
+2026-09-08T11:13:56.5264586Z /usr/bin/gdebi:113: SyntaxWarning: invalid escape sequence '\S'
+2026-09-08T11:13:56.5265485Z   c = findall("[[(](\S+)/\S+[])]", msg)[0].lower()
+2026-09-08T11:13:56.5954493Z 
+2026-09-08T11:13:56.6055737Z Reading package lists... 0%
+2026-09-08T11:13:56.6056275Z 
+2026-09-08T11:13:56.6093255Z Reading package lists... 100%
+2026-09-08T11:13:56.6094159Z 
+2026-09-08T11:13:56.6094229Z 
+2026-09-08T11:13:56.6094450Z Reading package lists... Done
+2026-09-08T11:13:56.6094741Z 
+2026-09-08T11:13:56.6094932Z Building dependency tree... 0%
+2026-09-08T11:13:56.6095255Z 
+2026-09-08T11:13:56.6458082Z Building dependency tree... 0%
+2026-09-08T11:13:56.6459297Z 
+2026-09-08T11:13:56.6459629Z Building dependency tree... 50%
+2026-09-08T11:13:56.6460165Z 
+2026-09-08T11:13:56.8065030Z Building dependency tree... 50%
+2026-09-08T11:13:56.8068510Z 
+2026-09-08T11:13:56.8068876Z 
+2026-09-08T11:13:56.8069233Z Building dependency tree... Done
+2026-09-08T11:13:56.8070195Z 
+2026-09-08T11:13:56.8070522Z Reading state information... 0%
+2026-09-08T11:13:56.8071203Z  
+2026-09-08T11:13:56.8071664Z Reading state information... 0%
+2026-09-08T11:13:56.9336974Z  
+2026-09-08T11:13:56.9337555Z 
+2026-09-08T11:13:56.9338091Z Reading state information... Done
+2026-09-08T11:13:56.9338984Z 
+2026-09-08T11:13:56.9339511Z Reading state information... 0%
+2026-09-08T11:13:56.9374691Z   
+2026-09-08T11:13:56.9375327Z Reading state information... 1%
+2026-09-08T11:13:56.9410909Z   
+2026-09-08T11:13:56.9411532Z Reading state information... 3%
+2026-09-08T11:13:56.9449512Z   
+2026-09-08T11:13:56.9450142Z Reading state information... 5%
+2026-09-08T11:13:56.9482991Z   
+2026-09-08T11:13:56.9483614Z Reading state information... 7%
+2026-09-08T11:13:56.9519759Z   
+2026-09-08T11:13:56.9520378Z Reading state information... 9%
+2026-09-08T11:13:56.9556115Z   
+2026-09-08T11:13:56.9556725Z Reading state information... 11%
+2026-09-08T11:13:56.9592823Z  
+2026-09-08T11:13:56.9593476Z Reading state information... 13%
+2026-09-08T11:13:56.9627825Z  
+2026-09-08T11:13:56.9628882Z Reading state information... 15%
+2026-09-08T11:13:56.9667681Z  
+2026-09-08T11:13:56.9668809Z Reading state information... 17%
+2026-09-08T11:13:56.9704736Z  
+2026-09-08T11:13:56.9705629Z Reading state information... 19%
+2026-09-08T11:13:56.9740767Z  
+2026-09-08T11:13:56.9741601Z Reading state information... 21%
+2026-09-08T11:13:56.9779671Z  
+2026-09-08T11:13:56.9780524Z Reading state information... 23%
+2026-09-08T11:13:56.9819671Z  
+2026-09-08T11:13:56.9820527Z Reading state information... 25%
+2026-09-08T11:13:56.9858849Z  
+2026-09-08T11:13:56.9860120Z Reading state information... 27%
+2026-09-08T11:13:56.9899451Z  
+2026-09-08T11:13:56.9900338Z Reading state information... 29%
+2026-09-08T11:13:56.9935241Z  
+2026-09-08T11:13:56.9936136Z Reading state information... 31%
+2026-09-08T11:13:56.9970154Z  
+2026-09-08T11:13:56.9971003Z Reading state information... 33%
+2026-09-08T11:13:57.0007036Z  
+2026-09-08T11:13:57.0007947Z Reading state information... 35%
+2026-09-08T11:13:57.0048953Z  
+2026-09-08T11:13:57.0049885Z Reading state information... 37%
+2026-09-08T11:13:57.0087403Z  
+2026-09-08T11:13:57.0088435Z Reading state information... 39%
+2026-09-08T11:13:57.0127624Z  
+2026-09-08T11:13:57.0137478Z Reading state information... 41%
+2026-09-08T11:13:57.0170186Z  
+2026-09-08T11:13:57.0171244Z Reading state information... 43%
+2026-09-08T11:13:57.0209563Z  
+2026-09-08T11:13:57.0210577Z Reading state information... 45%
+2026-09-08T11:13:57.0248223Z  
+2026-09-08T11:13:57.0249324Z Reading state information... 47%
+2026-09-08T11:13:57.0286480Z  
+2026-09-08T11:13:57.0287472Z Reading state information... 49%
+2026-09-08T11:13:57.0324593Z  
+2026-09-08T11:13:57.0325544Z Reading state information... 51%
+2026-09-08T11:13:57.0364108Z  
+2026-09-08T11:13:57.0365029Z Reading state information... 53%
+2026-09-08T11:13:57.0404641Z  
+2026-09-08T11:13:57.0405571Z Reading state information... 55%
+2026-09-08T11:13:57.0443988Z  
+2026-09-08T11:13:57.0444886Z Reading state information... 57%
+2026-09-08T11:13:57.0479868Z  
+2026-09-08T11:13:57.0480731Z Reading state information... 59%
+2026-09-08T11:13:57.0515252Z  
+2026-09-08T11:13:57.0516059Z Reading state information... 61%
+2026-09-08T11:13:57.0550283Z  
+2026-09-08T11:13:57.0551119Z Reading state information... 63%
+2026-09-08T11:13:57.0587707Z  
+2026-09-08T11:13:57.0588676Z Reading state information... 65%
+2026-09-08T11:13:57.0623146Z  
+2026-09-08T11:13:57.0623997Z Reading state information... 67%
+2026-09-08T11:13:57.0658231Z  
+2026-09-08T11:13:57.0659202Z Reading state information... 69%
+2026-09-08T11:13:57.0697292Z  
+2026-09-08T11:13:57.0698201Z Reading state information... 71%
+2026-09-08T11:13:57.0735892Z  
+2026-09-08T11:13:57.0736737Z Reading state information... 73%
+2026-09-08T11:13:57.0772172Z  
+2026-09-08T11:13:57.0773027Z Reading state information... 75%
+2026-09-08T11:13:57.0808275Z  
+2026-09-08T11:13:57.0809206Z Reading state information... 77%
+2026-09-08T11:13:57.0855077Z  
+2026-09-08T11:13:57.0855893Z Reading state information... 79%
+2026-09-08T11:13:57.0892932Z  
+2026-09-08T11:13:57.0893778Z Reading state information... 81%
+2026-09-08T11:13:57.0933480Z  
+2026-09-08T11:13:57.0934435Z Reading state information... 83%
+2026-09-08T11:13:57.0982229Z  
+2026-09-08T11:13:57.0982811Z Reading state information... 85%
+2026-09-08T11:13:57.1022053Z  
+2026-09-08T11:13:57.1023121Z Reading state information... 87%
+2026-09-08T11:13:57.1068128Z  
+2026-09-08T11:13:57.1069428Z Reading state information... 89%
+2026-09-08T11:13:57.1104272Z  
+2026-09-08T11:13:57.1105208Z Reading state information... 91%
+2026-09-08T11:13:57.1142078Z  
+2026-09-08T11:13:57.1142993Z Reading state information... 93%
+2026-09-08T11:13:57.1180303Z  
+2026-09-08T11:13:57.1181214Z Reading state information... 95%
+2026-09-08T11:13:57.1221847Z  
+2026-09-08T11:13:57.1222707Z Reading state information... 97%
+2026-09-08T11:13:57.1258207Z  
+2026-09-08T11:13:57.1259263Z Reading state information... 99%
+2026-09-08T11:13:58.3501320Z  Selecting previously unselected package bzip2-doc.
+2026-09-08T11:13:58.3539318Z (Reading database ... 
+2026-09-08T11:13:58.3540245Z (Reading database ... 5%
+2026-09-08T11:13:58.3543838Z (Reading database ... 10%
+2026-09-08T11:13:58.3544710Z (Reading database ... 15%
+2026-09-08T11:13:58.3545528Z (Reading database ... 20%
+2026-09-08T11:13:58.3546162Z (Reading database ... 25%
+2026-09-08T11:13:58.3546782Z (Reading database ... 30%
+2026-09-08T11:13:58.3547403Z (Reading database ... 35%
+2026-09-08T11:13:58.3548044Z (Reading database ... 40%
+2026-09-08T11:13:58.3548800Z (Reading database ... 45%
+2026-09-08T11:13:58.3549452Z (Reading database ... 50%
+2026-09-08T11:13:58.3665578Z (Reading database ... 55%
+2026-09-08T11:13:58.3694184Z (Reading database ... 60%
+2026-09-08T11:13:58.3718824Z (Reading database ... 65%
+2026-09-08T11:13:58.3759310Z (Reading database ... 70%
+2026-09-08T11:13:58.3791821Z (Reading database ... 75%
+2026-09-08T11:13:58.3817498Z (Reading database ... 80%
+2026-09-08T11:13:58.3966427Z (Reading database ... 85%
+2026-09-08T11:13:58.4224942Z (Reading database ... 90%
+2026-09-08T11:13:58.4333718Z (Reading database ... 95%
+2026-09-08T11:13:58.4334855Z (Reading database ... 100%
+2026-09-08T11:13:58.4335716Z (Reading database ... 208847 files and directories currently installed.)
+2026-09-08T11:13:58.4380836Z Preparing to unpack .../0-bzip2-doc_1.0.8-5.1ubuntu0.1_all.deb ...
+2026-09-08T11:13:58.4387744Z Unpacking bzip2-doc (1.0.8-5.1ubuntu0.1) ...
+2026-09-08T11:13:58.4610968Z Selecting previously unselected package libbz2-dev:amd64.
+2026-09-08T11:13:58.4700499Z Preparing to unpack .../1-libbz2-dev_1.0.8-5.1ubuntu0.1_amd64.deb ...
+2026-09-08T11:13:58.4707879Z Unpacking libbz2-dev:amd64 (1.0.8-5.1ubuntu0.1) ...
+2026-09-08T11:13:58.4869633Z Selecting previously unselected package libdeflate-dev:amd64.
+2026-09-08T11:13:58.4987143Z Preparing to unpack .../2-libdeflate-dev_1.19-1build1.1_amd64.deb ...
+2026-09-08T11:13:58.4999353Z Unpacking libdeflate-dev:amd64 (1.19-1build1.1) ...
+2026-09-08T11:13:58.5183223Z Selecting previously unselected package libopenblas0-pthread:amd64.
+2026-09-08T11:13:58.5301686Z Preparing to unpack .../3-libopenblas0-pthread_0.3.26+ds-1ubuntu0.1_amd64.deb ...
+2026-09-08T11:13:58.5321887Z Unpacking libopenblas0-pthread:amd64 (0.3.26+ds-1ubuntu0.1) ...
+2026-09-08T11:13:58.6877075Z Selecting previously unselected package libopenblas0:amd64.
+2026-09-08T11:13:58.6995022Z Preparing to unpack .../4-libopenblas0_0.3.26+ds-1ubuntu0.1_amd64.deb ...
+2026-09-08T11:13:58.7019216Z Unpacking libopenblas0:amd64 (0.3.26+ds-1ubuntu0.1) ...
+2026-09-08T11:13:58.7169493Z Selecting previously unselected package libopenblas-pthread-dev:amd64.
+2026-09-08T11:13:58.7275395Z Preparing to unpack .../5-libopenblas-pthread-dev_0.3.26+ds-1ubuntu0.1_amd64.deb ...
+2026-09-08T11:13:58.7284343Z Unpacking libopenblas-pthread-dev:amd64 (0.3.26+ds-1ubuntu0.1) ...
+2026-09-08T11:13:58.9189799Z Selecting previously unselected package libopenblas-dev:amd64.
+2026-09-08T11:13:58.9291707Z Preparing to unpack .../6-libopenblas-dev_0.3.26+ds-1ubuntu0.1_amd64.deb ...
+2026-09-08T11:13:58.9299890Z Unpacking libopenblas-dev:amd64 (0.3.26+ds-1ubuntu0.1) ...
+2026-09-08T11:13:58.9466745Z Selecting previously unselected package liblzma-dev:amd64.
+2026-09-08T11:13:58.9586489Z Preparing to unpack .../7-liblzma-dev_5.6.1+really5.4.5-1ubuntu0.3_amd64.deb ...
+2026-09-08T11:13:58.9600571Z Unpacking liblzma-dev:amd64 (5.6.1+really5.4.5-1ubuntu0.3) ...
+2026-09-08T11:13:58.9819858Z Selecting previously unselected package libtirpc-dev:amd64.
+2026-09-08T11:13:58.9930122Z Preparing to unpack .../8-libtirpc-dev_1.3.4+ds-1.1build1_amd64.deb ...
+2026-09-08T11:13:58.9941937Z Unpacking libtirpc-dev:amd64 (1.3.4+ds-1.1build1) ...
+2026-09-08T11:13:59.0388064Z Setting up bzip2-doc (1.0.8-5.1ubuntu0.1) ...
+2026-09-08T11:13:59.0422326Z Setting up libopenblas0-pthread:amd64 (0.3.26+ds-1ubuntu0.1) ...
+2026-09-08T11:13:59.0475960Z update-alternatives: using /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 to provide /usr/lib/x86_64-linux-gnu/libblas.so.3 (libblas.so.3-x86_64-linux-gnu) in auto mode
+2026-09-08T11:13:59.0511499Z update-alternatives: using /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.so.3 to provide /usr/lib/x86_64-linux-gnu/liblapack.so.3 (liblapack.so.3-x86_64-linux-gnu) in auto mode
+2026-09-08T11:13:59.0550943Z update-alternatives: using /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblas.so.0 to provide /usr/lib/x86_64-linux-gnu/libopenblas.so.0 (libopenblas.so.0-x86_64-linux-gnu) in auto mode
+2026-09-08T11:13:59.0564630Z Setting up libtirpc-dev:amd64 (1.3.4+ds-1.1build1) ...
+2026-09-08T11:13:59.0586954Z Setting up liblzma-dev:amd64 (5.6.1+really5.4.5-1ubuntu0.3) ...
+2026-09-08T11:13:59.0604980Z Setting up libopenblas0:amd64 (0.3.26+ds-1ubuntu0.1) ...
+2026-09-08T11:13:59.0622593Z Setting up libdeflate-dev:amd64 (1.19-1build1.1) ...
+2026-09-08T11:13:59.0638112Z Setting up libbz2-dev:amd64 (1.0.8-5.1ubuntu0.1) ...
+2026-09-08T11:13:59.0653945Z Setting up libopenblas-pthread-dev:amd64 (0.3.26+ds-1ubuntu0.1) ...
+2026-09-08T11:13:59.0704705Z update-alternatives: using /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so to provide /usr/lib/x86_64-linux-gnu/libblas.so (libblas.so-x86_64-linux-gnu) in auto mode
+2026-09-08T11:13:59.0743824Z update-alternatives: using /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.so to provide /usr/lib/x86_64-linux-gnu/liblapack.so (liblapack.so-x86_64-linux-gnu) in auto mode
+2026-09-08T11:13:59.0782043Z update-alternatives: using /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblas.so to provide /usr/lib/x86_64-linux-gnu/libopenblas.so (libopenblas.so-x86_64-linux-gnu) in auto mode
+2026-09-08T11:13:59.0804233Z Setting up libopenblas-dev:amd64 (0.3.26+ds-1ubuntu0.1) ...
+2026-09-08T11:13:59.0825707Z Processing triggers for libc-bin (2.39-0ubuntu8.8) ...
+2026-09-08T11:13:59.0930982Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-09-08T11:13:59.0944991Z Not building database; man-db/auto-update is not 'true'.
+2026-09-08T11:13:59.0955533Z Processing triggers for install-info (7.1-3build2) ...
+2026-09-08T11:13:59.7448027Z 
+2026-09-08T11:13:59.7449083Z Running kernel seems to be up-to-date.
+2026-09-08T11:13:59.7449721Z 
+2026-09-08T11:13:59.7450013Z No services need to be restarted.
+2026-09-08T11:13:59.7450398Z 
+2026-09-08T11:13:59.7450710Z No containers need to be restarted.
+2026-09-08T11:13:59.7451112Z 
+2026-09-08T11:13:59.7451402Z No user sessions are running outdated binaries.
+2026-09-08T11:13:59.7451825Z 
+2026-09-08T11:13:59.7452220Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-09-08T11:14:01.0076497Z Selecting previously unselected package r-4.6.1.
+2026-09-08T11:14:01.0961776Z (Reading database ... 209037 files and directories currently installed.)
+2026-09-08T11:14:01.1010204Z Preparing to unpack .../work/_temp/r-4.6.1_1_amd64.deb ...
+2026-09-08T11:14:01.1019575Z Unpacking r-4.6.1 (1) ...
+2026-09-08T11:14:01.6850072Z Setting up r-4.6.1 (1) ...
+2026-09-08T11:14:01.6983520Z 
+2026-09-08T11:14:01.6984316Z 
+2026-09-08T11:14:01.6984947Z Reading state information... Done
+2026-09-08T11:14:01.6985289Z 
+2026-09-08T11:14:01.6985981Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]                          
+2026-09-08T11:14:01.6986437Z 
+2026-09-08T11:14:01.6986883Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 bzip2-doc all 1.0.8-5.1ubuntu0.1 [499 kB]
+2026-09-08T11:14:01.6987458Z 
+2026-09-08T11:14:01.6987914Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libbz2-dev amd64 1.0.8-5.1ubuntu0.1 [33.6 kB]
+2026-09-08T11:14:01.6988728Z 
+2026-09-08T11:14:01.6989173Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libdeflate-dev amd64 1.19-1build1.1 [50.9 kB]
+2026-09-08T11:14:01.6989756Z 
+2026-09-08T11:14:01.6990317Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libopenblas0-pthread amd64 0.3.26+ds-1ubuntu0.1 [7183 kB]
+2026-09-08T11:14:01.6991089Z 
+2026-09-08T11:14:01.6991496Z Get:6 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libopenblas0 amd64 0.3.26+ds-1ubuntu0.1 [6190 B]
+2026-09-08T11:14:01.6991927Z 
+2026-09-08T11:14:01.6992313Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libopenblas-pthread-dev amd64 0.3.26+ds-1ubuntu0.1 [4899 kB]
+2026-09-08T11:14:01.6992784Z 
+2026-09-08T11:14:01.6993129Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libopenblas-dev amd64 0.3.26+ds-1ubuntu0.1 [19.6 kB]
+2026-09-08T11:14:01.6993573Z 
+2026-09-08T11:14:01.6993915Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 liblzma-dev amd64 5.6.1+really5.4.5-1ubuntu0.3 [176 kB]
+2026-09-08T11:14:01.6994337Z 
+2026-09-08T11:14:01.6994830Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtirpc-dev amd64 1.3.4+ds-1.1build1 [193 kB]
+2026-09-08T11:14:01.6995209Z 
+2026-09-08T11:14:01.6995408Z Fetched 13.1 MB in 0s (0 B/s)                                                   
+2026-09-08T11:14:01.7291166Z ##[endgroup]
+2026-09-08T11:14:01.7301166Z [command]/usr/bin/sudo ln -sf /opt/R/4.6.1/bin/R /usr/local/bin/R
+2026-09-08T11:14:01.7403568Z [command]/usr/bin/sudo ln -sf /opt/R/4.6.1/bin/Rscript /usr/local/bin/Rscript
+2026-09-08T11:14:01.7559286Z [command]/usr/bin/lsb_release --short --codename
+2026-09-08T11:14:01.7631969Z noble
+2026-09-08T11:14:01.7787248Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-08T11:14:01.7788651Z ##[group]Run actions/download-artifact@v4
+2026-09-08T11:14:01.7788926Z with:
+2026-09-08T11:14:01.7789125Z   name: source-candidate
+2026-09-08T11:14:01.7789353Z   path: .scratch/source
+2026-09-08T11:14:01.7789585Z   merge-multiple: false
+2026-09-08T11:14:01.7789813Z   repository: RMKruse/venn-abers
+2026-09-08T11:14:01.7790050Z   run-id: 34219433855
+2026-09-08T11:14:01.7790244Z env:
+2026-09-08T11:14:01.7790437Z   ACCEPTANCE_PROFILE: core
+2026-09-08T11:14:01.7790664Z   EXPECTED_R_ARCH: x86_64
+2026-09-08T11:14:01.7791036Z   ACCEPTANCE_OUTPUT_DIR: /home/runner/work/venn-abers/venn-abers/.scratch/ci
+2026-09-08T11:14:01.7814682Z   ACCEPTANCE_ARTIFACT: /home/runner/work/venn-abers/venn-abers/.scratch/source/vennabers_0.5.0.tar.gz
+2026-09-08T11:14:01.7815498Z   R_LIBS_USER: /home/runner/work/_temp/Library
+2026-09-08T11:14:01.7815786Z   TZ: UTC
+2026-09-08T11:14:01.7815980Z   _R_CHECK_SYSTEM_CLOCK_: FALSE
+2026-09-08T11:14:01.7816218Z   NOT_CRAN: true
+2026-09-08T11:14:01.7816533Z   RSPM: https://packagemanager.posit.co/cran/__linux__/noble/latest
+2026-09-08T11:14:01.7817049Z   RENV_CONFIG_REPOS_OVERRIDE: https://packagemanager.posit.co/cran/__linux__/noble/latest
+2026-09-08T11:14:01.7817481Z ##[endgroup]
+2026-09-08T11:14:01.9392195Z Downloading single artifact
+2026-09-08T11:14:01.9620600Z (node:4902) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-08T11:14:01.9639679Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-08T11:14:02.1968765Z Preparing to download the following artifacts:
+2026-09-08T11:14:02.1996949Z - source-candidate (ID: 10053136352, Size: 1541894, Expected Digest: sha256:7e4677756a316fa16c434492c37e9e2b9c81cdc3379e7be01890228d09f81558)
+2026-09-08T11:14:02.4162528Z Redirecting to blob download url: https://productionresultssa3.blob.core.windows.net/actions-results/c8c98ca3-a225-476b-8dde-8436c3712017/workflow-job-run-ce378838-0a00-5ee3-9a5a-09c6ec710511/artifacts/56dc4d6aa37ca9abf352f5e8c5e5575a2648865d305d4ba2cc62e88195c15690.zip
+2026-09-08T11:14:02.4165397Z Starting download of artifact to: /home/runner/work/venn-abers/venn-abers/.scratch/source
+2026-09-08T11:14:02.6865647Z (node:4902) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+2026-09-08T11:14:03.2241948Z SHA256 digest of downloaded artifact is 7e4677756a316fa16c434492c37e9e2b9c81cdc3379e7be01890228d09f81558
+2026-09-08T11:14:03.2245754Z Artifact download completed successfully.
+2026-09-08T11:14:03.2246534Z Total of 1 artifact(s) downloaded
+2026-09-08T11:14:03.2247592Z Download artifact has finished successfully
+2026-09-08T11:14:03.2377903Z ##[group]Run sha256sum -c SHA256SUMS
+2026-09-08T11:14:03.2378548Z [36;1msha256sum -c SHA256SUMS[0m
+2026-09-08T11:14:03.2404728Z shell: /usr/bin/bash -e {0}
+2026-09-08T11:14:03.2405009Z env:
+2026-09-08T11:14:03.2405226Z   ACCEPTANCE_PROFILE: core
+2026-09-08T11:14:03.2405477Z   EXPECTED_R_ARCH: x86_64
+2026-09-08T11:14:03.2405844Z   ACCEPTANCE_OUTPUT_DIR: /home/runner/work/venn-abers/venn-abers/.scratch/ci
+2026-09-08T11:14:03.2406420Z   ACCEPTANCE_ARTIFACT: /home/runner/work/venn-abers/venn-abers/.scratch/source/vennabers_0.5.0.tar.gz
+2026-09-08T11:14:03.2406899Z   R_LIBS_USER: /home/runner/work/_temp/Library
+2026-09-08T11:14:03.2407183Z   TZ: UTC
+2026-09-08T11:14:03.2407380Z   _R_CHECK_SYSTEM_CLOCK_: FALSE
+2026-09-08T11:14:03.2407618Z   NOT_CRAN: true
+2026-09-08T11:14:03.2407956Z   RSPM: https://packagemanager.posit.co/cran/__linux__/noble/latest
+2026-09-08T11:14:03.2408777Z   RENV_CONFIG_REPOS_OVERRIDE: https://packagemanager.posit.co/cran/__linux__/noble/latest
+2026-09-08T11:14:03.2409268Z ##[endgroup]
+2026-09-08T11:14:03.2518079Z vennabers_0.5.0.tar.gz: OK
+2026-09-08T11:14:03.2573256Z ##[group]Run Rscript --vanilla tools/acceptance.R
+2026-09-08T11:14:03.2573642Z [36;1mRscript --vanilla tools/acceptance.R[0m
+2026-09-08T11:14:03.2595600Z shell: /usr/bin/bash -e {0}
+2026-09-08T11:14:03.2595870Z env:
+2026-09-08T11:14:03.2596092Z   ACCEPTANCE_PROFILE: core
+2026-09-08T11:14:03.2596343Z   EXPECTED_R_ARCH: x86_64
+2026-09-08T11:14:03.2596693Z   ACCEPTANCE_OUTPUT_DIR: /home/runner/work/venn-abers/venn-abers/.scratch/ci
+2026-09-08T11:14:03.2597263Z   ACCEPTANCE_ARTIFACT: /home/runner/work/venn-abers/venn-abers/.scratch/source/vennabers_0.5.0.tar.gz
+2026-09-08T11:14:03.2597754Z   R_LIBS_USER: /home/runner/work/_temp/Library
+2026-09-08T11:14:03.2598026Z   TZ: UTC
+2026-09-08T11:14:03.2598238Z   _R_CHECK_SYSTEM_CLOCK_: FALSE
+2026-09-08T11:14:03.2598592Z   NOT_CRAN: true
+2026-09-08T11:14:03.2598928Z   RSPM: https://packagemanager.posit.co/cran/__linux__/noble/latest
+2026-09-08T11:14:03.2599504Z   RENV_CONFIG_REPOS_OVERRIDE: https://packagemanager.posit.co/cran/__linux__/noble/latest
+2026-09-08T11:14:03.2599916Z ##[endgroup]
+2026-09-08T11:14:03.4799795Z Acceptance environment: R version 4.6.1 (2026-06-24) on x86_64-pc-linux-gnu 
+2026-09-08T11:14:03.4800693Z             sysname             release             machine 
+2026-09-08T11:14:03.4801421Z             "Linux" "6.17.0-1022-azure"            "x86_64" 
+2026-09-08T11:14:03.4816358Z R version 4.6.1 (2026-06-24)
+2026-09-08T11:14:03.4817042Z Platform: x86_64-pc-linux-gnu
+2026-09-08T11:14:03.4817944Z Running under: Ubuntu 24.04.4 LTS
+2026-09-08T11:14:03.4818568Z 
+2026-09-08T11:14:03.4818957Z Matrix products: default
+2026-09-08T11:14:03.4819692Z BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
+2026-09-08T11:14:03.4821267Z LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so;  LAPACK version 3.12.0
+2026-09-08T11:14:03.4822043Z 
+2026-09-08T11:14:03.4822330Z locale:
+2026-09-08T11:14:03.4823112Z  [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+2026-09-08T11:14:03.4824185Z  [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+2026-09-08T11:14:03.4825195Z  [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+2026-09-08T11:14:03.4826202Z [10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+2026-09-08T11:14:03.4826829Z 
+2026-09-08T11:14:03.4827117Z time zone: UTC
+2026-09-08T11:14:03.4827692Z tzcode source: system (glibc)
+2026-09-08T11:14:03.4828133Z 
+2026-09-08T11:14:03.4828711Z attached base packages:
+2026-09-08T11:14:03.4829501Z [1] stats     graphics  grDevices utils     datasets  methods   base     
+2026-09-08T11:14:03.4830082Z 
+2026-09-08T11:14:03.4830467Z loaded via a namespace (and not attached):
+2026-09-08T11:14:03.4831109Z [1] compiler_4.6.1
+2026-09-08T11:14:05.6930373Z * installing *source* package ‘vennabers’ ...
+2026-09-08T11:14:05.6931519Z ** this is package ‘vennabers’ version ‘0.5.0’
+2026-09-08T11:14:05.6932386Z ** using staged installation
+2026-09-08T11:14:05.6932887Z ** R
+2026-09-08T11:14:05.6933354Z ** inst
+2026-09-08T11:14:05.6933911Z ** byte-compile and prepare package for lazy loading
+2026-09-08T11:14:05.6934551Z ** help
+2026-09-08T11:14:05.6935034Z *** installing help indices
+2026-09-08T11:14:05.6935646Z ** building package indices
+2026-09-08T11:14:05.6936429Z ** testing if installed package can be loaded from temporary location
+2026-09-08T11:14:05.6937411Z ** testing if installed package can be loaded from final location
+2026-09-08T11:14:05.6938664Z ** testing if installed package keeps a record of temporary installation path
+2026-09-08T11:14:05.6939637Z * DONE (vennabers)
+2026-09-08T11:14:45.7427041Z * using log directory ‘/home/runner/work/venn-abers/venn-abers/.scratch/ci/vennabers.Rcheck’
+2026-09-08T11:14:45.7440465Z * using R version 4.6.1 (2026-06-24)
+2026-09-08T11:14:45.7441035Z * using platform: x86_64-pc-linux-gnu
+2026-09-08T11:14:45.7441557Z * R was compiled by
+2026-09-08T11:14:45.7442047Z     gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+2026-09-08T11:14:45.7443048Z     GNU Fortran (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+2026-09-08T11:14:45.7443655Z * running under: Ubuntu 24.04.4 LTS
+2026-09-08T11:14:45.7444165Z * using session charset: UTF-8
+2026-09-08T11:14:45.7444712Z * current time: 2026-09-08 11:14:06 UTC
+2026-09-08T11:14:45.7445681Z * using options ‘--no-manual --as-cran’
+2026-09-08T11:14:45.7446609Z * checking for file ‘vennabers/DESCRIPTION’ ... OK
+2026-09-08T11:14:45.7447521Z * this is package ‘vennabers’ version ‘0.5.0’
+2026-09-08T11:14:45.7448093Z * package encoding: UTF-8
+2026-09-08T11:14:45.7448920Z * checking package namespace information ... OK
+2026-09-08T11:14:45.7449587Z * checking package dependencies ... INFO
+2026-09-08T11:14:45.7450277Z Packages suggested but not available for checking:
+2026-09-08T11:14:45.7451107Z   'parsnip', 'workflows', 'hardhat', 'rsample', 'recipes', 'rlang',
+2026-09-08T11:14:45.7451950Z   'tibble', 'withr', 'generics', 'tidyselect', 'tailor', 'tune',
+2026-09-08T11:14:45.7452535Z   'yardstick', 'future'
+2026-09-08T11:14:45.7453079Z * checking if this is a source package ... OK
+2026-09-08T11:14:45.7453630Z * checking if there is a namespace ... OK
+2026-09-08T11:14:45.7454161Z * checking for executable files ... OK
+2026-09-08T11:14:45.7454802Z * checking for hidden files and directories ... OK
+2026-09-08T11:14:45.7455367Z * checking for portable file names ... OK
+2026-09-08T11:14:45.7455947Z * checking for sufficient/correct file permissions ... OK
+2026-09-08T11:14:45.7456799Z * checking whether package ‘vennabers’ can be installed ... OK
+2026-09-08T11:14:45.7457490Z * checking installed package size ... INFO
+2026-09-08T11:14:45.7458045Z   installed size is  7.9Mb
+2026-09-08T11:14:45.7469796Z   sub-directories of 1Mb or more:
+2026-09-08T11:14:45.7470350Z     extdata   7.5Mb
+2026-09-08T11:14:45.7471120Z * checking package directory ... OK
+2026-09-08T11:14:45.7471685Z * checking for future file timestamps ... OK
+2026-09-08T11:14:45.7472305Z * checking DESCRIPTION meta-information ... OK
+2026-09-08T11:14:45.7472845Z * checking top-level files ... OK
+2026-09-08T11:14:45.7473367Z * checking for left-over files ... OK
+2026-09-08T11:14:45.7473869Z * checking index information ... OK
+2026-09-08T11:14:45.7474450Z * checking package subdirectories ... OK
+2026-09-08T11:14:45.7475052Z * checking code files for non-ASCII characters ... OK
+2026-09-08T11:14:45.7475653Z * checking R files for syntax errors ... OK
+2026-09-08T11:14:45.7476304Z * checking whether the package can be loaded ... OK
+2026-09-08T11:14:45.7477230Z * checking whether the package can be loaded with stated dependencies ... OK
+2026-09-08T11:14:45.7478107Z * checking whether the package can be unloaded cleanly ... OK
+2026-09-08T11:14:45.7479162Z * checking whether the namespace can be loaded with stated dependencies ... OK
+2026-09-08T11:14:45.7480059Z * checking whether the namespace can be unloaded cleanly ... OK
+2026-09-08T11:14:45.7480924Z * checking loading without being on the library search path ... OK
+2026-09-08T11:14:45.7481830Z * checking whether startup messages can be suppressed ... OK
+2026-09-08T11:14:45.7482567Z * checking dependencies in R code ... OK
+2026-09-08T11:14:45.7483145Z * checking S3 generic/method consistency ... OK
+2026-09-08T11:14:45.7483713Z * checking replacement functions ... OK
+2026-09-08T11:14:45.7484252Z * checking foreign function calls ... OK
+2026-09-08T11:14:45.7484826Z * checking R code for possible problems ... OK
+2026-09-08T11:14:45.7485346Z * checking Rd files ... OK
+2026-09-08T11:14:45.7485806Z * checking Rd metadata ... OK
+2026-09-08T11:14:45.7486273Z * checking Rd line widths ... OK
+2026-09-08T11:14:45.7486767Z * checking Rd cross-references ... OK
+2026-09-08T11:14:45.7487399Z * checking for missing documentation entries ... OK
+2026-09-08T11:14:45.7488047Z * checking for code/documentation mismatches ... OK
+2026-09-08T11:14:45.7488873Z * checking Rd \usage sections ... OK
+2026-09-08T11:14:45.7489386Z * checking Rd contents ... OK
+2026-09-08T11:14:45.7489997Z * checking for unstated dependencies in examples ... OK
+2026-09-08T11:14:45.7490621Z * checking examples ... OK
+2026-09-08T11:14:45.7491797Z * checking for unstated dependencies in ‘tests’ ... OK
+2026-09-08T11:14:45.7492349Z * checking tests ...
+2026-09-08T11:14:45.7492873Z   Running ‘binary-options-parity.R’
+2026-09-08T11:14:45.7493436Z   Running ‘binary-options.R’
+2026-09-08T11:14:45.7493962Z   Running ‘calibrated-workflow.R’
+2026-09-08T11:14:45.7494625Z   Running ‘cross-multiclass-workflow.R’
+2026-09-08T11:14:45.7495293Z   Running ‘cross-multiclass.R’
+2026-09-08T11:14:45.7495845Z   Running ‘cross-parity.R’
+2026-09-08T11:14:45.7496392Z   Running ‘cross-regression-parity.R’
+2026-09-08T11:14:45.7497018Z   Running ‘cross-regression.R’
+2026-09-08T11:14:45.7497579Z   Running ‘cross-venn-abers.R’
+2026-09-08T11:14:45.7498123Z   Running ‘cross-workflow.R’
+2026-09-08T11:14:45.7498950Z   Running ‘inductive-multiclass.R’
+2026-09-08T11:14:45.7499489Z   Running ‘inductive-ovr.R’
+2026-09-08T11:14:45.7500011Z   Running ‘inductive-regression.R’
+2026-09-08T11:14:45.7500586Z   Running ‘integration-processes.R’
+2026-09-08T11:14:45.7501179Z   Running ‘local-plans.R’
+2026-09-08T11:14:45.7501710Z   Running ‘multiclass-workflow.R’
+2026-09-08T11:14:45.7502252Z   Running ‘outer-resampling.R’
+2026-09-08T11:14:45.7502789Z   Running ‘randomized-parity.R’
+2026-09-08T11:14:45.7503241Z   Running ‘regression-parity.R’
+2026-09-08T11:14:45.7503737Z   Running ‘regression-workflow.R’
+2026-09-08T11:14:45.7504205Z   Running ‘venn-abers.R’
+2026-09-08T11:14:45.7504536Z  [23s/21s] OK
+2026-09-08T11:14:45.7505066Z * checking for non-standard things in the check directory ... OK
+2026-09-08T11:14:45.7505713Z * checking for detritus in the temp directory ... OK
+2026-09-08T11:14:45.7506137Z * DONE
+2026-09-08T11:14:45.7506285Z 
+2026-09-08T11:14:45.7506430Z Status: OK
+2026-09-08T11:14:45.7506895Z 
+2026-09-08T11:14:45.7535496Z Verified installed artifact: /home/runner/work/venn-abers/venn-abers/.scratch/ci/library/vennabers version 0.5.0 
+2026-09-08T11:14:45.8517295Z $requested
+2026-09-08T11:14:45.8517920Z $requested$epsilon
+2026-09-08T11:14:45.8518528Z [1] 0.1
+2026-09-08T11:14:45.8518858Z 
+2026-09-08T11:14:45.8518939Z 
+2026-09-08T11:14:45.8519140Z $m
+2026-09-08T11:14:45.8519495Z [1] 3
+2026-09-08T11:14:45.8519722Z 
+2026-09-08T11:14:45.8519941Z $epsilon
+2026-09-08T11:14:45.8520376Z [1] 0.09836066
+2026-09-08T11:14:45.8520651Z 
+2026-09-08T11:14:45.8587302Z      uncalibrated calibrated
+2026-09-08T11:14:45.8588043Z RMSE     1.395241   1.350256
+2026-09-08T11:14:45.8588795Z MAE      1.119748   1.065058
+2026-09-08T11:14:45.8899997Z $B
+2026-09-08T11:14:45.8900797Z $B$observations
+2026-09-08T11:14:45.8901273Z [1] 60
+2026-09-08T11:14:45.8905800Z 
+2026-09-08T11:14:45.8906329Z $B$requested
+2026-09-08T11:14:45.8906901Z $B$requested$epsilon
+2026-09-08T11:14:45.8907416Z [1] 0.1
+2026-09-08T11:14:45.8907732Z 
+2026-09-08T11:14:45.8907813Z 
+2026-09-08T11:14:45.8908016Z $B$m
+2026-09-08T11:14:45.8908701Z [1] 3
+2026-09-08T11:14:45.8908959Z 
+2026-09-08T11:14:45.8909225Z $B$epsilon
+2026-09-08T11:14:45.8909685Z [1] 0.09836066
+2026-09-08T11:14:45.8909992Z 
+2026-09-08T11:14:45.8910073Z 
+2026-09-08T11:14:45.8910314Z $C
+2026-09-08T11:14:45.8910767Z $C$observations
+2026-09-08T11:14:45.8911185Z [1] 70
+2026-09-08T11:14:45.8911438Z 
+2026-09-08T11:14:45.8911679Z $C$requested
+2026-09-08T11:14:45.8912128Z $C$requested$epsilon
+2026-09-08T11:14:45.8912552Z [1] 0.1
+2026-09-08T11:14:45.8912828Z 
+2026-09-08T11:14:45.8912905Z 
+2026-09-08T11:14:45.8913128Z $C$m
+2026-09-08T11:14:45.8913523Z [1] 3
+2026-09-08T11:14:45.8913795Z 
+2026-09-08T11:14:45.8914029Z $C$epsilon
+2026-09-08T11:14:45.8914411Z [1] 0.08450704
+2026-09-08T11:14:45.8914664Z 
+2026-09-08T11:14:45.8914735Z 
+2026-09-08T11:14:45.8914939Z $A
+2026-09-08T11:14:45.8915368Z $A$observations
+2026-09-08T11:14:45.8915750Z [1] 50
+2026-09-08T11:14:45.8915988Z 
+2026-09-08T11:14:45.8916256Z $A$requested
+2026-09-08T11:14:45.8916745Z $A$requested$epsilon
+2026-09-08T11:14:45.8917160Z [1] 0.1
+2026-09-08T11:14:45.8917395Z 
+2026-09-08T11:14:45.8917468Z 
+2026-09-08T11:14:45.8917658Z $A$m
+2026-09-08T11:14:45.8918020Z [1] 2
+2026-09-08T11:14:45.8918242Z 
+2026-09-08T11:14:45.8919056Z $A$epsilon
+2026-09-08T11:14:45.8919730Z [1] 0.07843137
+2026-09-08T11:14:45.8920021Z 
+2026-09-08T11:14:45.8920099Z 
+2026-09-08T11:14:45.9031361Z      uncalibrated calibrated
+2026-09-08T11:14:45.9032059Z RMSE    1.1990933  1.0587165
+2026-09-08T11:14:45.9032550Z MAE     0.9279984  0.8343754
+2026-09-08T11:14:45.9057890Z <cross_venn_abers>
+2026-09-08T11:14:45.9058656Z Folds: 3
+2026-09-08T11:14:45.9059148Z Calibration observations: 6
+2026-09-08T11:14:45.9339569Z $prediction
+2026-09-08T11:14:45.9340200Z            cat       dog      bird
+2026-09-08T11:14:45.9340814Z [1,] 0.4067797 0.3389831 0.2542373
+2026-09-08T11:14:45.9341428Z [2,] 0.2940769 0.4549128 0.2510103
+2026-09-08T11:14:45.9341796Z 
+2026-09-08T11:14:45.9342014Z $pairs
+2026-09-08T11:14:45.9359546Z    row non_event event fold lower upper probability
+2026-09-08T11:14:45.9360367Z 1    1       cat   dog    A   0.0   1.0   0.5000000
+2026-09-08T11:14:45.9361109Z 2    2       cat   dog    A   0.0   1.0   0.5000000
+2026-09-08T11:14:45.9361822Z 3    1       cat   dog    B   0.0   1.0   0.5000000
+2026-09-08T11:14:45.9362521Z 4    2       cat   dog    B   0.5   1.0   0.6666667
+2026-09-08T11:14:45.9363181Z 5    1       cat  bird    A   0.0   0.5   0.3333333
+2026-09-08T11:14:45.9363853Z 6    2       cat  bird    A   0.0   1.0   0.5000000
+2026-09-08T11:14:45.9364546Z 7    1       cat  bird    B   0.0   0.5   0.3333333
+2026-09-08T11:14:45.9365206Z 8    2       cat  bird    B   0.0   1.0   0.5000000
+2026-09-08T11:14:45.9365816Z 9    1       dog  bird    A   0.0   1.0   0.5000000
+2026-09-08T11:14:45.9366481Z 10   2       dog  bird    A   0.0   0.5   0.3333333
+2026-09-08T11:14:45.9367157Z 11   1       dog  bird    B   0.0   1.0   0.5000000
+2026-09-08T11:14:45.9367858Z 12   2       dog  bird    B   0.0   0.5   0.3333333
+2026-09-08T11:14:45.9368911Z 
+2026-09-08T11:14:45.9389840Z [1] cat dog
+2026-09-08T11:14:45.9390421Z Levels: cat dog bird
+2026-09-08T11:14:45.9393332Z [1] 0.4890319
+2026-09-08T11:14:45.9395066Z [1] 0.8435665
+2026-09-08T11:14:45.9498278Z $prediction
+2026-09-08T11:14:45.9499180Z            cat       dog      bird
+2026-09-08T11:14:45.9499810Z [1,] 0.3882353 0.3364706 0.2752941
+2026-09-08T11:14:45.9500492Z [2,] 0.3050691 0.4215574 0.2733736
+2026-09-08T11:14:45.9500866Z 
+2026-09-08T11:14:45.9501076Z $pairs
+2026-09-08T11:14:45.9507059Z    row non_event event fold lower upper probability
+2026-09-08T11:14:45.9507898Z 1    1       cat   dog    A   0.0   1.0       0.500
+2026-09-08T11:14:45.9508728Z 2    2       cat   dog    A   0.0   1.0       0.500
+2026-09-08T11:14:45.9509380Z 3    1       cat   dog    B   0.0   1.0       0.500
+2026-09-08T11:14:45.9510077Z 4    2       cat   dog    B   0.5   1.0       0.625
+2026-09-08T11:14:45.9510741Z 5    1       cat  bird    A   0.0   0.5       0.375
+2026-09-08T11:14:45.9511427Z 6    2       cat  bird    A   0.0   1.0       0.500
+2026-09-08T11:14:45.9512114Z 7    1       cat  bird    B   0.0   0.5       0.375
+2026-09-08T11:14:45.9512780Z 8    2       cat  bird    B   0.0   1.0       0.500
+2026-09-08T11:14:45.9513458Z 9    1       dog  bird    A   0.0   1.0       0.500
+2026-09-08T11:14:45.9514140Z 10   2       dog  bird    A   0.0   0.5       0.375
+2026-09-08T11:14:45.9514854Z 11   1       dog  bird    B   0.0   1.0       0.500
+2026-09-08T11:14:45.9515543Z 12   2       dog  bird    B   0.0   0.5       0.375
+2026-09-08T11:14:45.9515943Z 
+2026-09-08T11:14:45.9535746Z [1] cat dog
+2026-09-08T11:14:45.9536286Z Levels: cat dog bird
+2026-09-08T11:14:45.9538675Z [1] 0.5328257
+2026-09-08T11:14:45.9540434Z [1] 0.9049715
+2026-09-08T11:14:45.9633057Z $prediction
+2026-09-08T11:14:45.9633742Z            cat       dog      bird
+2026-09-08T11:14:45.9634375Z [1,] 0.5040615 0.2767490 0.2191896
+2026-09-08T11:14:45.9634969Z [2,] 0.2584184 0.5168368 0.2247449
+2026-09-08T11:14:45.9635352Z 
+2026-09-08T11:14:45.9635555Z $classes
+2026-09-08T11:14:45.9641527Z    row event fold lower     upper probability
+2026-09-08T11:14:45.9642298Z 1    1   cat    A   0.5 1.0000000   0.6666667
+2026-09-08T11:14:45.9642926Z 2    2   cat    A   0.0 0.5000000   0.3333333
+2026-09-08T11:14:45.9644041Z 3    1   cat    B   0.5 1.0000000   0.6666667
+2026-09-08T11:14:45.9644728Z 4    2   cat    B   0.0 0.5000000   0.3333333
+2026-09-08T11:14:45.9645338Z 5    1   dog    A   0.0 1.0000000   0.5000000
+2026-09-08T11:14:45.9645942Z 6    2   dog    A   0.5 1.0000000   0.6666667
+2026-09-08T11:14:45.9646583Z 7    1   dog    B   0.0 0.3333333   0.2500000
+2026-09-08T11:14:45.9647206Z 8    2   dog    B   0.5 1.0000000   0.6666667
+2026-09-08T11:14:45.9647809Z 9    1  bird    A   0.0 0.5000000   0.3333333
+2026-09-08T11:14:45.9648602Z 10   2  bird    A   0.0 0.5000000   0.3333333
+2026-09-08T11:14:45.9649269Z 11   1  bird    B   0.0 0.3333333   0.2500000
+2026-09-08T11:14:45.9649919Z 12   2  bird    B   0.0 0.3333333   0.2500000
+2026-09-08T11:14:45.9650340Z 
+2026-09-08T11:14:45.9669962Z [1] cat dog
+2026-09-08T11:14:45.9670526Z Levels: cat dog bird
+2026-09-08T11:14:45.9672691Z [1] 0.3606631
+2026-09-08T11:14:45.9674633Z [1] 0.6725426
+2026-09-08T11:14:45.9756582Z $prediction
+2026-09-08T11:14:45.9757277Z            cat       dog      bird
+2026-09-08T11:14:45.9757888Z [1,] 0.4663212 0.2901554 0.2435233
+2026-09-08T11:14:45.9758793Z [2,] 0.2827225 0.4712042 0.2460733
+2026-09-08T11:14:45.9759161Z 
+2026-09-08T11:14:45.9759394Z $classes
+2026-09-08T11:14:45.9764809Z    row event fold lower     upper probability
+2026-09-08T11:14:45.9765515Z 1    1   cat    A   0.5 1.0000000   0.6250000
+2026-09-08T11:14:45.9766210Z 2    2   cat    A   0.0 0.5000000   0.3750000
+2026-09-08T11:14:45.9766837Z 3    1   cat    B   0.5 1.0000000   0.6250000
+2026-09-08T11:14:45.9767451Z 4    2   cat    B   0.0 0.5000000   0.3750000
+2026-09-08T11:14:45.9768101Z 5    1   dog    A   0.0 1.0000000   0.5000000
+2026-09-08T11:14:45.9768877Z 6    2   dog    A   0.5 1.0000000   0.6250000
+2026-09-08T11:14:45.9769964Z 7    1   dog    B   0.0 0.3333333   0.2777778
+2026-09-08T11:14:45.9770584Z 8    2   dog    B   0.5 1.0000000   0.6250000
+2026-09-08T11:14:45.9771191Z 9    1  bird    A   0.0 0.5000000   0.3750000
+2026-09-08T11:14:45.9771842Z 10   2  bird    A   0.0 0.5000000   0.3750000
+2026-09-08T11:14:45.9772489Z 11   1  bird    B   0.0 0.3333333   0.2777778
+2026-09-08T11:14:45.9773147Z 12   2  bird    B   0.0 0.3333333   0.2777778
+2026-09-08T11:14:45.9773516Z 
+2026-09-08T11:14:45.9811559Z [1] cat dog
+2026-09-08T11:14:45.9812163Z Levels: cat dog bird
+2026-09-08T11:14:45.9814077Z [1] 0.4242079
+2026-09-08T11:14:45.9815906Z [1] 0.7576721
+2026-09-08T11:14:45.9857545Z README R snippets passed: 12 
+2026-09-08T11:14:45.9866593Z Running example: binary-options.R 
+2026-09-08T11:14:45.9880790Z       lower     upper probability
+2026-09-08T11:14:45.9881497Z 1 0.0000000 0.6000000       0.375
+2026-09-08T11:14:45.9882116Z 2 0.3333333 0.6666667       0.500
+2026-09-08T11:14:45.9882717Z 3 0.4000000 1.0000000       0.625
+2026-09-08T11:14:45.9889499Z       lower     upper probability
+2026-09-08T11:14:45.9890127Z 1 0.0000000 0.6000000        0.42
+2026-09-08T11:14:45.9890639Z 2 0.3333333 0.6666667        0.50
+2026-09-08T11:14:45.9891210Z 3 0.4000000 1.0000000        0.58
+2026-09-08T11:14:45.9916986Z $prediction
+2026-09-08T11:14:45.9920378Z   probability
+2026-09-08T11:14:45.9920878Z 1   0.5000000
+2026-09-08T11:14:45.9921329Z 2   0.6339746
+2026-09-08T11:14:45.9921760Z 3   0.6666667
+2026-09-08T11:14:45.9922125Z 
+2026-09-08T11:14:45.9922334Z $folds
+2026-09-08T11:14:45.9927479Z   row fold     lower upper probability
+2026-09-08T11:14:45.9928145Z 1   1    A 0.0000000   0.5   0.3333333
+2026-09-08T11:14:45.9929054Z 2   2    A 0.0000000   1.0   0.5000000
+2026-09-08T11:14:45.9929627Z 3   3    A 0.0000000   1.0   0.5000000
+2026-09-08T11:14:45.9930199Z 4   1    B 0.5000000   1.0   0.6666667
+2026-09-08T11:14:45.9930747Z 5   2    B 0.6666667   1.0   0.7500000
+2026-09-08T11:14:45.9931322Z 6   3    B 0.7500000   1.0   0.8000000
+2026-09-08T11:14:45.9931721Z 
+2026-09-08T11:14:45.9931981Z     brier       log 
+2026-09-08T11:14:45.9932475Z 0.1650286 0.5181196 
+2026-09-08T11:14:45.9958809Z $prediction
+2026-09-08T11:14:45.9962018Z   probability
+2026-09-08T11:14:45.9962515Z 1   0.5000000
+2026-09-08T11:14:45.9962963Z 2   0.6111111
+2026-09-08T11:14:45.9963801Z 3   0.6406250
+2026-09-08T11:14:45.9964136Z 
+2026-09-08T11:14:45.9964345Z $folds
+2026-09-08T11:14:45.9969352Z   row fold     lower upper probability
+2026-09-08T11:14:45.9970001Z 1   1    A 0.0000000   0.5   0.3750000
+2026-09-08T11:14:45.9970593Z 2   2    A 0.0000000   1.0   0.5000000
+2026-09-08T11:14:45.9971119Z 3   3    A 0.0000000   1.0   0.5000000
+2026-09-08T11:14:45.9971670Z 4   1    B 0.5000000   1.0   0.6250000
+2026-09-08T11:14:45.9972227Z 5   2    B 0.6666667   1.0   0.7222222
+2026-09-08T11:14:45.9972812Z 6   3    B 0.7500000   1.0   0.7812500
+2026-09-08T11:14:45.9973166Z 
+2026-09-08T11:14:45.9973432Z     brier       log 
+2026-09-08T11:14:45.9973911Z 0.1767950 0.5436449 
+2026-09-08T11:14:45.9986714Z Running example: calibrated-resampling.R 
+2026-09-08T11:14:46.0019164Z Running example: calibrated-workflow.R 
+2026-09-08T11:14:46.0047121Z Running example: cross-multiclass.R 
+2026-09-08T11:14:46.0069864Z <cross_venn_abers: ovo>
+2026-09-08T11:14:46.0070493Z Classes: cat, dog, bird
+2026-09-08T11:14:46.0070995Z Folds: 2
+2026-09-08T11:14:46.0071452Z Calibration observations: 6
+2026-09-08T11:14:46.0286132Z $prediction
+2026-09-08T11:14:46.0286984Z            cat       dog      bird
+2026-09-08T11:14:46.0287777Z [1,] 0.4209914 0.3487607 0.2302479
+2026-09-08T11:14:46.0288730Z [2,] 0.2612039 0.3693981 0.3693981
+2026-09-08T11:14:46.0289482Z [3,] 0.2500000 0.5000000 0.2500000
+2026-09-08T11:14:46.0289865Z 
+2026-09-08T11:14:46.0290132Z $pairs
+2026-09-08T11:14:46.0297294Z    row non_event event fold lower upper probability
+2026-09-08T11:14:46.0298142Z 1    1       cat   dog    A   0.0   1.0   0.5000000
+2026-09-08T11:14:46.0299038Z 2    2       cat   dog    A   0.0   1.0   0.5000000
+2026-09-08T11:14:46.0300223Z 3    3       cat   dog    A   0.5   1.0   0.6666667
+2026-09-08T11:14:46.0300924Z 4    1       cat   dog    B   0.0   0.5   0.3333333
+2026-09-08T11:14:46.0301604Z 5    2       cat   dog    B   0.5   1.0   0.6666667
+2026-09-08T11:14:46.0302297Z 6    3       cat   dog    B   0.5   1.0   0.6666667
+2026-09-08T11:14:46.0303023Z 7    1       cat  bird    A   0.0   1.0   0.5000000
+2026-09-08T11:14:46.0303774Z 8    2       cat  bird    A   0.0   1.0   0.5000000
+2026-09-08T11:14:46.0304464Z 9    3       cat  bird    A   0.0   1.0   0.5000000
+2026-09-08T11:14:46.0305208Z 10   1       cat  bird    B   0.0   0.5   0.3333333
+2026-09-08T11:14:46.0305918Z 11   2       cat  bird    B   0.5   1.0   0.6666667
+2026-09-08T11:14:46.0306604Z 12   3       cat  bird    B   0.0   1.0   0.5000000
+2026-09-08T11:14:46.0307266Z 13   1       dog  bird    A   0.0   0.5   0.3333333
+2026-09-08T11:14:46.0307959Z 14   2       dog  bird    A   0.0   1.0   0.5000000
+2026-09-08T11:14:46.0308795Z 15   3       dog  bird    A   0.0   0.5   0.3333333
+2026-09-08T11:14:46.0309500Z 16   1       dog  bird    B   0.0   0.5   0.3333333
+2026-09-08T11:14:46.0310196Z 17   2       dog  bird    B   0.0   1.0   0.5000000
+2026-09-08T11:14:46.0310884Z 18   3       dog  bird    B   0.0   0.5   0.3333333
+2026-09-08T11:14:46.0311335Z 
+2026-09-08T11:14:46.0311723Z [1] cat dog dog
+2026-09-08T11:14:46.0312273Z Levels: cat dog bird
+2026-09-08T11:14:46.0312847Z     brier       log 
+2026-09-08T11:14:46.0313368Z 0.4957467 0.8513901 
+2026-09-08T11:14:46.0358531Z   class mean_probability event_rate count
+2026-09-08T11:14:46.0359330Z 1   cat        0.3107318  0.3333333     3
+2026-09-08T11:14:46.0360094Z 2   dog        0.4060529  0.3333333     3
+2026-09-08T11:14:46.0360851Z 3  bird        0.2832153  0.3333333     3
+2026-09-08T11:14:46.0477561Z $prediction
+2026-09-08T11:14:46.0478505Z            cat       dog      bird
+2026-09-08T11:14:46.0479265Z [1,] 0.3949174 0.3497344 0.2553482
+2026-09-08T11:14:46.0479951Z [2,] 0.2800000 0.3600000 0.3600000
+2026-09-08T11:14:46.0480590Z [3,] 0.2727273 0.4545455 0.2727273
+2026-09-08T11:14:46.0481027Z 
+2026-09-08T11:14:46.0481295Z $pairs
+2026-09-08T11:14:46.0488613Z    row non_event event fold lower upper probability
+2026-09-08T11:14:46.0489460Z 1    1       cat   dog    A   0.0   1.0       0.500
+2026-09-08T11:14:46.0490657Z 2    2       cat   dog    A   0.0   1.0       0.500
+2026-09-08T11:14:46.0491423Z 3    3       cat   dog    A   0.5   1.0       0.625
+2026-09-08T11:14:46.0492144Z 4    1       cat   dog    B   0.0   0.5       0.375
+2026-09-08T11:14:46.0492860Z 5    2       cat   dog    B   0.5   1.0       0.625
+2026-09-08T11:14:46.0493575Z 6    3       cat   dog    B   0.5   1.0       0.625
+2026-09-08T11:14:46.0494297Z 7    1       cat  bird    A   0.0   1.0       0.500
+2026-09-08T11:14:46.0495010Z 8    2       cat  bird    A   0.0   1.0       0.500
+2026-09-08T11:14:46.0495756Z 9    3       cat  bird    A   0.0   1.0       0.500
+2026-09-08T11:14:46.0496438Z 10   1       cat  bird    B   0.0   0.5       0.375
+2026-09-08T11:14:46.0497121Z 11   2       cat  bird    B   0.5   1.0       0.625
+2026-09-08T11:14:46.0497848Z 12   3       cat  bird    B   0.0   1.0       0.500
+2026-09-08T11:14:46.0498696Z 13   1       dog  bird    A   0.0   0.5       0.375
+2026-09-08T11:14:46.0499408Z 14   2       dog  bird    A   0.0   1.0       0.500
+2026-09-08T11:14:46.0500116Z 15   3       dog  bird    A   0.0   0.5       0.375
+2026-09-08T11:14:46.0500828Z 16   1       dog  bird    B   0.0   0.5       0.375
+2026-09-08T11:14:46.0501564Z 17   2       dog  bird    B   0.0   1.0       0.500
+2026-09-08T11:14:46.0502312Z 18   3       dog  bird    B   0.0   0.5       0.375
+2026-09-08T11:14:46.0502804Z 
+2026-09-08T11:14:46.0503168Z [1] cat dog dog
+2026-09-08T11:14:46.0503681Z Levels: cat dog bird
+2026-09-08T11:14:46.0504196Z     brier       log 
+2026-09-08T11:14:46.0504731Z 0.5391742 0.9130624 
+2026-09-08T11:14:46.0544471Z   class mean_probability event_rate count
+2026-09-08T11:14:46.0545257Z 1   cat        0.3158816  0.3333333     3
+2026-09-08T11:14:46.0545994Z 2   dog        0.3880933  0.3333333     3
+2026-09-08T11:14:46.0547176Z 3  bird        0.2960252  0.3333333     3
+2026-09-08T11:14:46.0560924Z <cross_venn_abers: ovr>
+2026-09-08T11:14:46.0561578Z Classes: cat, dog, bird
+2026-09-08T11:14:46.0562158Z Folds: 2
+2026-09-08T11:14:46.0562774Z Calibration observations: 6
+2026-09-08T11:14:46.0653230Z $prediction
+2026-09-08T11:14:46.0654018Z            cat       dog      bird
+2026-09-08T11:14:46.0654785Z [1,] 0.4385330 0.3743113 0.1871557
+2026-09-08T11:14:46.0655473Z [2,] 0.2071068 0.3284271 0.4644661
+2026-09-08T11:14:46.0656075Z [3,] 0.2584184 0.5168368 0.2247449
+2026-09-08T11:14:46.0656496Z 
+2026-09-08T11:14:46.0656788Z $classes
+2026-09-08T11:14:46.0662957Z    row event fold lower     upper probability
+2026-09-08T11:14:46.0663725Z 1    1   cat    A   0.0 1.0000000   0.5000000
+2026-09-08T11:14:46.0664443Z 2    2   cat    A   0.0 0.5000000   0.3333333
+2026-09-08T11:14:46.0665185Z 3    3   cat    A   0.0 1.0000000   0.5000000
+2026-09-08T11:14:46.0665819Z 4    1   cat    B   0.5 1.0000000   0.6666667
+2026-09-08T11:14:46.0666508Z 5    2   cat    B   0.0 0.2500000   0.2000000
+2026-09-08T11:14:46.0667166Z 6    3   cat    B   0.0 0.2500000   0.2000000
+2026-09-08T11:14:46.0667836Z 7    1   dog    A   0.0 1.0000000   0.5000000
+2026-09-08T11:14:46.0668732Z 8    2   dog    A   0.0 0.5000000   0.3333333
+2026-09-08T11:14:46.0669413Z 9    3   dog    A   0.5 1.0000000   0.6666667
+2026-09-08T11:14:46.0670078Z 10   1   dog    B   0.0 1.0000000   0.5000000
+2026-09-08T11:14:46.0670809Z 11   2   dog    B   0.0 1.0000000   0.5000000
+2026-09-08T11:14:46.0671439Z 12   3   dog    B   0.5 1.0000000   0.6666667
+2026-09-08T11:14:46.0672088Z 13   1  bird    A   0.0 0.3333333   0.2500000
+2026-09-08T11:14:46.0672733Z 14   2  bird    A   0.0 1.0000000   0.5000000
+2026-09-08T11:14:46.0673363Z 15   3  bird    A   0.0 0.5000000   0.3333333
+2026-09-08T11:14:46.0674019Z 16   1  bird    B   0.0 0.3333333   0.2500000
+2026-09-08T11:14:46.0674658Z 17   2  bird    B   0.5 1.0000000   0.6666667
+2026-09-08T11:14:46.0675328Z 18   3  bird    B   0.0 0.3333333   0.2500000
+2026-09-08T11:14:46.0675809Z 
+2026-09-08T11:14:46.0676176Z [1] cat  bird dog 
+2026-09-08T11:14:46.0676742Z Levels: cat dog bird
+2026-09-08T11:14:46.0677294Z     brier       log 
+2026-09-08T11:14:46.0677840Z 0.4262242 0.7504050 
+2026-09-08T11:14:46.0740034Z   class mean_probability event_rate count
+2026-09-08T11:14:46.0741040Z 1   cat        0.3013527  0.3333333     3
+2026-09-08T11:14:46.0741928Z 2   dog        0.4065251  0.3333333     3
+2026-09-08T11:14:46.0742632Z 3  bird        0.2921222  0.3333333     3
+2026-09-08T11:14:46.0834136Z $prediction
+2026-09-08T11:14:46.0834798Z            cat       dog      bird
+2026-09-08T11:14:46.0835539Z [1,] 0.4196891 0.3730570 0.2072539
+2026-09-08T11:14:46.0836289Z [2,] 0.2289157 0.3373494 0.4337349
+2026-09-08T11:14:46.0836955Z [3,] 0.2741722 0.4768212 0.2490066
+2026-09-08T11:14:46.0837359Z 
+2026-09-08T11:14:46.0837625Z $classes
+2026-09-08T11:14:46.0844248Z    row event fold lower     upper probability
+2026-09-08T11:14:46.0845078Z 1    1   cat    A   0.0 1.0000000   0.5000000
+2026-09-08T11:14:46.0845782Z 2    2   cat    A   0.0 0.5000000   0.3750000
+2026-09-08T11:14:46.0846479Z 3    3   cat    A   0.0 1.0000000   0.5000000
+2026-09-08T11:14:46.0847132Z 4    1   cat    B   0.5 1.0000000   0.6250000
+2026-09-08T11:14:46.0847817Z 5    2   cat    B   0.0 0.2500000   0.2187500
+2026-09-08T11:14:46.0848623Z 6    3   cat    B   0.0 0.2500000   0.2187500
+2026-09-08T11:14:46.0849281Z 7    1   dog    A   0.0 1.0000000   0.5000000
+2026-09-08T11:14:46.0849955Z 8    2   dog    A   0.0 0.5000000   0.3750000
+2026-09-08T11:14:46.0850671Z 9    3   dog    A   0.5 1.0000000   0.6250000
+2026-09-08T11:14:46.0851315Z 10   1   dog    B   0.0 1.0000000   0.5000000
+2026-09-08T11:14:46.0852005Z 11   2   dog    B   0.0 1.0000000   0.5000000
+2026-09-08T11:14:46.0852685Z 12   3   dog    B   0.5 1.0000000   0.6250000
+2026-09-08T11:14:46.0853317Z 13   1  bird    A   0.0 0.3333333   0.2777778
+2026-09-08T11:14:46.0853957Z 14   2  bird    A   0.0 1.0000000   0.5000000
+2026-09-08T11:14:46.0855063Z 15   3  bird    A   0.0 0.5000000   0.3750000
+2026-09-08T11:14:46.0855711Z 16   1  bird    B   0.0 0.3333333   0.2777778
+2026-09-08T11:14:46.0856373Z 17   2  bird    B   0.5 1.0000000   0.6250000
+2026-09-08T11:14:46.0857050Z 18   3  bird    B   0.0 0.3333333   0.2777778
+2026-09-08T11:14:46.0857499Z 
+2026-09-08T11:14:46.0857868Z [1] cat  bird dog 
+2026-09-08T11:14:46.0858580Z Levels: cat dog bird
+2026-09-08T11:14:46.0859178Z     brier       log 
+2026-09-08T11:14:46.0859714Z 0.4722134 0.8147255 
+2026-09-08T11:14:46.0902573Z   class mean_probability event_rate count
+2026-09-08T11:14:46.0903440Z 1   cat        0.3075923  0.3333333     3
+2026-09-08T11:14:46.0904143Z 2   dog        0.3957425  0.3333333     3
+2026-09-08T11:14:46.0904863Z 3  bird        0.2966651  0.3333333     3
+2026-09-08T11:14:46.0905697Z Running example: cross-regression.R 
+2026-09-08T11:14:46.1088134Z $B
+2026-09-08T11:14:46.1092789Z $B$observations
+2026-09-08T11:14:46.1093297Z [1] 60
+2026-09-08T11:14:46.1093586Z 
+2026-09-08T11:14:46.1093890Z $B$requested
+2026-09-08T11:14:46.1094366Z $B$requested$epsilon
+2026-09-08T11:14:46.1094843Z [1] 0.1
+2026-09-08T11:14:46.1095128Z 
+2026-09-08T11:14:46.1095223Z 
+2026-09-08T11:14:46.1095452Z $B$m
+2026-09-08T11:14:46.1095847Z [1] 3
+2026-09-08T11:14:46.1096116Z 
+2026-09-08T11:14:46.1096385Z $B$epsilon
+2026-09-08T11:14:46.1096781Z [1] 0.09836066
+2026-09-08T11:14:46.1097056Z 
+2026-09-08T11:14:46.1097209Z 
+2026-09-08T11:14:46.1097422Z $C
+2026-09-08T11:14:46.1097831Z $C$observations
+2026-09-08T11:14:46.1098274Z [1] 70
+2026-09-08T11:14:46.1098735Z 
+2026-09-08T11:14:46.1099019Z $C$requested
+2026-09-08T11:14:46.1099462Z $C$requested$epsilon
+2026-09-08T11:14:46.1099872Z [1] 0.1
+2026-09-08T11:14:46.1100137Z 
+2026-09-08T11:14:46.1100225Z 
+2026-09-08T11:14:46.1100432Z $C$m
+2026-09-08T11:14:46.1100814Z [1] 3
+2026-09-08T11:14:46.1101097Z 
+2026-09-08T11:14:46.1101345Z $C$epsilon
+2026-09-08T11:14:46.1101781Z [1] 0.08450704
+2026-09-08T11:14:46.1102048Z 
+2026-09-08T11:14:46.1102136Z 
+2026-09-08T11:14:46.1102363Z $A
+2026-09-08T11:14:46.1102753Z $A$observations
+2026-09-08T11:14:46.1103180Z [1] 50
+2026-09-08T11:14:46.1103451Z 
+2026-09-08T11:14:46.1103702Z $A$requested
+2026-09-08T11:14:46.1104170Z $A$requested$epsilon
+2026-09-08T11:14:46.1104608Z [1] 0.1
+2026-09-08T11:14:46.1104874Z 
+2026-09-08T11:14:46.1105399Z 
+2026-09-08T11:14:46.1105636Z $A$m
+2026-09-08T11:14:46.1105991Z [1] 2
+2026-09-08T11:14:46.1106238Z 
+2026-09-08T11:14:46.1106502Z $A$epsilon
+2026-09-08T11:14:46.1106921Z [1] 0.07843137
+2026-09-08T11:14:46.1107216Z 
+2026-09-08T11:14:46.1107318Z 
+2026-09-08T11:14:46.1107627Z      uncalibrated calibrated
+2026-09-08T11:14:46.1108224Z RMSE    1.1990933  1.0587165
+2026-09-08T11:14:46.1108959Z MAE     0.9279984  0.8343754
+2026-09-08T11:14:46.1109581Z Running example: cross-venn-abers.R 
+2026-09-08T11:14:46.1289802Z brier_score    log_loss 
+2026-09-08T11:14:46.1290461Z   0.2029354   0.5874319 
+2026-09-08T11:14:46.1333278Z Running example: inductive-ovo.R 
+2026-09-08T11:14:46.1348191Z <venn_abers: ovo>
+2026-09-08T11:14:46.1349007Z Calibration observations: 6
+2026-09-08T11:14:46.1349545Z Classes: cat, dog, bird
+2026-09-08T11:14:46.1349981Z Class pairs: 3
+2026-09-08T11:14:46.1397533Z $prediction
+2026-09-08T11:14:46.1398197Z            cat       dog      bird
+2026-09-08T11:14:46.1399131Z [1,] 0.5172414 0.3103448 0.1724138
+2026-09-08T11:14:46.1399717Z [2,] 0.1674641 0.4306220 0.4019139
+2026-09-08T11:14:46.1400262Z [3,] 0.2000000 0.6000000 0.2000000
+2026-09-08T11:14:46.1400595Z 
+2026-09-08T11:14:46.1400803Z $pairs
+2026-09-08T11:14:46.1406115Z   row non_event event     lower     upper probability
+2026-09-08T11:14:46.1406961Z 1   1       cat   dog 0.0000000 0.5000000   0.3333333
+2026-09-08T11:14:46.1407640Z 2   2       cat   dog 0.6666667 1.0000000   0.7500000
+2026-09-08T11:14:46.1408275Z 3   3       cat   dog 0.6666667 1.0000000   0.7500000
+2026-09-08T11:14:46.1409159Z 4   1       cat  bird 0.0000000 0.5000000   0.3333333
+2026-09-08T11:14:46.1409828Z 5   2       cat  bird 0.5000000 1.0000000   0.6666667
+2026-09-08T11:14:46.1410978Z 6   3       cat  bird 0.0000000 1.0000000   0.5000000
+2026-09-08T11:14:46.1411683Z 7   1       dog  bird 0.0000000 0.3333333   0.2500000
+2026-09-08T11:14:46.1412310Z 8   2       dog  bird 0.0000000 1.0000000   0.5000000
+2026-09-08T11:14:46.1413025Z 9   3       dog  bird 0.0000000 0.3333333   0.2500000
+2026-09-08T11:14:46.1413447Z 
+2026-09-08T11:14:46.1413714Z [1] cat dog dog
+2026-09-08T11:14:46.1414166Z Levels: cat dog bird
+2026-09-08T11:14:46.1414634Z     brier       log 
+2026-09-08T11:14:46.1415050Z 0.3900943 0.6938629 
+2026-09-08T11:14:46.1464039Z   class mean_probability event_rate count
+2026-09-08T11:14:46.1464829Z 1   cat        0.1674641          0     1
+2026-09-08T11:14:46.1465419Z 2   cat        0.2000000          0     1
+2026-09-08T11:14:46.1465978Z 3   cat        0.5172414          1     1
+2026-09-08T11:14:46.1466569Z 4   dog        0.3103448          0     1
+2026-09-08T11:14:46.1467156Z 5   dog        0.4306220          0     1
+2026-09-08T11:14:46.1467851Z 6   dog        0.6000000          1     1
+2026-09-08T11:14:46.1468731Z 7  bird        0.1724138          0     1
+2026-09-08T11:14:46.1469349Z 8  bird        0.2000000          0     1
+2026-09-08T11:14:46.1469931Z 9  bird        0.4019139          1     1
+2026-09-08T11:14:46.1512595Z $prediction
+2026-09-08T11:14:46.1513290Z            cat       dog      bird
+2026-09-08T11:14:46.1513941Z [1,] 0.4675672 0.3371199 0.1953129
+2026-09-08T11:14:46.1514575Z [2,] 0.1910496 0.4219525 0.3869979
+2026-09-08T11:14:46.1515111Z [3,] 0.2173913 0.5652174 0.2173913
+2026-09-08T11:14:46.1515448Z 
+2026-09-08T11:14:46.1515660Z $pairs
+2026-09-08T11:14:46.1521253Z   row non_event event     lower     upper probability
+2026-09-08T11:14:46.1522100Z 1   1       cat   dog 0.0000000 0.5000000   0.3750000
+2026-09-08T11:14:46.1522804Z 2   2       cat   dog 0.6666667 1.0000000   0.7222222
+2026-09-08T11:14:46.1523442Z 3   3       cat   dog 0.6666667 1.0000000   0.7222222
+2026-09-08T11:14:46.1524108Z 4   1       cat  bird 0.0000000 0.5000000   0.3750000
+2026-09-08T11:14:46.1524785Z 5   2       cat  bird 0.5000000 1.0000000   0.6250000
+2026-09-08T11:14:46.1525434Z 6   3       cat  bird 0.0000000 1.0000000   0.5000000
+2026-09-08T11:14:46.1526113Z 7   1       dog  bird 0.0000000 0.3333333   0.2777778
+2026-09-08T11:14:46.1527231Z 8   2       dog  bird 0.0000000 1.0000000   0.5000000
+2026-09-08T11:14:46.1527980Z 9   3       dog  bird 0.0000000 0.3333333   0.2777778
+2026-09-08T11:14:46.1528588Z 
+2026-09-08T11:14:46.1528850Z [1] cat dog dog
+2026-09-08T11:14:46.1529309Z Levels: cat dog bird
+2026-09-08T11:14:46.1529745Z     brier       log 
+2026-09-08T11:14:46.1530197Z 0.4363837 0.7600310 
+2026-09-08T11:14:46.1575226Z   class mean_probability event_rate count
+2026-09-08T11:14:46.1576070Z 1   cat        0.1910496          0     1
+2026-09-08T11:14:46.1576754Z 2   cat        0.2173913          0     1
+2026-09-08T11:14:46.1577345Z 3   cat        0.4675672          1     1
+2026-09-08T11:14:46.1577940Z 4   dog        0.3371199          0     1
+2026-09-08T11:14:46.1578843Z 5   dog        0.4219525          0     1
+2026-09-08T11:14:46.1579456Z 6   dog        0.5652174          1     1
+2026-09-08T11:14:46.1580027Z 7  bird        0.1953129          0     1
+2026-09-08T11:14:46.1580630Z 8  bird        0.2173913          0     1
+2026-09-08T11:14:46.1581254Z 9  bird        0.3869979          1     1
+2026-09-08T11:14:46.1581930Z Running example: inductive-ovr.R 
+2026-09-08T11:14:46.1593693Z <venn_abers: ovr>
+2026-09-08T11:14:46.1594242Z Calibration observations: 6
+2026-09-08T11:14:46.1594755Z Classes: cat, dog, bird
+2026-09-08T11:14:46.1595219Z Classes against rest: 3
+2026-09-08T11:14:46.1638930Z $prediction
+2026-09-08T11:14:46.1639469Z            cat       dog      bird
+2026-09-08T11:14:46.1640173Z [1,] 0.4878049 0.3658537 0.1463415
+2026-09-08T11:14:46.1640758Z [2,] 0.1250000 0.3750000 0.5000000
+2026-09-08T11:14:46.1641280Z [3,] 0.1538462 0.6923077 0.1538462
+2026-09-08T11:14:46.1641624Z 
+2026-09-08T11:14:46.1641839Z $classes
+2026-09-08T11:14:46.1646500Z   row event     lower upper probability
+2026-09-08T11:14:46.1647612Z 1   1   cat 0.5000000  1.00   0.6666667
+2026-09-08T11:14:46.1648226Z 2   2   cat 0.0000000  0.20   0.1666667
+2026-09-08T11:14:46.1648921Z 3   3   cat 0.0000000  0.20   0.1666667
+2026-09-08T11:14:46.1649545Z 4   1   dog 0.0000000  1.00   0.5000000
+2026-09-08T11:14:46.1650236Z 5   2   dog 0.0000000  1.00   0.5000000
+2026-09-08T11:14:46.1650742Z 6   3   dog 0.6666667  1.00   0.7500000
+2026-09-08T11:14:46.1651210Z 7   1  bird 0.0000000  0.25   0.2000000
+2026-09-08T11:14:46.1651657Z 8   2  bird 0.5000000  1.00   0.6666667
+2026-09-08T11:14:46.1652112Z 9   3  bird 0.0000000  0.20   0.1666667
+2026-09-08T11:14:46.1652393Z 
+2026-09-08T11:14:46.1652601Z [1] cat  bird dog 
+2026-09-08T11:14:46.1653028Z Levels: cat dog bird
+2026-09-08T11:14:46.1673316Z     brier       log 
+2026-09-08T11:14:46.1673869Z 0.3219568 0.5929039 
+2026-09-08T11:14:46.1717890Z   class mean_probability event_rate count
+2026-09-08T11:14:46.1718869Z 1   cat        0.1394231          0     2
+2026-09-08T11:14:46.1719485Z 2   cat        0.4878049          1     1
+2026-09-08T11:14:46.1720105Z 3   dog        0.3704268          0     2
+2026-09-08T11:14:46.1720689Z 4   dog        0.6923077          1     1
+2026-09-08T11:14:46.1721389Z 5  bird        0.1500938          0     2
+2026-09-08T11:14:46.1722031Z 6  bird        0.5000000          1     1
+2026-09-08T11:14:46.1759671Z $prediction
+2026-09-08T11:14:46.1760292Z            cat       dog      bird
+2026-09-08T11:14:46.1760940Z [1,] 0.4651163 0.3720930 0.1627907
+2026-09-08T11:14:46.1761502Z [2,] 0.1379310 0.3831418 0.4789272
+2026-09-08T11:14:46.1762089Z [3,] 0.1663244 0.6673511 0.1663244
+2026-09-08T11:14:46.1762443Z 
+2026-09-08T11:14:46.1762656Z $classes
+2026-09-08T11:14:46.1767539Z   row event     lower upper probability
+2026-09-08T11:14:46.1768202Z 1   1   cat 0.5000000  1.00   0.6250000
+2026-09-08T11:14:46.1768961Z 2   2   cat 0.0000000  0.20   0.1800000
+2026-09-08T11:14:46.1769525Z 3   3   cat 0.0000000  0.20   0.1800000
+2026-09-08T11:14:46.1770056Z 4   1   dog 0.0000000  1.00   0.5000000
+2026-09-08T11:14:46.1770667Z 5   2   dog 0.0000000  1.00   0.5000000
+2026-09-08T11:14:46.1771226Z 6   3   dog 0.6666667  1.00   0.7222222
+2026-09-08T11:14:46.1771766Z 7   1  bird 0.0000000  0.25   0.2187500
+2026-09-08T11:14:46.1772339Z 8   2  bird 0.5000000  1.00   0.6250000
+2026-09-08T11:14:46.1773345Z 9   3  bird 0.0000000  0.20   0.1800000
+2026-09-08T11:14:46.1773869Z 
+2026-09-08T11:14:46.1774146Z [1] cat  bird dog 
+2026-09-08T11:14:46.1774665Z Levels: cat dog bird
+2026-09-08T11:14:46.1775119Z     brier       log 
+2026-09-08T11:14:46.1775554Z 0.3514590 0.6353712 
+2026-09-08T11:14:46.1833185Z   class mean_probability event_rate count
+2026-09-08T11:14:46.1834014Z 1   cat        0.1521277          0     2
+2026-09-08T11:14:46.1834704Z 2   cat        0.4651163          1     1
+2026-09-08T11:14:46.1835244Z 3   dog        0.3776174          0     2
+2026-09-08T11:14:46.1835803Z 4   dog        0.6673511          1     1
+2026-09-08T11:14:46.1836364Z 5  bird        0.1645576          0     2
+2026-09-08T11:14:46.1836906Z 6  bird        0.4789272          1     1
+2026-09-08T11:14:46.1837586Z Running example: inductive-regression.R 
+2026-09-08T11:14:46.1872815Z $requested
+2026-09-08T11:14:46.1873376Z $requested$epsilon
+2026-09-08T11:14:46.1873798Z [1] 0.1
+2026-09-08T11:14:46.1874026Z 
+2026-09-08T11:14:46.1874122Z 
+2026-09-08T11:14:46.1874332Z $m
+2026-09-08T11:14:46.1874704Z [1] 3
+2026-09-08T11:14:46.1874935Z 
+2026-09-08T11:14:46.1875301Z $epsilon
+2026-09-08T11:14:46.1875836Z [1] 0.09836066
+2026-09-08T11:14:46.1876114Z 
+2026-09-08T11:14:46.1876361Z      uncalibrated calibrated
+2026-09-08T11:14:46.1877775Z RMSE     1.395241   1.350256
+2026-09-08T11:14:46.1878189Z MAE      1.119748   1.065058
+2026-09-08T11:14:46.1878879Z Acceptance gate passed.
+2026-09-08T11:14:46.1987290Z ##[group]Run Rscript --vanilla tools/test-optional-dependencies.R "$ACCEPTANCE_ARTIFACT" > "$ACCEPTANCE_OUTPUT_DIR/optional-dependencies.log" 2>&1
+2026-09-08T11:14:46.1988789Z [36;1mRscript --vanilla tools/test-optional-dependencies.R "$ACCEPTANCE_ARTIFACT" > "$ACCEPTANCE_OUTPUT_DIR/optional-dependencies.log" 2>&1[0m
+2026-09-08T11:14:46.2011614Z shell: /usr/bin/bash -e {0}
+2026-09-08T11:14:46.2011873Z env:
+2026-09-08T11:14:46.2012079Z   ACCEPTANCE_PROFILE: core
+2026-09-08T11:14:46.2012321Z   EXPECTED_R_ARCH: x86_64
+2026-09-08T11:14:46.2012676Z   ACCEPTANCE_OUTPUT_DIR: /home/runner/work/venn-abers/venn-abers/.scratch/ci
+2026-09-08T11:14:46.2013245Z   ACCEPTANCE_ARTIFACT: /home/runner/work/venn-abers/venn-abers/.scratch/source/vennabers_0.5.0.tar.gz
+2026-09-08T11:14:46.2013728Z   R_LIBS_USER: /home/runner/work/_temp/Library
+2026-09-08T11:14:46.2013995Z   TZ: UTC
+2026-09-08T11:14:46.2014194Z   _R_CHECK_SYSTEM_CLOCK_: FALSE
+2026-09-08T11:14:46.2014428Z   NOT_CRAN: true
+2026-09-08T11:14:46.2014814Z   RSPM: https://packagemanager.posit.co/cran/__linux__/noble/latest
+2026-09-08T11:14:46.2015327Z   RENV_CONFIG_REPOS_OVERRIDE: https://packagemanager.posit.co/cran/__linux__/noble/latest
+2026-09-08T11:14:46.2015742Z ##[endgroup]
+2026-09-08T11:14:49.6019797Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-08T11:14:49.6021029Z ##[group]Run actions/upload-artifact@v4
+2026-09-08T11:14:49.6021297Z with:
+2026-09-08T11:14:49.6021492Z   name: acceptance-core
+2026-09-08T11:14:49.6021728Z   include-hidden-files: true
+2026-09-08T11:14:49.6022202Z   path: .scratch/minimum-setup.log
+.scratch/ci/*.txt
+.scratch/ci/*.log
+.scratch/ci/*.tar.gz
+.scratch/ci/*.Rcheck
+
+2026-09-08T11:14:49.6022688Z   if-no-files-found: warn
+2026-09-08T11:14:49.6022917Z   compression-level: 6
+2026-09-08T11:14:49.6023132Z   overwrite: false
+2026-09-08T11:14:49.6023336Z env:
+2026-09-08T11:14:49.6023527Z   ACCEPTANCE_PROFILE: core
+2026-09-08T11:14:49.6023759Z   EXPECTED_R_ARCH: x86_64
+2026-09-08T11:14:49.6024137Z   ACCEPTANCE_OUTPUT_DIR: /home/runner/work/venn-abers/venn-abers/.scratch/ci
+2026-09-08T11:14:49.6024710Z   ACCEPTANCE_ARTIFACT: /home/runner/work/venn-abers/venn-abers/.scratch/source/vennabers_0.5.0.tar.gz
+2026-09-08T11:14:49.6025185Z   R_LIBS_USER: /home/runner/work/_temp/Library
+2026-09-08T11:14:49.6025458Z   TZ: UTC
+2026-09-08T11:14:49.6025650Z   _R_CHECK_SYSTEM_CLOCK_: FALSE
+2026-09-08T11:14:49.6025883Z   NOT_CRAN: true
+2026-09-08T11:14:49.6026187Z   RSPM: https://packagemanager.posit.co/cran/__linux__/noble/latest
+2026-09-08T11:14:49.6026702Z   RENV_CONFIG_REPOS_OVERRIDE: https://packagemanager.posit.co/cran/__linux__/noble/latest
+2026-09-08T11:14:49.6027112Z ##[endgroup]
+2026-09-08T11:14:49.7802250Z (node:6150) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-08T11:14:49.7803992Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-08T11:14:49.8640586Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-09-08T11:14:49.8642410Z The least common ancestor is /home/runner/work/venn-abers/venn-abers/.scratch. This will be the root directory of the artifact
+2026-09-08T11:14:49.8643629Z With the provided path, there will be 183 files uploaded
+2026-09-08T11:14:49.8644455Z Artifact name is valid!
+2026-09-08T11:14:49.8644925Z Root directory input is valid!
+2026-09-08T11:14:50.1735450Z Beginning upload of artifact content to blob storage
+2026-09-08T11:14:50.6418018Z (node:6150) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-09-08T11:14:51.2746788Z Uploaded bytes 3341905
+2026-09-08T11:14:51.3389901Z Finished uploading artifact content to blob storage!
+2026-09-08T11:14:51.3391611Z SHA256 digest of uploaded artifact zip is 5077193292c84a1ab21cbb5069a6499e7c221b832c64e17b65c2bfe4ede64f49
+2026-09-08T11:14:51.3392989Z Finalizing artifact upload
+2026-09-08T11:14:51.5794462Z Artifact acceptance-core.zip successfully finalized. Artifact ID 10053188661
+2026-09-08T11:14:51.5796262Z Artifact acceptance-core has been successfully uploaded! Final size is 3341905 bytes. Artifact ID is 10053188661
+2026-09-08T11:14:51.5803829Z Artifact download URL: https://github.com/RMKruse/venn-abers/actions/runs/34219433855/artifacts/10053188661
+2026-09-08T11:14:51.5983133Z Post job cleanup.
+2026-09-08T11:14:51.6891731Z [command]/usr/bin/git version
+2026-09-08T11:14:51.6930966Z git version 2.55.0
+2026-09-08T11:14:51.6973066Z Temporarily overriding HOME='/home/runner/work/_temp/9fffd845-4000-4def-aee5-a3012e544e73' before making global git config changes
+2026-09-08T11:14:51.6976734Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-08T11:14:51.6980461Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/venn-abers/venn-abers
+2026-09-08T11:14:51.7015158Z Removing SSH command configuration
+2026-09-08T11:14:51.7024040Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-08T11:14:51.7064263Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-08T11:14:51.7259130Z Removing HTTP extra header
+2026-09-08T11:14:51.7266243Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-08T11:14:51.7303307Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-08T11:14:51.7490700Z Removing includeIf entries pointing to credentials config files
+2026-09-08T11:14:51.7498576Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-08T11:14:51.7525932Z includeif.gitdir:/home/runner/work/venn-abers/venn-abers/.git.path
+2026-09-08T11:14:51.7529581Z includeif.gitdir:/home/runner/work/venn-abers/venn-abers/.git/worktrees/*.path
+2026-09-08T11:14:51.7530565Z includeif.gitdir:/github/workspace/.git.path
+2026-09-08T11:14:51.7531580Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-09-08T11:14:51.7538271Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/venn-abers/venn-abers/.git.path
+2026-09-08T11:14:51.7560529Z /home/runner/work/_temp/git-credentials-037e25d0-5dcb-47f4-8423-4c34d9d5f81d.config
+2026-09-08T11:14:51.7573829Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/venn-abers/venn-abers/.git.path /home/runner/work/_temp/git-credentials-037e25d0-5dcb-47f4-8423-4c34d9d5f81d.config
+2026-09-08T11:14:51.7619030Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/venn-abers/venn-abers/.git/worktrees/*.path
+2026-09-08T11:14:51.7643214Z /home/runner/work/_temp/git-credentials-037e25d0-5dcb-47f4-8423-4c34d9d5f81d.config
+2026-09-08T11:14:51.7653490Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/venn-abers/venn-abers/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-037e25d0-5dcb-47f4-8423-4c34d9d5f81d.config
+2026-09-08T11:14:51.7685714Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-09-08T11:14:51.7707033Z /github/runner_temp/git-credentials-037e25d0-5dcb-47f4-8423-4c34d9d5f81d.config
+2026-09-08T11:14:51.7717717Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-037e25d0-5dcb-47f4-8423-4c34d9d5f81d.config
+2026-09-08T11:14:51.7749040Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-09-08T11:14:51.7769414Z /github/runner_temp/git-credentials-037e25d0-5dcb-47f4-8423-4c34d9d5f81d.config
+2026-09-08T11:14:51.7781404Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-037e25d0-5dcb-47f4-8423-4c34d9d5f81d.config
+2026-09-08T11:14:51.7815613Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-08T11:14:51.8001040Z Removing credentials config '/home/runner/work/_temp/git-credentials-037e25d0-5dcb-47f4-8423-4c34d9d5f81d.config'
+2026-09-08T11:14:51.8139695Z Cleaning up orphan processes
+2026-09-08T11:14:51.8356206Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/download-artifact@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

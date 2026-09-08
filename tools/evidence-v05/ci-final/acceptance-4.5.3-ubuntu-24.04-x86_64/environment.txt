@@ -1,0 +1,183 @@
+                                      sysname 
+                                      "Linux" 
+                                      release 
+                          "6.17.0-1022-azure" 
+                                      version 
+"#22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026" 
+                                     nodename 
+                              "runnervmejwal" 
+                                      machine 
+                                     "x86_64" 
+                                        login 
+                                    "unknown" 
+                                         user 
+                                     "runner" 
+                               effective_user 
+                                     "runner" 
+R version 4.5.3 (2026-03-11)
+Platform: x86_64-pc-linux-gnu
+Running under: Ubuntu 24.04.4 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
+LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so;  LAPACK version 3.12.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: UTC
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+loaded via a namespace (and not attached):
+[1] compiler_4.5.3
+                                   ImageOS 
+                                "ubuntu24" 
+                              ImageVersion 
+                          "20260831.293.1" 
+                                 RUNNER_OS 
+                                   "Linux" 
+                               RUNNER_ARCH 
+                                     "X64" 
+                                GITHUB_SHA 
+"e69a9b4f52175200530cc0e0c07cd12422191f49" 
+                             GITHUB_RUN_ID 
+                             "34219433855" 
+                        GITHUB_RUN_ATTEMPT 
+                                       "1" 
+             Package        Version      LibPath                          
+base64enc    "base64enc"    "0.1-6"      "/home/runner/work/_temp/Library"
+bslib        "bslib"        "0.12.0"     "/home/runner/work/_temp/Library"
+cachem       "cachem"       "1.1.0"      "/home/runner/work/_temp/Library"
+class        "class"        "7.3-24"     "/home/runner/work/_temp/Library"
+cli          "cli"          "3.6.6"      "/home/runner/work/_temp/Library"
+clock        "clock"        "0.7.4"      "/home/runner/work/_temp/Library"
+data.table   "data.table"   "1.18.6.1"   "/home/runner/work/_temp/Library"
+diagram      "diagram"      "1.6.5"      "/home/runner/work/_temp/Library"
+dials        "dials"        "1.4.4"      "/home/runner/work/_temp/Library"
+DiceDesign   "DiceDesign"   "1.10"       "/home/runner/work/_temp/Library"
+digest       "digest"       "0.6.39"     "/home/runner/work/_temp/Library"
+dplyr        "dplyr"        "1.2.1"      "/home/runner/work/_temp/Library"
+evaluate     "evaluate"     "1.0.5"      "/home/runner/work/_temp/Library"
+farver       "farver"       "2.1.2"      "/home/runner/work/_temp/Library"
+fastmap      "fastmap"      "1.2.0"      "/home/runner/work/_temp/Library"
+fontawesome  "fontawesome"  "0.5.3"      "/home/runner/work/_temp/Library"
+fs           "fs"           "2.1.0"      "/home/runner/work/_temp/Library"
+furrr        "furrr"        "0.4.0"      "/home/runner/work/_temp/Library"
+future       "future"       "1.75.0"     "/home/runner/work/_temp/Library"
+future.apply "future.apply" "1.20.2"     "/home/runner/work/_temp/Library"
+GauPro       "GauPro"       "0.2.17"     "/home/runner/work/_temp/Library"
+generics     "generics"     "0.1.4"      "/home/runner/work/_temp/Library"
+ggplot2      "ggplot2"      "4.0.3"      "/home/runner/work/_temp/Library"
+globals      "globals"      "0.19.1"     "/home/runner/work/_temp/Library"
+glue         "glue"         "1.8.1"      "/home/runner/work/_temp/Library"
+gower        "gower"        "1.0.2"      "/home/runner/work/_temp/Library"
+gtable       "gtable"       "0.3.6"      "/home/runner/work/_temp/Library"
+hardhat      "hardhat"      "1.4.3"      "/home/runner/work/_temp/Library"
+highr        "highr"        "0.12"       "/home/runner/work/_temp/Library"
+htmltools    "htmltools"    "0.5.9"      "/home/runner/work/_temp/Library"
+ipred        "ipred"        "0.9-16"     "/home/runner/work/_temp/Library"
+isoband      "isoband"      "0.3.0"      "/home/runner/work/_temp/Library"
+jquerylib    "jquerylib"    "0.1.4"      "/home/runner/work/_temp/Library"
+jsonlite     "jsonlite"     "2.0.0"      "/home/runner/work/_temp/Library"
+KernSmooth   "KernSmooth"   "2.23-27"    "/home/runner/work/_temp/Library"
+knitr        "knitr"        "1.52"       "/home/runner/work/_temp/Library"
+labeling     "labeling"     "0.4.3"      "/home/runner/work/_temp/Library"
+lattice      "lattice"      "0.23-1"     "/home/runner/work/_temp/Library"
+lava         "lava"         "1.9.3"      "/home/runner/work/_temp/Library"
+lbfgs        "lbfgs"        "1.2.1.2"    "/home/runner/work/_temp/Library"
+lifecycle    "lifecycle"    "1.0.5"      "/home/runner/work/_temp/Library"
+listenv      "listenv"      "1.0.0"      "/home/runner/work/_temp/Library"
+lubridate    "lubridate"    "1.9.5"      "/home/runner/work/_temp/Library"
+magrittr     "magrittr"     "2.0.5"      "/home/runner/work/_temp/Library"
+MASS         "MASS"         "7.3-66"     "/home/runner/work/_temp/Library"
+Matrix       "Matrix"       "1.7-6"      "/home/runner/work/_temp/Library"
+memoise      "memoise"      "2.0.1"      "/home/runner/work/_temp/Library"
+mime         "mime"         "0.13"       "/home/runner/work/_temp/Library"
+mixopt       "mixopt"       "0.1.3"      "/home/runner/work/_temp/Library"
+modelenv     "modelenv"     "0.2.0"      "/home/runner/work/_temp/Library"
+nnet         "nnet"         "7.3-21"     "/home/runner/work/_temp/Library"
+numDeriv     "numDeriv"     "2016.8-1.1" "/home/runner/work/_temp/Library"
+parallelly   "parallelly"   "1.48.0"     "/home/runner/work/_temp/Library"
+parsnip      "parsnip"      "1.6.0"      "/home/runner/work/_temp/Library"
+pillar       "pillar"       "1.11.1"     "/home/runner/work/_temp/Library"
+pkgconfig    "pkgconfig"    "2.0.3"      "/home/runner/work/_temp/Library"
+prettyunits  "prettyunits"  "1.2.0"      "/home/runner/work/_temp/Library"
+prodlim      "prodlim"      "2026.03.11" "/home/runner/work/_temp/Library"
+progressr    "progressr"    "1.0.0"      "/home/runner/work/_temp/Library"
+purrr        "purrr"        "1.2.2"      "/home/runner/work/_temp/Library"
+R6           "R6"           "2.6.1"      "/home/runner/work/_temp/Library"
+rappdirs     "rappdirs"     "0.3.4"      "/home/runner/work/_temp/Library"
+RColorBrewer "RColorBrewer" "1.1-3"      "/home/runner/work/_temp/Library"
+Rcpp         "Rcpp"         "1.1.2"      "/home/runner/work/_temp/Library"
+recipes      "recipes"      "1.4.0"      "/home/runner/work/_temp/Library"
+rlang        "rlang"        "1.3.0"      "/home/runner/work/_temp/Library"
+rmarkdown    "rmarkdown"    "2.32"       "/home/runner/work/_temp/Library"
+rpart        "rpart"        "4.1.27"     "/home/runner/work/_temp/Library"
+rsample      "rsample"      "1.3.2"      "/home/runner/work/_temp/Library"
+S7           "S7"           "0.2.2"      "/home/runner/work/_temp/Library"
+sass         "sass"         "0.4.10"     "/home/runner/work/_temp/Library"
+scales       "scales"       "1.4.0"      "/home/runner/work/_temp/Library"
+sessioninfo  "sessioninfo"  "1.2.4"      "/home/runner/work/_temp/Library"
+sfd          "sfd"          "0.1.0"      "/home/runner/work/_temp/Library"
+shape        "shape"        "1.4.6.1"    "/home/runner/work/_temp/Library"
+slider       "slider"       "0.3.3"      "/home/runner/work/_temp/Library"
+sparsevctrs  "sparsevctrs"  "0.3.6"      "/home/runner/work/_temp/Library"
+splitfngr    "splitfngr"    "0.1.2"      "/home/runner/work/_temp/Library"
+SQUAREM      "SQUAREM"      "2026.1"     "/home/runner/work/_temp/Library"
+stringi      "stringi"      "1.8.9"      "/home/runner/work/_temp/Library"
+stringr      "stringr"      "1.6.0"      "/home/runner/work/_temp/Library"
+survival     "survival"     "3.8-11"     "/home/runner/work/_temp/Library"
+tailor       "tailor"       "0.1.0"      "/home/runner/work/_temp/Library"
+tibble       "tibble"       "3.3.1"      "/home/runner/work/_temp/Library"
+tidyr        "tidyr"        "1.3.2"      "/home/runner/work/_temp/Library"
+tidyselect   "tidyselect"   "1.2.1"      "/home/runner/work/_temp/Library"
+timechange   "timechange"   "0.4.0"      "/home/runner/work/_temp/Library"
+timeDate     "timeDate"     "4052.112"   "/home/runner/work/_temp/Library"
+tinytex      "tinytex"      "0.60"       "/home/runner/work/_temp/Library"
+tune         "tune"         "2.1.0"      "/home/runner/work/_temp/Library"
+tzdb         "tzdb"         "0.5.0"      "/home/runner/work/_temp/Library"
+utf8         "utf8"         "1.2.6"      "/home/runner/work/_temp/Library"
+vctrs        "vctrs"        "0.7.3"      "/home/runner/work/_temp/Library"
+viridisLite  "viridisLite"  "0.4.3"      "/home/runner/work/_temp/Library"
+warp         "warp"         "0.2.3"      "/home/runner/work/_temp/Library"
+withr        "withr"        "3.0.3"      "/home/runner/work/_temp/Library"
+workflows    "workflows"    "1.3.0"      "/home/runner/work/_temp/Library"
+xfun         "xfun"         "0.60"       "/home/runner/work/_temp/Library"
+yaml         "yaml"         "2.3.12"     "/home/runner/work/_temp/Library"
+yardstick    "yardstick"    "1.4.0"      "/home/runner/work/_temp/Library"
+pak          "pak"          "0.11.1"     "/opt/R/4.5.3/lib/R/site-library"
+base         "base"         "4.5.3"      "/opt/R/4.5.3/lib/R/library"     
+boot         "boot"         "1.3-32"     "/opt/R/4.5.3/lib/R/library"     
+class        "class"        "7.3-23"     "/opt/R/4.5.3/lib/R/library"     
+cluster      "cluster"      "2.1.8.2"    "/opt/R/4.5.3/lib/R/library"     
+codetools    "codetools"    "0.2-20"     "/opt/R/4.5.3/lib/R/library"     
+compiler     "compiler"     "4.5.3"      "/opt/R/4.5.3/lib/R/library"     
+datasets     "datasets"     "4.5.3"      "/opt/R/4.5.3/lib/R/library"     
+foreign      "foreign"      "0.8-91"     "/opt/R/4.5.3/lib/R/library"     
+graphics     "graphics"     "4.5.3"      "/opt/R/4.5.3/lib/R/library"     
+grDevices    "grDevices"    "4.5.3"      "/opt/R/4.5.3/lib/R/library"     
+grid         "grid"         "4.5.3"      "/opt/R/4.5.3/lib/R/library"     
+KernSmooth   "KernSmooth"   "2.23-26"    "/opt/R/4.5.3/lib/R/library"     
+lattice      "lattice"      "0.22-9"     "/opt/R/4.5.3/lib/R/library"     
+MASS         "MASS"         "7.3-65"     "/opt/R/4.5.3/lib/R/library"     
+Matrix       "Matrix"       "1.7-4"      "/opt/R/4.5.3/lib/R/library"     
+methods      "methods"      "4.5.3"      "/opt/R/4.5.3/lib/R/library"     
+mgcv         "mgcv"         "1.9-4"      "/opt/R/4.5.3/lib/R/library"     
+nlme         "nlme"         "3.1-168"    "/opt/R/4.5.3/lib/R/library"     
+nnet         "nnet"         "7.3-20"     "/opt/R/4.5.3/lib/R/library"     
+parallel     "parallel"     "4.5.3"      "/opt/R/4.5.3/lib/R/library"     
+rpart        "rpart"        "4.1.24"     "/opt/R/4.5.3/lib/R/library"     
+spatial      "spatial"      "7.3-18"     "/opt/R/4.5.3/lib/R/library"     
+splines      "splines"      "4.5.3"      "/opt/R/4.5.3/lib/R/library"     
+stats        "stats"        "4.5.3"      "/opt/R/4.5.3/lib/R/library"     
+stats4       "stats4"       "4.5.3"      "/opt/R/4.5.3/lib/R/library"     
+survival     "survival"     "3.8-6"      "/opt/R/4.5.3/lib/R/library"     
+tcltk        "tcltk"        "4.5.3"      "/opt/R/4.5.3/lib/R/library"     
+tools        "tools"        "4.5.3"      "/opt/R/4.5.3/lib/R/library"     
+utils        "utils"        "4.5.3"      "/opt/R/4.5.3/lib/R/library"     
