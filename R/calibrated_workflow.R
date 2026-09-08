@@ -328,9 +328,9 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   as.double(p$.pred)
 }
 
-.integration_prediction <- function(object, new_data) {
+.integration_prediction <- function(object, new_data, include_details = FALSE) {
   if (object$parameters$requested$mode == "regression") {
-    return(.integration_regression_prediction(object, new_data))
+    return(.integration_regression_prediction(object, new_data, include_details))
   }
   multiclass <- object$parameters$requested$classification != "binary"
   cross <- object$parameters$requested$method == "cross"
@@ -341,7 +341,12 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   })
   names(p) <- names(object$models)
   if (multiclass) {
-    result <- stats::predict(object$calibrator, if (cross) p else p[[1L]], loss = object$loss, type = "details")
+    result <- stats::predict(object$calibrator, if (cross) p else p[[1L]], loss = object$loss,
+                             type = if (include_details) "details" else "response")
+    prediction <- if (include_details) result$prediction else result
+    colnames(prediction) <- paste0(".pred_", object$class_levels)
+    prediction <- tibble::as_tibble(prediction, .name_repair = "minimal")
+    if (!include_details) return(list(prediction = prediction))
     method <- object$parameters$requested$classification
     details <- if (method == "ovo") result$pairs else result$classes
     names(details)[names(details) == "non_event"] <- "class_1"
@@ -350,49 +355,54 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     details$method <- rep(method, nrow(details))
     details$event_class <- if (method == "ovo") details$class_2 else details$class
     identity <- if (method == "ovo") c("class_1", "class_2") else "class"
-    colnames(result$prediction) <- paste0(".pred_", object$class_levels)
-    return(list(prediction = tibble::as_tibble(result$prediction, .name_repair = "minimal"),
+    return(list(prediction = prediction,
                 details = tibble::as_tibble(details[c("row", "fold", "method", "event_class", identity,
                                                     "lower", "upper", "probability")])))
   }
   if (cross) {
     p <- do.call(cbind, p)
     colnames(p) <- names(object$models)
-    result <- stats::predict(object$calibrator, p, loss = object$loss, type = "details")
-    probability <- result$prediction$probability
-    details <- result$folds
+    result <- stats::predict(object$calibrator, p, loss = object$loss,
+                             type = if (include_details) "details" else "response")
+    probability <- if (include_details) result$prediction$probability else result$probability
+    if (include_details) details <- result$folds
   } else {
     bounds <- stats::predict(object$calibrator, p[[1L]], loss = object$loss)
     probability <- bounds$probability
-    details <- data.frame(row = seq_len(nrow(new_data)), fold = rep("Inductive1", nrow(new_data)), bounds)
+    if (include_details) details <- data.frame(row = seq_len(nrow(new_data)), fold = rep("Inductive1", nrow(new_data)), bounds)
   }
-  details$event_class <- rep(object$event_class, nrow(details))
   probabilities <- lapply(object$class_levels, function(cl) {
     if (cl == object$event_class) probability else 1 - probability
   })
   names(probabilities) <- paste0(".pred_", object$class_levels)
-  list(prediction = tibble::as_tibble(probabilities, .name_repair = "minimal"),
+  prediction <- tibble::as_tibble(probabilities, .name_repair = "minimal")
+  if (!include_details) return(list(prediction = prediction))
+  details$event_class <- rep(object$event_class, nrow(details))
+  list(prediction = prediction,
        details = tibble::as_tibble(details[c("row", "fold", "event_class", "lower", "upper", "probability")]))
 }
 
-.integration_regression_prediction <- function(object, new_data) {
+.integration_regression_prediction <- function(object, new_data, include_details = FALSE) {
   cross <- object$parameters$requested$method == "cross"
   p <- lapply(names(object$models), function(id) {
     if (nrow(new_data)) .base_numeric(object$models[[id]], new_data, id) else numeric()
   })
   names(p) <- names(object$models)
   if (cross) {
-    result <- stats::predict(object$calibrator, do.call(cbind, p), type = "details")
-    points <- result$prediction
-    folds <- result$folds
+    result <- stats::predict(object$calibrator, do.call(cbind, p),
+                             type = if (include_details) "details" else "response")
+    points <- if (include_details) result$prediction else result
+    if (include_details) folds <- result$folds
   } else {
     points <- stats::predict(object$calibrator, p[[1L]])
-    folds <- list(Inductive1 = points)
+    if (include_details) folds <- list(Inductive1 = points)
   }
+  prediction <- tibble::tibble(.pred = as.double(points$prediction))
+  if (!include_details) return(list(prediction = prediction))
   details <- do.call(rbind, lapply(names(folds), function(id) {
     data.frame(row = seq_len(nrow(new_data)), fold = rep(id, nrow(new_data)), folds[[id]])
   }))
-  result <- list(prediction = tibble::tibble(.pred = as.double(points$prediction)),
+  result <- list(prediction = prediction,
                  details = tibble::as_tibble(details))
   if (cross) result$aggregate <- tibble::tibble(row = seq_len(nrow(new_data)),
                                                lower = points$lower, upper = points$upper)
@@ -450,5 +460,5 @@ venn_abers_details <- function(object, new_data, ..., loss = NULL) {
     state$loss <- loss
   }
   forged <- hardhat::forge(new_data, blueprint = workflows::extract_mold(object)$blueprint)
-  .integration_prediction(state, forged$predictors)
+  .integration_prediction(state, forged$predictors, include_details = TRUE)
 }
