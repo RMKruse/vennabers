@@ -229,19 +229,10 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
                               conditionMessage(e), call. = FALSE))
   folds <- if (settings$method == "cross") .cross_splits(split, raw) else
     list(Inductive1 = .inductive_split(split, raw))
-  if (multiclass && settings$method == "inductive") {
-    held <- folds$Inductive1$assessment
-    absent <- classes[tabulate(y[held], nbins = length(classes)) == 0L]
-    if (length(absent)) stop("Inductive1 calibration must contain every stored class; missing: ",
-                             paste(sQuote(absent), collapse = ", "), ".", call. = FALSE)
-  }
-  if (multiclass && settings$method == "cross" && settings$classification == "ovo") {
-    for (pair in utils::combn(classes, 2L, simplify = FALSE)) for (id in names(folds)) {
-      if (!any(y[folds[[id]]$assessment] %in% pair)) {
-        stop("Empty calibration for pair [", paste(pair, collapse = ", "),
-             "] in fold [", id, "].", call. = FALSE)
-      }
-    }
+  if (multiclass) {
+    held <- lapply(folds, `[[`, "assessment")
+    fold <- if (settings$method == "cross") rep(names(folds), lengths(held)) else NULL
+    .multiclass_eligibility(y[unlist(held, use.names = FALSE)], settings$classification, fold)
   }
   moderation <- list()
   if (regression) {

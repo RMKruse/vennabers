@@ -18,7 +18,7 @@
   probability / totals
 }
 
-.validate_multiclass_input <- function(truth, probability, require_all = FALSE) {
+.validate_multiclass_input <- function(truth, probability) {
   classes <- levels(truth)
   if (!is.factor(truth) || !is.null(dim(truth)) || !length(truth) || anyNA(truth) ||
       length(classes) < 2L || anyNA(classes) || any(!nzchar(classes))) {
@@ -28,10 +28,25 @@
   if (nrow(probability) != length(truth)) {
     stop("`probability` must have one row per `truth` value.", call. = FALSE)
   }
-  if (require_all && any(tabulate(as.integer(truth), nbins = length(classes)) == 0L)) {
-    stop("Every class in `truth` must be observed in the calibration set.", call. = FALSE)
-  }
   probability
+}
+
+.multiclass_eligibility <- function(truth, method, fold = NULL) {
+  classes <- levels(truth)
+  absent <- classes[tabulate(as.integer(truth), nbins = length(classes)) == 0L]
+  if (length(absent)) {
+    stop("Every class in `truth` must be observed in the calibration set; missing: ",
+         paste(sQuote(absent), collapse = ", "), ".", call. = FALSE)
+  }
+  pairs <- if (method == "ovo") utils::combn(classes, 2L, simplify = FALSE) else NULL
+  if (!is.null(fold)) for (pair in pairs) {
+    absent <- setdiff(unique(fold), fold[truth %in% pair])
+    if (length(absent)) {
+      stop("Empty calibration for pair [", paste(pair, collapse = ", "),
+           "] in fold [", absent[1L], "].", call. = FALSE)
+    }
+  }
+  pairs
 }
 
 .pair_probability <- function(probability, pair) {
@@ -47,17 +62,12 @@
 }
 
 .fit_multiclass <- function(truth, probability, precision, method, fold = NULL) {
-  probability <- .validate_multiclass_input(truth, probability, require_all = TRUE)
+  probability <- .validate_multiclass_input(truth, probability)
   classes <- levels(truth)
-  pairs <- if (method == "ovo") utils::combn(classes, 2L, simplify = FALSE) else NULL
+  pairs <- .multiclass_eligibility(truth, method, fold)
   problems <- if (method == "ovo") pairs else as.list(classes)
   calibrators <- lapply(problems, function(problem) {
     rows <- if (method == "ovo") truth %in% problem else rep(TRUE, length(truth))
-    absent <- setdiff(unique(fold), fold[rows])
-    if (length(absent)) {
-      stop("Empty calibration for pair [", paste(problem, collapse = ", "),
-           "] in fold [", absent[1L], "].", call. = FALSE)
-    }
     event <- truth[rows] == problem[length(problem)]
     scores <- .subproblem_probability(probability[rows, problem, drop = FALSE], problem)
     if (is.null(fold)) venn_abers(event, scores, precision) else

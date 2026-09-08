@@ -41,6 +41,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes"),
   error <- function(expr, text) {
     e <- tryCatch(suppressWarnings(force(expr)), error = identity)
     stopifnot(inherits(e, "error"), grepl(text, conditionMessage(e), fixed = TRUE))
+    conditionMessage(e)
   }
   audit <- new.env()
   audit$fits <- 0L
@@ -198,8 +199,14 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes"),
   # A late empty pair must fail before even the first base fit.
   before <- audit$fits
   empty <- make_plan(data, list(2:30, 31:60, 1L))
-  error(generics::fit(calibrated_workflow(base, "truth", method = "cross", classification = "ovo",
+  message <- error(generics::fit(calibrated_workflow(base, "truth", method = "cross", classification = "ovo",
     splits = empty), data), "pair [a b, a.b] in fold [part3]")
+  held <- lapply(empty$splits, rsample::assessment)
+  truth <- do.call(c, lapply(held, `[[`, "truth"))
+  p <- as.matrix(do.call(rbind, held)[paste0("p", seq_along(classes))])
+  colnames(p) <- classes
+  ids <- rep(empty$id, vapply(held, nrow, 0L))
+  stopifnot(identical(message, error(cross_venn_abers(truth, p, ids), "Empty calibration")))
   stopifnot(audit$fits == before)
 }
 

@@ -29,6 +29,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes"),
   error <- function(expr, text) {
     result <- tryCatch(force(expr), error = identity)
     stopifnot(inherits(result, "error"), grepl(text, conditionMessage(result), fixed = TRUE))
+    conditionMessage(result)
   }
   close <- function(actual, expected) {
     stopifnot(identical(dim(actual), dim(expected)), all(is.finite(actual)),
@@ -177,7 +178,10 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes"),
     error(calibrated_workflow(base, "truth", classification = method, event_level = "first"), "event_level")
     held <- which(data$truth == classes[1L])
     plan <- rsample::make_splits(list(analysis = setdiff(1:120, held), assessment = held), data)
-    error(generics::fit(calibrated_workflow(base, "truth", classification = method, splits = plan), data), "missing")
+    message <- error(generics::fit(calibrated_workflow(base, "truth", classification = method, splits = plan), data), "missing")
+    p <- as.matrix(data[held, paste0("p", seq_along(classes))])
+    colnames(p) <- classes
+    stopifnot(identical(message, error(venn_abers(data$truth[held], p, method = method), "missing")))
     absent <- data[data$truth != classes[1L], ]
     error(generics::fit(calibrated_workflow(base, "truth", classification = method), absent), "all classes")
     foreign <- data
