@@ -1,5 +1,11 @@
 # vennabers 0.5.0
 
+- Normalize class matrices with binary64 column-order additions on every
+  platform. Extended-precision row sums on x86 could move a prediction across
+  a calibration knot after calibration-only rounding. This fixes the existing
+  multiclass reference checks without relaxing their tolerance or changing the
+  rounding rule; affected x86 predictions may change.
+
 - Prepare the eight native integration paths for acceptance, with one source
   candidate, mandatory current/minimum dependency checks and a separate manual
   core check without tidymodels. Extend benchmarks with complete Fit/Predict and

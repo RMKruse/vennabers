@@ -10,6 +10,8 @@ calibration <- fixture("ovo-calibration.csv")
 inputs <- fixture("ovo-input.csv")
 case_ids <- unique(calibration$case_id)
 stopifnot(length(case_ids) == 33L, sum(startsWith(case_ids, "random")) == 30L)
+# fixed_3_00 at precision 2 also protects binary64 row normalization: extended
+# row sums on x86 otherwise move unrounded predictions across calibration knots.
 
 # Independent coupling from the public table, using odds rather than the
 # implementation's reciprocal accumulator. Class identity never relies on names

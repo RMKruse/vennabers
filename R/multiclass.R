@@ -9,7 +9,9 @@
     stop("`", argument, "` column names must be non-empty, unique, and match the classes.", call. = FALSE)
   }
   probability <- probability[, classes, drop = FALSE]
-  totals <- rowSums(probability)
+  # rowSums uses extended precision on some platforms. A one-bit normalization
+  # difference can cross a calibration knot; use binary64 additions everywhere.
+  totals <- Reduce(`+`, as.data.frame(probability))
   if (any(abs(totals - 1) > 1e-8)) {
     stop("`", argument, "` row sums must be within 1e-8 of one.", call. = FALSE)
   }

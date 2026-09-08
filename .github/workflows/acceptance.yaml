@@ -128,7 +128,8 @@ jobs:
         run: sha256sum -c SHA256SUMS
       - name: Install pinned minimum environment
         if: matrix.profile == 'minimum'
-        run: Rscript --vanilla tools/install-minimum-dependencies.R "$R_LIBS_USER"
+        shell: bash
+        run: Rscript --vanilla tools/install-minimum-dependencies.R "$R_LIBS_USER" 2>&1 | tee .scratch/minimum-setup.log
       - name: Check installed package and dependency profile
         run: Rscript --vanilla tools/acceptance.R
       - name: Verify missing and old optional dependency errors
@@ -140,6 +141,7 @@ jobs:
           name: acceptance-${{ matrix.profile }}
           include-hidden-files: true
           path: |
+            .scratch/minimum-setup.log
             .scratch/ci/*.txt
             .scratch/ci/*.log
             .scratch/ci/*.tar.gz

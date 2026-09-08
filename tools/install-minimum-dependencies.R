@@ -30,7 +30,7 @@ local({
       if (!downloaded) stop("Cannot download pinned source: ", filename)
       cat(filename, unname(tools::md5sum(dest)), "\n")
       utils::install.packages(dest, lib = lib, repos = NULL, type = "source")
-      stopifnot(as.character(utils::packageVersion(package, lib.loc = lib)) == version)
+      stopifnot(utils::packageDescription(package, lib.loc = lib, fields = "Version") == version)
     }
     remaining <- setdiff(remaining, ready)
   }
