@@ -5,7 +5,7 @@ stopifnot(identical(
   sort(c("venn_abers", "venn_abers_regression", "cross_venn_abers_regression",
          "cross_venn_abers", "brier_score", "log_loss", "calibration_plot",
          "calibrated_workflow", "local_calibration_splits", "venn_abers_details", "fit_vennabers",
-         "predict_vennabers_prob", "predict_vennabers_class"))
+         "predict_vennabers_prob", "predict_vennabers_class", "predict_vennabers_numeric"))
 ))
 
 expect_error <- function(expr, argument) {

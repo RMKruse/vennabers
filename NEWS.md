@@ -1,5 +1,12 @@
 # Development
 
+- Add Inductive and Cross regression to `calibrated_workflow()`, using the base
+  model's regression mode and existing IVAR/CVAR cores. Validate every fold's
+  moderation before training; retain requested/effective moderation and sizes.
+  Native double `.pred` outputs, separate fold bounds and descriptive Cross
+  aggregates support complete outer RMSE/MAE evaluation with local preprocessing.
+  Add scale-aware parity, data-role, fresh-process and worker checks and examples.
+
 - Add Cross `classification = "ovo"` and `"ovr"` workflows with one shared
   multiclass model per fold complement and the existing manual Cross cores.
   Binary fold aggregation precedes OvO coupling/OvR normalization; details retain

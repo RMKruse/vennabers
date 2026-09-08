@@ -24,18 +24,18 @@
     stop("A foreign parsnip registration already owns model 'vennabers'; it will not be overwritten.", call. = FALSE)
   }
   parsnip::set_new_model(model)
-  parsnip::set_model_mode(model, "classification")
-  for (engine in c("inductive", "cross")) {
-    parsnip::set_model_engine(model, "classification", engine)
-    parsnip::set_dependency(model, engine, pkg = "vennabers", mode = "classification")
-    parsnip::set_fit(model, "classification", engine,
+  for (mode in c("classification", "regression")) parsnip::set_model_mode(model, mode)
+  for (mode in c("classification", "regression")) for (engine in c("inductive", "cross")) {
+    parsnip::set_model_engine(model, mode, engine)
+    parsnip::set_dependency(model, engine, pkg = "vennabers", mode = mode)
+    parsnip::set_fit(model, mode, engine,
                      list(interface = "data.frame", protect = c("x", "y"),
                           func = c(pkg = "vennabers", fun = "fit_vennabers"), defaults = list()))
-    parsnip::set_encoding(model, "classification", engine,
+    parsnip::set_encoding(model, mode, engine,
                           list(predictor_indicators = "none", compute_intercept = FALSE,
                                remove_intercept = FALSE, allow_sparse_x = FALSE))
-    for (type in c("prob", "class")) {
-      parsnip::set_pred(model, "classification", engine, type,
+    for (type in if (mode == "regression") "numeric" else c("prob", "class")) {
+      parsnip::set_pred(model, mode, engine, type,
                         list(pre = NULL, post = NULL,
                              func = c(pkg = "vennabers", fun = paste0("predict_vennabers_", type)),
                              args = list(object = quote(object$fit), new_data = quote(new_data))))

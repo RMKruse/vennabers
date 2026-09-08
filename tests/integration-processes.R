@@ -15,6 +15,7 @@ run_process(c(
   'loadNamespace("vennabers", lib.loc = package_library)',
   'stopifnot(!"parsnip" %in% loadedNamespaces())',
   'stopifnot(nrow(predict(vennabers::venn_abers(c(FALSE, TRUE), c(.1, .9)), .5)) == 1L)',
+  'stopifnot(is.double(predict(vennabers::venn_abers_regression(1:3, 1:3), 2)$prediction))',
   'stopifnot(!"parsnip" %in% loadedNamespaces())'
 ), libraries = .Library)
 
@@ -27,7 +28,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "rlang", "tibble"
     'base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |> workflows::add_model(parsnip::logistic_reg(engine = "glm"))',
     'model <- vennabers::calibrated_workflow(base, "truth", method = method, seed = 42)',
     'second <- vennabers::calibrated_workflow(base, "truth", method = method, seed = 42)',
-    'stopifnot(nrow(parsnip::get_fit("vennabers")) == 2L)',
+    'stopifnot(nrow(parsnip::get_fit("vennabers")) == 4L)',
     'fit <- generics::fit(model, data)',
     'stopifnot(identical(predict(fit, data, type = "prob"), vennabers::venn_abers_details(fit, data)$prediction))'
   )
@@ -136,6 +137,53 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "nnet", "tune", "yardstick",
       'stopifnot(nrow(tune::collect_notes(three)) == 0L, identical(normalize(one), normalize(three)), nrow(normalize(one)) == 2L * nrow(data))',
       'states <- tune::collect_extracts(one)$.extracts',
       'stopifnot(length(states) == 6L, all(vapply(states, function(s) length(s$models), integer(1)) == 5L))',
+      '}',
+      'future::plan(future::sequential)'
+    ))
+  }
+}
+
+if (all(vapply(c("parsnip", "workflows", "recipes", "tune", "yardstick", "future", "rsample"),
+               requireNamespace, logical(1), quietly = TRUE))) {
+  for (method in c("inductive", "cross")) {
+    construction <- c(
+      paste0("method <- ", deparse(method)),
+      'data <- data.frame(x = c(NA, sin(2:80)), truth = 10 + 3*sin(1:80) + cos(1:80))',
+      'base <- workflows::workflow() |> workflows::add_recipe(recipes::recipe(truth ~ x, data) |> recipes::step_impute_median(x) |> recipes::step_normalize(x)) |> workflows::add_model(parsnip::linear_reg(engine = "lm"))',
+      'model <- vennabers::calibrated_workflow(base, "truth", method = method, seed = 42, epsilon = .3)',
+      'fit <- generics::fit(model, data)',
+      'stopifnot(identical(predict(fit, data, type = "numeric"), vennabers::venn_abers_details(fit, data)$prediction))'
+    )
+    for (order in list(c('loadNamespace("vennabers")', 'loadNamespace("parsnip")'),
+                      c('loadNamespace("parsnip")', 'loadNamespace("vennabers")'))) {
+      run_process(c(order, construction))
+    }
+    payload <- tempfile(fileext = ".rds")
+    run_process(c(construction,
+      paste0('saveRDS(list(fit = fit, data = data, prediction = predict(fit, data), details = vennabers::venn_abers_details(fit, data)), ', deparse(payload), ')')))
+    run_process(c('loadNamespace("vennabers")', 'loadNamespace("workflows")',
+      paste0('saved <- readRDS(', deparse(payload), ')'),
+      'stopifnot(identical(saved$prediction, predict(saved$fit, saved$data)), identical(saved$details, vennabers::venn_abers_details(saved$fit, saved$data)))',
+      'for (n in 0:1) stopifnot(identical(predict(saved$fit, saved$data[seq_len(n), ]), vennabers::venn_abers_details(saved$fit, saved$data[seq_len(n), ])$prediction))'))
+    unlink(payload)
+    run_process(c(construction,
+      'Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")',
+      'outer <- withr::with_seed(301, rsample::vfold_cv(data, v = 3, repeats = 2))',
+      'prepared <- withr::with_seed(302, lapply(outer$splits, function(s) if (method == "cross") rsample::vfold_cv(rsample::analysis(s), v = 5) else rsample::initial_split(rsample::analysis(s), .8)))',
+      'resolver <- vennabers::local_calibration_splits(prepared, names(data))',
+      'future::plan(future::multisession, workers = 2)',
+      'for (splits in list(NULL, resolver)) {',
+      'model <- vennabers::calibrated_workflow(base, "truth", method = method, splits = splits, seed = 42, epsilon = .3)',
+      'control <- tune::control_resamples(save_pred = TRUE, extract = workflows::extract_fit_engine, parallel_over = "resamples", pkgs = c("vennabers", "stats"))',
+      'run <- function(outer) withr::with_seed(303, tune::fit_resamples(model, outer, metrics = yardstick::metric_set(yardstick::rmse, yardstick::mae), control = control))',
+      'one <- run(outer); two <- run(outer)',
+      'stopifnot(nrow(tune::collect_notes(one)) == 0L, nrow(tune::collect_notes(two)) == 0L, identical(tune::collect_predictions(one), tune::collect_predictions(two)), identical(tune::collect_metrics(one), tune::collect_metrics(two)), nrow(tune::collect_predictions(one)) == 2L*nrow(data))',
+      'reversed <- rsample::manual_rset(rev(outer$splits), tibble::as_tibble(outer[nrow(outer):1, c("id", "id2")]))',
+      'three <- run(reversed)',
+      'normalize <- function(r) { p <- as.data.frame(tune::collect_predictions(r, summarize = FALSE)); p <- p[order(p$id, p$id2, p$.row), ]; rownames(p) <- NULL; p }',
+      'stopifnot(nrow(tune::collect_notes(three)) == 0L, identical(normalize(one), normalize(three)))',
+      'states <- tune::collect_extracts(one)$.extracts',
+      'stopifnot(length(states) == 6L, all(vapply(states, function(s) length(s$models), integer(1)) == if (method == "cross") 5L else 1L))',
       '}',
       'future::plan(future::sequential)'
     ))

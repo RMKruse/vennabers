@@ -4,6 +4,26 @@
   }
 }
 
+.regression_moderation <- function(k, m = 1, epsilon = NULL) {
+  if (!missing(m) && !missing(epsilon)) {
+    stop("Supply only one of `m` and `epsilon`.", call. = FALSE)
+  }
+  requested <- if (!missing(epsilon)) list(epsilon = epsilon) else if (!missing(m)) list(m = m) else list()
+  if (!missing(epsilon)) {
+    .validate_regression_vector(epsilon, "epsilon")
+    if (length(epsilon) != 1L || epsilon <= 0 || epsilon >= 1) {
+      stop("`epsilon` must be one finite numeric value strictly between 0 and 1.", call. = FALSE)
+    }
+    m <- floor(epsilon * (k + 1) / 2)
+  }
+  .validate_regression_vector(m, "m")
+  if (length(m) != 1L || m != floor(m) || m < 1 || m > floor((k - 1) / 2)) {
+    stop("`m` must be a whole number with 1 <= m <= floor((k - 1) / 2); at least three calibration observations are required.", call. = FALSE)
+  }
+
+  list(requested = requested, m = as.numeric(m), epsilon = 2 * m / (k + 1))
+}
+
 # Convex interpolation without overflowing a difference or losing a small
 # same-sign value by halving it. Also preserves exactly coincident endpoints.
 .regression_interpolate <- function(lower, upper, fraction) {
@@ -39,21 +59,11 @@ venn_abers_regression <- function(truth, prediction, ..., m = 1, epsilon = NULL)
   if (!k || length(prediction) != k) {
     stop("`truth` and `prediction` must have the same nonzero length.", call. = FALSE)
   }
-  if (!missing(m) && !missing(epsilon)) {
-    stop("Supply only one of `m` and `epsilon`.", call. = FALSE)
-  }
-  requested <- if (!missing(epsilon)) list(epsilon = epsilon) else if (!missing(m)) list(m = m) else list()
-  if (!missing(epsilon)) {
-    .validate_regression_vector(epsilon, "epsilon")
-    if (length(epsilon) != 1L || epsilon <= 0 || epsilon >= 1) {
-      stop("`epsilon` must be one finite numeric value strictly between 0 and 1.", call. = FALSE)
-    }
-    m <- floor(epsilon * (k + 1) / 2)
-  }
-  .validate_regression_vector(m, "m")
-  if (length(m) != 1L || m != floor(m) || m < 1 || m > floor((k - 1) / 2)) {
-    stop("`m` must be a whole number with 1 <= m <= floor((k - 1) / 2); at least three calibration observations are required.", call. = FALSE)
-  }
+  options <- list()
+  if (!missing(m)) options["m"] <- list(m)
+  if (!missing(epsilon)) options["epsilon"] <- list(epsilon)
+  moderation <- do.call(.regression_moderation, c(list(k = k), options))
+  m <- moderation$m
 
   ranked <- sort(as.numeric(truth))
   a <- ranked[m]
@@ -83,8 +93,8 @@ venn_abers_regression <- function(truth, prediction, ..., m = 1, epsilon = NULL)
     upper <- .regression_interpolate(a, b, pmin(1, pmax(0, upper_unit)))
   }
   structure(list(knots = runs$values, lower = lower, upper = upper,
-                 a = a, b = b, observations = k, requested = requested,
-                 m = as.numeric(m), epsilon = 2 * m / (k + 1)),
+                 a = a, b = b, observations = k, requested = moderation$requested,
+                 m = moderation$m, epsilon = moderation$epsilon),
             class = "venn_abers_regression")
 }
 

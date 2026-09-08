@@ -205,7 +205,8 @@ if (all(vapply(integration_packages, requireNamespace, logical(1), quietly = TRU
   expect_error(calibrated_workflow(trained, "truth"), "fitted")
   reg <- workflows::workflow() |> workflows::add_formula(truth ~ p) |>
     workflows::add_model(parsnip::linear_reg(engine = "lm"))
-  expect_error(calibrated_workflow(reg, "truth"), "mode")
+  stopifnot(workflows::extract_spec_parsnip(calibrated_workflow(reg, "truth"))$mode == "regression")
+  expect_error(generics::fit(calibrated_workflow(reg, "truth"), data), "regression truth")
   recipe <- recipes::recipe(truth ~ p + id, data)
   prepped <- recipes::prep(recipe)
   # workflows itself rejects prepped recipes, before the constructor can see one.

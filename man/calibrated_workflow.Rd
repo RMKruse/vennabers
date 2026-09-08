@@ -2,26 +2,27 @@
 \alias{calibrated_workflow}
 \alias{venn_abers_details}
 \alias{predict._vennabers_fit}
-\title{Train a Calibrated Classification Workflow}
-\description{Wrap an unfitted, fully configured classification workflow in a normal
+\title{Train a Calibrated Classification or Regression Workflow}
+\description{Wrap an unfitted, fully configured classification or regression workflow in a normal
 outer workflow. The outer XY blueprint transports selected raw columns. Complete base workflows learn only on their local training splits; held-out
-probabilities fit the existing binary or multiclass Inductive/Cross Venn-Abers core.}
+predictions fit the existing classification or regression Inductive/Cross Venn-Abers core.}
 \usage{
 calibrated_workflow(workflow, outcome, ..., predictors = NULL,
   method = "inductive", classification = "binary", event_level = "first",
   calibration_prop = 0.2, v = 5L, strata = NULL, splits = NULL, seed = NULL,
-  precision = NULL, loss = "log")
+  precision = NULL, loss = "log", m = NULL, epsilon = NULL)
 venn_abers_details(object, new_data, ..., loss = NULL)
 \method{predict}{_vennabers_fit}(object, new_data, type = NULL,
   opts = list(), ..., loss = NULL)
 }
 \arguments{
-\item{workflow}{An unfitted workflows object with a classification model and
+\item{workflow}{An unfitted workflows object with a classification or regression model and
 recipe, formula, or variable selection. Prepped or partly trained recipes,
 unresolved tune placeholders, and additional postprocessors are rejected.}
 \item{outcome}{One original outcome column name. Fit requires a nonmissing factor
 with exactly two levels for binary or at least two for OvO/OvR. All stored levels
-must be represented in the development data.}
+must be represented in the development data. Regression requires finite numeric
+truth; numeric 0/1 outcomes remain regression.}
 \item{...}{Must be empty. Unknown, irrelevant and partially matched names are errors.}
 \item{predictors}{Optional character vector of raw predictor names, excluding
 outcome. NULL selects all other supplied columns. Their stored order is canonical;
@@ -29,7 +30,9 @@ unused selected columns still have to be supplied for prediction.}
 \item{method}{Exactly \code{"inductive"} (default) or \code{"cross"}.}
 \item{classification}{Exactly \code{"binary"} (default), \code{"ovo"}, or
 \code{"ovr"}. OvO/OvR explicitly use the
-factor/matrix core, including with two classes. Regression and tuning are not enabled.}
+factor/matrix core, including with two classes. Mode comes from the base model.
+Regression rejects explicit classification, event_level, precision and loss options,
+including their defaults; implicit classification defaults do not apply.}
 \item{event_level}{Exactly \code{"first"} or \code{"second"}, identifying the
 original factor level whose probability is calibrated. Only for binary;
 explicitly supplying this option for OvO/OvR is an error.}
@@ -40,7 +43,8 @@ Explicitly supplying this option requires Inductive.}
 Automatic \code{rsample::vfold_cv()} uses one repetition and never reduces this
 count; it must not exceed the local row count. Explicitly supplying \code{v}
 requires Cross.}
-\item{strata}{NULL stratifies by outcome with \code{pool=0}; FALSE disables
+\item{strata}{NULL stratifies classification by outcome with \code{pool=0}; regression
+is unstratified. FALSE disables
 stratification. Other values are rejected. No retry or automatic split adjustment.}
 \item{splits}{NULL generates a local split. Otherwise an IID holdout
 \code{rsplit} from \code{rsample::initial_split()} or \code{rsample::make_splits()},
@@ -58,13 +62,24 @@ depends on RNG kind, engine, package versions, thread and parallel configuration
 Only calibration probabilities are rounded, following \code{venn_abers()}.}
 \item{loss}{Constructor: stored prediction default, exactly \code{"log"} or
 \code{"brier"}. Prediction/details: omit to use that default; an explicit choice
-overrides it without refitting or changing stored state. Explicit NULL is invalid.}
+overrides it without refitting or changing stored state. Explicit NULL is invalid.
+Regression rejects explicit loss at construction and prediction/details.}
+\item{m, epsilon}{Regression moderation: both NULL means effective \code{m=1}.
+Only one non-NULL option may be supplied and only that option reaches the core.
+\code{m} is a positive numeric whole number; \code{epsilon} is strictly between
+zero and one. Before any inner training, each fold of calibration size k must
+satisfy \code{1 <= m <= floor((k-1)/2)}, with
+\code{m = floor(epsilon*(k+1)/2)} for an epsilon request. Invalid folds fail the
+entire fit with fold/size context; there is no clipping or fold-count adjustment.
+Classification rejects explicit m/epsilon, including NULL.}
 \item{object}{For details, a fitted calibrated workflow. The predict method is
 normally dispatched by \code{predict()} on that workflow.}
 \item{new_data}{A data frame with required raw predictors. Normal workflow blueprint
 and \code{hardhat::forge()} checks apply equally to prediction and details. Novel
 factor levels reach the inner workflow, whose recipe/engine handles them or errors.}
-\item{type}{Exactly \code{"prob"} or \code{"class"}; NULL defaults to class.}
+\item{type}{Classification: \code{"prob"} or \code{"class"}, default class. Regression:
+\code{"numeric"}, also the default, returns double \code{.pred} in outcome units.
+Neither \code{"conf_int"} nor \code{"pred_int"} is registered.}
 \item{opts}{The standard parsnip prediction options list; normally empty.}
 }
 \value{The constructor returns an unfitted ordinary workflow. After
@@ -85,7 +100,12 @@ OvO/OvR details additionally contain character \code{method} and either
 one new observation, fold and binary subproblem. \code{event_class} is the later class
 in an OvO pair or the considered OvR class. These binary point probabilities
 must first be merged across folds for Cross (Log/Brier), then coupled (OvO)
-or normalized (OvR) to reconstruct \code{prediction}.}
+or normalized (OvR) to reconstruct \code{prediction}.
+Regression returns the native \code{.pred} table as \code{prediction}, and
+\code{details} with integer \code{row}, character \code{fold}, and double
+\code{prediction}, \code{lower}, \code{upper}. Cross additionally returns
+\code{aggregate} with \code{row}, \code{lower}, \code{upper}: descriptive
+separate equal-weight means of fold bounds. Zero/one rows retain these schemas.}
 \details{
 All learned preprocessing belongs in the base workflow; the outer Variables
 preprocessor only carries raw data. Training and calibration positions must form a
@@ -121,6 +141,17 @@ then outcome), \code{class_levels}, \code{event_class}, \code{loss},
 \code{folds} (by fold ID, with integer \code{analysis}/\code{assessment} positions and
 \code{training_size}/\code{calibration_size}), \code{models} (full
 fitted base workflows named by the same IDs), \code{calibrator}, \code{versions}, and \code{rng_kind}.
+For regression, \code{parameters$requested$mode} is \code{"regression"};
+\code{effective$m} and \code{effective$epsilon} are numeric vectors named by
+fold ID. Each \code{folds[[id]]$moderation} stores \code{requested}, effective
+\code{m} and effective \code{epsilon=2*m/(k+1)}, alongside the fold sizes.
+Implicit classification options are absent from effective settings; class levels,
+event class and loss are NULL. The calibrator is the unchanged IVAR or CVAR core.
+IVAR keeps its full analysis-trained workflow and weighted points, including the
+midpoint when both weights vanish. CVAR keeps every matching workflow/recipe and
+calibrator and averages points, lower bounds and upper bounds separately with
+equal weights, regardless of fold size. No full-data transfer, rounding or
+probability constraint is applied to regression predictions.
 For OvO/OvR, the global \code{event_class} and effective \code{event_level} are
 NULL; events belong to subproblems in details. The calibrator stores the original
 classes and chosen multiclass method.
@@ -166,7 +197,9 @@ no implicit control modification. For binary, match \code{event_level} in the co
 \code{tune::control_resamples()}. Yardstick's binary Brier is the binary vector
 score. For OvO/OvR, yardstick Brier is exactly half the manual matrix score,
 including the two-class matrix contract. Its log-loss clipping affects scoring
-only, never stored predictions.
+only, never stored predictions. Regression uses normal yardstick RMSE/MAE
+(\code{.estimator = "standard"}) in outcome units, scored on the complete
+procedure's held-out predictions.
 
 Use \code{save_pred = TRUE} and all public collectors, including
 \code{collect_notes()}, to check complete unsummarized resample, repeat,
@@ -174,7 +207,7 @@ configuration and assessment-row identities and finite metrics. Inner failures,
 metric errors, NA removal or missing rows mean incomplete evaluation. All fits
 failing may make a collector itself error; a mean of surviving fits is insufficient.
 The installed \code{examples/calibrated-resampling.R} shows binary Inductive/Cross
-and multiclass Inductive/Cross OvO/OvR with an
+and multiclass Inductive/Cross OvO/OvR, plus both regression methods with an
 executable completeness check. Five outer by five inner Cross folds require exactly
 25 base fits; no final fit runs automatically. Keeping extracted Cross states retains
 all 25 workflows and their recipes/calibrators, so memory scales with the number
@@ -203,7 +236,9 @@ fixed using independent data or suitable selection nested inside the allowed
 training portions; this constructor does not perform that selection.
 The statistical setting assumes IID observations and a predictive procedure fixed
 independently of its calibration data. The bounds are Venn-Abers probability
-intervals, not confidence intervals; improved scores on every data set are not
+intervals, not confidence intervals. Regression bounds concern regularized
+conditional expectations, not individual outcome coverage; Cross aggregate bounds
+are descriptive. Improved scores on every data set are not
 promised. The engine cannot validate an outer partition it never receives.
 Validate outer analysis/assessment disjointness before calling fit_resamples;
 assessment sets from different outer resamples may overlap.}

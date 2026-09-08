@@ -15,6 +15,7 @@ check_outer_splits <- function(outer) {
 
 check_evaluation <- function(result, outer, event_level = "first", classification = "binary") {
   check_outer_splits(outer)
+  regression <- classification == "regression"
   # A collector can itself fail when all fits fail. That is an incomplete run.
   notes <- tune::collect_notes(result)
   predictions <- tune::collect_predictions(result, summarize = FALSE)
@@ -29,7 +30,7 @@ check_evaluation <- function(result, outer, event_level = "first", classificatio
   }))
   expected_metrics <- do.call(rbind, lapply(seq_len(nrow(outer)), function(i) {
     cbind(as.data.frame(outer[rep(i, 2L), ids, drop = FALSE]),
-          .metric = c("brier_class", "mn_log_loss"), .config = config)
+          .metric = if (regression) c("rmse", "mae") else c("brier_class", "mn_log_loss"), .config = config)
   }))
   same_keys <- function(actual, expected) {
     actual <- as.data.frame(actual[names(expected)])
@@ -42,13 +43,20 @@ check_evaluation <- function(result, outer, event_level = "first", classificatio
   }
   same_keys(predictions, expected)
   same_keys(metrics, expected_metrics)
-  estimator <- if (nlevels(outer$splits[[1L]]$data$truth) == 2L) "binary" else "multiclass"
+  estimator <- if (regression) "standard" else if (nlevels(outer$splits[[1L]]$data$truth) == 2L) "binary" else "multiclass"
   stopifnot(all(is.finite(metrics$.estimate)), all(metrics$.estimator == estimator))
   for (i in seq_len(nrow(outer))) {
     matches <- function(table) Reduce(`&`, lapply(ids, function(id) table[[id]] == outer[[id]][i]))
     p <- predictions[matches(predictions), ]
     truth <- outer$splits[[i]]$data$truth[p$.row]
     stopifnot(identical(p$truth, truth), !anyNA(truth))
+    if (regression) {
+      stopifnot(is.double(p$.pred), all(is.finite(p$.pred)), all(is.finite(truth)))
+      manual <- c(rmse = sqrt(mean((truth - p$.pred)^2)), mae = mean(abs(truth - p$.pred)))
+      m <- metrics[matches(metrics), ]
+      stopifnot(all(abs(m$.estimate - manual[m$.metric]) <= 1e-10 + 1e-10 * abs(manual[m$.metric])))
+      next
+    }
     event <- levels(truth)[if (event_level == "first") 1L else 2L]
     probability <- p[[paste0(".pred_", event)]]
     all_p <- as.matrix(p[paste0(".pred_", levels(truth))])
@@ -171,5 +179,50 @@ if (all(vapply(c("vennabers", "tune", "yardstick", "rsample", "workflows", "nnet
     # The audit checks every repeat/resample/configuration/row and both metrics.
     # Yardstick Brier is half the manual matrix score, even with two classes.
     stopifnot(nrow(tune::collect_extracts(result)) == nrow(multiclass_outer))
+  }
+}
+
+if (all(vapply(c("vennabers", "tune", "yardstick", "rsample", "workflows", "recipes"),
+               requireNamespace, logical(1), quietly = TRUE))) {
+  regression_data <- data.frame(x = sin(1:100), truth = 10 + 3 * sin(1:100) + cos(1:100))
+  regression_data$x[c(5, 20, 40)] <- NA_real_
+  regression_base <- workflows::workflow() |>
+    workflows::add_recipe(recipes::recipe(truth ~ x, regression_data) |>
+      recipes::step_impute_median(x) |> recipes::step_normalize(x)) |>
+    workflows::add_model(parsnip::linear_reg(engine = "lm"))
+  regression_outer <- withr::with_seed(301, rsample::vfold_cv(regression_data, v = 5))
+  for (method in c("inductive", "cross")) {
+    model <- vennabers::calibrated_workflow(regression_base, "truth", method = method,
+                                           epsilon = .3, seed = 302)
+    fitted <- generics::fit(model, regression_data)
+    new_data <- data.frame(x = c(-.8, NA, .7))
+    point <- predict(fitted, new_data, type = "numeric")
+    details <- vennabers::venn_abers_details(fitted, new_data)
+    stopifnot(identical(point, details$prediction))
+    state <- workflows::extract_fit_engine(fitted)
+    # state$folds retains positions, sizes and requested/effective moderation.
+    # IVAR uses weighted points, including the zero-weight midpoint rule.
+    # Its bounds concern regularized conditional expectations, not individual
+    # outcome coverage. Cross averages fold points and each bound separately;
+    # details$aggregate is descriptive, with no added coverage guarantee.
+    # Calibration need not improve RMSE/MAE. Evaluate the complete procedure on
+    # outer assessment data excluded from all its training and calibration.
+    result <- withr::with_seed(303, tune::fit_resamples(model, regression_outer,
+      metrics = yardstick::metric_set(yardstick::rmse, yardstick::mae),
+      control = tune::control_resamples(save_pred = TRUE, extract = workflows::extract_fit_engine,
+        parallel_over = "resamples", pkgs = c("vennabers", "stats"))))
+    checked <- check_evaluation(result, regression_outer, classification = "regression")
+    print(tune::collect_metrics(result)) # standard yardstick RMSE/MAE in outcome units
+    # Prepared local plans use the same resolver as classification workflows.
+    prepared <- withr::with_seed(304, lapply(regression_outer$splits, function(s) {
+      local <- rsample::analysis(s)
+      if (method == "cross") rsample::vfold_cv(local, v = 5) else rsample::initial_split(local, .8)
+    }))
+    explicit_model <- vennabers::calibrated_workflow(regression_base, "truth", method = method,
+      splits = vennabers::local_calibration_splits(prepared, names(regression_data)), epsilon = .3)
+    explicit_result <- tune::fit_resamples(explicit_model, regression_outer,
+      metrics = yardstick::metric_set(yardstick::rmse, yardstick::mae),
+      control = tune::control_resamples(save_pred = TRUE))
+    check_evaluation(explicit_result, regression_outer, classification = "regression")
   }
 }

@@ -150,6 +150,39 @@ the same RNG kind, versions, seeds, threads, strategy and reproducible engine.
 The engine never sees the outer partition: the example validates each outer
 analysis/assessment pair before fitting. Assessments may overlap across resamples.
 
+## Automatic regression workflow calibration
+
+The base model's `regression` mode selects IVAR/CVAR, including for numeric 0/1
+truth. Both methods reuse the same local split plans and complete base workflows:
+
+```r
+if (all(vapply(c("workflows", "parsnip", "rsample"), requireNamespace,
+               logical(1), quietly = TRUE))) {
+  development <- data.frame(x = sin(1:100), truth = 10 + 3*sin(1:100) + cos(1:100))
+  base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
+    workflows::add_model(parsnip::linear_reg(engine = "lm"))
+  for (method in c("inductive", "cross")) {
+    model <- calibrated_workflow(base, "truth", method = method, epsilon = .3, seed = 42)
+    fitted <- generics::fit(model, development)
+    predict(fitted, data.frame(x = c(-.8, .7)), type = "numeric")
+    venn_abers_details(fitted, data.frame(x = c(-.8, .7)))
+    workflows::extract_fit_engine(fitted)$parameters$effective
+  }
+}
+```
+
+Omit both `m` and `epsilon` for effective `m=1`, or set one moderation option.
+Every calibration fold must satisfy the core's domain before any training begins.
+Explicit classification, event, precision and loss options are errors for regression.
+Preprocessing learns only within each corresponding model's training portion.
+`.pred` contains weighted IVAR points or equal-weight CVAR points in outcome units.
+The separate bounds concern regularized conditional expectations; Cross aggregate
+bounds are descriptive. Neither confidence/prediction intervals nor improved scores
+are promised. The installed `examples/calibrated-resampling.R` demonstrates both
+methods with imputation/scaling, automatic/prepared local plans, and full outer
+RMSE/MAE evaluation, auditing every assessment row and metric with normal yardstick
+conventions. Calibration data are not an independent evaluation set.
+
 ## Inductive regression
 
 `venn_abers_regression(truth, prediction)` fits from finite real-valued vectors
@@ -191,7 +224,8 @@ three-column data frame; saved fits work in fresh R processes without training.
 This manual entry point is an R extension. The
 [reference record](inst/extdata/regression-reference.md) distinguishes valid
 Python 1.5.4 regression components from lower-bound and zero-weight defects.
-Training, automatic splits, regression score/plot helpers, exact minimax,
+The manual core does not train models or create splits. Regression score/plot
+helpers, exact minimax,
 observation weights and rounding options remain outside this implementation.
 
 ## Cross regression
