@@ -1,5 +1,14 @@
 # Development
 
+- Add Cross `classification = "ovo"` and `"ovr"` workflows with one shared
+  multiclass model per fold complement and the existing manual Cross cores.
+  Binary fold aggregation precedes OvO coupling/OvR normalization; details retain
+  fold, row, event and pair/class identities for reconstruction. Empty OvO pairs
+  fail before model learning; incomplete but nonempty subcalibrations stay valid.
+  Add manual comparisons, complete outer evaluation, fresh-process restoration,
+  reproducible workers and installed examples. This shared-fold procedure does
+  not claim Python pair-model training parity.
+
 - Add Inductive `classification = "ovo"` and `"ovr"` to `calibrated_workflow()`.
   One shared multiclass model feeds the existing factor/matrix cores, including
   for two classes. Preserve original class order, enforce complete named

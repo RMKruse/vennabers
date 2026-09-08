@@ -175,7 +175,6 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes"),
       error(calibrated_workflow(rec, "truth", classification = method), name)
     }
     error(calibrated_workflow(base, "truth", classification = method, event_level = "first"), "event_level")
-    error(calibrated_workflow(base, "truth", classification = method, method = "cross"), "inductive")
     held <- which(data$truth == classes[1L])
     plan <- rsample::make_splits(list(analysis = setdiff(1:120, held), assessment = held), data)
     error(generics::fit(calibrated_workflow(base, "truth", classification = method, splits = plan), data), "missing")

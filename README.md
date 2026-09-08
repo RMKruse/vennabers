@@ -72,7 +72,7 @@ Keep final assessment data separate. This local split cannot undo prior tuning o
 external transformations using calibration/assessment observations. The statistical
 setting assumes IID data and a model fixed independently of calibration data;
 improved scores on every test set are not guaranteed. This first automatic path
-supports binary Inductive/Cross and multiclass Inductive calibration, direct explicit splits, and complete outer
+supports binary and multiclass Inductive/Cross calibration, direct explicit splits, and complete outer
 IID evaluation. See `?calibrated_workflow` for exact input and naming boundaries.
 
 
@@ -89,9 +89,12 @@ must obey this contract themselves; hidden closure state cannot be audited
 automatically. Never use call counters or outer assessment data in a resolver.
 
 Use `classification = "ovo"` or `"ovr"` with a multiclass base workflow for
-Inductive calibration. Both use one shared trained model and the existing
-factor/matrix core, including for two classes. The holdout must contain every
-stored class. Probability columns must exactly match `.pred_` plus the original
+Inductive or Cross calibration. Both use shared multiclass models and the existing
+factor/matrix core, including for two classes. Inductive's holdout must contain
+every stored class. Cross uses one shared model per fold complement and requires
+every class globally in out-of-fold calibration. A fold may omit classes;
+nonempty single-class or singleton subcalibrations are valid. Empty OvO pairs
+fail before model training with pair and fold context. Probability columns must exactly match `.pred_` plus the original
 class names; values must be finite in [0,1] and sum to one within 1e-8. The core
 normalizes within that tolerance. Distinct names such as `a b` and `a.b` remain
 distinct with a compatible engine; reserved `class` and `.pred_*` levels fail
@@ -101,9 +104,12 @@ OvO normalizes each pair, uses 0.5 for zero-sum pairs, then optionally rounds
 calibration scores (including 0.5 to 0 at `precision = 0`). OvR calibrates every
 class against all remaining observations. New scores remain unrounded. Details
 add `method`, `event_class`, and `class_1`/`class_2` or `class`; their binary points
-reconstruct final probabilities through OvO coupling or OvR normalization.
-`event_level` is binary-only. Separate pair models and Cross multiclass training
-are not enabled by this change.
+reconstruct final probabilities through OvO coupling or OvR normalization. For
+Cross, first merge each binary subproblem across folds using Log/Brier, then
+couple or normalize. Never average completed multiclass fold matrices.
+`event_level` is binary-only. This shared R plan does not establish parity with
+Python's separate pair-model training; pair training and full-model transfer
+remain outside this path.
 
 The installed evaluation example uses ordinary repeated `fit_resamples()` and a
 prepared resolver, aligns constructor/control event levels, and retains every
@@ -115,7 +121,7 @@ missing truths, finite probabilities and hand-computed scores:
 source(system.file("examples", "calibrated-resampling.R", package = "vennabers"))
 ```
 
-It also runs OvO and OvR with an `nnet` multinomial model and locally learned
+It also runs Inductive/Cross OvO and OvR with an `nnet` multinomial model and locally learned
 normalization: automatic/explicit fit, probability/class prediction, details,
 and repeated outer evaluation. Yardstick's multiclass Brier is half the manual
 matrix score, including the two-class matrix path; Log/Brier prediction defaults

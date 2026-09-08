@@ -142,9 +142,9 @@ if (all(vapply(c("vennabers", "tune", "yardstick", "rsample", "workflows", "nnet
                             recipes::step_normalize(recipes::all_numeric_predictors())) |>
     workflows::add_model(parsnip::multinom_reg(engine = "nnet"))
   multiclass_outer <- withr::with_seed(201, rsample::vfold_cv(multiclass_data, v = 3, repeats = 2, strata = truth))
-  for (classification in c("ovo", "ovr")) {
+  for (method in c("inductive", "cross")) for (classification in c("ovo", "ovr")) {
     model <- vennabers::calibrated_workflow(multiclass_base, "truth",
-      classification = classification, seed = 202, precision = 2, loss = "brier")
+      classification = classification, method = method, seed = 202, precision = 2, loss = "brier")
     fitted <- generics::fit(model, multiclass_data)
     new_data <- multiclass_data[1:3, 1:4]
     probability <- predict(fitted, new_data, type = "prob")
@@ -153,10 +153,15 @@ if (all(vapply(c("vennabers", "tune", "yardstick", "rsample", "workflows", "nnet
     stopifnot(identical(probability, details$prediction), nrow(predicted_class) == 3L)
     # details$details$probability contains binary subproblem points. OvO couples the
     # pair points; OvR normalizes its class-against-rest points to sum to one.
+    # Cross first merges each binary subproblem across matching folds (Log/Brier),
+    # then couples or normalizes. Never average completed multiclass fold tables.
     state <- workflows::extract_fit_engine(fitted)
-    direct_plan <- rsample::make_splits(state$folds$Inductive1[c("analysis", "assessment")], multiclass_data)
+    direct_plan <- if (method == "cross") rsample::manual_rset(lapply(state$folds, function(f) {
+      rsample::make_splits(f[c("analysis", "assessment")], multiclass_data)
+    }), names(state$folds)) else
+      rsample::make_splits(state$folds$Inductive1[c("analysis", "assessment")], multiclass_data)
     explicit <- generics::fit(vennabers::calibrated_workflow(multiclass_base, "truth",
-      classification = classification, splits = direct_plan, seed = 202, precision = 2, loss = "brier"), multiclass_data)
+      classification = classification, method = method, splits = direct_plan, seed = 202, precision = 2, loss = "brier"), multiclass_data)
     stopifnot(identical(probability, predict(explicit, new_data, type = "prob")))
     result <- withr::with_seed(203, tune::fit_resamples(model, multiclass_outer,
       metrics = yardstick::metric_set(yardstick::brier_class, yardstick::mn_log_loss),

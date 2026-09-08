@@ -5,7 +5,7 @@
 \title{Train a Calibrated Classification Workflow}
 \description{Wrap an unfitted, fully configured classification workflow in a normal
 outer workflow. The outer XY blueprint transports selected raw columns. Complete base workflows learn only on their local training splits; held-out
-probabilities fit the existing binary Inductive/Cross or multiclass Inductive Venn-Abers core.}
+probabilities fit the existing binary or multiclass Inductive/Cross Venn-Abers core.}
 \usage{
 calibrated_workflow(workflow, outcome, ..., predictors = NULL,
   method = "inductive", classification = "binary", event_level = "first",
@@ -28,7 +28,7 @@ outcome. NULL selects all other supplied columns. Their stored order is canonica
 unused selected columns still have to be supplied for prediction.}
 \item{method}{Exactly \code{"inductive"} (default) or \code{"cross"}.}
 \item{classification}{Exactly \code{"binary"} (default), \code{"ovo"}, or
-\code{"ovr"}. OvO/OvR currently require Inductive and explicitly use the
+\code{"ovr"}. OvO/OvR explicitly use the
 factor/matrix core, including with two classes. Regression and tuning are not enabled.}
 \item{event_level}{Exactly \code{"first"} or \code{"second"}, identifying the
 original factor level whose probability is calibrated. Only for binary;
@@ -82,18 +82,22 @@ new observation and fold; their probability is the fold point, while
 \code{prediction} contains the final aggregate.
 OvO/OvR details additionally contain character \code{method} and either
 \code{class_1}/\code{class_2} (OvO) or \code{class} (OvR). Each row identifies
-one new observation and binary subproblem. \code{event_class} is the later class
+one new observation, fold and binary subproblem. \code{event_class} is the later class
 in an OvO pair or the considered OvR class. These binary point probabilities
-must still be coupled (OvO) or normalized (OvR) to reconstruct \code{prediction}.}
+must first be merged across folds for Cross (Log/Brier), then coupled (OvO)
+or normalized (OvR) to reconstruct \code{prediction}.}
 \details{
 All learned preprocessing belongs in the base workflow; the outer Variables
 preprocessor only carries raw data. Training and calibration positions must form a
 complete nonempty disjoint partition. Binary allows singleton and one-class calibration sets.
-OvO/OvR require every stored class in the holdout; missing classes fail before
-base learning without repairing the split. Trainability of the base engine is a separate requirement, and engine
+Inductive OvO/OvR require every stored class in the holdout. Cross requires every
+class globally in the out-of-fold calibration; individual folds may omit classes.
+Nonempty one-class or singleton binary subcalibrations remain valid. An empty
+OvO pair in any fold fails before any base training, naming the pair and fold.
+Splits are never repaired. Trainability of the base engine is a separate requirement, and engine
 errors identify the training or probability-prediction stage.
 
-Multiclass uses one shared trained base workflow. Its probability columns must
+Multiclass uses one shared trained base workflow per split complement. Its probability columns must
 be exactly \code{.pred_} plus each original class name, unique and complete;
 column order is matched by name. Values must be finite in [0,1], with row sums
 within 1e-8 of one. The existing matrix core normalizes within this tolerance.
@@ -121,7 +125,9 @@ For OvO/OvR, the global \code{event_class} and effective \code{event_level} are
 NULL; events belong to subproblems in details. The calibrator stores the original
 classes and chosen multiclass method.
 For Cross, \code{calibrator} is a \code{cross_venn_abers} core with
-\code{folds} and a correspondingly named \code{calibrators} list.
+\code{folds}. Binary has a correspondingly named \code{calibrators} list;
+multiclass has one binary Cross core per stored pair or class, each retaining
+its fold IDs and corresponding ordered Inductive calibrators.
 Inspect learned recipes with the public workflow extractors; predict with full
 workflows. RDS restoration for pure R engines works in a fresh process after
 loading vennabers, workflows, and required engine packages. External-pointer engines
@@ -141,13 +147,17 @@ Group, time and other specialized split classes
 are outside this IID contract. An unbound global positions plan cannot be reused
 on different outer analysis data.
 
-Cross retains exactly one full base workflow and calibrator per fold, with no
+Cross retains exactly one full base workflow per fold and all corresponding
+binary subproblem calibrators, with no
 additional full-data model. New data traverse every matching learned recipe/model
 path. A failed fold fails the entire fit. Log loss uses the core's stable logarithmic
 aggregation of endpoints; Brier uses the equal-weight mean of fold Brier points.
 Neither merger weights by fold size or pools calibration data. Precision rounds
 only calibration probabilities, never new model probabilities. Fold details
-reconstruct the final probability using these mergers.
+reconstruct the final probability using these mergers. For multiclass, merge each
+binary subproblem across folds first, then couple OvO or normalize OvR. Averaging
+already coupled/normalized multiclass fold matrices is a different procedure.
+This shared R fold plan does not establish Python pair-model training parity.
 
 Ordinary \code{tune::fit_resamples()} fits the complete predictor independently
 on every outer analysis set. The stored loss controls native predictions even
@@ -164,7 +174,7 @@ configuration and assessment-row identities and finite metrics. Inner failures,
 metric errors, NA removal or missing rows mean incomplete evaluation. All fits
 failing may make a collector itself error; a mean of surviving fits is insufficient.
 The installed \code{examples/calibrated-resampling.R} shows binary Inductive/Cross
-and multiclass Inductive OvO/OvR with an
+and multiclass Inductive/Cross OvO/OvR with an
 executable completeness check. Five outer by five inner Cross folds require exactly
 25 base fits; no final fit runs automatically. Keeping extracted Cross states retains
 all 25 workflows and their recipes/calibrators, so memory scales with the number

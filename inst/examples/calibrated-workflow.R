@@ -40,3 +40,34 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
   # calibration observations remain assumptions; VA bounds are not confidence
   # intervals and calibration need not improve scores on a particular test set.
 })
+
+if (all(vapply(c(packages, "nnet"), requireNamespace, logical(1), quietly = TRUE))) local({
+  # A shared multiclass workflow is trained once per fold complement. This R
+  # plan does not establish parity with Python's separate pair-model training.
+  data <- iris
+  names(data)[5L] <- "truth"
+  split <- withr::with_seed(33, rsample::initial_split(data, .8, strata = truth))
+  development <- rsample::analysis(split)
+  assessment <- rsample::assessment(split)
+  base <- workflows::workflow() |>
+    workflows::add_recipe(recipes::recipe(truth ~ ., development) |>
+      recipes::step_normalize(recipes::all_numeric_predictors())) |>
+    workflows::add_model(parsnip::multinom_reg(engine = "nnet"))
+  for (classification in c("ovo", "ovr")) {
+    fitted <- generics::fit(vennabers::calibrated_workflow(base, "truth", method = "cross",
+      classification = classification, seed = 33, precision = 2, loss = "brier"), development)
+    p <- predict(fitted, assessment, type = "prob")
+    cls <- predict(fitted, assessment, type = "class")
+    details <- vennabers::venn_abers_details(fitted, assessment)
+    state <- workflows::extract_fit_engine(fitted)
+    stopifnot(identical(p, details$prediction), nrow(cls) == nrow(assessment),
+              length(state$models) == 5L, setequal(details$details$fold, names(state$models)))
+    # Each diagnostic row is a binary fold result: aggregate across folds first,
+    # then couple OvO pairs or normalize OvR classes. No multiclass intervals.
+    print(head(details$details))
+    matrix_p <- as.matrix(p)
+    colnames(matrix_p) <- state$class_levels
+    print(c(brier = vennabers::brier_score(assessment$truth, matrix_p),
+            log_loss = vennabers::log_loss(assessment$truth, matrix_p)))
+  }
+})

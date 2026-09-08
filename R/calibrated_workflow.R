@@ -21,9 +21,6 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   }
   .validate_choice(method, c("inductive", "cross"), "method")
   .validate_choice(classification, c("binary", "ovo", "ovr"), "classification")
-  if (classification != "binary" && method != "inductive") {
-    stop("Multiclass classification currently requires method = 'inductive'.", call. = FALSE)
-  }
   if (classification != "binary" && !missing(event_level)) {
     stop("`event_level` requires classification = 'binary'.", call. = FALSE)
   }
@@ -197,11 +194,19 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
                               conditionMessage(e), call. = FALSE))
   folds <- if (settings$method == "cross") .cross_splits(split, raw) else
     list(Inductive1 = .inductive_split(split, raw))
-  if (multiclass) {
+  if (multiclass && settings$method == "inductive") {
     held <- folds$Inductive1$assessment
     absent <- classes[tabulate(y[held], nbins = length(classes)) == 0L]
     if (length(absent)) stop("Inductive1 calibration must contain every stored class; missing: ",
                              paste(sQuote(absent), collapse = ", "), ".", call. = FALSE)
+  }
+  if (settings$method == "cross" && settings$classification == "ovo") {
+    for (pair in utils::combn(classes, 2L, simplify = FALSE)) for (id in names(folds)) {
+      if (!any(y[folds[[id]]$assessment] %in% pair)) {
+        stop("Empty calibration for pair [", paste(pair, collapse = ", "),
+             "] in fold [", id, "].", call. = FALSE)
+      }
+    }
   }
   models <- probabilities <- truths <- fold_ids <- vector("list", length(folds))
   names(models) <- names(folds)
@@ -218,8 +223,11 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     folds[[id]]$calibration_size <- length(assessment)
   }
   calibrator <- if (multiclass) {
-    venn_abers(truths[[1L]], probabilities[[1L]], precision = settings$precision,
-               method = settings$classification)
+    if (settings$method == "cross") {
+      cross_venn_abers(do.call(c, truths), do.call(rbind, probabilities), unlist(fold_ids),
+                       precision = settings$precision, method = settings$classification)
+    } else venn_abers(truths[[1L]], probabilities[[1L]], precision = settings$precision,
+                      method = settings$classification)
   } else if (settings$method == "cross") {
     core <- cross_venn_abers(unlist(truths), unlist(probabilities), unlist(fold_ids), precision = settings$precision)
     names(core$calibrators) <- core$folds
@@ -256,18 +264,20 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
 
 .integration_prediction <- function(object, new_data) {
   multiclass <- object$parameters$requested$classification != "binary"
+  cross <- object$parameters$requested$method == "cross"
   p <- lapply(names(object$models), function(id) {
     if (nrow(new_data)) .base_probability(object$models[[id]], new_data, object$class_levels, object$event_class, id)
     else if (multiclass) matrix(numeric(), 0L, length(object$class_levels), dimnames = list(NULL, object$class_levels))
     else numeric()
   })
+  names(p) <- names(object$models)
   if (multiclass) {
-    result <- stats::predict(object$calibrator, p[[1L]], loss = object$loss, type = "details")
+    result <- stats::predict(object$calibrator, if (cross) p else p[[1L]], loss = object$loss, type = "details")
     method <- object$parameters$requested$classification
     details <- if (method == "ovo") result$pairs else result$classes
     names(details)[names(details) == "non_event"] <- "class_1"
     names(details)[names(details) == "event"] <- if (method == "ovo") "class_2" else "class"
-    details$fold <- rep("Inductive1", nrow(details))
+    if (!cross) details$fold <- rep("Inductive1", nrow(details))
     details$method <- rep(method, nrow(details))
     details$event_class <- if (method == "ovo") details$class_2 else details$class
     identity <- if (method == "ovo") c("class_1", "class_2") else "class"
@@ -276,7 +286,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
                 details = tibble::as_tibble(details[c("row", "fold", "method", "event_class", identity,
                                                     "lower", "upper", "probability")])))
   }
-  if (object$parameters$requested$method == "cross") {
+  if (cross) {
     p <- do.call(cbind, p)
     colnames(p) <- names(object$models)
     result <- stats::predict(object$calibrator, p, loss = object$loss, type = "details")
