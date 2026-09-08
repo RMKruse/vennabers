@@ -129,7 +129,10 @@ jobs:
       - name: Install pinned minimum environment
         if: matrix.profile == 'minimum'
         shell: bash
-        run: Rscript --vanilla tools/install-minimum-dependencies.R "$R_LIBS_USER" 2>&1 | tee .scratch/minimum-setup.log
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libuv1-dev
+          Rscript --vanilla tools/install-minimum-dependencies.R "$R_LIBS_USER" 2>&1 | tee .scratch/minimum-setup.log
       - name: Check installed package and dependency profile
         run: Rscript --vanilla tools/acceptance.R
       - name: Verify missing and old optional dependency errors
