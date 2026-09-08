@@ -2,10 +2,12 @@
 
 Dependency-free binary Inductive/Cross, multiclass Inductive/Cross OvO/OvR,
 and moderated Inductive/Cross regression calibration for R 4.5 and later.
-The package version is v0.4.0. The maintainer approved v0.4 under the updated
-criterion of passing local tests; the [acceptance record](tools/acceptance-v04.md)
-identifies the approved candidate and documents the unexecuted platform and
-Linux benchmark checks. Approval does not imply publication.
+The v0.5.0 candidate adds optional native workflows for all eight combinations
+of binary/OvO/OvR/regression and Inductive/Cross calibration. The
+[v0.5 acceptance record](tools/acceptance-v05.md) identifies the candidate,
+support/dependency matrix and missing release evidence. The maintainer's
+[v0.4 approval](tools/acceptance-v04.md) remains a completed predecessor decision;
+its local-only rule does not approve v0.5. Publication is separate.
 
 ## Quick start
 

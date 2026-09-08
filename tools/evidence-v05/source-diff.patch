@@ -1,0 +1,909 @@
+diff --git a/.Rbuildignore b/.Rbuildignore
+index 432537c..feb0115 100644
+--- a/.Rbuildignore
++++ b/.Rbuildignore
+@@ -6,3 +6,5 @@
+ ^tools/evidence-v03$
+ ^tools/acceptance-v04\.md$
+ ^tools/evidence-v04$
++^tools/acceptance-v05\.md$
++^tools/evidence-v05$
+diff --git a/.github/workflows/acceptance.yaml b/.github/workflows/acceptance.yaml
+index 6b609c3..6b8e017 100644
+--- a/.github/workflows/acceptance.yaml
++++ b/.github/workflows/acceptance.yaml
+@@ -4,6 +4,11 @@ on:
+   push:
+   pull_request:
+   workflow_dispatch:
++    inputs:
++      benchmarks:
++        description: Run the separate serial Linux benchmark and v0.4 comparison
++        type: boolean
++        default: false
+ 
+ permissions:
+   contents: read
+@@ -53,7 +58,7 @@ jobs:
+     env:
+       EXPECTED_R_ARCH: ${{ matrix.platform.arch }}
+       ACCEPTANCE_OUTPUT_DIR: ${{ github.workspace }}/.scratch/ci
+-      ACCEPTANCE_ARTIFACT: ${{ github.workspace }}/.scratch/source/vennabers_0.4.0.tar.gz
++      ACCEPTANCE_ARTIFACT: ${{ github.workspace }}/.scratch/source/vennabers_0.5.0.tar.gz
+     steps:
+       - uses: actions/checkout@v6
+       - uses: r-lib/actions/setup-r@v2
+@@ -66,6 +71,7 @@ jobs:
+       - uses: r-lib/actions/setup-r-dependencies@v2
+         with:
+           dependencies: '"Suggests"'
++          upgrade: 'TRUE'
+       - name: Verify source identity
+         shell: bash
+         working-directory: .scratch/source
+@@ -78,6 +84,9 @@ jobs:
+       - name: Verify failures propagate
+         if: matrix.r == '4.6.1' && (matrix.platform.os == 'ubuntu-24.04' || matrix.platform.os == 'windows-2025')
+         run: Rscript --vanilla tools/test-acceptance.R
++      - name: Verify missing and old optional dependency errors
++        shell: bash
++        run: Rscript --vanilla tools/test-optional-dependencies.R "$ACCEPTANCE_ARTIFACT" > "$ACCEPTANCE_OUTPUT_DIR/optional-dependencies.log" 2>&1
+       - name: Preserve evidence (including failures)
+         if: always()
+         uses: actions/upload-artifact@v4
+@@ -89,3 +98,95 @@ jobs:
+             .scratch/ci/*.log
+             .scratch/ci/*.tar.gz
+             .scratch/ci/*.Rcheck
++
++  optional-dependencies:
++    needs: source
++    name: Optional dependencies / ${{ matrix.profile }}
++    runs-on: ubuntu-24.04
++    strategy:
++      fail-fast: false
++      matrix:
++        include:
++          - {profile: core, r: "4.6.1"}
++          - {profile: minimum, r: "4.5.3"}
++    env:
++      ACCEPTANCE_PROFILE: ${{ matrix.profile }}
++      EXPECTED_R_ARCH: x86_64
++      ACCEPTANCE_OUTPUT_DIR: ${{ github.workspace }}/.scratch/ci
++      ACCEPTANCE_ARTIFACT: ${{ github.workspace }}/.scratch/source/vennabers_0.5.0.tar.gz
++    steps:
++      - uses: actions/checkout@v6
++      - uses: r-lib/actions/setup-r@v2
++        with:
++          r-version: ${{ matrix.r }}
++      - uses: actions/download-artifact@v4
++        with:
++          name: source-candidate
++          path: .scratch/source
++      - name: Verify source identity
++        working-directory: .scratch/source
++        run: sha256sum -c SHA256SUMS
++      - name: Install pinned minimum environment
++        if: matrix.profile == 'minimum'
++        run: Rscript --vanilla tools/install-minimum-dependencies.R "$R_LIBS_USER"
++      - name: Check installed package and dependency profile
++        run: Rscript --vanilla tools/acceptance.R
++      - name: Verify missing and old optional dependency errors
++        run: Rscript --vanilla tools/test-optional-dependencies.R "$ACCEPTANCE_ARTIFACT" > "$ACCEPTANCE_OUTPUT_DIR/optional-dependencies.log" 2>&1
++      - name: Preserve evidence (including failures)
++        if: always()
++        uses: actions/upload-artifact@v4
++        with:
++          name: acceptance-${{ matrix.profile }}
++          include-hidden-files: true
++          path: |
++            .scratch/ci/*.txt
++            .scratch/ci/*.log
++            .scratch/ci/*.tar.gz
++            .scratch/ci/*.Rcheck
++
++  benchmarks:
++    if: github.event_name == 'workflow_dispatch' && inputs.benchmarks
++    needs: source
++    runs-on: ubuntu-24.04
++    steps:
++      - uses: actions/checkout@v6
++      - uses: r-lib/actions/setup-r@v2
++        with:
++          r-version: "4.6.1"
++      - uses: actions/download-artifact@v4
++        with:
++          name: source-candidate
++          path: .scratch/source
++      - uses: r-lib/actions/setup-r-dependencies@v2
++        with:
++          dependencies: '"Suggests"'
++          upgrade: 'TRUE'
++      - name: Verify candidate and approved predecessor identities
++        shell: bash
++        run: |
++          (cd .scratch/source && sha256sum -c SHA256SUMS)
++          echo '44846f1e2a6cd5ec1672264516122e5d26e65a2a18f69ec1d5fb7078514ddb69  tools/evidence-v04/vennabers_0.4.0.tar.gz' | sha256sum -c -
++      - name: Measure both releases serially on this runner
++        run: Rscript --vanilla tools/performance.R .scratch/source/vennabers_0.5.0.tar.gz tools/evidence-v04/vennabers_0.4.0.tar.gz .scratch/benchmark
++      - name: Verify measurements and failure detection
++        run: |
++          Rscript --vanilla tools/test-performance.R .scratch/benchmark --v05
++          Rscript --vanilla tools/test-performance-verifier.R .scratch/benchmark
++      - name: Record evidence identities
++        if: always()
++        shell: bash
++        run: |
++          if test -d .scratch/benchmark; then
++            cd .scratch/benchmark
++            find . -type f ! -path '*-library/*' ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
++          fi
++      - name: Preserve benchmark evidence (including failures)
++        if: always()
++        uses: actions/upload-artifact@v4
++        with:
++          name: benchmarks
++          include-hidden-files: true
++          path: |
++            .scratch/benchmark/*
++            !.scratch/benchmark/*-library/**
+diff --git a/DESCRIPTION b/DESCRIPTION
+index 5810f8c..71cfdff 100644
+--- a/DESCRIPTION
++++ b/DESCRIPTION
+@@ -1,6 +1,6 @@
+ Package: vennabers
+ Title: Venn-Abers Classification and Regression Calibration
+-Version: 0.4.0
++Version: 0.5.0
+ Authors@R: c(person("Venn-Abers", "Authors", role = "aut"),
+     person("René-M.", "Kruse", email = "rene.marcel.kruse@protonmail.com", role = "cre"))
+ Description: Fits binary Inductive and Cross Venn-Abers calibrators from
+@@ -14,7 +14,10 @@ Description: Fits binary Inductive and Cross Venn-Abers calibrators from
+     Brier score, log loss, and base R calibration plots. Fits moderated
+     Inductive and Cross regression calibrators from supplied real-valued
+     predictions, returning regression bounds and weighted Inductive point
+-    predictions or equal-weight means of complete fold results.
++    predictions or equal-weight means of complete fold results. Optional
++    native 'tidymodels' workflows train complete local preprocessing and
++    models for binary, one-vs-one, one-vs-rest and regression calibration,
++    with Inductive or Cross splits and complete outer resampling.
+ License: MIT + file LICENSE
+ Encoding: UTF-8
+ Depends: R (>= 4.5.0)
+diff --git a/NEWS.md b/NEWS.md
+index f44afd8..0495abb 100644
+--- a/NEWS.md
++++ b/NEWS.md
+@@ -1,4 +1,16 @@
+-# Development
++# vennabers 0.5.0
++
++- Prepare the eight native integration paths for acceptance, with one source
++  candidate, mandatory current/minimum dependency checks and a separate manual
++  core check without tidymodels. Extend benchmarks with complete Fit/Predict and
++  outer evaluation; retain all 16 manual cases for comparison to approved v0.4.
++  `tools/acceptance-v05.md` records actual results and missing release evidence.
++  The historical local-only v0.4 approval does not approve v0.5.
++- Migration: manual APIs, numerical tolerances and R >= 4.5.0 are unchanged.
++  Install optional integration packages explicitly; the core does not load them.
++  Frozen workflows, name encoding and ordered reference holdouts follow in v0.6;
++  pair training/full-model transfer in v0.7, tuning in v0.8 and learned
++  postprocessing in v0.9. No complete Python training parity is claimed.
+ 
+ - Add Inductive and Cross regression to `calibrated_workflow()`, using the base
+   model's regression mode and existing IVAR/CVAR cores. Validate every fold's
+diff --git a/README.md b/README.md
+index 55ea022..d483bff 100644
+--- a/README.md
++++ b/README.md
+@@ -2,10 +2,12 @@
+ 
+ Dependency-free binary Inductive/Cross, multiclass Inductive/Cross OvO/OvR,
+ and moderated Inductive/Cross regression calibration for R 4.5 and later.
+-The package version is v0.4.0. The maintainer approved v0.4 under the updated
+-criterion of passing local tests; the [acceptance record](tools/acceptance-v04.md)
+-identifies the approved candidate and documents the unexecuted platform and
+-Linux benchmark checks. Approval does not imply publication.
++The v0.5.0 candidate adds optional native workflows for all eight combinations
++of binary/OvO/OvR/regression and Inductive/Cross calibration. The
++[v0.5 acceptance record](tools/acceptance-v05.md) identifies the candidate,
++support/dependency matrix and missing release evidence. The maintainer's
++[v0.4 approval](tools/acceptance-v04.md) remains a completed predecessor decision;
++its local-only rule does not approve v0.5. Publication is separate.
+ 
+ ## Quick start
+ 
+diff --git a/man/calibrated_workflow.Rd b/man/calibrated_workflow.Rd
+index 99a6e43..7b6e477 100644
+--- a/man/calibrated_workflow.Rd
++++ b/man/calibrated_workflow.Rd
+@@ -6,6 +6,20 @@
+ \description{Wrap an unfitted, fully configured classification or regression workflow in a normal
+ outer workflow. The outer XY blueprint transports selected raw columns. Complete base workflows learn only on their local training splits; held-out
+ predictions fit the existing classification or regression Inductive/Cross Venn-Abers core.}
++\section{Release scope and dependencies}{
++Version 0.5 supports all eight combinations of binary, OvO, OvR and regression
++with Inductive or Cross training, including complete outer resampling.
++The integration packages in DESCRIPTION are optional Suggests and must be
++installed explicitly; manual calibration needs none of them. Use the declared
++minimum versions or newer supported versions. Basis engines also need their own
++packages: the examples use \code{stats} for GLM/LM and \code{nnet} for a shared
++multinomial model. Fresh parallel workers must load \code{vennabers} and those
++engine namespaces, for example through \code{control_resamples(pkgs = ...)}.
++Frozen workflow adoption, reversible name encoding and ordered reference holdouts
++follow in v0.6; pair training/full-model transfer in v0.7, tuning in v0.8 and
++learned postprocessing in v0.9. Shared multiclass training does not establish
++complete Python training parity.
++}
+ \usage{
+ calibrated_workflow(workflow, outcome, ..., predictors = NULL,
+   method = "inductive", classification = "binary", event_level = "first",
+diff --git a/tools/acceptance.R b/tools/acceptance.R
+index 903c1bd..e0b7517 100644
+--- a/tools/acceptance.R
++++ b/tools/acceptance.R
+@@ -5,6 +5,8 @@ if (!file.exists("DESCRIPTION")) {
+ 
+ local({
+   root <- normalizePath(".")
++  profile <- Sys.getenv("ACCEPTANCE_PROFILE", "current")
++  stopifnot(profile %in% c("core", "current", "minimum"))
+   supplied_artifact <- Sys.getenv("ACCEPTANCE_ARTIFACT")
+   if (nzchar(supplied_artifact)) supplied_artifact <- normalizePath(supplied_artifact, mustWork = TRUE)
+   description <- read.dcf("DESCRIPTION", fields = c("Package", "Version"))[1L, ]
+@@ -32,7 +34,8 @@ local({
+     if (!identical(status, 0L)) {
+       stop(command, " failed with status ", status, ".", call. = FALSE)
+     }
+-    if (any(grepl("\\b(ERROR|WARNING|NOTE)\\b", output))) {
++    pattern <- if (profile == "core" && arguments[2L] == "check") "\\b(ERROR|WARNING)\\b" else "\\b(ERROR|WARNING|NOTE)\\b"
++    if (any(grepl(pattern, output))) {
+       stop("Build/check/install reported an error, warning, or note.", call. = FALSE)
+     }
+   }
+@@ -48,6 +51,28 @@ local({
+     print(installed.packages()[, c("Package", "Version", "LibPath"), drop = FALSE])
+   })
+   writeLines(environment, file.path(work_dir, "environment.txt"))
++  # A green package check with skipped integration tests is not v0.5 acceptance.
++  suggests <- trimws(strsplit(read.dcf("DESCRIPTION")[1L, "Suggests"], ",")[[1L]])
++  packages <- sub("[[:space:]]*\\(.*", "", suggests)
++  versions <- ifelse(grepl("\\(", suggests), sub(".*>= ([^)]+)\\).*", "\\1", suggests), "0")
++  installed <- installed.packages()
++  writeLines(profile, file.path(work_dir, "profile.txt"))
++  if (profile == "core") {
++    stopifnot(!any(setdiff(packages, "nnet") %in% rownames(installed)))
++    Sys.setenv(`_R_CHECK_FORCE_SUGGESTS_` = "false")
++  } else {
++    for (i in seq_along(packages)) {
++      package <- packages[i]
++      if (!package %in% rownames(installed) || package_version(installed[package, "Version"]) < versions[i]) {
++        stop("Acceptance requires ", package, " >= ", versions[i], "; integration checks must not skip.")
++      }
++    }
++    if (profile == "minimum") {
++      pins <- read.csv(file.path(root, "tools/minimum-dependencies.csv"))
++      stopifnot(all(pins$Package %in% rownames(installed)),
++                identical(unname(installed[pins$Package, "Version"]), pins$Version))
++    }
++  }
+   expected_arch <- Sys.getenv("EXPECTED_R_ARCH")
+   if (nzchar(expected_arch) && !identical(R.version$arch, expected_arch)) {
+     stop("Expected R architecture ", expected_arch, "; got ", R.version$arch)
+@@ -58,7 +83,8 @@ local({
+              `_R_CHECK_CRAN_INCOMING_REMOTE_` = "false",
+              `_R_CHECK_SYSTEM_CLOCK_` = "false")
+   capture.output({
+-    cat("R CMD check --as-cran --no-manual\nPDF manual and online incoming/clock probes are not checked.\n")
++    cat("R CMD check --as-cran --no-manual\nPDF manual and online incoming/clock probes are not checked.\n",
++        "Profile:", profile, "\n")
+     print(Sys.getenv(c("NOT_CRAN", "_R_CHECK_CRAN_INCOMING_",
+                        "_R_CHECK_CRAN_INCOMING_REMOTE_", "_R_CHECK_SYSTEM_CLOCK_")))
+     print(Sys.getenv()[grepl("^_R_CHECK_", names(Sys.getenv()))])
+@@ -82,9 +108,16 @@ local({
+   run(r_executable, c("CMD", "check", "--as-cran", "--no-manual",
+                      paste0("--library=", shQuote(library_dir)), shQuote(artifact)))
+   check_log <- readLines(file.path(work_dir, paste0(description[["Package"]], ".Rcheck"), "00check.log"))
+-  if (!identical(tail(grep("^Status:", check_log, value = TRUE), 1L), "Status: OK")) {
++  status <- tail(grep("^Status:", check_log, value = TRUE), 1L)
++  core_note <- profile == "core" && identical(status, "Status: 1 NOTE") &&
++    sum(grepl("^\\* checking .* NOTE$", check_log)) == 1L &&
++    any(grepl("^\\* checking package dependencies .* NOTE$", check_log)) &&
++    any(grepl("Packages suggested but not available", check_log, fixed = TRUE))
++  if (!identical(status, "Status: OK") && !core_note) {
+     stop("R CMD check did not finish with zero errors, warnings, and notes.", call. = FALSE)
+   }
++  if (core_note) writeLines("The sole dependency NOTE is expected: this profile intentionally excludes optional integration packages.",
++                            file.path(work_dir, "note-justification.txt"))
+   # Load only the package just installed from the source artifact. Refuse a
+   # previously loaded namespace rather than accidentally testing another build.
+   stopifnot(!"vennabers" %in% loadedNamespaces())
+diff --git a/tools/install-minimum-dependencies.R b/tools/install-minimum-dependencies.R
+new file mode 100644
+index 0000000..84323a2
+--- /dev/null
++++ b/tools/install-minimum-dependencies.R
+@@ -0,0 +1,38 @@
++# Environment setup only: network is never used by package tests/examples.
++# Rscript tools/install-minimum-dependencies.R EMPTY_LIBRARY
++local({
++  args <- commandArgs(TRUE)
++  stopifnot(length(args) == 1L)
++  dir.create(args, recursive = TRUE, showWarnings = FALSE)
++  lib <- normalizePath(args, mustWork = TRUE)
++  .libPaths(c(lib, .libPaths()))
++  pins <- read.csv("tools/minimum-dependencies.csv", stringsAsFactors = FALSE)
++  remaining <- pins$Package
++  work <- tempfile("minimum-sources-")
++  dir.create(work)
++  on.exit(unlink(work, recursive = TRUE), add = TRUE)
++  while (length(remaining)) {
++    ready <- remaining[vapply(remaining, function(p) {
++      !any(strsplit(pins$Dependencies[pins$Package == p], ";", fixed = TRUE)[[1L]] %in% remaining)
++    }, FALSE)]
++    if (!length(ready)) stop("Cyclic or incomplete minimum dependency manifest.")
++    for (package in ready) {
++      version <- pins$Version[pins$Package == package]
++      filename <- paste0(package, "_", version, ".tar.gz")
++      dest <- file.path(work, filename)
++      urls <- paste0("https://cran.r-project.org/src/contrib/",
++                     c("", paste0("Archive/", package, "/")), filename)
++      downloaded <- FALSE
++      for (url in urls) {
++        status <- tryCatch(suppressWarnings(utils::download.file(url, dest, mode = "wb")), error = function(e) 1L)
++        if (status == 0L) { downloaded <- TRUE; break }
++      }
++      if (!downloaded) stop("Cannot download pinned source: ", filename)
++      cat(filename, unname(tools::md5sum(dest)), "\n")
++      utils::install.packages(dest, lib = lib, repos = NULL, type = "source")
++      stopifnot(as.character(utils::packageVersion(package, lib.loc = lib)) == version)
++    }
++    remaining <- setdiff(remaining, ready)
++  }
++  cat("Pinned dependency installation passed.\n")
++})
+diff --git a/tools/minimum-dependencies.csv b/tools/minimum-dependencies.csv
+new file mode 100644
+index 0000000..4701e3f
+--- /dev/null
++++ b/tools/minimum-dependencies.csv
+@@ -0,0 +1,94 @@
++"Package","Version","Dependencies"
++"base64enc","0.1-6",""
++"bslib","0.12.0","base64enc;cachem;fastmap;htmltools;jquerylib;jsonlite;lifecycle;memoise;mime;rlang;sass"
++"cachem","1.1.0","fastmap;rlang"
++"cli","3.6.6",""
++"clock","0.7.4","cli;cpp11;lifecycle;rlang;tzdb;vctrs"
++"cpp11","0.5.5",""
++"data.table","1.18.6.1",""
++"diagram","1.6.5","shape"
++"dials","1.4.4","cli;DiceDesign;dplyr;glue;hardhat;lifecycle;pillar;purrr;rlang;scales;sfd;tibble;vctrs;withr"
++"DiceDesign","1.10",""
++"digest","0.6.39",""
++"dplyr","1.2.1","cli;generics;glue;lifecycle;magrittr;pillar;R6;rlang;tibble;tidyselect;vctrs"
++"evaluate","1.0.5",""
++"farver","2.1.2",""
++"fastmap","1.2.0",""
++"fontawesome","0.5.3","htmltools;rlang"
++"fs","2.1.0",""
++"furrr","0.4.0","future;globals;purrr;rlang;vctrs"
++"future","1.75.0","digest;globals;listenv;parallelly"
++"future.apply","1.20.2","future;globals"
++"GauPro","0.2.17","ggplot2;lbfgs;mixopt;numDeriv;R6;Rcpp;RcppArmadillo;rmarkdown;tidyr"
++"generics","0.1.4",""
++"ggplot2","4.0.3","cli;gtable;isoband;lifecycle;rlang;S7;scales;vctrs;withr"
++"globals","0.19.1",""
++"glue","1.8.1",""
++"gower","1.0.2",""
++"gtable","0.3.6","cli;glue;lifecycle;rlang"
++"hardhat","1.4.3","cli;glue;rlang;sparsevctrs;tibble;vctrs"
++"highr","0.12","xfun"
++"htmltools","0.5.9","base64enc;digest;fastmap;rlang"
++"ipred","0.9-16","prodlim"
++"isoband","0.3.0","cli;cpp11;rlang"
++"jquerylib","0.1.4","htmltools"
++"jsonlite","2.0.0",""
++"knitr","1.52","evaluate;highr;xfun;yaml"
++"labeling","0.4.3",""
++"lava","1.9.3","cli;future.apply;numDeriv;progressr;SQUAREM"
++"lbfgs","1.2.1.2","Rcpp"
++"lifecycle","1.0.5","cli;rlang"
++"listenv","1.0.0",""
++"lubridate","1.9.5","generics;timechange"
++"magrittr","2.0.5",""
++"memoise","2.0.1","cachem;rlang"
++"mime","0.13",""
++"mixopt","0.1.3","dplyr;ggplot2;splitfngr"
++"modelenv","0.2.0","cli;glue;rlang;tibble;vctrs"
++"numDeriv","2016.8-1.1",""
++"parallelly","1.48.0",""
++"parsnip","1.6.0","cli;dplyr;generics;ggplot2;globals;glue;hardhat;lifecycle;magrittr;pillar;prettyunits;purrr;rlang;sparsevctrs;tibble;tidyr;vctrs"
++"pillar","1.11.1","cli;glue;lifecycle;rlang;utf8;vctrs"
++"pkgconfig","2.0.3",""
++"prettyunits","1.2.0",""
++"prodlim","2026.03.11","data.table;diagram;ggplot2;lava;Rcpp;rlang;scales"
++"progressr","1.0.0","digest"
++"purrr","1.2.2","cli;lifecycle;magrittr;rlang;vctrs"
++"R6","2.6.1",""
++"rappdirs","0.3.4",""
++"RColorBrewer","1.1-3",""
++"Rcpp","1.1.1-1.1",""
++"RcppArmadillo","15.4.2-1","Rcpp"
++"recipes","1.4.0","cli;clock;dplyr;generics;glue;gower;hardhat;ipred;lifecycle;lubridate;magrittr;purrr;rlang;sparsevctrs;tibble;tidyr;tidyselect;timeDate;vctrs;withr"
++"rlang","1.2.0",""
++"rmarkdown","2.32","bslib;evaluate;fontawesome;htmltools;jquerylib;jsonlite;knitr;tinytex;xfun;yaml"
++"rsample","1.3.2","cli;dplyr;furrr;generics;glue;lifecycle;pillar;purrr;rlang;slider;tibble;tidyr;tidyselect;vctrs"
++"S7","0.2.2",""
++"sass","0.4.10","fs;htmltools;R6;rappdirs;rlang"
++"scales","1.4.0","cli;farver;glue;labeling;lifecycle;R6;RColorBrewer;rlang;viridisLite"
++"sfd","0.1.0","cli;rlang;tibble"
++"shape","1.4.6.1",""
++"slider","0.3.3","cli;rlang;vctrs;warp"
++"sparsevctrs","0.3.6","cli;rlang;vctrs"
++"splitfngr","0.1.2","lbfgs"
++"SQUAREM","2026.1",""
++"stringi","1.8.9",""
++"stringr","1.6.0","cli;glue;lifecycle;magrittr;rlang;stringi;vctrs"
++"tailor","0.1.0","cli;dplyr;generics;hardhat;purrr;rlang;tibble;tidyselect;vctrs"
++"tibble","3.3.1","cli;lifecycle;magrittr;pillar;pkgconfig;rlang;vctrs"
++"tidyr","1.3.2","cli;cpp11;dplyr;glue;lifecycle;magrittr;purrr;rlang;stringr;tibble;tidyselect;vctrs"
++"tidyselect","1.2.1","cli;glue;lifecycle;rlang;vctrs;withr"
++"timechange","0.4.0","cpp11"
++"timeDate","4052.112",""
++"tinytex","0.60","xfun"
++"tune","2.1.0","cli;dials;dplyr;GauPro;generics;ggplot2;glue;hardhat;lifecycle;parsnip;purrr;recipes;rlang;rsample;tailor;tibble;tidyr;tidyselect;vctrs;withr;workflows;yardstick"
++"tzdb","0.5.0","cpp11"
++"utf8","1.2.6",""
++"vctrs","0.7.3","cli;glue;lifecycle;rlang"
++"viridisLite","0.4.3",""
++"warp","0.2.3",""
++"withr","3.0.3",""
++"workflows","1.3.0","cli;generics;glue;hardhat;lifecycle;modelenv;parsnip;recipes;rlang;sparsevctrs;tidyselect;vctrs;withr"
++"xfun","0.60",""
++"yaml","2.3.12",""
++"yardstick","1.4.0","cli;dplyr;generics;hardhat;lifecycle;rlang;tibble;tidyselect;vctrs;withr"
+diff --git a/tools/performance.R b/tools/performance.R
+index e0c06af..be425cb 100644
+--- a/tools/performance.R
++++ b/tools/performance.R
+@@ -1,4 +1,4 @@
+-# Separate from package checks. See tools/acceptance-v04.md for the protocol.
++# Separate from package checks. See tools/acceptance-v05.md for the protocol.
+ local({
+   args <- commandArgs(TRUE)
+   script <- normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)))
+@@ -13,9 +13,11 @@ local({
+     case <- readRDS(args[2L])
+     lib <- normalizePath(args[3L], mustWork = TRUE)
+     prefix <- args[4L]
++    .libPaths(c(lib, .libPaths()))
+     library(vennabers, lib.loc = lib)
+     stopifnot(identical(normalizePath(find.package("vennabers")), file.path(lib, "vennabers")),
+               as.character(packageVersion("vennabers")) == args[5L])
++    integration <- isTRUE(case$integration)
+     regression <- identical(case$method, "regression")
+     fit_args <- if (regression) c(list(truth = case$truth, prediction = case$prediction), case$moderation)
+                 else list(truth = case$truth, probability = case$probability)
+@@ -25,6 +27,11 @@ local({
+     predict_args <- list(newdata = case$newdata)
+     # v0.2 did not expose loss; omission is its compatible default log path.
+     if (!regression && case$loss != "log") predict_args$loss <- case$loss
++    if (integration) {
++      loadNamespace("workflows")
++      loadNamespace(if (case$method %in% c("ovo", "ovr")) "nnet" else "stats")
++      predict_args <- list(new_data = case$newdata, type = if (regression) "numeric" else "prob")
++    }
+     if (args[1L] == "--restore") {
+       model <- readRDS(paste0(prefix, "-model.rds"))
+       stopifnot(identical(readRDS(paste0(prefix, "-prediction.rds")),
+@@ -35,26 +42,54 @@ local({
+     fit_function <- if (regression) {
+       if (case$cross) cross_venn_abers_regression else venn_abers_regression
+     } else if (case$cross) cross_venn_abers else venn_abers
++    if (integration) {
++      # Construct/validate the public procedure inside each timing window.
++      procedure <- function(outer = FALSE) {
++        splits <- if (outer) local_calibration_splits(case$inner, names(case$data)) else case$split
++        do.call(calibrated_workflow, c(list(workflow = case$base, outcome = "truth",
++          method = if (case$cross) "cross" else "inductive", splits = splits, seed = case$seed),
++          if (regression) case$moderation else list(classification = case$method, loss = case$loss)))
++      }
++      fit_function <- function() generics::fit(procedure(), case$data)
++      fit_args <- list()
++      metrics <- if (regression) yardstick::metric_set(yardstick::rmse, yardstick::mae) else
++        yardstick::metric_set(yardstick::brier_class, yardstick::mn_log_loss)
++      control <- tune::control_resamples(save_pred = TRUE, allow_par = FALSE)
++    }
+     rows <- vector("list", 4L)
+     for (iteration in 0:3) {
+       gc()
+       fit_time <- system.time(model <- do.call(fit_function, fit_args))[["elapsed"]]
+       predict_time <- system.time(prediction <- do.call(predict, c(list(model), predict_args)))[["elapsed"]]
++      outer_time <- 0 # Not applicable to caller-supplied manual predictions.
++      if (integration) {
++        outer_time <- system.time(evaluation <- withr::with_seed(case$seed,
++          tune::fit_resamples(procedure(TRUE), case$outer, metrics = metrics, control = control)))[["elapsed"]]
++        collected <- tune::collect_predictions(evaluation)
++        measured <- tune::collect_metrics(evaluation, summarize = FALSE)
++        stopifnot(nrow(tune::collect_notes(evaluation)) == 0L,
++                  nrow(collected) == 2000L, !anyDuplicated(collected$.row),
++                  setequal(collected$.row, seq_len(2000L)),
++                  nrow(measured) == 6L, all(is.finite(measured$.estimate)))
++        saveRDS(evaluation, paste0(prefix, "-outer.rds"), compress = "gzip", version = 3)
++        rm(evaluation, collected, measured)
++      }
+       values <- as.matrix(prediction)
+       stopifnot(nrow(values) == case$n_new, all(is.finite(values)))
+-      if (regression) {
++      if (regression && !integration) {
+         stopifnot(identical(names(prediction), c("prediction", "lower", "upper")),
+                   all(vapply(prediction, is.double, FALSE)),
+                   all(prediction$lower <= prediction$prediction),
+                   all(prediction$prediction <= prediction$upper))
+-      } else stopifnot(all(values >= 0 & values <= 1))
++      } else if (!regression) stopifnot(all(values >= 0 & values <= 1))
++      if (integration && regression) stopifnot(identical(names(prediction), ".pred"), is.double(prediction$.pred))
+       if (is.factor(case$truth)) stopifnot(all(abs(rowSums(values) - 1) <= 1e-10))
+       saveRDS(model, paste0(prefix, "-model.rds"), compress = "gzip", version = 3)
+       saveRDS(prediction, paste0(prefix, "-prediction.rds"), compress = "gzip", version = 3)
+       restored <- readRDS(paste0(prefix, "-model.rds"))
+       stopifnot(identical(prediction, do.call(predict, c(list(restored), predict_args))))
+       rows[[iteration + 1L]] <- data.frame(iteration, fit_seconds = fit_time,
+-        predict_seconds = predict_time, rds_bytes = file.info(paste0(prefix, "-model.rds"))$size)
++        predict_seconds = predict_time, outer_seconds = outer_time, rds_bytes = file.info(paste0(prefix, "-model.rds"))$size)
+       rm(model, restored, prediction, values)
+     }
+     write.csv(do.call(rbind, rows), paste0(prefix, "-runs.csv"), row.names = FALSE)
+@@ -73,6 +108,13 @@ local({
+   if (dir.exists(output) && length(list.files(output, all.files = TRUE, no.. = TRUE))) stop("OUTPUT must be empty.")
+   dir.create(output, recursive = TRUE, showWarnings = FALSE)
+   output <- normalizePath(output)
++  metadata <- tempfile("benchmark-metadata-")
++  dir.create(metadata)
++  on.exit(unlink(metadata, recursive = TRUE), add = TRUE)
++  utils::untar(artifacts[1L], files = "vennabers/DESCRIPTION", exdir = metadata)
++  current_version <- read.dcf(file.path(metadata, "vennabers/DESCRIPTION"), fields = "Version")[[1L]]
++  stopifnot(current_version %in% c("0.4.0", "0.5.0"))
++  v05 <- current_version == "0.5.0"
+   run <- function(command, arguments, log) {
+     status <- system2(command, arguments, stdout = log, stderr = log)
+     if (status != 0L) stop("Command failed; see ", log)
+@@ -86,8 +128,8 @@ local({
+       cat(readLines("/proc/cpuinfo"), sep = "\n")
+       cat(readLines("/proc/meminfo"), sep = "\n")
+     } else {
+-      system("sysctl -n machdep.cpu.brand_string hw.ncpu hw.memsize")
+-      system("sw_vers")
++      cat(system("sysctl -n machdep.cpu.brand_string hw.ncpu hw.memsize", intern = TRUE), sep = "\n")
++      cat(system("sw_vers", intern = TRUE), sep = "\n")
+     }
+   }, file = file.path(output, "environment.txt"))
+   file.copy(script, file.path(output, "performance.R"))
+@@ -155,6 +197,49 @@ local({
+       loss = NA_character_, precision = NULL, n_new = 1000L, moderation = moderation,
+       calibration_row = seq_len(10000L), new_row = seq_len(1000L))
+   }
++  if (v05) {
++    # Append after historical draws. Store data, every actual split and the
++    # untrained recipe/model configuration, not just seeds or split sizes.
++    set.seed(20260910)
++    x <- as.data.frame(matrix(rnorm(2500L * 10L), 2500L, 10L))
++    names(x) <- paste0("x", 1:10)
++    outcomes <- list(binary = factor(ifelse(runif(2500L) < plogis(x$x1), "yes", "no")),
++      ovo = factor(sample(c("a", "b", "c"), 2500L, replace = TRUE)),
++      regression = 2 * x$x1 - x$x2 + rnorm(2500L))
++    outcomes$ovr <- outcomes$ovo
++    for (method in c("binary", "ovo", "ovr", "regression")) for (cross in c(FALSE, TRUE)) {
++      data <- x[1:2000, ]
++      data$truth <- outcomes[[method]][1:2000]
++      spec <- if (method == "regression") parsnip::linear_reg(engine = "lm") else
++        if (method == "binary") parsnip::logistic_reg(engine = "glm") else
++          parsnip::multinom_reg(penalty = 0) |> parsnip::set_engine("nnet", trace = FALSE, maxit = 200)
++      # Formula/selector environments must not serialize the benchmark runner
++      # and its other cases into every saved input and fitted model.
++      formula <- stats::as.formula("truth ~ .", env = baseenv())
++      selector <- rlang::new_quosure(quote(recipes::all_numeric_predictors()), env = baseenv())
++      base <- workflows::workflow() |>
++        workflows::add_recipe(recipes::recipe(formula, data) |>
++          recipes::step_normalize(!!selector)) |> workflows::add_model(spec)
++      split_local <- function(data) {
++        if (cross) rsample::vfold_cv(data, v = 5) else rsample::initial_split(data, prop = .8)
++      }
++      # OvO and OvR use identical data and partitions for a common multinomial base.
++      split <- withr::with_seed(3501, split_local(data))
++      outer <- withr::with_seed(3502, rsample::vfold_cv(data, v = 3))
++      inner <- withr::with_seed(3503, lapply(outer$splits, function(s) split_local(rsample::analysis(s))))
++      fold <- if (cross) {
++        f <- character(nrow(data))
++        for (i in seq_len(nrow(split))) f[as.integer(split$splits[[i]], data = "assessment")] <- split$id[i]
++        f
++      } else NULL
++      id <- paste("workflow", method, if (cross) "cross" else "inductive", sep = "_")
++      cases[[id]] <- list(integration = TRUE, data = data, truth = data$truth,
++        newdata = x[2001:2500, ], base = base, split = split, outer = outer, inner = inner,
++        seed = 3504L, cross = cross, fold = fold, method = method, n_new = 500L,
++        loss = if (method == "regression") NA_character_ else "log", precision = NULL,
++        moderation = if (method == "regression") list(m = 1) else NULL)
++    }
++  }
+   for (id in names(cases)) saveRDS(cases[[id]], file.path(output, paste0(id, "-input.rds")), version = 3)
+   plan <- do.call(rbind, lapply(names(cases), function(id) {
+     x <- cases[[id]]
+@@ -165,7 +250,7 @@ local({
+                precision = if (is.null(x$precision)) NA_real_ else x$precision,
+                m = if (is.null(x$moderation$m)) NA_real_ else x$moderation$m,
+                epsilon = if (is.null(x$moderation$epsilon)) NA_real_ else x$moderation$epsilon,
+-               previous_supported = x$method != "regression",
++               previous_supported = !isTRUE(x$integration) && (v05 || x$method != "regression"),
+                input_md5 = unname(tools::md5sum(file.path(output, paste0(id, "-input.rds")))))
+   }))
+   write.csv(plan, file.path(output, "plan.csv"), row.names = FALSE)
+@@ -181,7 +266,7 @@ local({
+     run(file.path(R.home("bin"), "R"), c("CMD", "INSTALL", paste0("--library=", shQuote(lib)), shQuote(artifacts[i])),
+         file.path(output, paste0(release, "-install.log")))
+     version <- read.dcf(file.path(lib, "vennabers", "DESCRIPTION"), fields = "Version")[[1L]]
+-    stopifnot(version == if (release == "current") "0.4.0" else "0.3.0")
++    stopifnot(version == if (release == "current") current_version else if (v05) "0.4.0" else "0.3.0")
+     selected <- if (release == "current") plan$case else plan$case[plan$previous_supported]
+     for (id in selected) {
+       cat(release, id, "\n")
+@@ -204,12 +289,12 @@ local({
+   }
+   runs <- do.call(rbind, all_runs)
+   write.csv(runs, file.path(output, "runs.csv"), row.names = FALSE)
+-  medians <- aggregate(cbind(fit_seconds, predict_seconds, rds_bytes, process_peak_bytes) ~ release + case,
++  medians <- aggregate(cbind(fit_seconds, predict_seconds, outer_seconds, rds_bytes, process_peak_bytes) ~ release + case,
+                        runs[runs$iteration > 0L, ], median)
+   write.csv(medians, file.path(output, "medians.csv"), row.names = FALSE)
+   comparison <- merge(medians[medians$release == "current", -1L], medians[medians$release == "previous", -1L],
+                       by = "case", all.x = TRUE, suffixes = c("_current", "_previous"))
+-  for (metric in c("fit_seconds", "predict_seconds", "rds_bytes", "process_peak_bytes")) {
++  for (metric in c("fit_seconds", "predict_seconds", "outer_seconds", "rds_bytes", "process_peak_bytes")) {
+     previous <- comparison[[paste0(metric, "_previous")]]
+     comparison[[paste0(metric, "_ratio")]] <- ifelse(previous > 0, comparison[[paste0(metric, "_current")]] / previous, NA_real_)
+   }
+diff --git a/tools/test-acceptance.R b/tools/test-acceptance.R
+index 04db09d..febe247 100644
+--- a/tools/test-acceptance.R
++++ b/tools/test-acceptance.R
+@@ -11,7 +11,19 @@ local({
+   stopifnot(all(file.copy(files, checkout, recursive = TRUE)))
+   setwd(checkout)
+   on.exit(setwd(root), add = TRUE, after = FALSE)
+-  Sys.unsetenv(c("ACCEPTANCE_OUTPUT_DIR", "ACCEPTANCE_ARTIFACT"))
++  Sys.unsetenv(c("ACCEPTANCE_OUTPUT_DIR", "ACCEPTANCE_ARTIFACT", "ACCEPTANCE_PROFILE"))
++
++  # Fail before any build when integration coverage would silently be skipped.
++  description <- readLines("DESCRIPTION")
++  for (requirement in c("parsnip (>= 999.0.0)", "vennabersMissingDependencyProbe")) {
++    writeLines(sub("parsnip \\(>= 1.6.0\\)", requirement, description), "DESCRIPTION")
++    log <- file.path(work, "dependency-gate.log")
++    status <- system2(file.path(R.home("bin"), "Rscript"),
++      c("--vanilla", "tools/acceptance.R"), stdout = log, stderr = log)
++    stopifnot(status != 0L, any(grepl("integration checks must not skip", readLines(log), fixed = TRUE)))
++  }
++  writeLines(description, "DESCRIPTION")
++  cat("Missing/old integration dependency requirements fail the gate.\n")
+ 
+   # Each new file must be discovered automatically and fail the whole command.
+   for (directory in c("inst/examples", "tests")) {
+diff --git a/tools/test-optional-dependencies.R b/tools/test-optional-dependencies.R
+new file mode 100644
+index 0000000..dae4f1c
+--- /dev/null
++++ b/tools/test-optional-dependencies.R
+@@ -0,0 +1,46 @@
++# Standalone environment checks; never part of timed benchmarks or CRAN tests.
++local({
++  args <- commandArgs(TRUE)
++  stopifnot(length(args) == 1L)
++  artifact <- normalizePath(args, mustWork = TRUE)
++  work <- tempfile("optional-dependencies-")
++  dir.create(work)
++  on.exit(unlink(work, recursive = TRUE), add = TRUE)
++  lib <- file.path(work, "library")
++  dir.create(lib)
++  run <- function(command, arguments, label) {
++    log <- file.path(work, paste0(label, ".log"))
++    status <- system2(command, arguments, stdout = log, stderr = log)
++    if (status != 0L) stop(paste(readLines(log), collapse = "\n"))
++  }
++  r <- file.path(R.home("bin"), "R")
++  run(r, c("CMD", "INSTALL", paste0("--library=", shQuote(lib)), shQuote(artifact)), "install-core")
++  # Hide site/user libraries from these fresh processes and their children.
++  old <- Sys.getenv(c("R_LIBS", "R_LIBS_USER", "R_LIBS_SITE"), unset = NA_character_)
++  on.exit(for (key in names(old)) {
++    if (is.na(old[[key]])) Sys.unsetenv(key) else do.call(Sys.setenv, setNames(list(old[[key]]), key))
++  }, add = TRUE)
++  Sys.setenv(R_LIBS = lib, R_LIBS_USER = lib, R_LIBS_SITE = lib)
++  script <- file.path(work, "probe.R")
++  for (state in c("missing", "old")) {
++    if (state == "old") {
++      package <- file.path(work, "parsnip")
++      dir.create(package)
++      writeLines(c("Package: parsnip", "Version: 0.0.1", "Title: Dependency Error Probe",
++        "Description: An intentionally old namespace for dependency error checks.",
++        "Author: Test", "Maintainer: Test <test@example.org>", "License: MIT"), file.path(package, "DESCRIPTION"))
++      writeLines(character(), file.path(package, "NAMESPACE"))
++      run(r, c("CMD", "INSTALL", paste0("--library=", shQuote(lib)), shQuote(package)), "install-old")
++    }
++    writeLines(c(
++      'stopifnot(!"parsnip" %in% loadedNamespaces())',
++      'loadNamespace("vennabers")',
++      'stopifnot(!"parsnip" %in% loadedNamespaces())',
++      'stopifnot(nrow(predict(vennabers::venn_abers(c(FALSE, TRUE), c(.1, .9)), .5)) == 1L)',
++      'error <- tryCatch(vennabers::calibrated_workflow(NULL, "truth"), error = identity)',
++      'stopifnot(inherits(error, "error"), grepl("parsnip", conditionMessage(error)), grepl("1.6.0", conditionMessage(error)), grepl("install or update it explicitly", conditionMessage(error)))'
++    ), script)
++    run(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), state)
++    cat(state, "optional dependency: clear error; manual core works.\n")
++  }
++})
+diff --git a/tools/test-performance-verifier.R b/tools/test-performance-verifier.R
+index 11d1422..3952cbb 100644
+--- a/tools/test-performance-verifier.R
++++ b/tools/test-performance-verifier.R
+@@ -126,16 +126,17 @@ local({
+     check(bad, FALSE, paste("unsupported comparison", column))
+   }
+   if (any(original$plan$method == "regression")) {
+-    check(original, TRUE, "complete v0.4 coverage", "--v04")
++    version_flag <- if (any(grepl("^workflow_", original$plan$case))) "--v05" else "--v04"
++    check(original, TRUE, "complete v0.4 coverage", version_flag)
+     for (column in c("method", "m", "epsilon")) {
+       bad <- original
+       bad$plan[[column]][bad$plan$case == "regression_cross_epsilon01"] <- metadata[[column]]
+-      check(bad, FALSE, paste("v0.4 plan/input mismatch", column), "--v04")
++      check(bad, FALSE, paste("v0.4 plan/input mismatch", column), version_flag)
+     }
+     bad <- original
+     id <- "regression_cross_epsilon01"
+     for (table in names) bad[[table]] <- bad[[table]][bad[[table]]$case != id, ]
+-    check(bad, FALSE, "coherently missing regression case", "--v04")
++    check(bad, FALSE, "coherently missing regression case", version_flag)
+     path <- file.path(work, paste0(id, "-input.rds"))
+     input <- readRDS(path)
+     for (fault in c("moderation", "fold", "new_row", "newdata")) {
+@@ -147,8 +148,29 @@ local({
+       saveRDS(broken, path, version = 3)
+       bad <- original
+       bad$plan$input_md5[bad$plan$case == id] <- unname(tools::md5sum(path))
+-      check(bad, FALSE, paste("invalid regression", fault), "--v04")
++      check(bad, FALSE, paste("invalid regression", fault), version_flag)
+     }
++    saveRDS(input, path, version = 3)
++    check(original, TRUE, "restored manual inputs", version_flag)
++  }
++  if (any(grepl("^workflow_", original$plan$case))) {
++    id <- "workflow_regression_cross"
++    path <- file.path(work, paste0(id, "-input.rds"))
++    input <- readRDS(path)
++    for (fault in c("data", "newdata", "inner", "split", "seed")) {
++      broken <- input
++      if (fault == "data") broken$data$x1[1L] <- Inf
++      if (fault == "newdata") broken$newdata <- broken$newdata[-1L, ]
++      if (fault == "inner") broken$inner[[1L]] <- broken$inner[[2L]]
++      if (fault == "split") broken$split$splits[[1L]]$in_id <- 1L
++      if (fault == "seed") broken$seed <- 0L
++      saveRDS(broken, path, version = 3)
++      bad <- original
++      bad$plan$input_md5[bad$plan$case == id] <- unname(tools::md5sum(path))
++      check(bad, FALSE, paste("invalid integration", fault), "--v05")
++    }
++    saveRDS(input, path, version = 3)
++    check(original, TRUE, "restored workflow inputs", "--v05")
+   }
+   cat("Benchmark verifier regression checks passed.\n")
+ })
+diff --git a/tools/test-performance.R b/tools/test-performance.R
+index 7b1779f..b12b836 100644
+--- a/tools/test-performance.R
++++ b/tools/test-performance.R
+@@ -1,8 +1,9 @@
+ # Validate a completed benchmark/smoke bundle: Rscript tools/test-performance.R OUTPUT
+ local({
+   output <- commandArgs(TRUE)
+-  v04 <- "--v04" %in% output
+-  output <- output[output != "--v04"]
++  v05 <- "--v05" %in% output
++  v04 <- "--v04" %in% output || v05
++  output <- output[!output %in% c("--v04", "--v05")]
+   stopifnot(length(output) == 1L)
+   read <- function(name) read.csv(file.path(output, name))
+   plan <- read("plan.csv")
+@@ -18,8 +19,10 @@ local({
+         c("inductive_ovo", "inductive_ovr", "cross_ovo", "cross_ovr"), paste, sep = "_")))
+     regression <- c("regression_inductive_m1", "regression_inductive_epsilon01",
+                     "regression_cross_m1", "regression_cross_epsilon01")
+-    stopifnot(setequal(plan$case, c(classification, regression)),
+-              identical(plan$previous_supported, plan$case %in% classification))
++    integration <- as.vector(outer(c("binary", "ovo", "ovr", "regression"),
++                                  c("inductive", "cross"), function(x, y) paste("workflow", x, y, sep = "_")))
++    stopifnot(setequal(plan$case, c(classification, regression, if (v05) integration)),
++              identical(plan$previous_supported, plan$case %in% c(classification, if (v05) regression)))
+   }
+   pairs <- rbind(data.frame(case = plan$case, release = "current"),
+                  data.frame(case = plan$case[plan$previous_supported],
+@@ -40,6 +43,7 @@ local({
+   medians <- align(medians, pairs, c("case", "release"), "medians")
+   comparison <- align(comparison, plan, "case", "comparison")
+   metrics <- c("fit_seconds", "predict_seconds", "rds_bytes", "process_peak_bytes")
++  if (v05 || "outer_seconds" %in% names(runs)) metrics <- c(metrics, "outer_seconds")
+   stopifnot(all(vapply(runs[metrics], function(x) is.numeric(x) && all(is.finite(x)), FALSE)),
+             all(runs$fit_seconds >= 0), all(runs$predict_seconds >= 0),
+             all(runs$rds_bytes > 0), all(runs$process_peak_bytes > 0))
+@@ -75,7 +79,7 @@ local({
+   supported <- plan$previous_supported[match(comparison$case, plan$case)]
+   stopifnot(identical(comparison$status, ifelse(supported, "requires regression review", "new capability baseline")))
+   large <- plan[plan$case == "binary_inductive", ]
+-  other <- plan[plan$case != "binary_inductive", ]
++  other <- plan[plan$case != "binary_inductive" & !grepl("^workflow_", plan$case), ]
+   stopifnot(large$calibration == 100000L, large$prediction == 100000L,
+             all(other$calibration == 10000L), all(other$prediction == 1000L),
+             all(plan$folds[grepl("cross", plan$case)] == 5L),
+@@ -102,6 +106,49 @@ local({
+         if (!identical(as.character(row[[field]]), descriptor[[field]])) stop(label, ": differs from saved input")
+       } else equal_values(row[[field]], descriptor[[field]], label)
+     }
++    if (isTRUE(input$integration)) {
++      loadNamespace("rsample") # Register rsplit's as.integer() method before inspecting plans.
++      stopifnot(v05 || grepl("^workflow_", id), nrow(input$data) == 2000L,
++        nrow(input$newdata) == 500L, ncol(input$newdata) == 10L,
++        identical(names(input$data), c(paste0("x", 1:10), "truth")),
++        identical(names(input$newdata), paste0("x", 1:10)),
++        identical(input$data$truth, input$truth), input$seed == 3504L,
++        identical(id, paste("workflow", input$method, if (input$cross) "cross" else "inductive", sep = "_")),
++        all(vapply(input$data[1:10], function(x) is.double(x) && all(is.finite(x)), FALSE)),
++        all(vapply(input$newdata, function(x) is.double(x) && all(is.finite(x)), FALSE)),
++        nrow(input$outer) == 3L, length(input$inner) == 3L,
++        !row$previous_supported, all(runs$outer_seconds[runs$case == id] > 0))
++      spec <- workflows::extract_spec_parsnip(input$base)
++      recipe <- workflows::extract_recipe(input$base, estimated = FALSE)
++      stopifnot(length(recipe$steps) == 1L, inherits(recipe$steps[[1L]], "step_normalize"),
++        !recipe$steps[[1L]]$trained,
++        identical(rlang::quo_get_env(recipe$steps[[1L]]$terms[[1L]]), baseenv()),
++        spec$engine == if (input$method == "regression") "lm" else if (input$method == "binary") "glm" else "nnet")
++      if (input$method == "regression") stopifnot(identical(input$moderation, list(m = 1)),
++        is.double(input$truth), all(is.finite(input$truth)))
++      else stopifnot(is.factor(input$truth), nlevels(input$truth) == if (input$method == "binary") 2L else 3L,
++                    input$loss == "log", is.null(input$precision))
++      check_partition <- function(splits, data, folds) {
++        stopifnot(length(splits) == folds)
++        held <- integer()
++        for (split in splits) {
++          a <- as.integer(split, data = "analysis")
++          b <- as.integer(split, data = "assessment")
++          stopifnot(identical(split$data, data), length(a) > 0L, length(b) > 0L,
++            !anyNA(c(a, b)), !anyDuplicated(c(a, b)),
++            identical(sort(c(a, b)), seq_len(nrow(data))))
++          if (folds == 1L) stopifnot(length(a) == floor(.8 * nrow(data)))
++          held <- c(held, b)
++        }
++        if (folds > 1L) stopifnot(identical(sort(held), seq_len(nrow(data))))
++      }
++      check_local <- function(plan, data) check_partition(if (input$cross) plan$splits else list(plan), data,
++                                                          if (input$cross) 5L else 1L)
++      check_local(input$split, input$data)
++      check_partition(input$outer$splits, input$data, 3L)
++      for (i in 1:3) check_local(input$inner[[i]], rsample::analysis(input$outer$splits[[i]]))
++      if (input$cross) for (i in 1:5) stopifnot(all(input$fold[as.integer(input$split$splits[[i]], data = "assessment")] == input$split$id[i]))
++    }
+     if (input$cross && is.factor(input$truth)) stopifnot(all(table(input$truth, input$fold) > 0L))
+     if (v04 && id %in% regression) {
+       cross <- grepl("_cross_", id)
+@@ -122,6 +169,14 @@ local({
+                 all(m >= 1 & m <= floor((k - 1) / 2)))
+     }
+   }
++  if (v05) {
++    for (method in c("inductive", "cross")) {
++      ovo <- readRDS(file.path(output, paste0("workflow_ovo_", method, "-input.rds")))
++      ovr <- readRDS(file.path(output, paste0("workflow_ovr_", method, "-input.rds")))
++      for (field in c("data", "newdata", "split", "outer", "inner")) stopifnot(identical(ovo[[field]], ovr[[field]]))
++    }
++    stopifnot(all(runs$outer_seconds[!grepl("^workflow_", runs$case)] == 0))
++  }
+   # Independently protect the original IVAP case, including RNG draw order.
+   set.seed(20260906)
+   truth <- sample(c(FALSE, TRUE), 100000L, replace = TRUE)

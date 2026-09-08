@@ -1,4 +1,16 @@
-# Development
+# vennabers 0.5.0
+
+- Prepare the eight native integration paths for acceptance, with one source
+  candidate, mandatory current/minimum dependency checks and a separate manual
+  core check without tidymodels. Extend benchmarks with complete Fit/Predict and
+  outer evaluation; retain all 16 manual cases for comparison to approved v0.4.
+  `tools/acceptance-v05.md` records actual results and missing release evidence.
+  The historical local-only v0.4 approval does not approve v0.5.
+- Migration: manual APIs, numerical tolerances and R >= 4.5.0 are unchanged.
+  Install optional integration packages explicitly; the core does not load them.
+  Frozen workflows, name encoding and ordered reference holdouts follow in v0.6;
+  pair training/full-model transfer in v0.7, tuning in v0.8 and learned
+  postprocessing in v0.9. No complete Python training parity is claimed.
 
 - Add Inductive and Cross regression to `calibrated_workflow()`, using the base
   model's regression mode and existing IVAR/CVAR cores. Validate every fold's

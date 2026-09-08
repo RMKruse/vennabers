@@ -6,6 +6,20 @@
 \description{Wrap an unfitted, fully configured classification or regression workflow in a normal
 outer workflow. The outer XY blueprint transports selected raw columns. Complete base workflows learn only on their local training splits; held-out
 predictions fit the existing classification or regression Inductive/Cross Venn-Abers core.}
+\section{Release scope and dependencies}{
+Version 0.5 supports all eight combinations of binary, OvO, OvR and regression
+with Inductive or Cross training, including complete outer resampling.
+The integration packages in DESCRIPTION are optional Suggests and must be
+installed explicitly; manual calibration needs none of them. Use the declared
+minimum versions or newer supported versions. Basis engines also need their own
+packages: the examples use \code{stats} for GLM/LM and \code{nnet} for a shared
+multinomial model. Fresh parallel workers must load \code{vennabers} and those
+engine namespaces, for example through \code{control_resamples(pkgs = ...)}.
+Frozen workflow adoption, reversible name encoding and ordered reference holdouts
+follow in v0.6; pair training/full-model transfer in v0.7, tuning in v0.8 and
+learned postprocessing in v0.9. Shared multiclass training does not establish
+complete Python training parity.
+}
 \usage{
 calibrated_workflow(workflow, outcome, ..., predictors = NULL,
   method = "inductive", classification = "binary", event_level = "first",

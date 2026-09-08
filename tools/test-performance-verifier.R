@@ -126,16 +126,17 @@ local({
     check(bad, FALSE, paste("unsupported comparison", column))
   }
   if (any(original$plan$method == "regression")) {
-    check(original, TRUE, "complete v0.4 coverage", "--v04")
+    version_flag <- if (any(grepl("^workflow_", original$plan$case))) "--v05" else "--v04"
+    check(original, TRUE, "complete v0.4 coverage", version_flag)
     for (column in c("method", "m", "epsilon")) {
       bad <- original
       bad$plan[[column]][bad$plan$case == "regression_cross_epsilon01"] <- metadata[[column]]
-      check(bad, FALSE, paste("v0.4 plan/input mismatch", column), "--v04")
+      check(bad, FALSE, paste("v0.4 plan/input mismatch", column), version_flag)
     }
     bad <- original
     id <- "regression_cross_epsilon01"
     for (table in names) bad[[table]] <- bad[[table]][bad[[table]]$case != id, ]
-    check(bad, FALSE, "coherently missing regression case", "--v04")
+    check(bad, FALSE, "coherently missing regression case", version_flag)
     path <- file.path(work, paste0(id, "-input.rds"))
     input <- readRDS(path)
     for (fault in c("moderation", "fold", "new_row", "newdata")) {
@@ -147,8 +148,29 @@ local({
       saveRDS(broken, path, version = 3)
       bad <- original
       bad$plan$input_md5[bad$plan$case == id] <- unname(tools::md5sum(path))
-      check(bad, FALSE, paste("invalid regression", fault), "--v04")
+      check(bad, FALSE, paste("invalid regression", fault), version_flag)
     }
+    saveRDS(input, path, version = 3)
+    check(original, TRUE, "restored manual inputs", version_flag)
+  }
+  if (any(grepl("^workflow_", original$plan$case))) {
+    id <- "workflow_regression_cross"
+    path <- file.path(work, paste0(id, "-input.rds"))
+    input <- readRDS(path)
+    for (fault in c("data", "newdata", "inner", "split", "seed")) {
+      broken <- input
+      if (fault == "data") broken$data$x1[1L] <- Inf
+      if (fault == "newdata") broken$newdata <- broken$newdata[-1L, ]
+      if (fault == "inner") broken$inner[[1L]] <- broken$inner[[2L]]
+      if (fault == "split") broken$split$splits[[1L]]$in_id <- 1L
+      if (fault == "seed") broken$seed <- 0L
+      saveRDS(broken, path, version = 3)
+      bad <- original
+      bad$plan$input_md5[bad$plan$case == id] <- unname(tools::md5sum(path))
+      check(bad, FALSE, paste("invalid integration", fault), "--v05")
+    }
+    saveRDS(input, path, version = 3)
+    check(original, TRUE, "restored workflow inputs", "--v05")
   }
   cat("Benchmark verifier regression checks passed.\n")
 })
