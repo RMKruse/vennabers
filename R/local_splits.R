@@ -82,10 +82,8 @@ local_calibration_splits <- function(splits, columns) {
       }
     }
   }
-  # Keep local snapshots/plans, without retaining the original split containers.
-  rm(splits)
-  force(columns)
-  function(data) {
+  # Capture only the selected data and plans, never the construction frame.
+  eval(quote(function(data) {
     if (!identical(names(data), columns)) {
       stop("Prepared plan columns must match all canonical selected raw columns, including outcome, in order.", call. = FALSE)
     }
@@ -97,5 +95,6 @@ local_calibration_splits <- function(splits, columns) {
     if (plan$method == "cross") {
       rsample::manual_rset(lapply(plan$folds, rsample::make_splits, data = data), names(plan$folds))
     } else rsample::make_splits(plan$folds$Inductive1, data)
-  }
+  }), envir = list(columns = columns, snapshots = snapshots, plans = plans),
+  enclos = environment(local_calibration_splits))
 }

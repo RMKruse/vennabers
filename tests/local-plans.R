@@ -5,6 +5,33 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "withr"), requireNamespace,
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
   split <- withr::with_seed(42, rsample::initial_split(data, .8, strata = truth, pool = 0))
+  # Unselected data must not travel with a serialized prepared resolver.
+  wide <- data
+  wide$unused <- strrep("x", 1000000L)
+  for (prepared in list(rsample::make_splits(list(analysis = 1:60, assessment = 61:80), wide),
+                        withr::with_seed(42, rsample::vfold_cv(wide, v = 2)))) {
+    compact <- prepared
+    if (inherits(compact, "rset")) {
+      compact$splits <- lapply(compact$splits, function(s) { s$data <- data; s })
+    } else compact$data <- data
+    resolver <- local_calibration_splits(list(prepared), names(data))
+    reference <- local_calibration_splits(list(compact), names(data))
+    serialized <- serialize(resolver, NULL)
+    stopifnot(length(serialized) <= length(serialize(reference, NULL)) + 1024L)
+    restored <- unserialize(serialized)
+    stopifnot(identical(ls(environment(restored), all.names = TRUE), c("columns", "plans", "snapshots")),
+              identical(parent.env(environment(restored)), environment(local_calibration_splits)))
+    actual <- restored(data)
+    expected <- reference(data)
+    if (!inherits(actual, "rset")) {
+      actual <- list(splits = list(actual))
+      expected <- list(splits = list(expected))
+    }
+    for (part in c("analysis", "assessment")) {
+      stopifnot(identical(lapply(actual$splits, as.integer, data = part),
+                          lapply(expected$splits, as.integer, data = part)))
+    }
+  }
   automatic <- generics::fit(calibrated_workflow(base, "truth", seed = 42), data)
   null_plan <- generics::fit(calibrated_workflow(base, "truth", splits = NULL, seed = 42), data)
   stopifnot(identical(venn_abers_details(automatic, data), venn_abers_details(null_plan, data)))
