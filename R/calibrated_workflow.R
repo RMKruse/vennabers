@@ -5,12 +5,27 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                                 method = "inductive", classification = "binary",
                                 event_level = "first", calibration_prop = 0.2, v = 5L,
                                 strata = NULL, splits = NULL, seed = NULL, precision = NULL,
-                                loss = "log", m = NULL, epsilon = NULL) {
+                                loss = "log", m = NULL, epsilon = NULL, schema = NULL) {
   .integration_dots(...)
   # Arguments before ... also need exact names (R otherwise partially matches).
   supplied <- names(sys.call())[-1L]
   bad <- supplied[nzchar(supplied) & !supplied %in% names(formals(calibrated_workflow))]
   if (length(bad)) stop("Unknown argument: ", sQuote(bad[1L]), ".", call. = FALSE)
+  explicit_classification <- !missing(classification)
+  explicit_event <- !missing(event_level)
+  if (!is.null(schema)) {
+    .validate_schema(schema)
+    if (!identical(outcome, schema$encoded_outcome) ||
+        explicit_classification && !identical(classification, schema$classification) ||
+        explicit_event && !identical(event_level, schema$event_level)) {
+      stop("Outcome, classification and event_level must agree with `schema`.", call. = FALSE)
+    }
+    classification <- schema$classification
+    event_level <- schema$event_level
+    if (!is.null(predictors) && !setequal(predictors, setdiff(schema$columns, outcome))) {
+      stop("Selected predictors must agree with `schema`.", call. = FALSE)
+    }
+  }
   .integration_names(outcome, "outcome")
   if (length(outcome) != 1L) stop("`outcome` must name one column.", call. = FALSE)
   if (grepl("^(\\.pred($|_)|\\.row$|\\.config$|id([1-9][0-9]*)?$)", outcome)) {
@@ -24,6 +39,11 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   .validate_choice(classification, c("binary", "ovo", "ovr"), "classification")
   .integration_packages()
   mode <- .validate_base_workflow(workflow, outcome, classification)
+  if (!is.null(schema)) {
+    if (!identical(mode, schema$mode)) stop("Base workflow mode must agree with `schema`.", call. = FALSE)
+    pre <- workflows::extract_preprocessor(workflow)
+    if (inherits(pre, "recipe") && !is.null(pre$template)) .schema_encoded_data(pre$template, schema, truth = TRUE)
+  }
   regression <- mode == "regression"
   if (regression && (!missing(classification) || !missing(event_level) ||
                      !missing(precision) || !missing(loss))) {
@@ -89,24 +109,34 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                     strata = strata, splits = splits, seed = seed, precision = precision, loss = loss,
                     m = m, epsilon = epsilon)
   explicit <- c(predictors = !missing(predictors), method = !missing(method),
-                classification = !missing(classification), event_level = !missing(event_level),
+                classification = explicit_classification, event_level = explicit_event,
                 calibration_prop = !missing(calibration_prop), v = !missing(v), strata = !missing(strata),
                 splits = !missing(splits), seed = !missing(seed), precision = !missing(precision), loss = !missing(loss),
                 m = !missing(m), epsilon = !missing(epsilon))
   spec <- parsnip::new_model_spec("vennabers", args = list(), eng_args = NULL,
                                 mode = mode, method = NULL, engine = method)
   spec <- parsnip::set_engine(spec, method, base_workflow = workflow,
-                             outcome = outcome, parameters = list(requested = requested, explicit = explicit))
-  selection <- if (is.null(predictors)) quote(everything()) else predictors
+                             outcome = outcome, parameters = list(requested = requested, explicit = explicit, schema = schema))
+  selection <- if (!is.null(predictors)) predictors else if (!is.null(schema)) setdiff(unname(schema$columns), outcome) else quote(everything())
   carrier <- rlang::inject(workflows::add_variables(
-    workflows::workflow(), outcomes = .integration_select_outcome(!!outcome, !!classification, !!mode), predictors = !!selection,
+    workflows::workflow(), outcomes = .integration_select_outcome(!!outcome, !!classification, !!mode, !!schema), predictors = !!selection,
     blueprint = hardhat::default_xy_blueprint(intercept = FALSE, allow_novel_levels = TRUE)))
-  workflows::add_model(carrier, spec)
+  carrier <- workflows::add_model(carrier, spec)
+  # Check schema bindings before workflows::predict() discards input attributes.
+  if (!is.null(schema)) class(carrier) <- c("vennabers_workflow", class(carrier))
+  carrier
 }
 
-.integration_select_outcome <- function(outcome, classification, mode) {
+#' @export
+predict.vennabers_workflow <- function(object, new_data, ...) {
+  .schema_encoded_data(new_data, workflows::extract_fit_engine(object)$schema)
+  NextMethod()
+}
+
+.integration_select_outcome <- function(outcome, classification, mode, schema = NULL) {
   .integration_names(tidyselect::peek_vars(), "input column")
   data <- tidyselect::peek_data()
+  if (!is.null(schema)) .schema_encoded_data(data, schema, truth = TRUE)
   if (outcome %in% names(data)) .integration_truth(data[[outcome]], outcome, classification, mode)
   outcome
 }
@@ -191,6 +221,10 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   }
   raw <- as.data.frame(x)
   raw[[outcome]] <- y
+  if (!is.null(parameters$schema)) {
+    .schema_encoded_data(raw, parameters$schema, truth = TRUE)
+    raw <- .bind_schema(raw, parameters$schema)
+  }
   pre <- workflows::extract_preprocessor(base_workflow)
   if (inherits(pre, "workflow_variables") &&
       !identical(names(tidyselect::eval_select(pre$outcomes, raw)), outcome)) {
@@ -280,7 +314,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     names(core$calibrators) <- core$folds
     core
   } else venn_abers(truths[[1L]], calibration_predictions[[1L]], precision = settings$precision)
-  structure(list(parameters = parameters, outcome = outcome,
+  structure(list(parameters = parameters, schema = parameters$schema, outcome = outcome,
                  predictors = names(x), columns = names(raw), class_levels = classes,
                  event_class = event, loss = effective$loss,
                  folds = folds, models = models, calibrator = calibrator,
@@ -425,6 +459,7 @@ predict_vennabers_class <- function(object, new_data) {
 #' @export
 predict._vennabers_fit <- function(object, new_data, type = NULL, opts = list(), ..., loss = NULL) {
   .integration_dots(...)
+  if (!is.null(object$fit$schema)) .schema_encoded_data(new_data, object$fit$schema)
   if (!missing(loss)) {
     if (object$fit$parameters$requested$mode == "regression") {
       stop("Regression does not accept `loss`.", call. = FALSE)
@@ -434,7 +469,7 @@ predict._vennabers_fit <- function(object, new_data, type = NULL, opts = list(),
   }
   if (!is.null(type)) .validate_choice(type,
     if (object$fit$parameters$requested$mode == "regression") "numeric" else c("prob", "class"), "type")
-  parsnip::predict.model_fit(object, new_data, type = type, opts = opts)
+  .bind_schema(parsnip::predict.model_fit(object, new_data, type = type, opts = opts), object$fit$schema)
 }
 
 #' @export
@@ -443,6 +478,7 @@ venn_abers_details <- function(object, new_data, ..., loss = NULL) {
   .integration_packages()
   state <- workflows::extract_fit_engine(object)
   if (!inherits(state, "vennabers_fit")) stop("`object` must be a fitted calibrated_workflow().", call. = FALSE)
+  if (!is.null(state$schema)) .schema_encoded_data(new_data, state$schema)
   if (!missing(loss)) {
     if (state$parameters$requested$mode == "regression") {
       stop("Regression does not accept `loss`.", call. = FALSE)
@@ -451,5 +487,7 @@ venn_abers_details <- function(object, new_data, ..., loss = NULL) {
     state$loss <- loss
   }
   forged <- hardhat::forge(new_data, blueprint = workflows::extract_mold(object)$blueprint)
-  .integration_prediction(state, forged$predictors, include_details = TRUE)
+  result <- .integration_prediction(state, forged$predictors, include_details = TRUE)
+  result$prediction <- .bind_schema(result$prediction, state$schema)
+  .bind_schema(result, state$schema)
 }

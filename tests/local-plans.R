@@ -19,7 +19,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "withr"), requireNamespace,
     serialized <- serialize(resolver, NULL)
     stopifnot(length(serialized) <= length(serialize(reference, NULL)) + 1024L)
     restored <- unserialize(serialized)
-    stopifnot(identical(ls(environment(restored), all.names = TRUE), c("columns", "plans", "snapshots")),
+    stopifnot(identical(ls(environment(restored), all.names = TRUE), c("columns", "plans", "schemas", "snapshots")),
               identical(parent.env(environment(restored)), environment(local_calibration_splits)))
     actual <- restored(data)
     expected <- reference(data)

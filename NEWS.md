@@ -1,3 +1,12 @@
+# Development version
+
+- Add explicit binary naming schemas, lossless input encoding, and role-based
+  decoding of predictions, truth, identities and details. `calibrated_workflow()`
+  now accepts `schema` for Inductive/Cross fitting and ordinary outer resampling.
+  Schemas preserve exact original names and class/event order without changing
+  the numerical cores or the direct naming contract. Multiclass/regression
+  schemas and frozen workflow adoption remain separate work.
+
 # vennabers 0.5.0
 
 - Normalize class matrices with binary64 column-order additions on every
