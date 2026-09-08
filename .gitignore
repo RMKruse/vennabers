@@ -21,3 +21,4 @@ renv/python/
 .scratch/
 CONTEXT.md
 tools/
+.DS_Store
