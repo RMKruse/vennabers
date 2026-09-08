@@ -1,5 +1,14 @@
 # Development
 
+- Add Inductive `classification = "ovo"` and `"ovr"` to `calibrated_workflow()`.
+  One shared multiclass model feeds the existing factor/matrix cores, including
+  for two classes. Preserve original class order, enforce complete named
+  probabilities and calibration classes, and expose reconstructible binary
+  subproblem details. Native Log/Brier predictions, local plans, repeated outer
+  evaluation and fresh-process restoration have installed-package checks.
+  `event_level` is binary-only; multiclass ties favor the first stored level.
+  Installed examples use the optional recommended `nnet` package.
+
 - Add binary `method = "cross"` to `calibrated_workflow()`: default five-fold
   local training, validated explicit/prepared partitions, matching retained
   workflows/calibrators, and native Cross predictions and fold diagnostics.

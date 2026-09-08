@@ -85,3 +85,27 @@ if (all(vapply(c("tune", "yardstick", "future", "rsample", "workflows"),
   unlink(payload)
 }
 }
+
+if (all(vapply(c("parsnip", "workflows", "rsample", "nnet"),
+               requireNamespace, logical(1), quietly = TRUE))) {
+  for (classification in c("ovo", "ovr")) for (k in 2:4) {
+    payload <- tempfile(fileext = ".rds")
+    run_process(c(
+      'loadNamespace("vennabers")',
+      paste0('classification <- ', deparse(classification)), paste0('k <- ', k),
+      'data <- data.frame(x = sin(1:120), truth = factor(rep(seq_len(k), length.out = 120)))',
+      # parsnip/nnet returns a malformed probability table for two classes.
+      # A binomial base model still exercises the explicit VA matrix contract.
+      'spec <- if (k == 2L) parsnip::logistic_reg(engine = "glm") else parsnip::multinom_reg(engine = "nnet")',
+      'base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |> workflows::add_model(spec)',
+      'fit <- generics::fit(vennabers::calibrated_workflow(base, "truth", classification = classification, seed = 32, loss = "brier", precision = 2), data)',
+      'new <- data[1:4, , drop = FALSE]',
+      'outputs <- function(fit, new) lapply(c("log", "brier"), function(loss) list(prob = predict(fit, new, type = "prob", loss = loss), class = predict(fit, new, type = "class", loss = loss), details = vennabers::venn_abers_details(fit, new, loss = loss)))',
+      paste0('saveRDS(list(fit = fit, new = new, outputs = outputs, expected = outputs(fit, new), empty = outputs(fit, new[0, ])), ', deparse(payload), ')')
+    ))
+    run_process(c('loadNamespace("vennabers")', 'loadNamespace("workflows")', 'loadNamespace("nnet")',
+      paste0('saved <- readRDS(', deparse(payload), ')'),
+      'stopifnot(identical(saved$expected, saved$outputs(saved$fit, saved$new)), identical(saved$empty, saved$outputs(saved$fit, saved$new[0, ])))'))
+    unlink(payload)
+  }
+}

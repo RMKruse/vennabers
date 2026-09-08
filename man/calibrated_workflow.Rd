@@ -2,10 +2,10 @@
 \alias{calibrated_workflow}
 \alias{venn_abers_details}
 \alias{predict._vennabers_fit}
-\title{Train a Binary Inductive or Cross Calibrated Workflow}
+\title{Train a Calibrated Classification Workflow}
 \description{Wrap an unfitted, fully configured classification workflow in a normal
 outer workflow. The outer XY blueprint transports selected raw columns. Complete base workflows learn only on their local training splits; held-out
-probabilities fit the existing binary Inductive or Cross Venn-Abers core.}
+probabilities fit the existing binary Inductive/Cross or multiclass Inductive Venn-Abers core.}
 \usage{
 calibrated_workflow(workflow, outcome, ..., predictors = NULL,
   method = "inductive", classification = "binary", event_level = "first",
@@ -20,16 +20,19 @@ venn_abers_details(object, new_data, ..., loss = NULL)
 recipe, formula, or variable selection. Prepped or partly trained recipes,
 unresolved tune placeholders, and additional postprocessors are rejected.}
 \item{outcome}{One original outcome column name. Fit requires a nonmissing factor
-with exactly two levels, both represented in the development data.}
+with exactly two levels for binary or at least two for OvO/OvR. All stored levels
+must be represented in the development data.}
 \item{...}{Must be empty. Unknown, irrelevant and partially matched names are errors.}
 \item{predictors}{Optional character vector of raw predictor names, excluding
 outcome. NULL selects all other supplied columns. Their stored order is canonical;
 unused selected columns still have to be supplied for prediction.}
 \item{method}{Exactly \code{"inductive"} (default) or \code{"cross"}.}
-\item{classification}{Only \code{"binary"} is currently supported. Multiclass,
-regression and tuning are not enabled by this constructor.}
+\item{classification}{Exactly \code{"binary"} (default), \code{"ovo"}, or
+\code{"ovr"}. OvO/OvR currently require Inductive and explicitly use the
+factor/matrix core, including with two classes. Regression and tuning are not enabled.}
 \item{event_level}{Exactly \code{"first"} or \code{"second"}, identifying the
-original factor level whose probability is calibrated.}
+original factor level whose probability is calibrated. Only for binary;
+explicitly supplying this option for OvO/OvR is an error.}
 \item{calibration_prop}{A number strictly between zero and one.
 \code{rsample::initial_split()} uses training proportion \code{1-calibration_prop}.
 Explicitly supplying this option requires Inductive.}
@@ -67,21 +70,38 @@ factor levels reach the inner workflow, whose recipe/engine handles them or erro
 \value{The constructor returns an unfitted ordinary workflow. After
 \code{generics::fit()}, native probability predictions are tibbles of double
 \code{.pred_<original class>} columns in original level order. Class predictions
-contain \code{.pred_class}, a factor retaining both levels; the event class wins
-at exactly 0.5. Empty predictions keep the schema without calling the inner engine.
+contain \code{.pred_class}, a factor retaining all levels. Binary favors its event
+at exactly 0.5; OvO/OvR select the first maximum in stored level order from the
+final probabilities, even with two classes. Empty predictions keep the schema without calling the inner engine.
 
 \code{venn_abers_details()} returns a list with \code{prediction} (the same native
 probability table) and \code{details}: integer \code{row}, character \code{fold}
 (\code{"Inductive1"} for Inductive; the supplied fold IDs for Cross), character \code{event_class}, and double
 \code{lower}, \code{upper}, \code{probability}. Cross details contain one row per
 new observation and fold; their probability is the fold point, while
-\code{prediction} contains the final aggregate.}
+\code{prediction} contains the final aggregate.
+OvO/OvR details additionally contain character \code{method} and either
+\code{class_1}/\code{class_2} (OvO) or \code{class} (OvR). Each row identifies
+one new observation and binary subproblem. \code{event_class} is the later class
+in an OvO pair or the considered OvR class. These binary point probabilities
+must still be coupled (OvO) or normalized (OvR) to reconstruct \code{prediction}.}
 \details{
 All learned preprocessing belongs in the base workflow; the outer Variables
 preprocessor only carries raw data. Training and calibration positions must form a
-complete nonempty disjoint partition. Singleton and one-class calibration sets are
-allowed. Trainability of the base engine is a separate requirement, and engine
+complete nonempty disjoint partition. Binary allows singleton and one-class calibration sets.
+OvO/OvR require every stored class in the holdout; missing classes fail before
+base learning without repairing the split. Trainability of the base engine is a separate requirement, and engine
 errors identify the training or probability-prediction stage.
+
+Multiclass uses one shared trained base workflow. Its probability columns must
+be exactly \code{.pred_} plus each original class name, unique and complete;
+column order is matched by name. Values must be finite in [0,1], with row sums
+within 1e-8 of one. The existing matrix core normalizes within this tolerance.
+OvO normalizes each pair and uses a neutral 0.5 score for zero-sum pairs before
+optional native fit rounding (so 0.5 becomes 0 at precision 0). OvR uses all
+calibration observations for each class against the rest. New probabilities
+remain unrounded. Coupling, normalization and Log/Brier regularization are the
+same as in the manual core; no separate pair models are trained.
 
 Input and class names must be unique, nonmissing and nonempty. Class \code{class}
 and names starting with \code{.pred_} are reserved. Outcome names \code{.pred},
@@ -97,6 +117,9 @@ then outcome), \code{class_levels}, \code{event_class}, \code{loss},
 \code{folds} (by fold ID, with integer \code{analysis}/\code{assessment} positions and
 \code{training_size}/\code{calibration_size}), \code{models} (full
 fitted base workflows named by the same IDs), \code{calibrator}, \code{versions}, and \code{rng_kind}.
+For OvO/OvR, the global \code{event_class} and effective \code{event_level} are
+NULL; events belong to subproblems in details. The calibrator stores the original
+classes and chosen multiclass method.
 For Cross, \code{calibrator} is a \code{cross_venn_abers} core with
 \code{folds} and a correspondingly named \code{calibrators} list.
 Inspect learned recipes with the public workflow extractors; predict with full
@@ -129,16 +152,19 @@ reconstruct the final probability using these mergers.
 Ordinary \code{tune::fit_resamples()} fits the complete predictor independently
 on every outer analysis set. The stored loss controls native predictions even
 when tune calls parsnip directly; there is no loss argument to fit_resamples and
-no implicit control modification. Match \code{event_level} in the constructor and
+no implicit control modification. For binary, match \code{event_level} in the constructor and
 \code{tune::control_resamples()}. Yardstick's binary Brier is the binary vector
-score. Its log-loss clipping affects scoring only, never stored predictions.
+score. For OvO/OvR, yardstick Brier is exactly half the manual matrix score,
+including the two-class matrix contract. Its log-loss clipping affects scoring
+only, never stored predictions.
 
 Use \code{save_pred = TRUE} and all public collectors, including
 \code{collect_notes()}, to check complete unsummarized resample, repeat,
 configuration and assessment-row identities and finite metrics. Inner failures,
 metric errors, NA removal or missing rows mean incomplete evaluation. All fits
 failing may make a collector itself error; a mean of surviving fits is insufficient.
-The installed \code{examples/calibrated-resampling.R} shows both methods with an
+The installed \code{examples/calibrated-resampling.R} shows binary Inductive/Cross
+and multiclass Inductive OvO/OvR with an
 executable completeness check. Five outer by five inner Cross folds require exactly
 25 base fits; no final fit runs automatically. Keeping extracted Cross states retains
 all 25 workflows and their recipes/calibrators, so memory scales with the number

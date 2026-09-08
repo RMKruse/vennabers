@@ -20,7 +20,13 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     if (outcome %in% predictors) stop("Outcome ", sQuote(outcome), " is also a predictor.", call. = FALSE)
   }
   .validate_choice(method, c("inductive", "cross"), "method")
-  .validate_choice(classification, "binary", "classification")
+  .validate_choice(classification, c("binary", "ovo", "ovr"), "classification")
+  if (classification != "binary" && method != "inductive") {
+    stop("Multiclass classification currently requires method = 'inductive'.", call. = FALSE)
+  }
+  if (classification != "binary" && !missing(event_level)) {
+    stop("`event_level` requires classification = 'binary'.", call. = FALSE)
+  }
   .validate_choice(event_level, c("first", "second"), "event_level")
   .validate_choice(loss, c("log", "brier"), "loss")
   if (method == "inductive" && !missing(v)) stop("`v` requires method = 'cross'.", call. = FALSE)
@@ -57,7 +63,7 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     }
   }
   .integration_packages()
-  .validate_base_workflow(workflow, outcome)
+  .validate_base_workflow(workflow, outcome, classification)
   .register_vennabers()
   requested <- list(predictors = predictors, method = method, classification = classification,
                     event_level = event_level, calibration_prop = calibration_prop, v = v,
@@ -72,15 +78,15 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                              outcome = outcome, parameters = list(requested = requested, explicit = explicit))
   selection <- if (is.null(predictors)) quote(everything()) else predictors
   carrier <- rlang::inject(workflows::add_variables(
-    workflows::workflow(), outcomes = .integration_select_outcome(!!outcome), predictors = !!selection,
+    workflows::workflow(), outcomes = .integration_select_outcome(!!outcome, !!classification), predictors = !!selection,
     blueprint = hardhat::default_xy_blueprint(intercept = FALSE, allow_novel_levels = TRUE)))
   workflows::add_model(carrier, spec)
 }
 
-.integration_select_outcome <- function(outcome) {
+.integration_select_outcome <- function(outcome, classification) {
   .integration_names(tidyselect::peek_vars(), "input column")
   data <- tidyselect::peek_data()
-  if (outcome %in% names(data)) .integration_class_levels(data[[outcome]], outcome)
+  if (outcome %in% names(data)) .integration_class_levels(data[[outcome]], outcome, classification)
   outcome
 }
 
@@ -98,7 +104,7 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                      ": names must be unique, nonmissing and nonempty; rename explicitly.", call. = FALSE)
 }
 
-.validate_base_workflow <- function(workflow, outcome) {
+.validate_base_workflow <- function(workflow, outcome, classification) {
   if (!inherits(workflow, "workflow")) stop("`workflow` must be an unfitted workflow.", call. = FALSE)
   fitted <- tryCatch(workflows::extract_fit_parsnip(workflow), error = function(e) NULL)
   if (!is.null(fitted)) stop("`workflow` is already fitted.", call. = FALSE)
@@ -106,7 +112,7 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   if (!is.null(post)) stop("Additional workflow postprocessors are not supported.", call. = FALSE)
   spec <- workflows::extract_spec_parsnip(workflow)
   if (!identical(spec$mode, "classification")) {
-    stop("The base workflow model mode must be classification (binary).", call. = FALSE)
+    stop("The base workflow model mode must be classification.", call. = FALSE)
   }
   if (is.null(spec$engine)) stop("Configure the base workflow model engine before calibration.", call. = FALSE)
   pre <- workflows::extract_preprocessor(workflow)
@@ -116,7 +122,7 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     }
     targets <- pre$var_info$variable[pre$var_info$role == "outcome"]
     if (!identical(targets, outcome)) stop("Base recipe outcome must be ", sQuote(outcome), ".", call. = FALSE)
-    if (outcome %in% names(pre$template)) .integration_class_levels(pre$template[[outcome]], outcome)
+    if (outcome %in% names(pre$template)) .integration_class_levels(pre$template[[outcome]], outcome, classification)
   } else if (inherits(pre, "formula")) {
     if (length(pre) != 3L || !identical(pre[[2L]], as.name(outcome))) {
       stop("Base formula outcome must be the raw column ", sQuote(outcome), ".", call. = FALSE)
@@ -126,9 +132,11 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   invisible(NULL)
 }
 
-.integration_class_levels <- function(y, outcome) {
-  if (!is.factor(y) || nlevels(y) != 2L || anyNA(y)) {
-    stop("Outcome ", sQuote(outcome), " must be a nonmissing factor with exactly two levels.", call. = FALSE)
+.integration_class_levels <- function(y, outcome, classification) {
+  binary <- classification == "binary"
+  if (!is.factor(y) || anyNA(y) || nlevels(y) < 2L || (binary && nlevels(y) != 2L)) {
+    stop("Outcome ", sQuote(outcome), " must be a nonmissing factor with ",
+         if (binary) "exactly two" else "at least two", " levels.", call. = FALSE)
   }
   classes <- levels(y)
   .integration_names(classes, "class")
@@ -141,12 +149,14 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
 # Public only as a parsnip engine entry point; use calibrated_workflow().
 fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   .integration_packages()
-  .validate_base_workflow(base_workflow, outcome)
+  settings <- parameters$requested
+  multiclass <- settings$classification != "binary"
+  .validate_base_workflow(base_workflow, outcome, settings$classification)
   .integration_names(names(x), "input column")
   if (is.data.frame(y) && ncol(y) == 1L) y <- y[[1L]]
-  classes <- .integration_class_levels(y, outcome)
-  if (any(tabulate(y, nbins = 2L) == 0L)) {
-    stop("Outcome ", sQuote(outcome), " must contain both classes in the development data.", call. = FALSE)
+  classes <- .integration_class_levels(y, outcome, settings$classification)
+  if (any(tabulate(y, nbins = length(classes)) == 0L)) {
+    stop("Outcome ", sQuote(outcome), " must contain all classes in the development data.", call. = FALSE)
   }
   raw <- as.data.frame(x)
   raw[[outcome]] <- y
@@ -155,8 +165,8 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
       !identical(names(tidyselect::eval_select(pre$outcomes, raw)), outcome)) {
     stop("Base workflow outcome must be ", sQuote(outcome), ".", call. = FALSE)
   }
-  settings <- parameters$requested
   effective <- settings
+  if (multiclass) effective$event_level <- NULL
   effective$predictors <- names(x)
   effective$strata <- if (is.null(settings$strata)) outcome else FALSE
   if (settings$method == "cross") effective$calibration_prop <- NULL else effective$v <- NULL
@@ -164,7 +174,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     effective$calibration_prop <- effective$v <- effective$strata <- NULL
   }
   parameters$effective <- effective
-  event <- classes[if (settings$event_level == "first") 1L else 2L]
+  event <- if (multiclass) NULL else classes[if (settings$event_level == "first") 1L else 2L]
   # One local RNG scope includes the resolver, split generation and model learning.
   if (!is.null(settings$seed)) withr::local_seed(settings$seed)
   rng_kind <- RNGkind()
@@ -187,6 +197,12 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
                               conditionMessage(e), call. = FALSE))
   folds <- if (settings$method == "cross") .cross_splits(split, raw) else
     list(Inductive1 = .inductive_split(split, raw))
+  if (multiclass) {
+    held <- folds$Inductive1$assessment
+    absent <- classes[tabulate(y[held], nbins = length(classes)) == 0L]
+    if (length(absent)) stop("Inductive1 calibration must contain every stored class; missing: ",
+                             paste(sQuote(absent), collapse = ", "), ".", call. = FALSE)
+  }
   models <- probabilities <- truths <- fold_ids <- vector("list", length(folds))
   names(models) <- names(folds)
   for (id in names(folds)) {
@@ -195,13 +211,16 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     models[[id]] <- tryCatch(generics::fit(base_workflow, raw[analysis, , drop = FALSE]),
       error = function(e) stop(id, " base workflow training: ", conditionMessage(e), call. = FALSE))
     k <- match(id, names(folds))
-    probabilities[[k]] <- .base_event_probability(models[[id]], raw[assessment, , drop = FALSE], classes, event, id)
-    truths[[k]] <- y[assessment] == event
+    probabilities[[k]] <- .base_probability(models[[id]], raw[assessment, , drop = FALSE], classes, event, id)
+    truths[[k]] <- if (multiclass) y[assessment] else y[assessment] == event
     fold_ids[[k]] <- rep(id, length(assessment))
     folds[[id]]$training_size <- length(analysis)
     folds[[id]]$calibration_size <- length(assessment)
   }
-  calibrator <- if (settings$method == "cross") {
+  calibrator <- if (multiclass) {
+    venn_abers(truths[[1L]], probabilities[[1L]], precision = settings$precision,
+               method = settings$classification)
+  } else if (settings$method == "cross") {
     core <- cross_venn_abers(unlist(truths), unlist(probabilities), unlist(fold_ids), precision = settings$precision)
     names(core$calibrators) <- core$folds
     core
@@ -216,7 +235,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
                  rng_kind = rng_kind), class = "vennabers_fit")
 }
 
-.base_event_probability <- function(model, data, classes, event, id = "Inductive1") {
+.base_probability <- function(model, data, classes, event, id = "Inductive1") {
   p <- tryCatch(stats::predict(model, data, type = "prob"),
                 error = function(e) stop(id, " base workflow probability prediction: ", conditionMessage(e), call. = FALSE))
   .integration_names(names(p), paste(id, "base probability column"))
@@ -228,14 +247,35 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
          paste(sQuote(classes), collapse = ", "), " in columns ",
          paste(sQuote(expected), collapse = ", "), ".", call. = FALSE)
   }
-  as.double(p[[paste0(".pred_", event)]])
+  if (!is.null(event)) return(as.double(p[[paste0(".pred_", event)]]))
+  p <- as.matrix(p[expected])
+  colnames(p) <- classes
+  # The matrix core normalizes once; repeating it can perturb tied scores.
+  p
 }
 
 .integration_prediction <- function(object, new_data) {
+  multiclass <- object$parameters$requested$classification != "binary"
   p <- lapply(names(object$models), function(id) {
-    if (nrow(new_data)) .base_event_probability(object$models[[id]], new_data, object$class_levels, object$event_class, id)
+    if (nrow(new_data)) .base_probability(object$models[[id]], new_data, object$class_levels, object$event_class, id)
+    else if (multiclass) matrix(numeric(), 0L, length(object$class_levels), dimnames = list(NULL, object$class_levels))
     else numeric()
   })
+  if (multiclass) {
+    result <- stats::predict(object$calibrator, p[[1L]], loss = object$loss, type = "details")
+    method <- object$parameters$requested$classification
+    details <- if (method == "ovo") result$pairs else result$classes
+    names(details)[names(details) == "non_event"] <- "class_1"
+    names(details)[names(details) == "event"] <- if (method == "ovo") "class_2" else "class"
+    details$fold <- rep("Inductive1", nrow(details))
+    details$method <- rep(method, nrow(details))
+    details$event_class <- if (method == "ovo") details$class_2 else details$class
+    identity <- if (method == "ovo") c("class_1", "class_2") else "class"
+    colnames(result$prediction) <- paste0(".pred_", object$class_levels)
+    return(list(prediction = tibble::as_tibble(result$prediction, .name_repair = "minimal"),
+                details = tibble::as_tibble(details[c("row", "fold", "method", "event_class", identity,
+                                                    "lower", "upper", "probability")])))
+  }
   if (object$parameters$requested$method == "cross") {
     p <- do.call(cbind, p)
     colnames(p) <- names(object$models)
@@ -261,7 +301,12 @@ predict_vennabers_prob <- function(object, new_data) {
 }
 
 predict_vennabers_class <- function(object, new_data) {
-  p <- .integration_prediction(object, new_data)$prediction[[paste0(".pred_", object$event_class)]]
+  probabilities <- .integration_prediction(object, new_data)$prediction
+  if (object$parameters$requested$classification != "binary") {
+    return(factor(object$class_levels[max.col(as.matrix(probabilities), ties.method = "first")],
+                  levels = object$class_levels))
+  }
+  p <- probabilities[[paste0(".pred_", object$event_class)]]
   factor(ifelse(p >= .5, object$event_class,
                 object$class_levels[object$class_levels != object$event_class]), levels = object$class_levels)
 }

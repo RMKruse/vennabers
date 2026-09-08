@@ -35,7 +35,7 @@ IVAP prediction still returns three double columns: `lower` and `upper` are
 the Venn-Abers interval endpoints; `probability` is the regularized event
 probability, using log loss by default. These endpoints are not confidence intervals.
 
-## Automatic binary workflow calibration
+## Automatic classification workflow calibration
 
 `calibrated_workflow(base, outcome = "truth", seed = 42)` wraps a configured,
 unfitted tidymodels workflow. Use `generics::fit()` on development data, then
@@ -72,7 +72,7 @@ Keep final assessment data separate. This local split cannot undo prior tuning o
 external transformations using calibration/assessment observations. The statistical
 setting assumes IID data and a model fixed independently of calibration data;
 improved scores on every test set are not guaranteed. This first automatic path
-supports binary Inductive and Cross calibration, direct explicit splits, and complete outer
+supports binary Inductive/Cross and multiclass Inductive calibration, direct explicit splits, and complete outer
 IID evaluation. See `?calibrated_workflow` for exact input and naming boundaries.
 
 
@@ -88,6 +88,23 @@ row names. Duplicate observations remain distinct positions. Arbitrary callbacks
 must obey this contract themselves; hidden closure state cannot be audited
 automatically. Never use call counters or outer assessment data in a resolver.
 
+Use `classification = "ovo"` or `"ovr"` with a multiclass base workflow for
+Inductive calibration. Both use one shared trained model and the existing
+factor/matrix core, including for two classes. The holdout must contain every
+stored class. Probability columns must exactly match `.pred_` plus the original
+class names; values must be finite in [0,1] and sum to one within 1e-8. The core
+normalizes within that tolerance. Distinct names such as `a b` and `a.b` remain
+distinct with a compatible engine; reserved `class` and `.pred_*` levels fail
+before learning. Class predictions favor the first maximal stored level.
+
+OvO normalizes each pair, uses 0.5 for zero-sum pairs, then optionally rounds
+calibration scores (including 0.5 to 0 at `precision = 0`). OvR calibrates every
+class against all remaining observations. New scores remain unrounded. Details
+add `method`, `event_class`, and `class_1`/`class_2` or `class`; their binary points
+reconstruct final probabilities through OvO coupling or OvR normalization.
+`event_level` is binary-only. Separate pair models and Cross multiclass training
+are not enabled by this change.
+
 The installed evaluation example uses ordinary repeated `fit_resamples()` and a
 prepared resolver, aligns constructor/control event levels, and retains every
 fitted engine via `extract`. It audits all unsummarized predictions and metrics
@@ -97,6 +114,12 @@ missing truths, finite probabilities and hand-computed scores:
 ```r
 source(system.file("examples", "calibrated-resampling.R", package = "vennabers"))
 ```
+
+It also runs OvO and OvR with an `nnet` multinomial model and locally learned
+normalization: automatic/explicit fit, probability/class prediction, details,
+and repeated outer evaluation. Yardstick's multiclass Brier is half the manual
+matrix score, including the two-class matrix path; Log/Brier prediction defaults
+and overrides retain the manual core's behavior.
 
 The same example shows Cross fit, predict and fold diagnostics, then five outer
 by five inner folds: 25 base fits, with no automatic final fit. Extracting all

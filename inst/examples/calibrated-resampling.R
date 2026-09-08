@@ -1,5 +1,5 @@
 # Run against an installed vennabers package. Helpers here are an executable
-# audit of this binary, fixed-configuration example, not an evaluation API.
+# audit of these fixed-configuration examples, not an evaluation API.
 check_outer_splits <- function(outer) {
   ids <- setdiff(names(outer), "splits")
   stopifnot(!anyDuplicated(outer[ids]))
@@ -13,7 +13,7 @@ check_outer_splits <- function(outer) {
   invisible(NULL)
 }
 
-check_evaluation <- function(result, outer, event_level = "first") {
+check_evaluation <- function(result, outer, event_level = "first", classification = "binary") {
   check_outer_splits(outer)
   # A collector can itself fail when all fits fail. That is an incomplete run.
   notes <- tune::collect_notes(result)
@@ -42,7 +42,8 @@ check_evaluation <- function(result, outer, event_level = "first") {
   }
   same_keys(predictions, expected)
   same_keys(metrics, expected_metrics)
-  stopifnot(all(is.finite(metrics$.estimate)), all(metrics$.estimator == "binary"))
+  estimator <- if (nlevels(outer$splits[[1L]]$data$truth) == 2L) "binary" else "multiclass"
+  stopifnot(all(is.finite(metrics$.estimate)), all(metrics$.estimator == estimator))
   for (i in seq_len(nrow(outer))) {
     matches <- function(table) Reduce(`&`, lapply(ids, function(id) table[[id]] == outer[[id]][i]))
     p <- predictions[matches(predictions), ]
@@ -57,6 +58,12 @@ check_evaluation <- function(result, outer, event_level = "first") {
     clipped <- pmin(pmax(probability, .Machine$double.eps), 1 - .Machine$double.eps)
     manual <- c(brier_class = mean(((truth == event) - probability)^2),
                 mn_log_loss = -mean(ifelse(truth == event, log(clipped), log1p(-clipped))))
+    if (classification != "binary") {
+      colnames(all_p) <- levels(truth)
+      true_p <- all_p[cbind(seq_along(truth), as.integer(truth))]
+      manual <- c(brier_class = vennabers::brier_score(truth, all_p) / 2,
+                  mn_log_loss = -mean(log(pmin(pmax(true_p, .Machine$double.eps), 1 - .Machine$double.eps))))
+    }
     m <- metrics[matches(metrics), ]
     stopifnot(all(abs(m$.estimate - manual[m$.metric]) <= 1e-10))
   }
@@ -122,4 +129,42 @@ if (all(vapply(c("vennabers", "tune", "yardstick", "rsample", "workflows"),
   # hidden full-data or final fit. Fitting a final Cross workflow costs five more.
   # For prepared inner Cross plans use local_calibration_splits() on a list of
   # vfold_cv(analysis(outer_split), v = 5) rsets, then pass that resolver as splits.
+}
+
+if (all(vapply(c("vennabers", "tune", "yardstick", "rsample", "workflows", "nnet"),
+               requireNamespace, logical(1), quietly = TRUE))) {
+  # One shared multinomial model supplies every OvO pair or OvR class score.
+  # Keep final test observations outside this development/evaluation example.
+  multiclass_data <- iris
+  names(multiclass_data)[5L] <- "truth"
+  multiclass_base <- workflows::workflow() |>
+    workflows::add_recipe(recipes::recipe(truth ~ ., multiclass_data) |>
+                            recipes::step_normalize(recipes::all_numeric_predictors())) |>
+    workflows::add_model(parsnip::multinom_reg(engine = "nnet"))
+  multiclass_outer <- withr::with_seed(201, rsample::vfold_cv(multiclass_data, v = 3, repeats = 2, strata = truth))
+  for (classification in c("ovo", "ovr")) {
+    model <- vennabers::calibrated_workflow(multiclass_base, "truth",
+      classification = classification, seed = 202, precision = 2, loss = "brier")
+    fitted <- generics::fit(model, multiclass_data)
+    new_data <- multiclass_data[1:3, 1:4]
+    probability <- predict(fitted, new_data, type = "prob")
+    predicted_class <- predict(fitted, new_data, type = "class")
+    details <- vennabers::venn_abers_details(fitted, new_data)
+    stopifnot(identical(probability, details$prediction), nrow(predicted_class) == 3L)
+    # details$details$probability contains binary subproblem points. OvO couples the
+    # pair points; OvR normalizes its class-against-rest points to sum to one.
+    state <- workflows::extract_fit_engine(fitted)
+    direct_plan <- rsample::make_splits(state$folds$Inductive1[c("analysis", "assessment")], multiclass_data)
+    explicit <- generics::fit(vennabers::calibrated_workflow(multiclass_base, "truth",
+      classification = classification, splits = direct_plan, seed = 202, precision = 2, loss = "brier"), multiclass_data)
+    stopifnot(identical(probability, predict(explicit, new_data, type = "prob")))
+    result <- withr::with_seed(203, tune::fit_resamples(model, multiclass_outer,
+      metrics = yardstick::metric_set(yardstick::brier_class, yardstick::mn_log_loss),
+      control = tune::control_resamples(save_pred = TRUE, extract = workflows::extract_fit_engine,
+        parallel_over = "resamples", pkgs = c("vennabers", "nnet"))))
+    checked <- check_evaluation(result, multiclass_outer, classification = classification)
+    # The audit checks every repeat/resample/configuration/row and both metrics.
+    # Yardstick Brier is half the manual matrix score, even with two classes.
+    stopifnot(nrow(tune::collect_extracts(result)) == nrow(multiclass_outer))
+  }
 }
