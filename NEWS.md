@@ -1,4 +1,13 @@
-# vennabers 0.6.0 (development)
+# vennabers 0.6.0
+
+- Prepare a local v0.6 candidate and cumulative benchmarks, including separate
+  schema/encoding/decoding costs and frozen calibration on new data. Actual
+  checks and open platform/performance gates are in `tools/acceptance-v06.md`.
+  GitHub Actions remains disabled by user decision; no full release is claimed.
+- Migration: R >= 4.5.0 and manual APIs remain unchanged. Encode explicitly
+  before new training and retain that schema for frozen adoption and decoding.
+  Already learned postprocessing is preserved; newly learning postprocessing,
+  pair training, full-model transfer and tuning remain later-release work.
 
 - Document and verify ordered Inductive holdouts and mixed/non-shuffled ordinary
   and stratified Cross partitions through existing explicit local plans. Add

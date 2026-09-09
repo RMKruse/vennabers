@@ -10,3 +10,5 @@
 ^tools/evidence-v05$
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^tools/acceptance-v06\.md$
+^tools/evidence-v06$

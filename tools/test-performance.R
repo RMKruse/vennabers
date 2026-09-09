@@ -1,9 +1,10 @@
 # Validate a completed benchmark/smoke bundle: Rscript tools/test-performance.R OUTPUT
 local({
   output <- commandArgs(TRUE)
-  v05 <- "--v05" %in% output
+  v06 <- "--v06" %in% output
+  v05 <- "--v05" %in% output || v06
   v04 <- "--v04" %in% output || v05
-  output <- output[!output %in% c("--v04", "--v05")]
+  output <- output[!output %in% c("--v04", "--v05", "--v06")]
   stopifnot(length(output) == 1L)
   read <- function(name) read.csv(file.path(output, name))
   plan <- read("plan.csv")
@@ -13,6 +14,10 @@ local({
   stopifnot(nrow(plan) > 0L, !anyNA(plan$case), all(nzchar(plan$case)),
             !anyDuplicated(plan$case), is.logical(plan$previous_supported),
             !anyNA(plan$previous_supported))
+  new_cases <- as.vector(outer(c("binary", "ovo", "ovr", "regression"),
+    c("encoded_inductive", "encoded_cross", "ordered", "encoded_ordered", "frozen", "frozen_encoded"),
+    function(x, y) paste("workflow", x, y, sep = "_")))
+  has_v06 <- any(plan$case %in% new_cases)
   if (v04) {
     classification <- c("binary_inductive", "binary_cross", "binary_cross_brier_p2",
       "3_cross_ovo_brier_p2", as.vector(outer(c("3", "10"),
@@ -21,8 +26,8 @@ local({
                     "regression_cross_m1", "regression_cross_epsilon01")
     integration <- as.vector(outer(c("binary", "ovo", "ovr", "regression"),
                                   c("inductive", "cross"), function(x, y) paste("workflow", x, y, sep = "_")))
-    stopifnot(setequal(plan$case, c(classification, regression, if (v05) integration)),
-              identical(plan$previous_supported, plan$case %in% c(classification, if (v05) regression)))
+    stopifnot(setequal(plan$case, c(classification, regression, if (v05) integration, if (v06) new_cases)),
+              identical(plan$previous_supported, plan$case %in% c(classification, if (v05) regression, if (v06) integration)))
   }
   pairs <- rbind(data.frame(case = plan$case, release = "current"),
                  data.frame(case = plan$case[plan$previous_supported],
@@ -44,8 +49,10 @@ local({
   comparison <- align(comparison, plan, "case", "comparison")
   metrics <- c("fit_seconds", "predict_seconds", "rds_bytes", "process_peak_bytes")
   if (v05 || "outer_seconds" %in% names(runs)) metrics <- c(metrics, "outer_seconds")
+  metrics <- c(metrics, intersect(c("schema_seconds", "encode_seconds", "decode_seconds"), names(runs)))
+  if (v06) stopifnot(all(c("schema_seconds", "encode_seconds", "decode_seconds") %in% metrics))
   stopifnot(all(vapply(runs[metrics], function(x) is.numeric(x) && all(is.finite(x)), FALSE)),
-            all(runs$fit_seconds >= 0), all(runs$predict_seconds >= 0),
+            all(vapply(runs[setdiff(metrics, c("rds_bytes", "process_peak_bytes"))], function(x) all(x >= 0), FALSE)),
             all(runs$rds_bytes > 0), all(runs$process_peak_bytes > 0))
   equal_values <- function(actual, expected, label) {
     # read.csv infers a logical column when every entry is NA.
@@ -108,16 +115,58 @@ local({
     }
     if (isTRUE(input$integration)) {
       loadNamespace("rsample") # Register rsplit's as.integer() method before inspecting plans.
-      stopifnot(v05 || grepl("^workflow_", id), nrow(input$data) == 2000L,
-        nrow(input$newdata) == 500L, ncol(input$newdata) == 10L,
-        identical(names(input$data), c(paste0("x", 1:10), "truth")),
-        identical(names(input$newdata), paste0("x", 1:10)),
-        identical(input$data$truth, input$truth), input$seed == 3504L,
-        identical(id, paste("workflow", input$method, if (input$cross) "cross" else "inductive", sep = "_")),
+      encoded <- !is.null(input$schema)
+      frozen <- isTRUE(input$frozen)
+      columns <- if (encoded) unname(input$schema$columns) else c(paste0("x", 1:10), "truth")
+      stopifnot(nrow(input$data) == 2000L, nrow(input$newdata) == 500L,
+        ncol(input$newdata) == 10L, identical(names(input$data), columns),
+        identical(names(input$newdata), columns[1:10]),
+        identical(input$data[[columns[11L]]], input$truth), input$seed == 3504L,
+        identical(id, paste("workflow", input$method,
+          if (!is.null(input$variant)) input$variant else if (input$cross) "cross" else "inductive", sep = "_")),
         all(vapply(input$data[1:10], function(x) is.double(x) && all(is.finite(x)), FALSE)),
-        all(vapply(input$newdata, function(x) is.double(x) && all(is.finite(x)), FALSE)),
-        nrow(input$outer) == 3L, length(input$inner) == 3L,
-        !row$previous_supported, all(runs$outer_seconds[runs$case == id] > 0))
+        all(vapply(input$newdata, function(x) is.double(x) && all(is.finite(x)), FALSE)))
+      if (!is.null(input$variant)) stopifnot(!row$previous_supported,
+        encoded == grepl("encoded", input$variant), frozen == grepl("frozen", input$variant),
+        input$generator_seed == 20260910L)
+      if (encoded) {
+        stopifnot(identical(input$schema$outcome, "truth"),
+          identical(input$schema$original_columns, c(paste0("x", 1:10), "truth")),
+          identical(input$schema$encoded_outcome, columns[11L]),
+          !anyDuplicated(columns), !anyDuplicated(input$schema$classes))
+        for (j in 1:10) stopifnot(identical(input$data[[j]], input$original_data[[j]]),
+          identical(input$newdata[[j]], input$original_newdata[[j]]))
+        if (!frozen) stopifnot(identical(input$schema_data, input$original_data))
+        expected <- input$original_data$truth
+        if (is.factor(expected)) expected <- factor(unname(input$schema$classes[as.character(expected)]),
+          levels = unname(input$schema$classes), ordered = input$schema$ordered)
+        stopifnot(identical(expected, input$truth))
+      }
+      if (frozen) {
+        stopifnot(nrow(input$training) == 1000L, identical(names(input$training), columns),
+          input$training_seed == 20260911L, !input$cross,
+          is.null(input$split), is.null(input$outer), is.null(input$inner),
+          all(runs$outer_seconds[runs$case == id] == 0))
+        # Independent seed replay proves original training is a separate draw.
+        set.seed(20260911)
+        training_x <- matrix(rnorm(1000L * 10L), 1000L, 10L)
+        training_y <- list(binary = factor(ifelse(runif(1000L) < plogis(training_x[, 1L]), "yes", "no")),
+          ovo = factor(sample(c("a", "b", "c"), 1000L, replace = TRUE)),
+          regression = 2 * training_x[, 1L] - training_x[, 2L] + rnorm(1000L))
+        training_y$ovr <- training_y$ovo
+        expected <- training_y[[input$method]]
+        for (j in 1:10) {
+          stopifnot(identical(input$training[[j]], training_x[, j]))
+          if (encoded) stopifnot(identical(input$schema_data[[j]], training_x[, j]))
+        }
+        if (encoded) {
+          stopifnot(identical(input$schema_data$truth, expected))
+          if (is.factor(expected)) expected <- factor(unname(input$schema$classes[as.character(expected)]),
+            levels = unname(input$schema$classes), ordered = input$schema$ordered)
+        }
+        stopifnot(identical(input$training[[columns[11L]]], expected))
+      } else stopifnot(nrow(input$outer) == 3L, length(input$inner) == 3L,
+                      all(runs$outer_seconds[runs$case == id] > 0))
       spec <- workflows::extract_spec_parsnip(input$base)
       recipe <- workflows::extract_recipe(input$base, estimated = FALSE)
       stopifnot(length(recipe$steps) == 1L, inherits(recipe$steps[[1L]], "step_normalize"),
@@ -144,10 +193,20 @@ local({
       }
       check_local <- function(plan, data) check_partition(if (input$cross) plan$splits else list(plan), data,
                                                           if (input$cross) 5L else 1L)
-      check_local(input$split, input$data)
-      check_partition(input$outer$splits, input$data, 3L)
-      for (i in 1:3) check_local(input$inner[[i]], rsample::analysis(input$outer$splits[[i]]))
-      if (input$cross) for (i in 1:5) stopifnot(all(input$fold[as.integer(input$split$splits[[i]], data = "assessment")] == input$split$id[i]))
+      if (!frozen) {
+        check_local(input$split, input$data)
+        check_partition(input$outer$splits, input$data, 3L)
+        for (i in 1:3) check_local(input$inner[[i]], rsample::analysis(input$outer$splits[[i]]))
+        if (input$cross) for (i in 1:5) stopifnot(all(input$fold[as.integer(input$split$splits[[i]], data = "assessment")] == input$split$id[i]))
+        if (!is.null(input$variant) && grepl("ordered", input$variant)) {
+          for (split in c(list(input$split), input$inner)) {
+            n <- nrow(split$data)
+            stopifnot(identical(as.integer(split, data = "analysis"), seq_len(floor(.8 * n))),
+              identical(as.integer(split, data = "assessment"), seq.int(floor(.8 * n) + 1L, n)))
+          }
+        }
+      }
+
     }
     if (input$cross && is.factor(input$truth)) stopifnot(all(table(input$truth, input$fold) > 0L))
     if (v04 && id %in% regression) {
@@ -169,7 +228,7 @@ local({
                 all(m >= 1 & m <= floor((k - 1) / 2)))
     }
   }
-  if (v05) {
+  if (v05 || has_v06) {
     for (method in c("inductive", "cross")) {
       ovo <- readRDS(file.path(output, paste0("workflow_ovo_", method, "-input.rds")))
       ovr <- readRDS(file.path(output, paste0("workflow_ovr_", method, "-input.rds")))

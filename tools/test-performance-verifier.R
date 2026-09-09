@@ -23,6 +23,8 @@ local({
       stop("Unexpected verifier result: ", label)
     }
   }
+  v06 <- any(grepl("_frozen$", original$plan$case))
+  integration_flag <- if (v06) "--v06" else "--v05"
   check(original, TRUE, "original bundle")
   # Plan configuration must describe the saved input, including unused options.
   metadata <- list(calibration = 1L, prediction = 1L, classes = 999L, folds = 999L,
@@ -126,7 +128,7 @@ local({
     check(bad, FALSE, paste("unsupported comparison", column))
   }
   if (any(original$plan$method == "regression")) {
-    version_flag <- if (any(grepl("^workflow_", original$plan$case))) "--v05" else "--v04"
+    version_flag <- if (any(grepl("^workflow_", original$plan$case))) integration_flag else "--v04"
     check(original, TRUE, "complete v0.4 coverage", version_flag)
     for (column in c("method", "m", "epsilon")) {
       bad <- original
@@ -167,10 +169,30 @@ local({
       saveRDS(broken, path, version = 3)
       bad <- original
       bad$plan$input_md5[bad$plan$case == id] <- unname(tools::md5sum(path))
-      check(bad, FALSE, paste("invalid integration", fault), "--v05")
+      check(bad, FALSE, paste("invalid integration", fault), integration_flag)
     }
     saveRDS(input, path, version = 3)
-    check(original, TRUE, "restored workflow inputs", "--v05")
+    check(original, TRUE, "restored workflow inputs", integration_flag)
+  }
+  if (v06) {
+    for (id in c("workflow_binary_frozen_encoded", "workflow_regression_encoded_ordered")) {
+      path <- file.path(work, paste0(id, "-input.rds"))
+      input <- readRDS(path)
+      faults <- if (isTRUE(input$frozen)) c("training", "schema", "encoding") else c("order", "encoding")
+      for (fault in faults) {
+        broken <- input
+        if (fault == "training") broken$training <- broken$data[1:1000, ]
+        if (fault == "schema") broken$schema$columns[1L] <- "wrong"
+        if (fault == "encoding") broken$original_data$x1[1L] <- Inf
+        if (fault == "order") broken$split$in_id <- rev(broken$split$in_id)
+        saveRDS(broken, path, version = 3)
+        bad <- original
+        bad$plan$input_md5[bad$plan$case == id] <- unname(tools::md5sum(path))
+        check(bad, FALSE, paste("invalid v0.6", fault), "--v06")
+      }
+      saveRDS(input, path, version = 3)
+      check(original, TRUE, "restored v0.6 input", "--v06")
+    }
   }
   cat("Benchmark verifier regression checks passed.\n")
 })
