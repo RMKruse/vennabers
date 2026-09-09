@@ -210,7 +210,7 @@ couple or normalize. Never average completed multiclass fold matrices.
 `event_level` is binary-only. This shared R plan does not establish parity with
 Python's separate pair-model training. `model_training = "shared"` is the
 multiclass default. For separate binary models, use `model_training = "pairwise"`
-with `classification = "ovo"`, either calibration method, and matching models:
+with `classification = "ovo"` and either calibration method:
 
 ```r
 pair_data <- data.frame(x = sin(1:120),
@@ -238,12 +238,21 @@ pairs are unrelated. Every local row is assessed once, with complementary traini
 Automatic partitions use `v` without reduction. For K classes, Inductive costs
 K*(K-1)/2 base fits; Cross costs the sum of pair fold counts (15 for three classes
 with five folds). Each nonempty prediction calls every retained model once.
-Full pair training and tuning are not enabled by this option.
+Set `prediction_model = "full"` to add one complete workflow per pair on its entire
+local two-class domain, including calibration rows. Inductive then costs 2P fits;
+Cross costs the sum of pair fold counts plus P (18 for three classes and five folds).
+Only P full workflows remain and each nonempty predict calls each once. Unchanged
+held-out calibrators receive their pair's full-model probability; Cross aggregates
+within pairs before coupling. Details identify the source as `pair_N/Full1`, separately
+from the pair/fold calibrator. Matching-model guarantees do not automatically carry
+over to this transfer, and improved quality is not promised. Settings remain fixed;
+automatic local selection follows in v0.8.
 Explicit training options remain invalid for binary and regression workflows.
 See [the installed pairwise example](inst/examples/pairwise-inductive.R) for
 binary reference workflows, local plans, coupling, decoding and outer evaluation.
 The [Cross pair example](inst/examples/pairwise-cross.R) shows explicit unequal
 partitions, binary reconstruction, native/decoded details and outer fit costs.
+Both examples compare matching and full-model transfer on held-out data.
 
 The installed evaluation example uses ordinary repeated `fit_resamples()` and a
 prepared resolver, aligns constructor/control event levels, and retains every
@@ -780,7 +789,7 @@ extension, distinct from Python's trained pairwise model/fold plans.
 The package does not support package-managed predictive-model fitting, fold
 creation, learned preprocessing, tuning or resampling; repeated or overlapping
 partitions; one-fold public cross calibration;
-full pairwise model training; observation weights; alternate event selection; automatic
+observation weights; alternate event selection; automatic
 coercion or missing-value handling; fold-size weighting, pooling or averaging
 log-loss fold point predictions; public aggregate classification cross bounds; formula/data-frame
 cross interfaces; tidymodels/yardstick integrations; or new metrics, smoothing,

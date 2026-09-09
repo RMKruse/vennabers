@@ -54,16 +54,17 @@ outcome. NULL selects all other supplied columns. Their stored order is canonica
 unused selected columns still have to be supplied for prediction.}
 \item{method}{Exactly \code{"inductive"} (default) or \code{"cross"}.}
 \item{prediction_model}{Exactly \code{"matched"} (default) or \code{"full"}.
-Available for binary/shared OvO/OvR classification and regression.
+Available for binary, shared OvO/OvR, pairwise OvO classification and regression.
 This is a fixed fit option; predict cannot change it.
 Matched uses each calibration source model for new observations. Full applies
 the unchanged held-out calibrators to predictions from one additional workflow
-trained on the entire permitted local fit domain, including calibration rows.}
+trained on the entire permitted local fit domain, including calibration rows.
+For pairwise training there is one such full workflow per local class pair.}
 \item{model_training}{Exactly \code{"shared"} (default) or \code{"pairwise"}.
 Explicit values are rejected for binary and regression workflows. A shared model
 produces one complete class matrix; OvO splits calibration into pairs without
 training pair models. Pairwise requires \code{classification="ovo"},
-\code{prediction_model="matched"}, and a workflow
+and a workflow
 that can train on a two-level factor. Each pair has its own models, recipes and
 holdout or Cross partition. The later global level is its event; no extra shared/OvR model is fitted.}
 \item{classification}{Exactly \code{"binary"} (default), \code{"ovo"}, or
@@ -328,7 +329,7 @@ are descriptive. Improved scores on every data set are not
 promised. The engine cannot validate an outer partition it never receives.
 Validate outer analysis/assessment disjointness before calling fit_resamples;
 assessment sets from different outer resamples may overlap.}
-\section{Pairwise matching-model training}{
+\section{Pairwise model training}{
 Global factor levels fix the class order before decomposition. The stored
 \code{pairs} table maps stable \code{pair_id} values to \code{class_1} and
 \code{class_2}; the latter is always the event. Each complete binary workflow
@@ -347,14 +348,15 @@ adapted to the two-level local domain, retaining steps, roles and blueprint opti
 \code{calibrator}, and \code{calibration}. Folds, models and calibration records
 are named by local fold ID: \code{Inductive1} or the supplied Cross IDs.
 The Cross calibrator retains its ordered, named binary fold calibrators.
-Stored model/calibrator identities bind each Cross source to its pair, classes,
+Stored model/calibrator identities bind each source to its pair, classes,
 fold and local positions; prediction rejects mismatched assignments.
 These replace the shared model/fold/calibrator fields. Calibration records retain
 local row positions, binary truths and unrounded probabilities. Details add
 \code{pair_id}, \code{model_training="pairwise"},
-\code{prediction_model="matched"}, and \code{model_source} equal to the pair ID.
+\code{prediction_model}, and \code{model_source} equal to the pair ID in matched mode.
 The pair ID together with \code{fold} identifies the source workflow
-and calibrator. Decoding changes class identities while preserving pair/fold/source
+and calibrator in matched mode. Full mode instead names each new model source
+\code{pair_N/Full1}, separately from the unchanged pair/fold calibrator. Decoding changes class identities while preserving pair/fold/source
 IDs. Zero-row outputs retain all columns without calling any base model.
 
 All pair plans and data bindings are validated before the first base fit.
@@ -381,11 +383,23 @@ outer analysis pair; development-wide plans cannot be replayed on different data
 For K classes, P=K*(K-1)/2 pairs cost P base fits for Inductive and the sum of
 local fold counts for Cross (three classes with five folds cost 15 fits).
 Each nonempty prediction call uses each retained model exactly once. Recipes, calibrators and models remain stored; prediction never learns.
+With \code{prediction_model="full"}, all source workflows and calibrators are
+built first, then one extra full workflow learns its recipe/model on each complete
+local two-class domain. This order preserves source RNG draws and held-out values.
+After every full workflow succeeds, \code{models} retains only \code{Full1} per
+pair; all calibrators, held-out records and identities remain. No in-sample
+recalibration or OOF pooling occurs. Full Inductive costs 2P fits; full Cross costs
+the sum of local fold counts plus P (18 for three classes and five folds).
+Each nonempty prediction uses each pair full model once and shares its named event
+probability across that pair's calibrators before binary aggregation and global
+coupling. Outer assessment/test rows never enter these fits.
 Any failed component fails the whole fit. See installed
 \code{examples/pairwise-inductive.R} for separate binary references, explicit
 pair plans, independent coupling, decoding and complete outer evaluation.
 The installed \code{examples/pairwise-cross.R} adds explicit unequal Cross
 partitions, reconstruction, native/decoded diagnostics and outer fit costs.
+Both examples compare matched/full predictions, costs and held-out scores;
+matching-model guarantees do not automatically transfer and better quality is not promised.
 }
 \section{Full-model transfer}{For \code{prediction_model="full"}, the split isolates
 calibration observations from source learning only. The extra full model includes

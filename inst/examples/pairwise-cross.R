@@ -94,4 +94,31 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
   # Outer assessment outcomes enter only evaluation, never the local pair plans.
   # One-sided calibration folds are valid when their complements train and return
   # valid two-class probabilities. Every row is assessed once within each pair.
+  # Full transfer keeps the held-out calibrators but fits one extra workflow
+  # on each complete local pair, including its calibration rows.
+  full_model <- calibrated_workflow(base, schema$encoded_outcome, schema = schema,
+    model_training = "pairwise", method = "cross", prediction_model = "full",
+    splits = pair_plan, seed = 42)
+  full_fit <- generics::fit(full_model, development)
+  full_state <- workflows::extract_fit_engine(full_fit)
+  for (id in names(state$pair_models)) stopifnot(
+    identical(state$pair_models[[id]]$calibration, full_state$pair_models[[id]]$calibration),
+    identical(state$pair_models[[id]]$calibrator, full_state$pair_models[[id]]$calibrator),
+    identical(names(full_state$pair_models[[id]]$models), "Full1"))
+  full_native <- venn_abers_details(full_fit, assessment)
+  full_decoded <- venn_abers_decode(full_native, schema)
+  print(head(full_decoded$details))
+  for (mode in c("matched", "full")) {
+    probability <- if (mode == "full") full_decoded$probability else decoded$probability
+    truth <- venn_abers_decode(assessment[schema$encoded_outcome], schema)$truth
+    cat(mode, "Brier:", brier_score(truth, probability),
+        "log loss:", log_loss(truth, probability), "\n")
+  }
+  cat("Full transfer: 15 base fits, 3 retained models and 3 predictions per nonempty batch.\n")
+  # Each pair source is named pair_N/Full1; pair_id + fold identifies its
+  # calibrator. Source workflows are discarded after all full fits succeed.
+  # No in-sample recalibration or pooling occurs. Outer assessment stays excluded.
+  # Matching-model guarantees do not automatically transfer to the new model;
+  # neither coverage nor improved quality is promised. Settings are fixed:
+  # automatic local selection is deferred to v0.8.
 }

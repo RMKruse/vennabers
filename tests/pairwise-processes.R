@@ -3,55 +3,57 @@ packages <- c("workflows", "parsnip", "recipes", "rsample")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) for (example_name in c("pairwise-inductive.R", "pairwise-cross.R")) local({
   example <- new.env()
   sys.source(system.file("examples", example_name, package = "vennabers"), example)
-  fit <- example$fit
-  schema <- example$schema
-  new <- example$assessment[setdiff(names(example$assessment), schema$encoded_outcome)]
-  snapshot <- function(fit, new, schema) lapply(c("log", "brier"), function(loss) {
-    lapply(c(0L, 1L, 7L), function(n) {
-      x <- new[seq_len(n), , drop = FALSE]
-      native <- list(prob = predict(fit, x, type = "prob", loss = loss),
-        class = predict(fit, x, type = "class", loss = loss), details = venn_abers_details(fit, x, loss = loss))
-      list(native = native, decoded = lapply(native, venn_abers_decode, schema = schema))
+  for (mode in c("matched", "full")) {
+    fit <- if (mode == "full") example$full_fit else example$fit
+    schema <- example$schema
+    new <- example$assessment[setdiff(names(example$assessment), schema$encoded_outcome)]
+    snapshot <- function(fit, new, schema) lapply(c("log", "brier"), function(loss) {
+      lapply(c(0L, 1L, 7L), function(n) {
+        x <- new[seq_len(n), , drop = FALSE]
+        native <- list(prob = predict(fit, x, type = "prob", loss = loss),
+          class = predict(fit, x, type = "class", loss = loss), details = venn_abers_details(fit, x, loss = loss))
+        list(native = native, decoded = lapply(native, venn_abers_decode, schema = schema))
+      })
     })
-  })
-  native <- venn_abers_details(fit, new)
-  decoded <- venn_abers_decode(native, schema)
-  stopifnot(identical(colnames(decoded$probability), schema$class_levels),
-    all(decoded$details$model_training == "pairwise"), all(decoded$details$prediction_model == "matched"),
-    identical(decoded$details$model_source, native$details$model_source),
-    identical(decoded$details$pair_id, native$details$pair_id),
-    identical(decoded$details$fold, native$details$fold),
-    all(decoded$details$event_class == decoded$details$class_2),
-    all(decoded$details$event_class %in% schema$class_levels),
-    identical(attr(native, "vennabers_schema"), schema))
-  state <- workflows::extract_fit_engine(fit)
-  stopifnot(identical(state$schema, schema))
-  for (component in state$pair_models) for (model in component$models) {
-    mold <- workflows::extract_mold(model)
-    stopifnot(nlevels(mold$outcomes[[1L]]) == 2L,
-      identical(levels(mold$outcomes[[1L]]), component$class_levels))
+    native <- venn_abers_details(fit, new)
+    decoded <- venn_abers_decode(native, schema)
+    stopifnot(identical(colnames(decoded$probability), schema$class_levels),
+      all(decoded$details$model_training == "pairwise"), all(decoded$details$prediction_model == mode),
+      identical(decoded$details$model_source, native$details$model_source),
+      identical(decoded$details$pair_id, native$details$pair_id),
+      identical(decoded$details$fold, native$details$fold),
+      all(decoded$details$event_class == decoded$details$class_2),
+      all(decoded$details$event_class %in% schema$class_levels),
+      identical(attr(native, "vennabers_schema"), schema))
+    state <- workflows::extract_fit_engine(fit)
+    stopifnot(identical(state$schema, schema))
+    for (component in state$pair_models) for (model in component$models) {
+      mold <- workflows::extract_mold(model)
+      stopifnot(nlevels(mold$outcomes[[1L]]) == 2L,
+        identical(levels(mold$outcomes[[1L]]), component$class_levels))
+    }
+    error <- function(expr) stopifnot(inherits(tryCatch(force(expr), error = identity), "error"))
+    wrong <- new
+    attr(wrong, "vennabers_schema") <- venn_abers_schema(iris, "Species", classification = "ovo")
+    error(predict(fit, wrong, type = "prob"))
+    error(venn_abers_details(fit, wrong))
+    error(venn_abers_decode(native, attr(wrong, "vennabers_schema")))
+    saved <- tempfile(fileext = ".rds")
+    script <- tempfile(fileext = ".R")
+    log <- tempfile(fileext = ".log")
+    on.exit(unlink(c(saved, script, log)), add = TRUE)
+    saveRDS(list(fit = fit, schema = schema, new = new, snapshot = snapshot,
+      expected = snapshot(fit, new, schema)), saved)
+    writeLines(c(
+      paste0('.libPaths(', paste(deparse(.libPaths()), collapse = ''), ')'),
+      'library(vennabers)',
+      paste0('s <- readRDS(', deparse(saved), ')'),
+      'trace("fit.workflow", where = asNamespace("workflows"), tracer = quote(stop("Unexpected model fit")), print = FALSE)',
+      'trace("prep.recipe", where = asNamespace("recipes"), tracer = quote(stop("Unexpected preprocessing")), print = FALSE)',
+      'trace("venn_abers", where = asNamespace("vennabers"), tracer = quote(stop("Unexpected calibrator fit")), print = FALSE)',
+      'stopifnot(identical(s$expected, s$snapshot(s$fit, s$new, s$schema)))'
+    ), script)
+    status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
+    if (status != 0L) stop(paste(readLines(log), collapse = "\n"))
   }
-  error <- function(expr) stopifnot(inherits(tryCatch(force(expr), error = identity), "error"))
-  wrong <- new
-  attr(wrong, "vennabers_schema") <- venn_abers_schema(iris, "Species", classification = "ovo")
-  error(predict(fit, wrong, type = "prob"))
-  error(venn_abers_details(fit, wrong))
-  error(venn_abers_decode(native, attr(wrong, "vennabers_schema")))
-  saved <- tempfile(fileext = ".rds")
-  script <- tempfile(fileext = ".R")
-  log <- tempfile(fileext = ".log")
-  on.exit(unlink(c(saved, script, log)), add = TRUE)
-  saveRDS(list(fit = fit, schema = schema, new = new, snapshot = snapshot,
-    expected = snapshot(fit, new, schema)), saved)
-  writeLines(c(
-    paste0('.libPaths(', paste(deparse(.libPaths()), collapse = ''), ')'),
-    'library(vennabers)',
-    paste0('s <- readRDS(', deparse(saved), ')'),
-    'trace("fit.workflow", where = asNamespace("workflows"), tracer = quote(stop("Unexpected model fit")), print = FALSE)',
-    'trace("prep.recipe", where = asNamespace("recipes"), tracer = quote(stop("Unexpected preprocessing")), print = FALSE)',
-    'trace("venn_abers", where = asNamespace("vennabers"), tracer = quote(stop("Unexpected calibrator fit")), print = FALSE)',
-    'stopifnot(identical(s$expected, s$snapshot(s$fit, s$new, s$schema)))'
-  ), script)
-  status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
-  if (status != 0L) stop(paste(readLines(log), collapse = "\n"))
 })
