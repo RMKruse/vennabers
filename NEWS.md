@@ -1,3 +1,47 @@
+# vennabers 0.6.0
+
+- Prepare a local v0.6 candidate and cumulative benchmarks, including separate
+  schema/encoding/decoding costs and frozen calibration on new data. Actual
+  checks and open platform/performance gates are in `tools/acceptance-v06.md`.
+  GitHub Actions remains disabled by user decision; no full release is claimed.
+- Migration: R >= 4.5.0 and manual APIs remain unchanged. Encode explicitly
+  before new training and retain that schema for frozen adoption and decoding.
+  Already learned postprocessing is preserved; newly learning postprocessing,
+  pair training, full-model transfer and tuning remain later-release work.
+
+- Document and verify ordered Inductive holdouts and mixed/non-shuffled ordinary
+  and stratified Cross partitions through existing explicit local plans. Add
+  installed paper-oriented examples for all eight training paths, with explicit
+  rounding, data roles, exact training complements and statistical limits.
+
+- Preserve the original training schema in `calibrate_workflow()` for binary,
+  shared OvO/OvR and IVAR. Check learned names, mode, class order and retained
+  bindings; preserve encoded native outputs and decoded identities/diagnostics.
+  Add final-postprocessor parity, no-learning and fresh-process RDS checks,
+  plus an installed example and explicit legacy-workflow limits.
+
+- Extend `calibrate_workflow()` to shared OvO/OvR (including two classes) and
+  moderated IVAR. Reuse final frozen workflow outputs, native predictions and
+  method-specific details. Preserve requested/effective moderation and add
+  learned-postprocessor, boundary, no-refit and fresh-process persistence checks.
+
+- Add `calibrate_workflow()` for fully fitted binary workflows, retaining learned
+  recipes and postprocessors. Predict and shared details reuse the binary core,
+  support loss overrides and preserve classes and empty results. Add no-learning
+  guards, final-probability parity checks and fresh-process persistence tests.
+
+- Extend reversible schemas to shared OvO/OvR and regression for Inductive and
+  Cross workflows. Decode original class/truth identities, regression points,
+  all available inner details and Cross regression aggregate bounds. Add installed
+  examples, manual-core comparisons, outer evaluation audits and fresh-process
+  worker checks for all six additional paths.
+
+- Add explicit binary naming schemas, lossless input encoding, and role-based
+  decoding of predictions, truth, identities and details. `calibrated_workflow()`
+  now accepts `schema` for Inductive/Cross fitting and ordinary outer resampling.
+  Schemas preserve exact original names and class/event order without changing
+  the numerical cores or the direct naming contract.
+
 # vennabers 0.5.0
 
 - Normalize class matrices with binary64 column-order additions on every
@@ -48,6 +92,16 @@
   workflows/calibrators, and native Cross predictions and fold diagnostics.
   Complete outer resampling uses one base fit per inner fold without a full model.
   Log/Brier loss, calibration rounding, names and local RNG contracts are preserved.
+
+- Add optional `calibrated_workflow()` for automatic binary Inductive calibration
+  with raw-variable transport, local recipe learning, native probability/class
+  prediction, loss overrides, and `venn_abers_details()` diagnostics.
+- Preserve class names, split positions, complete base workflows and calibration
+  state; validate unsupported options and naming collisions before inner learning.
+- Add data-bound explicit IID holdouts and serializable local prepared-plan
+  resolution, rejecting conflicting assignments before model training.
+- Validate complete binary outer resampling with public collectors, local data-role
+  checks, stored loss defaults, failure cases and fresh parallel worker repeats.
 
 # vennabers 0.4.0
 
@@ -128,14 +182,3 @@
   acceptance gate to cover it and the README examples.
 - Preserve the v0.1 IVAP intervals, regularized probabilities, scores, plot,
   and printing behavior. R 4.1.0 remains the minimum; no dependencies added.
-# Development
-
-- Add optional `calibrated_workflow()` for automatic binary Inductive calibration
-  with raw-variable transport, local recipe learning, native probability/class
-  prediction, loss overrides, and `venn_abers_details()` diagnostics.
-- Preserve class names, split positions, complete base workflows and calibration
-  state; validate unsupported options and naming collisions before inner learning.
-- Add data-bound explicit IID holdouts and serializable local prepared-plan
-  resolution, rejecting conflicting assignments before model training.
-- Validate complete binary outer resampling with public collectors, local data-role
-  checks, stored loss defaults, failure cases and fresh parallel worker repeats.

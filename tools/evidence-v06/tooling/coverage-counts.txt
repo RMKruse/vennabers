@@ -1,0 +1,3 @@
+Package test files: 34 
+Installed examples: 16 
+README R blocks: 15 

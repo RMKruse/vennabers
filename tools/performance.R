@@ -1,4 +1,4 @@
-# Separate from package checks. See tools/acceptance-v05.md for the protocol.
+# Separate from package checks. See tools/acceptance-v06.md for the protocol.
 local({
   args <- commandArgs(TRUE)
   script <- normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)))
@@ -19,6 +19,8 @@ local({
               as.character(packageVersion("vennabers")) == args[5L])
     integration <- isTRUE(case$integration)
     regression <- identical(case$method, "regression")
+    frozen <- isTRUE(case$frozen)
+    encoded <- !is.null(case$schema)
     fit_args <- if (regression) c(list(truth = case$truth, prediction = case$prediction), case$moderation)
                 else list(truth = case$truth, probability = case$probability)
     if (case$cross) fit_args$fold <- case$fold
@@ -36,6 +38,9 @@ local({
       model <- readRDS(paste0(prefix, "-model.rds"))
       stopifnot(identical(readRDS(paste0(prefix, "-prediction.rds")),
                           do.call(predict, c(list(model), predict_args))))
+      if (encoded) stopifnot(identical(readRDS(paste0(prefix, "-decoded.rds")),
+        venn_abers_decode(do.call(predict, c(list(model), predict_args)), case$schema)),
+        identical((if (frozen) model else workflows::extract_fit_engine(model))$schema, case$schema))
       cat("Fresh-process RDS predictions identical.\n")
       return(invisible(NULL))
     }
@@ -46,11 +51,20 @@ local({
       # Construct/validate the public procedure inside each timing window.
       procedure <- function(outer = FALSE) {
         splits <- if (outer) local_calibration_splits(case$inner, names(case$data)) else case$split
-        do.call(calibrated_workflow, c(list(workflow = case$base, outcome = "truth",
+        do.call(calibrated_workflow, c(list(workflow = case$base, outcome = if (encoded) case$schema$encoded_outcome else "truth",
           method = if (case$cross) "cross" else "inductive", splits = splits, seed = case$seed),
+          if (encoded) list(schema = case$schema),
           if (regression) case$moderation else list(classification = case$method, loss = case$loss)))
       }
       fit_function <- function() generics::fit(procedure(), case$data)
+      if (frozen) {
+        # Original workflow learning is outside every measured calibration window.
+        earlier <- withr::with_seed(case$seed, generics::fit(case$base, case$training))
+        fit_function <- function() do.call(calibrate_workflow, c(list(
+          fitted_workflow = earlier, data_calibration = case$data,
+          outcome = if (encoded) case$schema$encoded_outcome else "truth", schema = case$schema),
+          if (regression) case$moderation else list(classification = case$method, loss = case$loss)))
+      }
       fit_args <- list()
       metrics <- if (regression) yardstick::metric_set(yardstick::rmse, yardstick::mae) else
         yardstick::metric_set(yardstick::brier_class, yardstick::mn_log_loss)
@@ -59,10 +73,21 @@ local({
     rows <- vector("list", 4L)
     for (iteration in 0:3) {
       gc()
+      schema_time <- encode_time <- decode_time <- 0
+      if (encoded) {
+        schema_time <- system.time(schema <- do.call(venn_abers_schema, c(list(data = case$schema_data, outcome = "truth"),
+          if (!regression) list(classification = case$method))))[["elapsed"]]
+        stopifnot(identical(schema, case$schema))
+        encode_time <- system.time({
+          data <- venn_abers_encode(case$original_data, schema)
+          new <- venn_abers_encode(case$original_newdata, schema)
+        })[["elapsed"]]
+        stopifnot(identical(data, case$data), identical(new, case$newdata))
+      }
       fit_time <- system.time(model <- do.call(fit_function, fit_args))[["elapsed"]]
       predict_time <- system.time(prediction <- do.call(predict, c(list(model), predict_args)))[["elapsed"]]
       outer_time <- 0 # Not applicable to caller-supplied manual predictions.
-      if (integration) {
+      if (integration && !frozen) {
         outer_time <- system.time(evaluation <- withr::with_seed(case$seed,
           tune::fit_resamples(procedure(TRUE), case$outer, metrics = metrics, control = control)))[["elapsed"]]
         collected <- tune::collect_predictions(evaluation)
@@ -73,6 +98,12 @@ local({
                   nrow(measured) == 6L, all(is.finite(measured$.estimate)))
         saveRDS(evaluation, paste0(prefix, "-outer.rds"), compress = "gzip", version = 3)
         rm(evaluation, collected, measured)
+      }
+      if (frozen) stopifnot(identical(model$models[[1L]], earlier),
+                            model$calibration_size == 2000L)
+      if (encoded) {
+        decode_time <- system.time(decoded <- venn_abers_decode(prediction, case$schema))[["elapsed"]]
+        saveRDS(decoded, paste0(prefix, "-decoded.rds"), compress = "gzip", version = 3)
       }
       values <- as.matrix(prediction)
       stopifnot(nrow(values) == case$n_new, all(is.finite(values)))
@@ -89,7 +120,8 @@ local({
       restored <- readRDS(paste0(prefix, "-model.rds"))
       stopifnot(identical(prediction, do.call(predict, c(list(restored), predict_args))))
       rows[[iteration + 1L]] <- data.frame(iteration, fit_seconds = fit_time,
-        predict_seconds = predict_time, outer_seconds = outer_time, rds_bytes = file.info(paste0(prefix, "-model.rds"))$size)
+        predict_seconds = predict_time, outer_seconds = outer_time,
+        schema_seconds = schema_time, encode_seconds = encode_time, decode_seconds = decode_time, rds_bytes = file.info(paste0(prefix, "-model.rds"))$size)
       rm(model, restored, prediction, values)
     }
     write.csv(do.call(rbind, rows), paste0(prefix, "-runs.csv"), row.names = FALSE)
@@ -113,8 +145,9 @@ local({
   on.exit(unlink(metadata, recursive = TRUE), add = TRUE)
   utils::untar(artifacts[1L], files = "vennabers/DESCRIPTION", exdir = metadata)
   current_version <- read.dcf(file.path(metadata, "vennabers/DESCRIPTION"), fields = "Version")[[1L]]
-  stopifnot(current_version %in% c("0.4.0", "0.5.0"))
-  v05 <- current_version == "0.5.0"
+  stopifnot(current_version %in% c("0.4.0", "0.5.0", "0.6.0"))
+  v06 <- current_version == "0.6.0"
+  v05 <- current_version %in% c("0.5.0", "0.6.0")
   run <- function(command, arguments, log) {
     status <- system2(command, arguments, stdout = log, stderr = log)
     if (status != 0L) stop("Command failed; see ", log)
@@ -139,6 +172,19 @@ local({
                       md5 = unname(tools::md5sum(artifacts))),
             file.path(output, "artifacts.csv"), row.names = FALSE)
   stopifnot(all(file.copy(artifacts, file.path(output, paste0(c("current", "previous"), ".tar.gz")))))
+
+  for (i in 1:2) {
+    lib <- file.path(output, paste0(c("current", "previous")[i], "-library"))
+    dir.create(lib)
+    run(file.path(R.home("bin"), "R"), c("CMD", "INSTALL", paste0("--library=", shQuote(lib)), shQuote(artifacts[i])),
+        file.path(output, paste0(c("current", "previous")[i], "-install.log")))
+    version <- read.dcf(file.path(lib, "vennabers", "DESCRIPTION"), fields = "Version")[[1L]]
+    stopifnot(version == if (i == 1L) current_version else if (v06) "0.5.0" else if (v05) "0.4.0" else "0.3.0")
+  }
+  if (v06) {
+    .libPaths(c(file.path(output, "current-library"), .libPaths()))
+    library(vennabers, lib.loc = file.path(output, "current-library"))
+  }
 
   # Keep the historical IVAP RNG order and dimensions exactly unchanged.
   RNGkind("Mersenne-Twister", "Inversion", "Rejection")
@@ -240,6 +286,67 @@ local({
         moderation = if (method == "regression") list(m = 1) else NULL)
     }
   }
+  if (v06) {
+    # Keep all v0.5 cases. New cases share their exact numeric data and options.
+    # Earlier frozen training uses independent draws, never the 2,000 calibration rows.
+    set.seed(20260911)
+    training_x <- as.data.frame(matrix(rnorm(1000L * 10L), 1000L, 10L))
+    names(training_x) <- paste0("x", 1:10)
+    training_y <- list(binary = factor(ifelse(runif(1000L) < plogis(training_x$x1), "yes", "no")),
+      ovo = factor(sample(c("a", "b", "c"), 1000L, replace = TRUE)),
+      regression = 2 * training_x$x1 - training_x$x2 + rnorm(1000L))
+    training_y$ovr <- training_y$ovo
+    for (method in c("binary", "ovo", "ovr", "regression")) {
+      for (variant in c("encoded_inductive", "encoded_cross", "ordered", "encoded_ordered", "frozen", "frozen_encoded")) {
+        encoded <- grepl("encoded", variant)
+        frozen <- grepl("frozen", variant)
+        cross <- variant == "encoded_cross"
+        case <- cases[[paste("workflow", method, if (cross) "cross" else "inductive", sep = "_")]]
+        case$frozen <- frozen
+        case$variant <- variant
+        case$generator_seed <- 20260910L
+        if (frozen) {
+          case$training <- training_x
+          case$training$truth <- training_y[[method]]
+          case$training_seed <- 20260911L
+        }
+        if (encoded) {
+          case$original_data <- case$data
+          case$original_newdata <- case$newdata
+          case$schema_data <- if (frozen) case$training else case$data
+          case$schema <- do.call(venn_abers_schema, c(list(data = case$schema_data, outcome = "truth"),
+            if (method != "regression") list(classification = method)))
+          case$data <- venn_abers_encode(case$data, case$schema)
+          case$newdata <- venn_abers_encode(case$newdata, case$schema)
+          if (frozen) case$training <- venn_abers_encode(case$training, case$schema)
+          formula <- stats::as.formula(paste(case$schema$encoded_outcome, "~ ."), env = baseenv())
+          selector <- rlang::new_quosure(quote(recipes::all_numeric_predictors()), env = baseenv())
+          case$base <- workflows::workflow() |>
+            workflows::add_recipe(recipes::recipe(formula, case$data) |>
+              recipes::step_normalize(!!selector)) |>
+            workflows::add_model(workflows::extract_spec_parsnip(case$base))
+        }
+        case$truth <- case$data[[if (encoded) case$schema$encoded_outcome else "truth"]]
+        if (frozen) {
+          case$split <- case$outer <- case$inner <- NULL
+        } else {
+          split_local <- function(data) {
+            if (cross) rsample::vfold_cv(data, v = 5) else
+              if (grepl("ordered", variant)) {
+                cut <- nrow(data) - ceiling(nrow(data) * .2)
+                rsample::make_splits(list(analysis = seq_len(cut),
+                  assessment = seq.int(cut + 1L, nrow(data))), data)
+              } else
+                rsample::initial_split(data, prop = .8)
+          }
+          case$split <- withr::with_seed(3501, split_local(case$data))
+          case$outer <- withr::with_seed(3502, rsample::vfold_cv(case$data, v = 3))
+          case$inner <- withr::with_seed(3503, lapply(case$outer$splits, function(s) split_local(rsample::analysis(s))))
+        }
+        cases[[paste("workflow", method, variant, sep = "_")]] <- case
+      }
+    }
+  }
   for (id in names(cases)) saveRDS(cases[[id]], file.path(output, paste0(id, "-input.rds")), version = 3)
   plan <- do.call(rbind, lapply(names(cases), function(id) {
     x <- cases[[id]]
@@ -250,7 +357,7 @@ local({
                precision = if (is.null(x$precision)) NA_real_ else x$precision,
                m = if (is.null(x$moderation$m)) NA_real_ else x$moderation$m,
                epsilon = if (is.null(x$moderation$epsilon)) NA_real_ else x$moderation$epsilon,
-               previous_supported = !isTRUE(x$integration) && (v05 || x$method != "regression"),
+               previous_supported = if (v06) is.null(x$variant) else !isTRUE(x$integration) && (v05 || x$method != "regression"),
                input_md5 = unname(tools::md5sum(file.path(output, paste0(id, "-input.rds")))))
   }))
   write.csv(plan, file.path(output, "plan.csv"), row.names = FALSE)
@@ -262,11 +369,7 @@ local({
   for (release in c("current", "previous")) {
     i <- match(release, c("current", "previous"))
     lib <- file.path(output, paste0(release, "-library"))
-    dir.create(lib)
-    run(file.path(R.home("bin"), "R"), c("CMD", "INSTALL", paste0("--library=", shQuote(lib)), shQuote(artifacts[i])),
-        file.path(output, paste0(release, "-install.log")))
     version <- read.dcf(file.path(lib, "vennabers", "DESCRIPTION"), fields = "Version")[[1L]]
-    stopifnot(version == if (release == "current") current_version else if (v05) "0.4.0" else "0.3.0")
     selected <- if (release == "current") plan$case else plan$case[plan$previous_supported]
     for (id in selected) {
       cat(release, id, "\n")
@@ -289,12 +392,12 @@ local({
   }
   runs <- do.call(rbind, all_runs)
   write.csv(runs, file.path(output, "runs.csv"), row.names = FALSE)
-  medians <- aggregate(cbind(fit_seconds, predict_seconds, outer_seconds, rds_bytes, process_peak_bytes) ~ release + case,
+  medians <- aggregate(cbind(fit_seconds, predict_seconds, outer_seconds, schema_seconds, encode_seconds, decode_seconds, rds_bytes, process_peak_bytes) ~ release + case,
                        runs[runs$iteration > 0L, ], median)
   write.csv(medians, file.path(output, "medians.csv"), row.names = FALSE)
   comparison <- merge(medians[medians$release == "current", -1L], medians[medians$release == "previous", -1L],
                       by = "case", all.x = TRUE, suffixes = c("_current", "_previous"))
-  for (metric in c("fit_seconds", "predict_seconds", "outer_seconds", "rds_bytes", "process_peak_bytes")) {
+  for (metric in c("fit_seconds", "predict_seconds", "outer_seconds", "schema_seconds", "encode_seconds", "decode_seconds", "rds_bytes", "process_peak_bytes")) {
     previous <- comparison[[paste0(metric, "_previous")]]
     comparison[[paste0(metric, "_ratio")]] <- ifelse(previous > 0, comparison[[paste0(metric, "_current")]] / previous, NA_real_)
   }

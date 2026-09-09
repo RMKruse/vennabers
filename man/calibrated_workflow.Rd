@@ -2,6 +2,7 @@
 \alias{calibrated_workflow}
 \alias{venn_abers_details}
 \alias{predict._vennabers_fit}
+\alias{predict.vennabers_workflow}
 \title{Train a Calibrated Classification or Regression Workflow}
 \description{Wrap an unfitted, fully configured classification or regression workflow in a normal
 outer workflow. The outer XY blueprint transports selected raw columns. Complete base workflows learn only on their local training splits; held-out
@@ -15,8 +16,9 @@ minimum versions or newer supported versions. Basis engines also need their own
 packages: the examples use \code{stats} for GLM/LM and \code{nnet} for a shared
 multinomial model. Fresh parallel workers must load \code{vennabers} and those
 engine namespaces, for example through \code{control_resamples(pkgs = ...)}.
-Frozen workflow adoption, reversible name encoding and ordered reference holdouts
-follow in v0.6; pair training/full-model transfer in v0.7, tuning in v0.8 and
+Reversible name encoding for binary, OvO/OvR and regression is available through \code{venn_abers_schema()}.
+Frozen classification/regression workflow adoption is available through \code{\link{calibrate_workflow}}.
+Ordered reference holdouts remain separate v0.6 work; pair training/full-model transfer in v0.7, tuning in v0.8 and
 learned postprocessing in v0.9. Shared multiclass training does not establish
 complete Python training parity.
 }
@@ -24,7 +26,7 @@ complete Python training parity.
 calibrated_workflow(workflow, outcome, ..., predictors = NULL,
   method = "inductive", classification = "binary", event_level = "first",
   calibration_prop = 0.2, v = 5L, strata = NULL, splits = NULL, seed = NULL,
-  precision = NULL, loss = "log", m = NULL, epsilon = NULL)
+  precision = NULL, loss = "log", m = NULL, epsilon = NULL, schema = NULL)
 venn_abers_details(object, new_data, ..., loss = NULL)
 \method{predict}{_vennabers_fit}(object, new_data, type = NULL,
   opts = list(), ..., loss = NULL)
@@ -33,7 +35,13 @@ venn_abers_details(object, new_data, ..., loss = NULL)
 \item{workflow}{An unfitted workflows object with a classification or regression model and
 recipe, formula, or variable selection. Prepped or partly trained recipes,
 unresolved tune placeholders, and additional postprocessors are rejected.}
-\item{outcome}{One original outcome column name. Fit requires a nonmissing factor
+\item{schema}{NULL retains the direct naming contract. A schema from
+\code{venn_abers_schema()} fixes the encoded input names, mode, class order and binary event.
+Omitted classification/event options inherit the schema; contradictory explicit
+options fail before learning. Build the base formula/recipe and resamples on
+\code{venn_abers_encode()} data. All schema predictors must be selected.}
+\item{outcome}{One original outcome column name, or \code{schema$encoded_outcome}
+when a schema is supplied. Fit requires a nonmissing factor
 with exactly two levels for binary or at least two for OvO/OvR. All stored levels
 must be represented in the development data. Regression requires finite numeric
 truth; numeric 0/1 outcomes remain regression.}
@@ -60,7 +68,7 @@ requires Cross.}
 \item{strata}{NULL stratifies classification by outcome with \code{pool=0}; regression
 is unstratified. FALSE disables
 stratification. Other values are rejected. No retry or automatic split adjustment.}
-\item{splits}{NULL generates a local split. Otherwise an IID holdout
+\item{splits}{NULL generates a local split. Otherwise a mixed or ordered holdout
 \code{rsplit} from \code{rsample::initial_split()} or \code{rsample::make_splits()},
 for Inductive; a simple \code{rset} from \code{rsample::vfold_cv()} or
 \code{rsample::manual_rset()} for Cross; or a serializable function receiving only
@@ -144,11 +152,12 @@ same as in the manual core; no separate pair models are trained.
 Input and class names must be unique, nonmissing and nonempty. Class \code{class}
 and names starting with \code{.pred_} are reserved. Outcome names \code{.pred},
 \code{.pred_*}, \code{.row}, \code{.config}, and \code{id} or \code{id} followed
-by a positive integer are reserved. Names are never repaired; distinct names such
+by a positive integer are reserved. Without a schema, names are never repaired; distinct names such
 as \code{a b} and \code{a.b} require a compatible base engine. Raw predictor
 \code{id} remains valid. Details do not join raw observations to predictions.
 
 \code{workflows::extract_fit_engine()} returns a \code{vennabers_fit} with:
+\code{schema} (NULL or the explicitly supplied metadata),
 \code{parameters} (\code{requested}, logical \code{explicit} flags and
 \code{effective}), \code{outcome}, \code{predictors}, \code{columns} (predictors
 then outcome), \code{class_levels}, \code{event_class}, \code{loss},
@@ -188,9 +197,22 @@ not configurable inner fold IDs. Cross requires unique nonempty character IDs,
 at least two folds, exactly one assessment assignment for every local row, and
 the exact complementary analysis set in each fold. All folds are checked before
 any learning starts. Repeated inner folds and bootstrap duplicates are rejected.
+Ordinary and classification-stratified partitions may be mixed or non-shuffled.
+For an ordered Inductive holdout use \code{make_splits()} with the first
+\code{n - ceiling(n * q)} local rows for training and the remaining
+\code{ceiling(n * q)} for calibration, requiring both parts to be nonempty.
+This example convention rounds the calibration size upwards: 11 rows and
+\code{q = .25} give training 1--8 and calibration 9--11. Explicit plans are
+used as supplied, without sorting, mixing or stratification. Order is local to
+each outer analysis set. Non-shuffled Cross folds retain exact training
+complements, including later rows, and are not forward validation.
 Group, time and other specialized split classes
-are outside this IID contract. An unbound global positions plan cannot be reused
+are outside this partition contract. An unbound global positions plan cannot be reused
 on different outer analysis data.
+See installed \code{examples/reference-splits.R} for all eight training paths,
+known ordinary/stratified memberships, data roles and assessment scores.
+Equal R/Python seeds alone do not establish equal splits or training; numerical
+comparisons require identical model outputs, assignments and options.
 
 Cross retains exactly one full base workflow per fold and all corresponding
 binary subproblem calibrators, with no
@@ -259,4 +281,4 @@ assessment sets from different outer resamples may overlap.}
 \examples{
 source(system.file("examples", "calibrated-workflow.R", package = "vennabers"))
 }
-\seealso{\code{\link{venn_abers}}, \code{\link{cross_venn_abers}}}
+\seealso{\code{\link{venn_abers}}, \code{\link{cross_venn_abers}}, \code{\link{venn_abers_schema}}}

@@ -37,6 +37,69 @@ IVAP prediction still returns three double columns: `lower` and `upper` are
 the Venn-Abers interval endpoints; `probability` is the regularized event
 probability, using log loss by default. These endpoints are not confidence intervals.
 
+## Calibrating an already fitted workflow
+
+`calibrate_workflow(fitted_base, calibration, "truth")` returns an already fitted
+predictor. It learns only the VA calibrator from the original workflow's final
+named probabilities, preserving its learned recipe and any learned postprocessor.
+Supply raw inputs in the learned format; no `bake()` or subsequent `fit()` is needed.
+Use `predict(..., type = "prob")`, `type = "class"`, and `venn_abers_details()`.
+Both event levels, Log/Brier overrides, calibration-only rounding and empty
+predictions are supported. The outcome is removed before the frozen path predicts.
+
+The user must keep the new calibration data outside all earlier training,
+postprocessing and model selection, and keep final assessment separate as well.
+That history is not automatically checked. This is an R extension for Inductive
+calibration, not a Cross ensemble or full-model transfer. `saveRDS()` retains the
+complete predictor; fresh processes need its packages, and external resources
+retain their engine-specific storage requirements.
+
+For a workflow trained on encoded names, retain its original schema. Encode new
+calibration and prediction data with `venn_abers_encode(data, schema)` and pass
+`outcome = schema$encoded_outcome, schema = schema` to `calibrate_workflow()`.
+Omitted classification/event options inherit that schema; contradictory options
+fail. Native predictions remain encoded; `venn_abers_decode()` restores original
+identities and existing diagnostics in separate roles. Matching codes alone
+cannot prove a detached workflow's training provenance.
+
+Workflows trained on original names keep original inputs with `schema = NULL`.
+Creating a schema afterward cannot rewrite a learned recipe or repair an old
+workflow's failed prediction path. Errors retain stage, names and cause; there
+is no automatic raw or extracted-engine fallback.
+
+The installed example includes earlier recipe and Tailor learning, separate new
+calibration and independent assessment (requires Tailor and probably):
+
+```r
+source(system.file("examples", "frozen-binary.R", package = "vennabers"))
+```
+
+For a shared multiclass workflow, explicitly choose `classification = "ovo"`
+or `"ovr"`, also for a two-class matrix problem. Every stored class must occur
+in calibration; predictions retain the original factor order, and ties select
+its first level. `venn_abers_details()` includes binary pair/OvR results.
+
+A regression workflow selects IVAR automatically. Call
+`calibrate_workflow(fitted_regressor, calibration, "truth", epsilon = .1)`;
+`predict(..., type = "numeric")` returns `.pred`, and `venn_abers_details()`
+returns separate IVAR bounds with row IDs.
+
+Omit both `m` and `epsilon` (or set both to NULL) for `m = 1`; otherwise supply
+exactly one valid moderation parameter. Requested and effective values are saved.
+Regression rejects explicit classification, event, loss and precision options.
+IVAR bounds are not confidence or prediction intervals.
+
+The installed example demonstrates all three paths with learned postprocessing:
+
+```r
+source(system.file("examples", "frozen-multiclass-regression.R", package = "vennabers"))
+source(system.file("examples", "frozen-schema.R", package = "vennabers"))
+```
+
+The original workflow must predict successfully at the requested batch size.
+The example uses smooth multinomial Tailor calibration: the tested probably
+1.2.0 `smooth = FALSE` path fails on a single row, and that error is propagated.
+
 ## Automatic classification workflow calibration
 
 `calibrated_workflow(base, outcome = "truth", seed = 42)` wraps a configured,
@@ -89,6 +152,41 @@ columns, types, values, factor levels and row order, ignoring container class an
 row names. Duplicate observations remain distinct positions. Arbitrary callbacks
 must obey this contract themselves; hidden closure state cannot be audited
 automatically. Never use call counters or outer assessment data in a resolver.
+
+Ordered Inductive holdouts use the same explicit-plan API. For example, with
+`n` local rows and calibration fraction `q`, reserve `ceiling(n * q)` trailing
+rows and train on the preceding `n - ceiling(n * q)` rows. Both parts must be
+nonempty. At `n = 11, q = .25`, training is positions 1–8 and calibration is
+9–11. Use `rsample::make_splits()` to preserve those positions without sorting,
+mixing or stratifying. A callback applies this rule separately in the row order
+of each outer analysis set. The installed
+[`examples/reference-splits.R`](inst/examples/reference-splits.R) implements this
+rule and demonstrates all eight training paths, complete non-shuffled folds,
+and a small stratified reference assignment. No new splitter is required.
+
+Cross supports ordinary or classification-stratified partitions, mixed or
+non-shuffled. Every local row must be held once, and each model trains on the
+exact complement of its fold. Non-shuffled folds can train on later rows; they
+are not forward validation. Noncomplementary forward plans, repeated/overlapping
+inner folds and incomplete assignments fail. Specialized group/time split classes
+remain unsupported. Ordered plans do not relax class, base-model trainability or
+regression moderation requirements, and invalid plans are never repaired.
+
+For mixed automatic plans, use `seed` and record RNG kind, R/package versions
+and engine settings; classification stratifies unless `strata = FALSE` and
+regression does not stratify. Explicit plans retain their actual positions and
+fold IDs in `workflows::extract_fit_engine(fit)$folds`; requested settings and
+effective automatic settings are separate in `$parameters`. Identical R/Python
+seeds do not establish equal splits or training. Numerical core comparisons
+require the same model outputs, options and assignments.
+
+The installed examples use small synthetic binary, multiclass and regression
+tasks inspired by the [documented paper applications](tools/paper-group-time-scenarios.md),
+with separate model-training, calibration and final-assessment roles.
+Machine-failure detection is classification. Temperature forecast correction is
+regression, and its subject alone does not establish time-series validation.
+These examples promise neither universally better scores nor individual-interval
+coverage, including for dependent data or Cross aggregates.
 
 Use `classification = "ovo"` or `"ovr"` with a multiclass base workflow for
 Inductive or Cross calibration. Both use shared multiclass models and the existing
@@ -669,3 +767,30 @@ The unchanged 100,000-calibration / 100,000-prediction IVAP case is retained.
 The comparative protocol replaces the historical 10-second ceiling. Historical
 measurements remain in the [v0.2 record](tools/acceptance-v02.md); they cannot
 substitute for remeasuring v0.3 on the same reference machine.
+
+### Reversible names for calibrated workflows
+
+Create one schema from the selected development columns, encode the data, and
+build the base formula/recipe and outer resamples on those encoded names. Pass
+`schema$encoded_outcome` and `schema = schema` to `calibrated_workflow()`.
+`venn_abers_decode()` keeps probability matrices, class factors, truth, the
+numeric regression predictions, original outcome name, and resample identities
+in separate roles, so names such
+as `class`, `.pred_class`, and `id` cannot overwrite each other. Native results
+remain encoded. Detached collector tables require their actually associated
+schema; matching codes alone cannot establish provenance.
+
+Factor outcomes use `classification = "binary"`, `"ovo"`, or `"ovr"`; only binary
+accepts `event_level`. Numeric outcomes remain regression, including 0/1, and
+require both options to be omitted. Multiclass preserves the complete factor
+level order, including the first-maximum tie rule with two classes. Regression
+keeps numeric points, details and available Cross aggregate bounds.
+
+The installed examples cover all eight trainable methods, with preparation,
+prediction and repeated outer evaluation with exact identity and decoded-metric
+checks:
+
+```r
+source(system.file("examples", "encoded-binary.R", package = "vennabers"))
+source(system.file("examples", "encoded-multiclass-regression.R", package = "vennabers"))
+```

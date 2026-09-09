@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       benchmarks:
-        description: Run the separate serial Linux benchmark and v0.4 comparison
+        description: Run the separate serial Linux benchmark and v0.5 comparison
         type: boolean
         default: false
 
@@ -16,19 +16,24 @@ permissions:
 jobs:
   source:
     runs-on: ubuntu-24.04
+    outputs:
+      candidate: ${{ steps.build.outputs.candidate }}
     steps:
       - uses: actions/checkout@v6
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: "4.6.1"
       - name: Build one source candidate
+        id: build
         shell: bash
         working-directory: ${{ runner.temp }}
         run: |
+          candidate=$(Rscript --vanilla -e 'd <- read.dcf(file.path(Sys.getenv("GITHUB_WORKSPACE"), "DESCRIPTION")); cat(paste0(d[1, "Package"], "_", d[1, "Version"], ".tar.gz"))')
           R CMD build "$GITHUB_WORKSPACE" > build.log 2>&1
           cat build.log
           if grep -E '\b(ERROR|WARNING|NOTE)\b' build.log; then exit 1; fi
-          sha256sum vennabers_*.tar.gz > SHA256SUMS
+          sha256sum "$candidate" > SHA256SUMS
+          echo "candidate=$candidate" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -58,7 +63,7 @@ jobs:
     env:
       EXPECTED_R_ARCH: ${{ matrix.platform.arch }}
       ACCEPTANCE_OUTPUT_DIR: ${{ github.workspace }}/.scratch/ci
-      ACCEPTANCE_ARTIFACT: ${{ github.workspace }}/.scratch/source/vennabers_0.5.0.tar.gz
+      ACCEPTANCE_ARTIFACT: ${{ github.workspace }}/.scratch/source/${{ needs.source.outputs.candidate }}
     steps:
       - uses: actions/checkout@v6
       - uses: r-lib/actions/setup-r@v2
@@ -113,7 +118,7 @@ jobs:
       ACCEPTANCE_PROFILE: ${{ matrix.profile }}
       EXPECTED_R_ARCH: x86_64
       ACCEPTANCE_OUTPUT_DIR: ${{ github.workspace }}/.scratch/ci
-      ACCEPTANCE_ARTIFACT: ${{ github.workspace }}/.scratch/source/vennabers_0.5.0.tar.gz
+      ACCEPTANCE_ARTIFACT: ${{ github.workspace }}/.scratch/source/${{ needs.source.outputs.candidate }}
     steps:
       - uses: actions/checkout@v6
       - uses: r-lib/actions/setup-r@v2
@@ -154,6 +159,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.benchmarks
     needs: source
     runs-on: ubuntu-24.04
+    env:
+      ACCEPTANCE_ARTIFACT: ${{ github.workspace }}/.scratch/source/${{ needs.source.outputs.candidate }}
     steps:
       - uses: actions/checkout@v6
       - uses: r-lib/actions/setup-r@v2
@@ -171,12 +178,12 @@ jobs:
         shell: bash
         run: |
           (cd .scratch/source && sha256sum -c SHA256SUMS)
-          echo '44846f1e2a6cd5ec1672264516122e5d26e65a2a18f69ec1d5fb7078514ddb69  tools/evidence-v04/vennabers_0.4.0.tar.gz' | sha256sum -c -
+          echo '813e435f232b51cbaf36158bafc75ed3922e5905cd80dfee8ff69539d599effa  tools/evidence-v05/ci-final/source-candidate/vennabers_0.5.0.tar.gz' | sha256sum -c -
       - name: Measure both releases serially on this runner
-        run: Rscript --vanilla tools/performance.R .scratch/source/vennabers_0.5.0.tar.gz tools/evidence-v04/vennabers_0.4.0.tar.gz .scratch/benchmark
+        run: Rscript --vanilla tools/performance.R "$ACCEPTANCE_ARTIFACT" tools/evidence-v05/ci-final/source-candidate/vennabers_0.5.0.tar.gz .scratch/benchmark
       - name: Verify measurements and failure detection
         run: |
-          Rscript --vanilla tools/test-performance.R .scratch/benchmark --v05
+          Rscript --vanilla tools/test-performance.R .scratch/benchmark --v06
           Rscript --vanilla tools/test-performance-verifier.R .scratch/benchmark
       - name: Record evidence identities
         if: always()

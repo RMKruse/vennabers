@@ -19,6 +19,8 @@
 }
 
 .split_positions <- function(split, data, id) {
+  schema <- attr(data, "vennabers_schema", exact = TRUE)
+  if (!is.null(schema)) .schema_binding(split$data, schema)
   if (!identical(.local_split_data(split$data, names(data)),
                  .local_split_data(data, names(data)))) {
     stop("Split data binding does not match the local selected raw data (values, types, levels or row order).", call. = FALSE)
@@ -65,10 +67,12 @@ local_calibration_splits <- function(splits, columns) {
   if (!is.list(splits) || inherits(splits, c("rsplit", "rset")) || !length(splits)) {
     stop("`splits` must be a nonempty list of prepared Inductive rsplit or Cross rset objects.", call. = FALSE)
   }
-  snapshots <- plans <- vector("list", length(splits))
+  snapshots <- plans <- schemas <- vector("list", length(splits))
   for (i in seq_along(splits)) {
     tryCatch({
       cross <- inherits(splits[[i]], "rset")
+      schemas[[i]] <- lapply(if (cross) splits[[i]]$splits else list(splits[[i]]),
+                            function(s) attr(s$data, "vennabers_schema", exact = TRUE))
       bound <- if (cross) splits[[i]]$splits[[1L]]$data else splits[[i]]$data
       snapshots[[i]] <- .local_split_data(bound, columns)
       data <- bound[columns]
@@ -90,11 +94,15 @@ local_calibration_splits <- function(splits, columns) {
     snapshot <- .local_split_data(data, columns)
     matches <- which(vapply(snapshots, identical, logical(1), y = snapshot))
     if (!length(matches)) stop("No prepared plan matches the local selected raw data.", call. = FALSE)
+    for (bindings in schemas[matches]) for (schema in bindings) if (!is.null(schema)) {
+      .schema_binding(data, schema)
+      data <- .bind_schema(data, schema)
+    }
     # All matching plans were proven identical; unique() does not pick a first hit.
     plan <- unique(plans[matches])[[1L]]
     if (plan$method == "cross") {
       rsample::manual_rset(lapply(plan$folds, rsample::make_splits, data = data), names(plan$folds))
     } else rsample::make_splits(plan$folds$Inductive1, data)
-  }), envir = list(columns = columns, snapshots = snapshots, plans = plans),
+  }), envir = list(columns = columns, snapshots = snapshots, plans = plans, schemas = schemas),
   enclos = environment(local_calibration_splits))
 }

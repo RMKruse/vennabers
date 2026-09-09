@@ -38,7 +38,9 @@ local({
       'stopifnot(!"parsnip" %in% loadedNamespaces())',
       'stopifnot(nrow(predict(vennabers::venn_abers(c(FALSE, TRUE), c(.1, .9)), .5)) == 1L)',
       'error <- tryCatch(vennabers::calibrated_workflow(NULL, "truth"), error = identity)',
-      'stopifnot(inherits(error, "error"), grepl("parsnip", conditionMessage(error)), grepl("1.6.0", conditionMessage(error)), grepl("install or update it explicitly", conditionMessage(error)))'
+      'stopifnot(inherits(error, "error"), grepl("parsnip", conditionMessage(error)), grepl("1.6.0", conditionMessage(error)), grepl("install or update it explicitly", conditionMessage(error)))',
+      'error <- tryCatch(vennabers::calibrate_workflow(NULL, data.frame(), "truth"), error = identity)',
+      'stopifnot(inherits(error, "error"), grepl("parsnip", conditionMessage(error)), grepl("1.6.0", conditionMessage(error)))'
     ), script)
     run(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), state)
     cat(state, "optional dependency: clear error; manual core works.\n")
