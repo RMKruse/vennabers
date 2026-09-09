@@ -2,7 +2,7 @@
 \alias{local_calibration_splits}
 \title{Resolve Prepared Local Calibration Splits}
 \description{Validate all prepared assignments and return a serializable function
-mapping selected local raw data to one Inductive IID holdout or Cross partition.}
+mapping selected local raw data to one mixed or ordered Inductive holdout or Cross partition.}
 \usage{local_calibration_splits(splits, columns)}
 \arguments{
 \item{splits}{A nonempty list of data-bound holdouts from
@@ -35,7 +35,16 @@ The resolver supports \code{saveRDS()} and \code{readRDS()} and arbitrary lookup
 order. An arbitrary user callback is trusted R code and must obey the same data
 and plan contract; this helper does not prove the absence of hidden state in other
 callbacks. Keep model selection and all other learning outside assessment data.
-See the executable installed \code{examples/calibrated-resampling.R}.}
+An ordered holdout can be constructed with \code{rsample::make_splits()}: reserve
+\code{ceiling(n * q)} trailing calibration rows and the preceding
+\code{n - ceiling(n * q)} training rows, requiring both parts to be nonempty.
+At \code{n = 11, q = .25}, these are training positions 1--8 and calibration
+positions 9--11, with no sorting, mixing or stratification. The order is local
+to each outer analysis set. Cross accepts mixed or non-shuffled ordinary or
+classification-stratified complete partitions. Exact training complements are
+required even for non-shuffled folds; these are not forward validation.
+See the executable installed \code{examples/calibrated-resampling.R} and
+\code{examples/reference-splits.R}.}
 \examples{
 if (all(vapply(c("rsample", "parsnip", "workflows", "withr"),
                requireNamespace, logical(1), quietly = TRUE))) {

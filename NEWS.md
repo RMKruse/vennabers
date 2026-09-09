@@ -1,5 +1,10 @@
 # vennabers 0.6.0 (development)
 
+- Document and verify ordered Inductive holdouts and mixed/non-shuffled ordinary
+  and stratified Cross partitions through existing explicit local plans. Add
+  installed paper-oriented examples for all eight training paths, with explicit
+  rounding, data roles, exact training complements and statistical limits.
+
 - Preserve the original training schema in `calibrate_workflow()` for binary,
   shared OvO/OvR and IVAR. Check learned names, mode, class order and retained
   bindings; preserve encoded native outputs and decoded identities/diagnostics.

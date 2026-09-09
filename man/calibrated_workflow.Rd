@@ -68,7 +68,7 @@ requires Cross.}
 \item{strata}{NULL stratifies classification by outcome with \code{pool=0}; regression
 is unstratified. FALSE disables
 stratification. Other values are rejected. No retry or automatic split adjustment.}
-\item{splits}{NULL generates a local split. Otherwise an IID holdout
+\item{splits}{NULL generates a local split. Otherwise a mixed or ordered holdout
 \code{rsplit} from \code{rsample::initial_split()} or \code{rsample::make_splits()},
 for Inductive; a simple \code{rset} from \code{rsample::vfold_cv()} or
 \code{rsample::manual_rset()} for Cross; or a serializable function receiving only
@@ -197,9 +197,22 @@ not configurable inner fold IDs. Cross requires unique nonempty character IDs,
 at least two folds, exactly one assessment assignment for every local row, and
 the exact complementary analysis set in each fold. All folds are checked before
 any learning starts. Repeated inner folds and bootstrap duplicates are rejected.
+Ordinary and classification-stratified partitions may be mixed or non-shuffled.
+For an ordered Inductive holdout use \code{make_splits()} with the first
+\code{n - ceiling(n * q)} local rows for training and the remaining
+\code{ceiling(n * q)} for calibration, requiring both parts to be nonempty.
+This example convention rounds the calibration size upwards: 11 rows and
+\code{q = .25} give training 1--8 and calibration 9--11. Explicit plans are
+used as supplied, without sorting, mixing or stratification. Order is local to
+each outer analysis set. Non-shuffled Cross folds retain exact training
+complements, including later rows, and are not forward validation.
 Group, time and other specialized split classes
-are outside this IID contract. An unbound global positions plan cannot be reused
+are outside this partition contract. An unbound global positions plan cannot be reused
 on different outer analysis data.
+See installed \code{examples/reference-splits.R} for all eight training paths,
+known ordinary/stratified memberships, data roles and assessment scores.
+Equal R/Python seeds alone do not establish equal splits or training; numerical
+comparisons require identical model outputs, assignments and options.
 
 Cross retains exactly one full base workflow per fold and all corresponding
 binary subproblem calibrators, with no

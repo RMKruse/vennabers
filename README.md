@@ -153,6 +153,41 @@ row names. Duplicate observations remain distinct positions. Arbitrary callbacks
 must obey this contract themselves; hidden closure state cannot be audited
 automatically. Never use call counters or outer assessment data in a resolver.
 
+Ordered Inductive holdouts use the same explicit-plan API. For example, with
+`n` local rows and calibration fraction `q`, reserve `ceiling(n * q)` trailing
+rows and train on the preceding `n - ceiling(n * q)` rows. Both parts must be
+nonempty. At `n = 11, q = .25`, training is positions 1–8 and calibration is
+9–11. Use `rsample::make_splits()` to preserve those positions without sorting,
+mixing or stratifying. A callback applies this rule separately in the row order
+of each outer analysis set. The installed
+[`examples/reference-splits.R`](inst/examples/reference-splits.R) implements this
+rule and demonstrates all eight training paths, complete non-shuffled folds,
+and a small stratified reference assignment. No new splitter is required.
+
+Cross supports ordinary or classification-stratified partitions, mixed or
+non-shuffled. Every local row must be held once, and each model trains on the
+exact complement of its fold. Non-shuffled folds can train on later rows; they
+are not forward validation. Noncomplementary forward plans, repeated/overlapping
+inner folds and incomplete assignments fail. Specialized group/time split classes
+remain unsupported. Ordered plans do not relax class, base-model trainability or
+regression moderation requirements, and invalid plans are never repaired.
+
+For mixed automatic plans, use `seed` and record RNG kind, R/package versions
+and engine settings; classification stratifies unless `strata = FALSE` and
+regression does not stratify. Explicit plans retain their actual positions and
+fold IDs in `workflows::extract_fit_engine(fit)$folds`; requested settings and
+effective automatic settings are separate in `$parameters`. Identical R/Python
+seeds do not establish equal splits or training. Numerical core comparisons
+require the same model outputs, options and assignments.
+
+The installed examples use small synthetic binary, multiclass and regression
+tasks inspired by the [documented paper applications](tools/paper-group-time-scenarios.md),
+with separate model-training, calibration and final-assessment roles.
+Machine-failure detection is classification. Temperature forecast correction is
+regression, and its subject alone does not establish time-series validation.
+These examples promise neither universally better scores nor individual-interval
+coverage, including for dependent data or Cross aggregates.
+
 Use `classification = "ovo"` or `"ovr"` with a multiclass base workflow for
 Inductive or Cross calibration. Both use shared multiclass models and the existing
 factor/matrix core, including for two classes. Inductive's holdout must contain
