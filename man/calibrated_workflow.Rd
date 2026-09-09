@@ -18,7 +18,7 @@ multinomial model. Fresh parallel workers must load \code{vennabers} and those
 engine namespaces, for example through \code{control_resamples(pkgs = ...)}.
 Reversible name encoding for binary, OvO/OvR and regression is available through \code{venn_abers_schema()}.
 Frozen classification/regression workflow adoption is available through \code{\link{calibrate_workflow}}.
-Ordered reference holdouts and binary full-model transfer are supported.
+Ordered reference holdouts and binary/shared multiclass full-model transfer are supported.
 Pair training remains separate v0.7 work, tuning in v0.8 and
 learned postprocessing in v0.9. Shared multiclass training does not establish
 complete Python training parity.
@@ -28,7 +28,7 @@ calibrated_workflow(workflow, outcome, ..., predictors = NULL,
   method = "inductive", classification = "binary", event_level = "first",
   calibration_prop = 0.2, v = 5L, strata = NULL, splits = NULL, seed = NULL,
   precision = NULL, loss = "log", m = NULL, epsilon = NULL, schema = NULL,
-  prediction_model = "matched")
+  prediction_model = "matched", model_training = "shared")
 venn_abers_details(object, new_data, ..., loss = NULL)
 \method{predict}{_vennabers_fit}(object, new_data, type = NULL,
   opts = list(), ..., loss = NULL)
@@ -53,11 +53,15 @@ outcome. NULL selects all other supplied columns. Their stored order is canonica
 unused selected columns still have to be supplied for prediction.}
 \item{method}{Exactly \code{"inductive"} (default) or \code{"cross"}.}
 \item{prediction_model}{Exactly \code{"matched"} (default) or \code{"full"}.
-Binary classification only; explicit values, including the default, are rejected
-for OvO/OvR and regression. This is a fixed fit option; predict cannot change it.
+Binary and shared OvO/OvR classification; explicit values, including the default,
+are rejected for regression. This is a fixed fit option; predict cannot change it.
 Matched uses each calibration source model for new observations. Full applies
 the unchanged held-out calibrators to predictions from one additional workflow
 trained on the entire permitted local fit domain, including calibration rows.}
+\item{model_training}{Exactly \code{"shared"} (default), for OvO/OvR only.
+Explicit values are rejected for binary and regression workflows. A shared model
+produces one complete class matrix; OvO splits calibration into pairs without
+training pair models. No other training option is currently offered.}
 \item{classification}{Exactly \code{"binary"} (default), \code{"ovo"}, or
 \code{"ovr"}. OvO/OvR explicitly use the
 factor/matrix core, including with two classes. Mode comes from the base model.
@@ -125,11 +129,12 @@ probability table) and \code{details}: integer \code{row}, character \code{fold}
 \code{lower}, \code{upper}, \code{probability}. Cross details contain one row per
 new observation and fold; their probability is the fold point, while
 \code{prediction} contains the final aggregate.
-Trainable binary details also contain character \code{prediction_model} and
+Trainable classification details also contain character \code{prediction_model} and
 \code{model_source}. The source is the fold ID in matched mode, or \code{"Full1"}
 for every fold in full mode. These are model metadata, separate from original
 class identities and the \code{fold} identifying the held-out calibrator;
 \code{venn_abers_decode()} preserves them without decoding them as classes.
+Trainable OvO/OvR details include \code{model_training="shared"}.
 OvO/OvR details additionally contain character \code{method} and either
 \code{class_1}/\code{class_2} (OvO) or \code{class} (OvR). Each row identifies
 one new observation, fold and binary subproblem. \code{event_class} is the later class
@@ -179,7 +184,9 @@ then outcome), \code{class_levels}, \code{event_class}, \code{loss},
 fitted base workflows named by the same IDs, or only \code{Full1} in full mode),
 \code{calibrator}, \code{calibration} (for binary: a list named by fold ID, each
 with original local integer \code{row}, logical event \code{truth} and unrounded
-double held-out \code{probability}), \code{versions}, and \code{rng_kind}.
+double held-out \code{probability}; for multiclass: one list per fold with
+integer \code{row}, factor \code{truth} retaining all levels, and the complete
+unrounded named class matrix \code{probability}), \code{versions}, and \code{rng_kind}.
 Full mode fits the source recipes/models only on each analysis portion, then
 fits a fresh complete recipe/model on all local fit rows. No source recipe
 statistics are reused. Only after success are temporary source workflows
@@ -243,7 +250,7 @@ known ordinary/stratified memberships, data roles and assessment scores.
 Equal R/Python seeds alone do not establish equal splits or training; numerical
 comparisons require identical model outputs, assignments and options.
 
-Cross retains exactly one full base workflow per fold and all corresponding
+Matched Cross retains exactly one full base workflow per fold and all corresponding
 binary subproblem calibrators, with no
 additional full-data model. New data traverse every matching learned recipe/model
 path. A failed fold fails the entire fit. Log loss uses the core's stable logarithmic
@@ -315,8 +322,13 @@ not guaranteed. All settings are fixed, with no automatic search or mode choice.
 \code{fit_resamples()} rebuilds the complete procedure inside each outer analysis
 domain. \code{last_fit()} trains solely on its analysis domain, never analysis
 plus test. \code{calibrate_workflow()} remains a frozen-model path and does not
-accept this training option. See the installed example
-\code{system.file("examples", "full-model-workflow.R", package="vennabers")}.}
+accept this training option. Shared multiclass full-model transfer is an R
+extension, not Python pair-model training parity. It uses the same full class
+matrix for every subproblem and fold, with binary aggregation before multiclass
+combination. See the installed examples \code{full-model-workflow.R} and
+\code{full-multiclass-workflow.R} under \code{system.file("examples", package="vennabers")};
+the latter shows native/decoded diagnostics, repeated outer assessment,
+\code{last_fit()} and the unchanged yardstick Brier factor of two.}
 \examples{
 source(system.file("examples", "calibrated-workflow.R", package = "vennabers"))
 source(system.file("examples", "full-model-workflow.R", package = "vennabers"))

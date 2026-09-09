@@ -1,5 +1,15 @@
 # vennabers (development)
 
+- Extend full-model transfer to shared Inductive/Cross OvO and OvR workflows.
+  `model_training = "shared"` is the multiclass default and currently the only
+  offered training option; binary/regression reject explicit training options.
+  This is an R extension, separate from pairwise model training. Complete
+  held-out class matrices/truths remain available after source models are
+  discarded. Native/decoded details retain training mode and model source.
+  Binary aggregation precedes multiclass combination; class ties, precision
+  and yardstick conventions remain unchanged. Add component reconstruction,
+  outer evaluation, fresh-process restoration and an installed example.
+
 - Add explicit binary `prediction_model = "full"` for Inductive and Cross
   workflows; `"matched"` remains the default. A fresh full recipe/model uses the
   entire local fit domain while held-out values and calibrators remain unchanged.

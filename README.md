@@ -208,8 +208,9 @@ reconstruct final probabilities through OvO coupling or OvR normalization. For
 Cross, first merge each binary subproblem across folds using Log/Brier, then
 couple or normalize. Never average completed multiclass fold matrices.
 `event_level` is binary-only. This shared R plan does not establish parity with
-Python's separate pair-model training; pair training and full-model transfer
-remain outside this path.
+Python's separate pair-model training. `model_training = "shared"` is the
+multiclass default and currently the only offered training option; explicit
+values are rejected for binary and regression workflows.
 
 The installed evaluation example uses ordinary repeated `fit_resamples()` and a
 prepared resolver, aligns constructor/control event levels, and retains every
@@ -250,9 +251,9 @@ the same RNG kind, versions, seeds, threads, strategy and reproducible engine.
 The engine never sees the outer partition: the example validates each outer
 analysis/assessment pair before fitting. Assessments may overlap across resamples.
 
-## Binary full-model transfer
+## Classification full-model transfer
 
-Set `prediction_model = "full"` when constructing a binary Inductive or Cross
+Set `prediction_model = "full"` when constructing a binary or shared OvO/OvR Inductive or Cross
 `calibrated_workflow()`. The default `"matched"` retains the matching source
 models. Both modes use identical held-out calibration sources on the same plan.
 Full transfer additionally fits a fresh complete recipe/model on all local fit
@@ -261,6 +262,7 @@ New observations use that model once per batch through all retained calibrators.
 
 ```r
 source(system.file("examples", "full-model-workflow.R", package = "vennabers"))
+source(system.file("examples", "full-multiclass-workflow.R", package = "vennabers"))
 ```
 
 Inductive costs two base fits, Cross K+1. `fit_resamples()` and `last_fit()` keep
@@ -272,6 +274,15 @@ RDS retains the full recipe/model, calibration values and calibrators.
 Matching-model calibration/coverage guarantees do not automatically transfer,
 and full transfer need not improve quality. Frozen `calibrate_workflow()` still
 preserves the already trained procedure without fitting a new model.
+
+Shared multiclass full-model transfer is an R extension. One complete class
+matrix supplies every pair/class calibrator and every Cross fold; binary fold
+aggregation precedes OvO coupling or OvR normalization. Native and decoded
+details identify `model_training`, `prediction_model`, `model_source` and the
+original classes and calibration folds. Stored calibration provenance includes
+complete held-out class matrices, factor truths and local row identities.
+The multiclass example checks repeated outer assessments and `last_fit()`;
+yardstick Brier remains half the manual matrix score, also for two classes.
 
 ## Automatic regression workflow calibration
 

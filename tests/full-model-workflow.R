@@ -169,9 +169,6 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     error(calibrated_workflow(base, "truth", prediction_model = bad), "prediction_model")
   }
   error(calibrated_workflow(base, "truth", prediction_m = "full"), "prediction_m")
-  for (classification in c("ovo", "ovr")) for (mode in c("matched", "full")) {
-    error(calibrated_workflow(base, "truth", classification = classification, prediction_model = mode), "prediction_model")
-  }
   reg <- workflows::workflow() |> workflows::add_formula(truth ~ p) |>
     workflows::add_model(parsnip::linear_reg(engine = "lm"))
   error(calibrated_workflow(reg, "truth", prediction_model = "full"), "prediction_model")
