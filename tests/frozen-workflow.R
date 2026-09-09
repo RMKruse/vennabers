@@ -119,7 +119,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
   for (bad in list(base, workflows::extract_fit_parsnip(frozen), workflows::extract_fit_engine(frozen), NULL)) {
     expect_error(calibrate_workflow(bad, calibration, "truth"), "fully fitted workflow")
   }
-  expect_error(calibrate_workflow(regression, calibration, "truth"), "classification")
+  expect_error(calibrate_workflow(regression, calibration, "truth"), "outcome")
   expect_error(calibrate_workflow(frozen, calibration, "wrong"), "outcome")
   for (outcome in list(c("truth", "x"), "", NA_character_, 1)) {
     expect_error(calibrate_workflow(frozen, calibration, outcome), "outcome")

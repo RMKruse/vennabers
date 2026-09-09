@@ -58,7 +58,7 @@ local({
   installed <- installed.packages()
   writeLines(profile, file.path(work_dir, "profile.txt"))
   if (profile == "core") {
-    stopifnot(!any(setdiff(packages, "nnet") %in% rownames(installed)))
+    stopifnot(!any(setdiff(packages, c("nnet", "mgcv")) %in% rownames(installed)))
     Sys.setenv(`_R_CHECK_FORCE_SUGGESTS_` = "false")
   } else {
     for (i in seq_along(packages)) {

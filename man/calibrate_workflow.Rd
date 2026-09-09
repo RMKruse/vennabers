@@ -1,31 +1,34 @@
 \name{calibrate_workflow}
 \alias{calibrate_workflow}
 \alias{predict.vennabers_frozen}
-\title{Calibrate a Frozen Binary Workflow}
+\title{Calibrate a Frozen Workflow}
 \description{Fit only an Inductive Venn-Abers calibrator on new, separate
-calibration data using the final probabilities of an already fitted workflow.
+calibration data using the final predictions of an already fitted workflow.
 The complete workflow, including learned preprocessing and any learned
 postprocessor, is retained unchanged.}
 \usage{
 calibrate_workflow(fitted_workflow, data_calibration, outcome, ...,
   classification = "binary", event_level = "first", precision = NULL,
-  loss = "log")
-\method{predict}{vennabers_frozen}(object, new_data, type = "prob", ...,
+  loss = "log", m = NULL, epsilon = NULL)
+\method{predict}{vennabers_frozen}(object, new_data, type = NULL, ...,
   loss = NULL)
 }
 \arguments{
-\item{fitted_workflow}{A fully fitted binary classification workflow. Single
-parsnip fits, extracted engines, unfitted workflows and other modes are rejected.}
+\item{fitted_workflow}{A fully fitted classification or regression workflow. Single
+parsnip fits, extracted engines and unfitted workflows are rejected.}
 \item{data_calibration}{A nonempty data frame in the original learned input
 format, including the outcome. Do not pre-bake the data. Missing predictor
 values are allowed only if the stored prediction path handles them.}
 \item{outcome}{One column name matching the trained outcome. Calibration truth
 must be a nonmissing factor with exactly the trained class universe. Factor
 levels may be reordered; the stored workflow fixes the output class order.
-A nonempty calibration set observing only one of those classes is allowed.}
-\item{classification}{Currently exactly \code{"binary"}.}
+Binary calibration may observe only one class. OvO/OvR must observe every
+stored class globally. Regression truth must be a finite numeric vector,
+including when all values are 0/1; the workflow fixes the mode.}
+\item{classification}{Exactly \code{"binary"} (default), \code{"ovo"} or \code{"ovr"}.
+Choose OvO/OvR explicitly, including for a two-class matrix problem.}
 \item{event_level}{Exactly \code{"first"} or \code{"second"}, selecting the
-event by the trained class order.}
+event by the trained class order. Only accepted explicitly for binary calibration.}
 \item{precision}{NULL or a finite numeric whole number. Only calibration
 probabilities are rounded, following \code{\link{venn_abers}}. New probabilities
 are never rounded. Changing this option or the event requires a new calibrator,
@@ -33,13 +36,23 @@ but no new base workflow fit.}
 \item{loss}{Constructor: exactly \code{"log"} or \code{"brier"}, saved as the
 prediction default. Predict and \code{venn_abers_details()}: omit to retain that
 default, or override without refitting or changing stored state. Explicit NULL
-is invalid at prediction.}
+is invalid at prediction. Only classification accepts loss or precision.
+Regression rejects explicit classification, event_level, precision and loss
+options, including explicit defaults or NULL.}
+\item{m, epsilon}{Regression moderation. With both NULL, use m = 1. Otherwise
+supply exactly one non-NULL value: a whole number with
+1 <= m <= floor((k-1)/2), or 0 < epsilon < 1 giving
+m = floor(epsilon*(k+1)/2) within that same range, where k is the calibration
+size. At least three observations are needed. Requested values and effective
+m and epsilon = 2*m/(k+1) are retained. Classification rejects these options.}
 \item{object}{A fitted predictor returned by \code{calibrate_workflow()}.}
 \item{new_data}{A data frame in the learned input format. The outcome is not
 needed and, if present, is removed before the original workflow predicts.}
-\item{type}{Exactly \code{"prob"} (default) or \code{"class"}.}
+\item{type}{NULL selects \code{"prob"} for classification and \code{"numeric"} for
+regression. Classification also accepts \code{"class"}. Regression returns
+only numeric points; \code{"conf_int"} and \code{"pred_int"} are unsupported.}
 \item{...}{Must be empty. Constructor argument names must be exact. Unknown,
-training, split, Cross, full-model and regression options are rejected.}
+training, split, Cross and full-model options are rejected.}
 }
 \value{An already fitted \code{vennabers_frozen} predictor, also inheriting
 \code{vennabers_fit}. It is not a trainable workflow or a specification for
@@ -50,14 +63,23 @@ R, package and engine \code{versions}. No additional complete copy of new raw
 calibration data is stored; data already retained by the original workflow remain.
 Prediction returns a tibble with named \code{.pred_<class>} probabilities in
 trained class order, or a factor \code{.pred_class}. The event wins at probability
-0.5. \code{venn_abers_details()} returns the same probability table and binary
-lower/upper bounds and points with row, Inductive fold and event identity.
+0.5 in binary calibration. OvO/OvR ties choose the first stored level.
+Regression returns one double \code{.pred} column.
+\code{venn_abers_details()} returns the same prediction table and binary
+lower/upper bounds and points with row, Inductive fold and event identity;
+OvO/OvR add class-pair or class-against-rest identities. Regression details
+contain row, fold, prediction, lower and upper. IVAR bounds concern regularized
+conditional expectations, not confidence or prediction intervals.
 Zero and one row preserve types and columns; zero rows do not call the base engine.}
 \details{
 Calibration uses the complete public workflow \code{predict(type = "prob")}
-path, including its existing postprocessor exactly once. Missing, extra,
+or \code{predict(type = "numeric")} path, including its existing postprocessor
+exactly once. Missing, extra,
 duplicate or unknown class columns, nonfinite/out-of-range probabilities,
-invalid row sums and changed row counts cause errors. Failures retain original
+invalid row sums and changed row counts cause errors. Multiclass matrices
+are normalized only within the existing 1e-8 row-sum tolerance, by the manual
+core. OvO zero pair sums, coupling, OvR normalization and calibration-only
+rounding use those same cores. Regression requires finite final numeric values. Failures retain original
 class/input names and prediction-stage context. No learned state is renamed,
 refitted or bypassed through an extracted engine or a raw fallback.
 
@@ -68,16 +90,22 @@ automatically verified. Frozen adoption is an R extension, neither Cross
 calibration nor full-model transfer.
 
 \code{saveRDS()} and \code{readRDS()} preserve prediction and diagnostics without
-learning for the tested GLM workflows, including recipes and Tailor. Required
+learning for the tested GLM, multinomial and linear workflows, including recipes
+and Tailor. Required
 packages must be available in the new R process. Engines with external resources
 retain their own storage contracts; no universal portability is promised.
 The integration dependencies are optional; manual cores work without them.
 The installed \code{examples/frozen-binary.R} demonstrates earlier model/recipe
 and postprocessor learning, separate calibration and independent assessment.
+\code{examples/frozen-multiclass-regression.R} demonstrates learned multinomial
+and linear postprocessing with OvO/OvR and IVAR. The original workflow must
+support the requested batch size: for example, the tested probably 1.2.0
+multinomial smooth=FALSE path fails on one row; smooth=TRUE supports it.
+Original prediction failures propagate without modifying the workflow.
 Explicit frozen-schema binding is reserved for the separate schema integration.
 }
 \seealso{\code{\link{calibrated_workflow}}, \code{\link{venn_abers_details}},
-\code{\link{venn_abers}}}
+\code{\link{venn_abers}}, \code{\link{venn_abers_regression}}}
 \examples{
 if (all(vapply(c("parsnip", "workflows", "hardhat", "rsample", "recipes",
                 "rlang", "tibble", "withr", "generics", "tidyselect"),

@@ -17,7 +17,7 @@ packages: the examples use \code{stats} for GLM/LM and \code{nnet} for a shared
 multinomial model. Fresh parallel workers must load \code{vennabers} and those
 engine namespaces, for example through \code{control_resamples(pkgs = ...)}.
 Reversible name encoding for binary, OvO/OvR and regression is available through \code{venn_abers_schema()}.
-Frozen binary workflow adoption is available through \code{\link{calibrate_workflow}}.
+Frozen classification/regression workflow adoption is available through \code{\link{calibrate_workflow}}.
 Ordered reference holdouts remain separate v0.6 work; pair training/full-model transfer in v0.7, tuning in v0.8 and
 learned postprocessing in v0.9. Shared multiclass training does not establish
 complete Python training parity.

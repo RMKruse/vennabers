@@ -1,5 +1,10 @@
 # vennabers 0.6.0 (development)
 
+- Extend `calibrate_workflow()` to shared OvO/OvR (including two classes) and
+  moderated IVAR. Reuse final frozen workflow outputs, native predictions and
+  method-specific details. Preserve requested/effective moderation and add
+  learned-postprocessor, boundary, no-refit and fresh-process persistence checks.
+
 - Add `calibrate_workflow()` for fully fitted binary workflows, retaining learned
   recipes and postprocessors. Predict and shared details reuse the binary core,
   support loss overrides and preserve classes and empty results. Add no-learning

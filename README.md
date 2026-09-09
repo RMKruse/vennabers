@@ -37,7 +37,7 @@ IVAP prediction still returns three double columns: `lower` and `upper` are
 the Venn-Abers interval endpoints; `probability` is the regularized event
 probability, using log loss by default. These endpoints are not confidence intervals.
 
-## Calibrating an already fitted binary workflow
+## Calibrating an already fitted workflow
 
 `calibrate_workflow(fitted_base, calibration, "truth")` returns an already fitted
 predictor. It learns only the VA calibrator from the original workflow's final
@@ -52,8 +52,8 @@ postprocessing and model selection, and keep final assessment separate as well.
 That history is not automatically checked. This is an R extension for Inductive
 calibration, not a Cross ensemble or full-model transfer. `saveRDS()` retains the
 complete predictor; fresh processes need its packages, and external resources
-retain their engine-specific storage requirements. Frozen schema binding and
-multiclass/regression adoption remain separate work.
+retain their engine-specific storage requirements. Frozen schema binding
+remains separate work.
 
 The installed example includes earlier recipe and Tailor learning, separate new
 calibration and independent assessment (requires Tailor and probably):
@@ -61,6 +61,31 @@ calibration and independent assessment (requires Tailor and probably):
 ```r
 source(system.file("examples", "frozen-binary.R", package = "vennabers"))
 ```
+
+For a shared multiclass workflow, explicitly choose `classification = "ovo"`
+or `"ovr"`, also for a two-class matrix problem. Every stored class must occur
+in calibration; predictions retain the original factor order, and ties select
+its first level. `venn_abers_details()` includes binary pair/OvR results.
+
+A regression workflow selects IVAR automatically. Call
+`calibrate_workflow(fitted_regressor, calibration, "truth", epsilon = .1)`;
+`predict(..., type = "numeric")` returns `.pred`, and `venn_abers_details()`
+returns separate IVAR bounds with row IDs.
+
+Omit both `m` and `epsilon` (or set both to NULL) for `m = 1`; otherwise supply
+exactly one valid moderation parameter. Requested and effective values are saved.
+Regression rejects explicit classification, event, loss and precision options.
+IVAR bounds are not confidence or prediction intervals.
+
+The installed example demonstrates all three paths with learned postprocessing:
+
+```r
+source(system.file("examples", "frozen-multiclass-regression.R", package = "vennabers"))
+```
+
+The original workflow must predict successfully at the requested batch size.
+The example uses smooth multinomial Tailor calibration: the tested probably
+1.2.0 `smooth = FALSE` path fails on a single row, and that error is propagated.
 
 ## Automatic classification workflow calibration
 
