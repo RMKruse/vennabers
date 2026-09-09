@@ -326,10 +326,16 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
 
 .base_probability <- function(model, data, classes, event, id = "Inductive1") {
   p <- tryCatch(stats::predict(model, data, type = "prob"),
-                error = function(e) stop(id, " base workflow probability prediction: ", conditionMessage(e), call. = FALSE))
+                error = function(e) stop(id, " base workflow probability prediction for original classes ",
+                  paste(sQuote(classes), collapse = ", "), " and input columns ",
+                  paste(sQuote(names(data)), collapse = ", "), ": ", conditionMessage(e), call. = FALSE))
   .integration_names(names(p), paste(id, "base probability column"))
   expected <- paste0(".pred_", classes)
-  if (!setequal(names(p), expected) || nrow(p) != nrow(data) ||
+  if (is.data.frame(p) && nrow(p) != nrow(data)) {
+    stop(id, " base workflow probability prediction returned ", nrow(p),
+         " rows for ", nrow(data), " input rows.", call. = FALSE)
+  }
+  if (!is.data.frame(p) || !setequal(names(p), expected) ||
       !all(vapply(p, .valid_probability, logical(1))) ||
       any(abs(rowSums(p) - 1) > 1e-8)) {
     stop(id, " base workflow must return finite probabilities for original classes ",
@@ -476,8 +482,11 @@ predict._vennabers_fit <- function(object, new_data, type = NULL, opts = list(),
 venn_abers_details <- function(object, new_data, ..., loss = NULL) {
   .integration_dots(...)
   .integration_packages()
-  state <- workflows::extract_fit_engine(object)
-  if (!inherits(state, "vennabers_fit")) stop("`object` must be a fitted calibrated_workflow().", call. = FALSE)
+  frozen <- inherits(object, "vennabers_frozen")
+  state <- if (frozen) object else workflows::extract_fit_engine(object)
+  if (!inherits(state, "vennabers_fit")) {
+    stop("`object` must be a fitted calibrated_workflow() or calibrate_workflow().", call. = FALSE)
+  }
   if (!is.null(state$schema)) .schema_encoded_data(new_data, state$schema)
   if (!missing(loss)) {
     if (state$parameters$requested$mode == "regression") {
@@ -486,8 +495,9 @@ venn_abers_details <- function(object, new_data, ..., loss = NULL) {
     .validate_choice(loss, c("log", "brier"), "loss")
     state$loss <- loss
   }
-  forged <- hardhat::forge(new_data, blueprint = workflows::extract_mold(object)$blueprint)
-  result <- .integration_prediction(state, forged$predictors, include_details = TRUE)
+  predictors <- if (frozen) .frozen_data(state, new_data) else
+    hardhat::forge(new_data, blueprint = workflows::extract_mold(object)$blueprint)$predictors
+  result <- .integration_prediction(state, predictors, include_details = TRUE)
   result$prediction <- .bind_schema(result$prediction, state$schema)
   .bind_schema(result, state$schema)
 }

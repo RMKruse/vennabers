@@ -37,6 +37,31 @@ IVAP prediction still returns three double columns: `lower` and `upper` are
 the Venn-Abers interval endpoints; `probability` is the regularized event
 probability, using log loss by default. These endpoints are not confidence intervals.
 
+## Calibrating an already fitted binary workflow
+
+`calibrate_workflow(fitted_base, calibration, "truth")` returns an already fitted
+predictor. It learns only the VA calibrator from the original workflow's final
+named probabilities, preserving its learned recipe and any learned postprocessor.
+Supply raw inputs in the learned format; no `bake()` or subsequent `fit()` is needed.
+Use `predict(..., type = "prob")`, `type = "class"`, and `venn_abers_details()`.
+Both event levels, Log/Brier overrides, calibration-only rounding and empty
+predictions are supported. The outcome is removed before the frozen path predicts.
+
+The user must keep the new calibration data outside all earlier training,
+postprocessing and model selection, and keep final assessment separate as well.
+That history is not automatically checked. This is an R extension for Inductive
+calibration, not a Cross ensemble or full-model transfer. `saveRDS()` retains the
+complete predictor; fresh processes need its packages, and external resources
+retain their engine-specific storage requirements. Frozen schema binding and
+multiclass/regression adoption remain separate work.
+
+The installed example includes earlier recipe and Tailor learning, separate new
+calibration and independent assessment (requires Tailor and probably):
+
+```r
+source(system.file("examples", "frozen-binary.R", package = "vennabers"))
+```
+
 ## Automatic classification workflow calibration
 
 `calibrated_workflow(base, outcome = "truth", seed = 42)` wraps a configured,
