@@ -1,5 +1,15 @@
 # vennabers (development)
 
+- Extend `prediction_model = "full"` to Inductive and Cross regression workflows.
+  Keep held-out numeric predictions/truths and fold moderation; fit a fresh full
+  recipe/model and discard temporary source workflows. IVAR's weighted merger
+  and CVAR's separate equal-weight points/bounds remain unchanged. Trainable
+  regression details and descriptive aggregates identify mode and model sources;
+  native `.pred`, decoding and frozen outputs retain their contracts. Add offline
+  component/reconstruction, role/count, outer evaluation and fresh RDS checks,
+  plus an installed matched/full RMSE/MAE example. No coverage or quality
+  guarantee is implied. Python's option belongs to the lower `VennAbersCV` class.
+
 - Extend full-model transfer to shared Inductive/Cross OvO and OvR workflows.
   `model_training = "shared"` is the multiclass default and currently the only
   offered training option; binary/regression reject explicit training options.

@@ -171,7 +171,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
   error(calibrated_workflow(base, "truth", prediction_m = "full"), "prediction_m")
   reg <- workflows::workflow() |> workflows::add_formula(truth ~ p) |>
     workflows::add_model(parsnip::linear_reg(engine = "lm"))
-  error(calibrated_workflow(reg, "truth", prediction_model = "full"), "prediction_model")
+  stopifnot(inherits(calibrated_workflow(reg, "truth", prediction_model = "full"), "workflow"))
   error(predict(fits$full, data, prediction_model = "matched"), "prediction_model")
   error(venn_abers_details(fits$full, data, prediction_model = "matched"), "prediction_model")
   error(calibrate_workflow(state$models$Full1, data, "truth", prediction_model = "full"), "prediction_model")

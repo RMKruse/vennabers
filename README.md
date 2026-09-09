@@ -253,7 +253,7 @@ analysis/assessment pair before fitting. Assessments may overlap across resample
 
 ## Classification full-model transfer
 
-Set `prediction_model = "full"` when constructing a binary or shared OvO/OvR Inductive or Cross
+Set `prediction_model = "full"` when constructing a binary, shared OvO/OvR or regression Inductive or Cross
 `calibrated_workflow()`. The default `"matched"` retains the matching source
 models. Both modes use identical held-out calibration sources on the same plan.
 Full transfer additionally fits a fresh complete recipe/model on all local fit
@@ -263,6 +263,7 @@ New observations use that model once per batch through all retained calibrators.
 ```r
 source(system.file("examples", "full-model-workflow.R", package = "vennabers"))
 source(system.file("examples", "full-multiclass-workflow.R", package = "vennabers"))
+source(system.file("examples", "full-regression-workflow.R", package = "vennabers"))
 ```
 
 Inductive costs two base fits, Cross K+1. `fit_resamples()` and `last_fit()` keep
@@ -283,6 +284,17 @@ original classes and calibration folds. Stored calibration provenance includes
 complete held-out class matrices, factor truths and local row identities.
 The multiclass example checks repeated outer assessments and `last_fit()`;
 yardstick Brier remains half the manual matrix score, also for two classes.
+
+Regression transfer uses the existing weighted IVAR points, including the exact
+zero-weight midpoint rule. CVAR averages complete fold points and each bound
+separately with equal weights. Details carry `prediction_model` and `model_source`;
+Cross descriptive aggregates also identify the mode and list contributing model
+IDs in `model_source`. Decoding preserves numeric values and the original outcome
+name. State retains held-out numeric predictions/truths and fold moderation.
+The installed regression example compares matched/full RMSE and MAE, reconstructs
+bounds and checks outer assessment and `last_fit()`. Python 1.5.4 offers regression
+full-model transfer through the exported lower `VennAbersCV` class; its regression
+facade does not expose that option. Transfer gives no new coverage or quality guarantee.
 
 ## Automatic regression workflow calibration
 

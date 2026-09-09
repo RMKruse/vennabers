@@ -122,7 +122,9 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
       close(actual$prediction$.pred, points$prediction, scale)
       stopifnot(identical(actual$prediction, predict(fitted, data)),
                 identical(actual$prediction, predict(fitted, data, type = "numeric")),
-                identical(names(actual$details), c("row", "fold", "prediction", "lower", "upper")))
+                identical(names(actual$details), c("row", "fold", "prediction", "lower", "upper", "prediction_model", "model_source")),
+                all(actual$details$prediction_model == "matched"),
+                identical(actual$details$model_source, actual$details$fold))
       if (method == "cross") {
         for (id in names(state$folds)) close(as.matrix(actual$details[actual$details$fold == id,
           c("prediction", "lower", "upper")]), as.matrix(expected$folds[[id]]), scale)
@@ -144,7 +146,9 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
                   is.integer(details$details$row), is.character(details$details$fold),
                   all(vapply(details$details[c("prediction", "lower", "upper")], is.double, logical(1))))
         if (!n) stopifnot(counts$predict == pred_count)
-        if (method == "cross") stopifnot(identical(names(details$aggregate), c("row", "lower", "upper")), nrow(details$aggregate) == n)
+        if (method == "cross") stopifnot(identical(names(details$aggregate),
+          c("row", "lower", "upper", "prediction_model", "model_source")), nrow(details$aggregate) == n,
+          identical(details$aggregate$model_source, rep(list(names(state$models)), n)))
       }
       batched <- do.call(rbind, lapply(unname(split(seq_len(nrow(data)), rep(1:3, each = 10))),
         function(rows) predict(fitted, data[rows, ])))

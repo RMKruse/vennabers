@@ -53,8 +53,8 @@ outcome. NULL selects all other supplied columns. Their stored order is canonica
 unused selected columns still have to be supplied for prediction.}
 \item{method}{Exactly \code{"inductive"} (default) or \code{"cross"}.}
 \item{prediction_model}{Exactly \code{"matched"} (default) or \code{"full"}.
-Binary and shared OvO/OvR classification; explicit values, including the default,
-are rejected for regression. This is a fixed fit option; predict cannot change it.
+Available for binary/shared OvO/OvR classification and regression.
+This is a fixed fit option; predict cannot change it.
 Matched uses each calibration source model for new observations. Full applies
 the unchanged held-out calibrators to predictions from one additional workflow
 trained on the entire permitted local fit domain, including calibration rows.}
@@ -129,7 +129,7 @@ probability table) and \code{details}: integer \code{row}, character \code{fold}
 \code{lower}, \code{upper}, \code{probability}. Cross details contain one row per
 new observation and fold; their probability is the fold point, while
 \code{prediction} contains the final aggregate.
-Trainable classification details also contain character \code{prediction_model} and
+Trainable workflow details also contain character \code{prediction_model} and
 \code{model_source}. The source is the fold ID in matched mode, or \code{"Full1"}
 for every fold in full mode. These are model metadata, separate from original
 class identities and the \code{fold} identifying the held-out calibrator;
@@ -145,7 +145,10 @@ Regression returns the native \code{.pred} table as \code{prediction}, and
 \code{details} with integer \code{row}, character \code{fold}, and double
 \code{prediction}, \code{lower}, \code{upper}. Cross additionally returns
 \code{aggregate} with \code{row}, \code{lower}, \code{upper}: descriptive
-separate equal-weight means of fold bounds. Zero/one rows retain these schemas.}
+separate equal-weight means of fold bounds. Trainable regression aggregates also
+contain character \code{prediction_model} and a \code{model_source} list column:
+each row lists all contributing source model IDs (only \code{"Full1"} in full mode).
+Zero/one rows retain these schemas. Frozen regression outputs retain their existing schema.}
 \details{
 All learned preprocessing belongs in the base workflow; the outer Variables
 preprocessor only carries raw data. Training and calibration positions must form a
@@ -186,7 +189,9 @@ fitted base workflows named by the same IDs, or only \code{Full1} in full mode),
 with original local integer \code{row}, logical event \code{truth} and unrounded
 double held-out \code{probability}; for multiclass: one list per fold with
 integer \code{row}, factor \code{truth} retaining all levels, and the complete
-unrounded named class matrix \code{probability}), \code{versions}, and \code{rng_kind}.
+unrounded named class matrix \code{probability}; for regression: a data frame per
+fold with integer \code{row}, numeric \code{truth} and held-out double
+\code{prediction}), \code{versions}, and \code{rng_kind}.
 Full mode fits the source recipes/models only on each analysis portion, then
 fits a fresh complete recipe/model on all local fit rows. No source recipe
 statistics are reused. Only after success are temporary source workflows
@@ -206,11 +211,12 @@ fold ID. Each \code{folds[[id]]$moderation} stores \code{requested}, effective
 \code{m} and effective \code{epsilon=2*m/(k+1)}, alongside the fold sizes.
 Implicit classification options are absent from effective settings; class levels,
 event class and loss are NULL. The calibrator is the unchanged IVAR or CVAR core.
-IVAR keeps its full analysis-trained workflow and weighted points, including the
-midpoint when both weights vanish. CVAR keeps every matching workflow/recipe and
-calibrator and averages points, lower bounds and upper bounds separately with
-equal weights, regardless of fold size. No full-data transfer, rounding or
-probability constraint is applied to regression predictions.
+IVAR uses weighted points, including the midpoint when both weights vanish.
+CVAR averages complete fold points, lower bounds and upper bounds separately
+with equal weights, regardless of fold size; it never merges averaged bounds.
+Matched mode retains each source workflow/recipe. Full mode retains one fresh
+full workflow and applies its numeric prediction to every held-out calibrator.
+No rounding or probability constraint is applied to regression predictions.
 For OvO/OvR, the global \code{event_class} and effective \code{event_level} are
 NULL; events belong to subproblems in details. The calibrator stores the original
 classes and chosen multiclass method.
@@ -328,7 +334,11 @@ matrix for every subproblem and fold, with binary aggregation before multiclass
 combination. See the installed examples \code{full-model-workflow.R} and
 \code{full-multiclass-workflow.R} under \code{system.file("examples", package="vennabers")};
 the latter shows native/decoded diagnostics, repeated outer assessment,
-\code{last_fit()} and the unchanged yardstick Brier factor of two.}
+\code{last_fit()} and the unchanged yardstick Brier factor of two.
+\code{full-regression-workflow.R} demonstrates IVAR/CVAR transfer, RMSE/MAE,
+decoded numeric predictions and reconstruction of descriptive bounds. The Python
+1.5.4 full-model regression option belongs to the exported lower
+\code{VennAbersCV} class, not its regression facade.}
 \examples{
 source(system.file("examples", "calibrated-workflow.R", package = "vennabers"))
 source(system.file("examples", "full-model-workflow.R", package = "vennabers"))

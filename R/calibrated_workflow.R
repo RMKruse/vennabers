@@ -48,9 +48,6 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     if (inherits(pre, "recipe") && !is.null(pre$template)) .schema_encoded_data(pre$template, schema, truth = TRUE)
   }
   regression <- mode == "regression"
-  if (regression && !missing(prediction_model)) {
-    stop("`prediction_model` requires a classification workflow.", call. = FALSE)
-  }
   if ((regression || classification == "binary") && !missing(model_training)) {
     stop("`model_training` requires classification = 'ovo' or 'ovr'.", call. = FALSE)
   }
@@ -242,7 +239,6 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     stop("Base workflow outcome must be ", sQuote(outcome), ".", call. = FALSE)
   }
   effective <- settings
-  if (regression) effective$prediction_model <- NULL
   if (multiclass) effective$event_level <- NULL
   if (regression) effective[c("classification", "event_level", "loss", "precision")] <- NULL
   effective$predictors <- names(x)
@@ -326,15 +322,17 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     names(core$calibrators) <- core$folds
     core
   } else venn_abers(truths[[1L]], calibration_predictions[[1L]], precision = settings$precision)
-  calibration <- if (!regression) stats::setNames(lapply(seq_along(folds), function(k) {
+  calibration <- stats::setNames(lapply(seq_along(folds), function(k) {
+    if (regression) data.frame(row = folds[[k]]$assessment, truth = truths[[k]], prediction = calibration_predictions[[k]]) else
     if (multiclass) list(row = folds[[k]]$assessment, truth = truths[[k]], probability = calibration_predictions[[k]]) else
       data.frame(row = folds[[k]]$assessment, truth = truths[[k]], probability = calibration_predictions[[k]])
-  }), names(folds)) else NULL
+  }), names(folds))
   if (identical(settings$prediction_model, "full")) {
     full_model <- tryCatch(generics::fit(base_workflow, raw),
       error = function(e) stop("Full1 base workflow training: ", conditionMessage(e), call. = FALSE))
     # Check the prediction contract without using full-model values for calibration.
-    .base_probability(full_model, raw[1L, , drop = FALSE], classes, event, "Full1")
+    if (regression) .base_numeric(full_model, raw[1L, , drop = FALSE], "Full1") else
+      .base_probability(full_model, raw[1L, , drop = FALSE], classes, event, "Full1")
     # Discard temporary source workflows only after the complete fit succeeds.
     models <- list(Full1 = full_model)
   }
@@ -469,10 +467,14 @@ print.vennabers_fit <- function(x, ...) {
 
 .integration_regression_prediction <- function(object, new_data, include_details = FALSE) {
   cross <- object$parameters$requested$method == "cross"
+  mode <- object$parameters$requested$prediction_model
   p <- lapply(names(object$models), function(id) {
     if (nrow(new_data)) .base_numeric(object$models[[id]], new_data, id) else numeric()
   })
   names(p) <- names(object$models)
+  if (identical(mode, "full")) {
+    p <- stats::setNames(rep(p, length(object$folds)), names(object$folds))
+  }
   if (cross) {
     result <- stats::predict(object$calibrator, do.call(cbind, p),
                              type = if (include_details) "details" else "response")
@@ -487,10 +489,19 @@ print.vennabers_fit <- function(x, ...) {
   details <- do.call(rbind, lapply(names(folds), function(id) {
     data.frame(row = seq_len(nrow(new_data)), fold = rep(id, nrow(new_data)), folds[[id]])
   }))
+  if (!is.null(mode)) {
+    details$prediction_model <- rep(mode, nrow(details))
+    details$model_source <- if (identical(mode, "full")) rep("Full1", nrow(details)) else details$fold
+  }
   result <- list(prediction = prediction,
                  details = tibble::as_tibble(details))
-  if (cross) result$aggregate <- tibble::tibble(row = seq_len(nrow(new_data)),
-                                               lower = points$lower, upper = points$upper)
+  if (cross) {
+    result$aggregate <- tibble::tibble(row = seq_len(nrow(new_data)), lower = points$lower, upper = points$upper)
+    if (!is.null(mode)) {
+      result$aggregate$prediction_model <- rep(mode, nrow(new_data))
+      result$aggregate$model_source <- rep(list(names(object$models)), nrow(new_data))
+    }
+  }
   result
 }
 
