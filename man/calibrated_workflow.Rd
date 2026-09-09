@@ -19,8 +19,8 @@ engine namespaces, for example through \code{control_resamples(pkgs = ...)}.
 Reversible name encoding for binary, OvO/OvR and regression is available through \code{venn_abers_schema()}.
 Frozen classification/regression workflow adoption is available through \code{\link{calibrate_workflow}}.
 Ordered reference holdouts and binary/shared multiclass full-model transfer are supported.
-Matching Inductive and Cross pair training are also supported; full pair training remains
-separate v0.7 work, tuning in v0.8 and
+Matched/full Inductive and Cross pair training are also supported in v0.7.
+Automatic local tuning follows in v0.8 and
 learned postprocessing in v0.9. Shared multiclass training does not establish
 complete Python training parity.
 }
@@ -401,6 +401,10 @@ partitions, reconstruction, native/decoded diagnostics and outer fit costs.
 Both examples compare matched/full predictions, costs and held-out scores;
 matching-model guarantees do not automatically transfer and better quality is not promised.
 }
+\section{Printed costs}{The fitted engine prints source mappings, the number of base
+fits (including temporary source fits discarded in full mode), models used per
+nonempty prediction, and stored calibration rows containing held-out truth and
+model predictions. Pairwise calibration rows count membership in each pair.}
 \section{Full-model transfer}{For \code{prediction_model="full"}, the split isolates
 calibration observations from source learning only. The extra full model includes
 them. Existing matching-model calibration or coverage guarantees do not

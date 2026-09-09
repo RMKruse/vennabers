@@ -1,4 +1,11 @@
-# vennabers (development)
+# vennabers 0.7.0
+
+- Print trained predictors with their source mapping, base fit count, retained
+  prediction-model count and stored held-out calibration rows. Keep matched/shared
+  defaults and manual/frozen APIs. Fixed settings cover all 20 training paths;
+  automatic tuning follows in v0.8 and new postprocessor training in v0.9.
+  Local acceptance retains the v0.6 prerequisite and all missing platform and
+  controlled Linux evidence as release blockers; Actions stays disabled.
 
 - Support `prediction_model = "full"` with pairwise OvO Inductive and Cross
   calibration at fixed settings. Fit one additional workflow per complete local

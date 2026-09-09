@@ -24,7 +24,8 @@ local({
     }
   }
   v06 <- any(grepl("_frozen$", original$plan$case))
-  integration_flag <- if (v06) "--v06" else "--v05"
+  v07 <- any(grepl("^workflow_pair_", original$plan$case))
+  integration_flag <- if (v07) "--v07" else if (v06) "--v06" else "--v05"
   check(original, TRUE, "original bundle")
   # Plan configuration must describe the saved input, including unused options.
   metadata <- list(calibration = 1L, prediction = 1L, classes = 999L, folds = 999L,
@@ -188,10 +189,38 @@ local({
         saveRDS(broken, path, version = 3)
         bad <- original
         bad$plan$input_md5[bad$plan$case == id] <- unname(tools::md5sum(path))
-        check(bad, FALSE, paste("invalid v0.6", fault), "--v06")
+        check(bad, FALSE, paste("invalid v0.6", fault), integration_flag)
       }
       saveRDS(input, path, version = 3)
-      check(original, TRUE, "restored v0.6 input", "--v06")
+      check(original, TRUE, "restored v0.6 input", integration_flag)
+    }
+  }
+  if (v07) {
+    id <- "workflow_pair_10_cross_full"
+    bad <- original
+    for (table in names) bad[[table]] <- bad[[table]][bad[[table]]$case != id, ]
+    check(bad, FALSE, "missing ten-class full Cross pair case", integration_flag)
+    path <- file.path(work, paste0(id, "-input.rds"))
+    input <- readRDS(path)
+    for (fault in c("pair", "inner", "source")) {
+      broken <- input
+      if (fault == "pair") broken$split[[1L]] <- broken$split[[2L]]
+      if (fault == "inner") broken$inner[[1L]] <- broken$inner[[2L]]
+      if (fault == "source") broken$prediction_model <- "matched"
+      saveRDS(broken, path, version = 3)
+      bad <- original
+      bad$plan$input_md5[bad$plan$case == id] <- unname(tools::md5sum(path))
+      check(bad, FALSE, paste("invalid pair", fault), integration_flag)
+    }
+    saveRDS(input, path, version = 3)
+    check(original, TRUE, "restored pair input", integration_flag)
+    # Coherently edited summaries cannot conceal an incorrect actual fit/model count.
+    for (metric in c("fit_count", "retained_models", "outer_fit_count")) {
+      bad <- original
+      bad$runs[[metric]][bad$runs$case == id] <- 999L
+      bad$medians[[metric]][bad$medians$case == id] <- 999L
+      bad$comparison[[paste0(metric, "_current")]][bad$comparison$case == id] <- 999L
+      check(bad, FALSE, paste("impossible", metric), integration_flag)
     }
   }
   cat("Benchmark verifier regression checks passed.\n")

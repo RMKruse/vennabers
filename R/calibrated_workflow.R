@@ -478,6 +478,15 @@ print.vennabers_fit <- function(x, ...) {
     cat("Prediction model:", settings$prediction_model,
         if (settings$prediction_model == "full") "(full-model transfer)" else "", "\n")
   }
+  components <- if (identical(settings$model_training, "pairwise")) x$pair_models else list(x)
+  source_fits <- sum(vapply(components, function(part) length(part$folds), 1L))
+  retained <- sum(vapply(components, function(part) length(part$models), 1L))
+  calibration_rows <- sum(vapply(components, function(part) {
+    sum(vapply(part$calibration, function(values) length(values$row), 1L))
+  }, 0))
+  cat("Base fits:", source_fits + if (identical(settings$prediction_model, "full")) length(components) else 0L, "\n")
+  cat("Models per nonempty prediction:", retained, "\n")
+  cat("Stored calibration rows:", calibration_rows, "(held-out truth and model predictions)\n")
   if (identical(settings$model_training, "pairwise")) {
     for (id in names(x$pair_models)) for (fold in names(x$pair_models[[id]]$folds)) {
       cat(" ", id, fold, "->", id,

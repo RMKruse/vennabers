@@ -1,4 +1,4 @@
-# Separate from package checks. See tools/acceptance-v06.md for the protocol.
+# Separate from package checks. See tools/acceptance-v07.md for the protocol.
 local({
   args <- commandArgs(TRUE)
   script <- normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)))
@@ -20,6 +20,7 @@ local({
     integration <- isTRUE(case$integration)
     regression <- identical(case$method, "regression")
     frozen <- isTRUE(case$frozen)
+    pairwise <- identical(case$model_training, "pairwise")
     encoded <- !is.null(case$schema)
     fit_args <- if (regression) c(list(truth = case$truth, prediction = case$prediction), case$moderation)
                 else list(truth = case$truth, probability = case$probability)
@@ -50,10 +51,12 @@ local({
     if (integration) {
       # Construct/validate the public procedure inside each timing window.
       procedure <- function(outer = FALSE) {
-        splits <- if (outer) local_calibration_splits(case$inner, names(case$data)) else case$split
+        splits <- if (outer) local_calibration_splits(if (pairwise) unlist(case$inner, recursive = FALSE) else case$inner, names(case$data)) else case$split
         do.call(calibrated_workflow, c(list(workflow = case$base, outcome = if (encoded) case$schema$encoded_outcome else "truth",
           method = if (case$cross) "cross" else "inductive", splits = splits, seed = case$seed),
           if (encoded) list(schema = case$schema),
+          if (!is.null(case$prediction_model)) list(prediction_model = case$prediction_model),
+          if (pairwise) list(model_training = "pairwise"),
           if (regression) case$moderation else list(classification = case$method, loss = case$loss)))
       }
       fit_function <- function() generics::fit(procedure(), case$data)
@@ -70,8 +73,19 @@ local({
         yardstick::metric_set(yardstick::brier_class, yardstick::mn_log_loss)
       control <- tune::control_resamples(save_pred = TRUE, allow_par = FALSE)
     }
-    rows <- vector("list", 4L)
-    for (iteration in 0:3) {
+    # Count actual engine calls, including complete outer fitting, without replacing engines.
+    counter <- new.env(parent = emptyenv())
+    counter$n <- 0L
+    if (integration) {
+      engine <- if (regression) "lm" else if (case$method == "binary" || pairwise) "glm" else "multinom"
+      namespace <- if (engine == "multinom") asNamespace("nnet") else asNamespace("stats")
+      trace(engine, where = namespace, tracer = bquote(assign("n", .(counter)$n + 1L, envir = .(counter))), print = FALSE)
+      on.exit(untrace(engine, where = namespace), add = TRUE)
+    }
+    iterations <- if (length(args) >= 6L) as.integer(args[6L]) else 0:3
+    stopifnot(all(iterations %in% 0:3))
+    rows <- list()
+    for (iteration in iterations) {
       gc()
       schema_time <- encode_time <- decode_time <- 0
       if (encoded) {
@@ -84,12 +98,22 @@ local({
         })[["elapsed"]]
         stopifnot(identical(data, case$data), identical(new, case$newdata))
       }
+      before <- counter$n
       fit_time <- system.time(model <- do.call(fit_function, fit_args))[["elapsed"]]
+      fit_count <- counter$n - before
+      retained_models <- if (!integration) 0L else if (frozen) length(model$models) else {
+        state <- workflows::extract_fit_engine(model)
+        if (pairwise) sum(vapply(state$pair_models, function(x) length(x$models), 1L)) else length(state$models)
+      }
       predict_time <- system.time(prediction <- do.call(predict, c(list(model), predict_args)))[["elapsed"]]
+      stopifnot(counter$n == before + fit_count)
+      outer_fit_count <- 0L
       outer_time <- 0 # Not applicable to caller-supplied manual predictions.
       if (integration && !frozen) {
+        before <- counter$n
         outer_time <- system.time(evaluation <- withr::with_seed(case$seed,
           tune::fit_resamples(procedure(TRUE), case$outer, metrics = metrics, control = control)))[["elapsed"]]
+        outer_fit_count <- counter$n - before
         collected <- tune::collect_predictions(evaluation)
         measured <- tune::collect_metrics(evaluation, summarize = FALSE)
         stopifnot(nrow(tune::collect_notes(evaluation)) == 0L,
@@ -119,7 +143,7 @@ local({
       saveRDS(prediction, paste0(prefix, "-prediction.rds"), compress = "gzip", version = 3)
       restored <- readRDS(paste0(prefix, "-model.rds"))
       stopifnot(identical(prediction, do.call(predict, c(list(restored), predict_args))))
-      rows[[iteration + 1L]] <- data.frame(iteration, fit_seconds = fit_time,
+      rows[[length(rows) + 1L]] <- data.frame(iteration, fit_count, retained_models, outer_fit_count, fit_seconds = fit_time,
         predict_seconds = predict_time, outer_seconds = outer_time,
         schema_seconds = schema_time, encode_seconds = encode_time, decode_seconds = decode_time, rds_bytes = file.info(paste0(prefix, "-model.rds"))$size)
       rm(model, restored, prediction, values)
@@ -129,6 +153,8 @@ local({
     return(invisible(NULL))
   }
 
+  prepare_only <- "--prepare-only" %in% args
+  args <- args[args != "--prepare-only"]
   smoke <- "--smoke" %in% args
   args <- args[args != "--smoke"]
   if (length(args) != 3L) stop("Usage: Rscript tools/performance.R CURRENT.tar.gz PREVIOUS.tar.gz OUTPUT [--smoke]")
@@ -145,9 +171,10 @@ local({
   on.exit(unlink(metadata, recursive = TRUE), add = TRUE)
   utils::untar(artifacts[1L], files = "vennabers/DESCRIPTION", exdir = metadata)
   current_version <- read.dcf(file.path(metadata, "vennabers/DESCRIPTION"), fields = "Version")[[1L]]
-  stopifnot(current_version %in% c("0.4.0", "0.5.0", "0.6.0"))
-  v06 <- current_version == "0.6.0"
-  v05 <- current_version %in% c("0.5.0", "0.6.0")
+  stopifnot(current_version %in% c("0.4.0", "0.5.0", "0.6.0", "0.7.0"))
+  v07 <- current_version == "0.7.0"
+  v06 <- current_version %in% c("0.6.0", "0.7.0")
+  v05 <- current_version %in% c("0.5.0", "0.6.0", "0.7.0")
   run <- function(command, arguments, log) {
     status <- system2(command, arguments, stdout = log, stderr = log)
     if (status != 0L) stop("Command failed; see ", log)
@@ -179,7 +206,7 @@ local({
     run(file.path(R.home("bin"), "R"), c("CMD", "INSTALL", paste0("--library=", shQuote(lib)), shQuote(artifacts[i])),
         file.path(output, paste0(c("current", "previous")[i], "-install.log")))
     version <- read.dcf(file.path(lib, "vennabers", "DESCRIPTION"), fields = "Version")[[1L]]
-    stopifnot(version == if (i == 1L) current_version else if (v06) "0.5.0" else if (v05) "0.4.0" else "0.3.0")
+    stopifnot(version == if (i == 1L) current_version else if (v07) "0.6.0" else if (v06) "0.5.0" else if (v05) "0.4.0" else "0.3.0")
   }
   if (v06) {
     .libPaths(c(file.path(output, "current-library"), .libPaths()))
@@ -347,17 +374,58 @@ local({
       }
     }
   }
+  if (v07) {
+    # Eight shared full paths reuse the exact historical data/partitions.
+    for (method in c("binary", "ovo", "ovr", "regression")) for (cross in c(FALSE, TRUE)) {
+      id <- paste("workflow", method, if (cross) "cross" else "inductive", sep = "_")
+      case <- cases[[id]]
+      case$prediction_model <- "full"
+      cases[[paste0(id, "_full")]] <- case
+    }
+    # Pair models learn GLMs and normalization separately on each actual local pair.
+    set.seed(20260912)
+    ten_truth <- factor(sample(paste0("class", 1:10), 2000L, replace = TRUE))
+    for (k in c(3L, 10L)) for (cross in c(FALSE, TRUE)) {
+      case <- cases[[paste("workflow_ovo", if (cross) "cross" else "inductive", sep = "_")]]
+      if (k == 10L) case$data$truth <- case$truth <- ten_truth
+      case$model_training <- "pairwise"
+      case$generator_seed <- if (k == 10L) 20260912L else 20260910L
+      case$base <- workflows::update_model(case$base, parsnip::logistic_reg(engine = "glm"))
+      # The template's outcome domain must follow the ten-class input too.
+      formula <- stats::as.formula("truth ~ .", env = baseenv())
+      selector <- rlang::new_quosure(quote(recipes::all_numeric_predictors()), env = baseenv())
+      case$base <- workflows::update_recipe(case$base, recipes::recipe(formula, case$data) |>
+        recipes::step_normalize(!!selector))
+      pair_plans <- function(data) {
+        pairs <- combn(levels(data$truth), 2L, simplify = FALSE)
+        setNames(lapply(pairs, function(pair) {
+          local <- data[data$truth %in% pair, , drop = FALSE]
+          local$truth <- factor(local$truth, levels = pair)
+          withr::with_seed(3501, if (cross) rsample::vfold_cv(local, v = 5) else
+            rsample::initial_split(local, prop = .8))
+        }), paste0("pair_", seq_along(pairs)))
+      }
+      case$split <- pair_plans(case$data)
+      case$outer <- withr::with_seed(3502, rsample::vfold_cv(case$data, v = 3))
+      case$inner <- lapply(case$outer$splits, function(s) pair_plans(rsample::analysis(s)))
+      case$fold <- NULL # Pair fold membership is stored in each bound local split.
+      for (mode in c("matched", "full")) {
+        case$prediction_model <- mode
+        cases[[paste("workflow_pair", k, if (cross) "cross" else "inductive", mode, sep = "_")]] <- case
+      }
+    }
+  }
   for (id in names(cases)) saveRDS(cases[[id]], file.path(output, paste0(id, "-input.rds")), version = 3)
   plan <- do.call(rbind, lapply(names(cases), function(id) {
     x <- cases[[id]]
     data.frame(case = id, calibration = length(x$truth), prediction = x$n_new,
                classes = if (x$method == "regression") NA_integer_ else if (is.factor(x$truth)) nlevels(x$truth) else 2L,
-               folds = if (x$cross) length(unique(x$fold)) else 1L,
+               folds = if (identical(x$model_training, "pairwise")) { if (x$cross) 5L else 1L } else if (x$cross) length(unique(x$fold)) else 1L,
                method = x$method, loss = x$loss,
                precision = if (is.null(x$precision)) NA_real_ else x$precision,
                m = if (is.null(x$moderation$m)) NA_real_ else x$moderation$m,
                epsilon = if (is.null(x$moderation$epsilon)) NA_real_ else x$moderation$epsilon,
-               previous_supported = if (v06) is.null(x$variant) else !isTRUE(x$integration) && (v05 || x$method != "regression"),
+               previous_supported = if (v07) is.null(x$prediction_model) else if (v06) is.null(x$variant) else !isTRUE(x$integration) && (v05 || x$method != "regression"),
                input_md5 = unname(tools::md5sum(file.path(output, paste0(id, "-input.rds")))))
   }))
   write.csv(plan, file.path(output, "plan.csv"), row.names = FALSE)
@@ -365,6 +433,10 @@ local({
      regression_prediction, regression_truth, regression_new)
   gc()
 
+  if (prepare_only) {
+    cat("Inputs prepared; no measurements or release evidence.\n")
+    return(invisible(NULL))
+  }
   all_runs <- list()
   for (release in c("current", "previous")) {
     i <- match(release, c("current", "previous"))
@@ -376,28 +448,38 @@ local({
       prefix <- file.path(output, paste(release, id, sep = "-"))
       worker <- c(shQuote(rscript), "--vanilla", shQuote(script), "--case",
                   shQuote(file.path(output, paste0(id, "-input.rds"))), shQuote(lib), shQuote(prefix), version)
-      run("/usr/bin/time", c(if (linux) "-v" else "-l", worker), paste0(prefix, "-process.log"))
-      restore <- worker[-1L]
-      restore[restore == "--case"] <- "--restore"
-      run(rscript, restore, paste0(prefix, "-restore.log"))
-      log <- readLines(paste0(prefix, "-process.log"))
-      peak_line <- grep(if (linux) "Maximum resident set size" else "maximum resident set size", log, value = TRUE)
-      stopifnot(length(peak_line) == 1L)
-      peak <- if (linux) as.numeric(sub(".*: *", "", peak_line)) * 1024 else as.numeric(sub("^ *([0-9]+).*", "\\1", peak_line))
-      stopifnot(is.finite(peak), peak > 0)
-      runs <- read.csv(paste0(prefix, "-runs.csv"))
-      runs$release <- release; runs$case <- id; runs$process_peak_bytes <- peak
+      # v0.7 uses a fresh process for EVERY warmup/measurement, on both artifacts.
+      batches <- if (v07) as.list(0:3) else list(NULL)
+      measured_runs <- list()
+      for (iteration in batches) {
+        suffix <- if (is.null(iteration)) "" else paste0("-", iteration)
+        process_log <- paste0(prefix, suffix, "-process.log")
+        run("/usr/bin/time", c(if (linux) "-v" else "-l", worker, iteration), process_log)
+        restore <- worker[-1L]
+        restore[restore == "--case"] <- "--restore"
+        run(rscript, restore, paste0(prefix, suffix, "-restore.log"))
+        log <- readLines(process_log)
+        peak_line <- grep(if (linux) "Maximum resident set size" else "maximum resident set size", log, value = TRUE)
+        stopifnot(length(peak_line) == 1L)
+        peak <- if (linux) as.numeric(sub(".*: *", "", peak_line)) * 1024 else as.numeric(sub("^ *([0-9]+).*", "\\1", peak_line))
+        stopifnot(is.finite(peak), peak > 0)
+        runs <- read.csv(paste0(prefix, "-runs.csv"))
+        runs$release <- release; runs$case <- id; runs$process_peak_bytes <- peak
+        measured_runs[[length(measured_runs) + 1L]] <- runs
+      }
+      runs <- do.call(rbind, measured_runs)
+      write.csv(runs, paste0(prefix, "-runs.csv"), row.names = FALSE)
       all_runs[[paste(release, id)]] <- runs
     }
   }
   runs <- do.call(rbind, all_runs)
   write.csv(runs, file.path(output, "runs.csv"), row.names = FALSE)
-  medians <- aggregate(cbind(fit_seconds, predict_seconds, outer_seconds, schema_seconds, encode_seconds, decode_seconds, rds_bytes, process_peak_bytes) ~ release + case,
+  medians <- aggregate(cbind(fit_count, retained_models, outer_fit_count, fit_seconds, predict_seconds, outer_seconds, schema_seconds, encode_seconds, decode_seconds, rds_bytes, process_peak_bytes) ~ release + case,
                        runs[runs$iteration > 0L, ], median)
   write.csv(medians, file.path(output, "medians.csv"), row.names = FALSE)
   comparison <- merge(medians[medians$release == "current", -1L], medians[medians$release == "previous", -1L],
                       by = "case", all.x = TRUE, suffixes = c("_current", "_previous"))
-  for (metric in c("fit_seconds", "predict_seconds", "outer_seconds", "schema_seconds", "encode_seconds", "decode_seconds", "rds_bytes", "process_peak_bytes")) {
+  for (metric in c("fit_count", "retained_models", "outer_fit_count", "fit_seconds", "predict_seconds", "outer_seconds", "schema_seconds", "encode_seconds", "decode_seconds", "rds_bytes", "process_peak_bytes")) {
     previous <- comparison[[paste0(metric, "_previous")]]
     comparison[[paste0(metric, "_ratio")]] <- ifelse(previous > 0, comparison[[paste0(metric, "_current")]] / previous, NA_real_)
   }

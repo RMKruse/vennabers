@@ -815,46 +815,50 @@ snippets and every R script under `inst/examples/` against that installation.
 Errors, warnings and NOTEs fail the gate. Online CRAN incoming checks and
 clock probes are disabled so the prepared R environment can run offline.
 
-The active [workflow](.github/workflows/acceptance.yaml) requires R 4.6.1 and
-4.5.3 on Linux x86_64, Windows x86_64, macOS Intel and macOS ARM. Linux R-devel
-is an additional visible, non-blocking early warning. New releases require
-at least the previous R minor series; recheck the matrix and `DESCRIPTION`
-floor for each release. Older releases retain their original floor.
+GitHub Actions remains disabled by the documented user decision. The required
+local release matrix is current/previous R minor (4.6.1/4.5.3) on Linux x86_64,
+Windows x86_64, macOS Intel and ARM, plus Linux core without integration packages
+and previous-R minimum dependencies. Linux R-devel is additional early warning.
+The release R floor remains the previous minor series, currently R >= 4.5.0.
 
-Set `ACCEPTANCE_OUTPUT_DIR` to an empty directory to retain the source artifact,
-logs and environment/package versions. Set `ACCEPTANCE_ARTIFACT` to an existing
-source tarball to check that exact candidate instead of rebuilding. CI builds
-once, verifies SHA-256, and checks the same archive on every platform. The
-standalone examples ship in the package; find them after installation with
-`system.file("examples", package = "vennabers")`.
+Set `ACCEPTANCE_OUTPUT_DIR` to an empty directory to retain logs and environment
+versions. Set `ACCEPTANCE_ARTIFACT` to the identified source archive so every
+installation, check and example uses the same candidate. The installed examples
+are available at `system.file("examples", package = "vennabers")`.
 
-See the [v0.4 acceptance record](tools/acceptance-v04.md) for the capability
-map, migration notes, commands, results and the updated approval criterion.
-The [v0.3 record](tools/acceptance-v03.md) records maintainer approval and retains
-the historical evidence. Unexecuted platform and Linux benchmark checks are
-not blockers under the updated v0.4 criterion and are not claimed as passes.
+The [v0.7 local report](tools/acceptance-v07.md) records artifact identity, all 20
+fixed training paths, evidence and open gates. The prior v0.6 release approval,
+unexecuted platform checks and controlled Linux benchmarks remain prerequisites;
+older release waivers do not apply. Remote execution needs a separate decision.
 
-Benchmarks run separately on the documented Linux x86_64 reference machine:
+Benchmarks run separately from package checks on a Linux x86_64 reference machine:
 
 ```sh
-Rscript tools/performance.R vennabers_0.4.0.tar.gz vennabers_0.3.0.tar.gz benchmark-output
-Rscript tools/test-performance.R benchmark-output --v04
+Rscript tools/performance.R vennabers_0.7.0.tar.gz vennabers_0.6.0.tar.gz benchmark-output
+Rscript tools/test-performance.R benchmark-output --v07
 ```
 
-The runner prepares fixed inputs outside measurement, installs both artifacts,
-and runs cases serially in fresh R processes with one warmup and three measured
-runs. It records separate fit/predict times, process peak memory, RDS sizes,
-individual results, medians and predecessor comparisons. All twelve classification
-cases are compared with v0.3. IVAR and CVAR each add baselines for `m = 1` and
-`epsilon = 0.1`, with 10,000 calibration rows, 1,000 new rows and five CVAR folds.
-The runner checks moderation per fold and saves exact inputs and row assignments. Increased
-costs require investigation before approval. `--smoke` permits another platform
-for runner validation and explicitly does not produce release evidence.
+All 48 historical cases remain. The 20 fixed training paths cover binary,
+shared OvO/OvR, pairwise OvO and regression, each Inductive/Cross × matched/full;
+four additional pair cases have ten classes. New workflow cases use 2,000
+rows, ten numeric predictors, 500 new rows, 20% Inductive calibration,
+five Cross folds and three outer folds, with saved inputs and actual local plans.
+For v0.7, every warmup and each of three measurements uses a fresh R process,
+serially with one thread. Fit, Predict and full outer evaluation times, actual
+engine fit counts, retained model counts, peak process memory and RDS size are
+recorded. Fresh restores must predict identically. Common capabilities are
+remeasured on both artifacts; new ones receive baselines. Deteriorations require
+investigation. `--smoke` on another platform supplies no Linux performance clearance.
 
-The unchanged 100,000-calibration / 100,000-prediction IVAP case is retained.
-The comparative protocol replaces the historical 10-second ceiling. Historical
-measurements remain in the [v0.2 record](tools/acceptance-v02.md); they cannot
-substitute for remeasuring v0.3 on the same reference machine.
+Manual and frozen APIs remain available. `matched` and shared training stay the
+defaults; `full` retains held-out calibration values but predicts through a newly
+fitted complete model (one per pair with pairwise training). It costs 2 versus 1
+base fits for Inductive and K+1 versus K for Cross, multiplied by the number of
+pairs where applicable. Full prediction retains one model per shared path/pair;
+matched prediction retains every source model. Tuning follows in v0.8, newly
+trained postprocessing in v0.9; existing frozen postprocessing is preserved.
+No runtime/package installation, calibration/coverage guarantee for transfer,
+or general serialization guarantee is implied.
 
 ### Reversible names for calibrated workflows
 
