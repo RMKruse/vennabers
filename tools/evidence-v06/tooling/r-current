@@ -1,0 +1,4 @@
+#!/bin/sh
+export R_LIBS="/Users/entropy/Git/venn-abers/.scratch/frozen-library:/Users/entropy/Git/venn-abers/.scratch/issue-35/current-dependencies:/tmp/venn-tidymodels-lib:/opt/homebrew/lib/R/4.6/site-library"
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 BLIS_NUM_THREADS=1
+exec /opt/homebrew/Cellar/r/4.6.1/bin/Rscript --vanilla "$@"

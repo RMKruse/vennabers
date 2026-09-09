@@ -1,0 +1,5 @@
+"iteration","fit_seconds","predict_seconds","outer_seconds","schema_seconds","encode_seconds","decode_seconds","rds_bytes"
+0,0.047,0.001,0,0,0,0,100327
+1,0.046,0.001,0,0,0,0,100327
+2,0.046,0,0,0,0,0,100327
+3,0.046,0,0,0,0,0,100327

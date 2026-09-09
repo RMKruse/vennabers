@@ -1,0 +1,5 @@
+Warning message:
+In url("https://cran.r-project.org", open = "rb") :
+  URL 'https://cran.r-project.org/': status was 'Couldn't resolve host name'
+sh: /usr/bin/python3: Operation not permitted
+External network and Python execution denied by sandbox.
