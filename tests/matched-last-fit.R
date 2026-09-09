@@ -52,6 +52,9 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     stopifnot(identical(venn_abers_details(fit, held), venn_abers_details(direct, held)),
       identical(checked$decoded$identity$.row, 91:120),
       identical(state$schema, schema), identical(names(state$models), names(state$folds)))
+    predicted <- venn_abers_decode(venn_abers_details(direct, held), schema)
+    stopifnot(identical(checked$decoded$prediction, predicted$prediction),
+      identical(unname(checked$decoded$probability), unname(predicted$probability)))
     local <- rsample::analysis(split)
     plans <- lapply(state$folds, function(f) rsample::make_splits(f[c("analysis", "assessment")], local))
     for (id in names(plans)) {
