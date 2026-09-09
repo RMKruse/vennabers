@@ -250,6 +250,29 @@ the same RNG kind, versions, seeds, threads, strategy and reproducible engine.
 The engine never sees the outer partition: the example validates each outer
 analysis/assessment pair before fitting. Assessments may overlap across resamples.
 
+## Binary full-model transfer
+
+Set `prediction_model = "full"` when constructing a binary Inductive or Cross
+`calibrated_workflow()`. The default `"matched"` retains the matching source
+models. Both modes use identical held-out calibration sources on the same plan.
+Full transfer additionally fits a fresh complete recipe/model on all local fit
+rows, including calibration rows, and discards the temporary source models.
+New observations use that model once per batch through all retained calibrators.
+
+```r
+source(system.file("examples", "full-model-workflow.R", package = "vennabers"))
+```
+
+Inductive costs two base fits, Cross K+1. `fit_resamples()` and `last_fit()` keep
+all learning inside their analysis data; no final fit includes test data.
+`full` is a fixed fit option, with no prediction-time mode switch or automatic
+selection. The installed `examples/full-model-workflow.R` compares both modes
+on identical plans. Details retain fold identity separately from model source;
+RDS retains the full recipe/model, calibration values and calibrators.
+Matching-model calibration/coverage guarantees do not automatically transfer,
+and full transfer need not improve quality. Frozen `calibrate_workflow()` still
+preserves the already trained procedure without fitting a new model.
+
 ## Automatic regression workflow calibration
 
 The base model's `regression` mode selects IVAR/CVAR, including for numeric 0/1

@@ -115,7 +115,7 @@ if (all(vapply(integration_packages, requireNamespace, logical(1), quietly = TRU
         if (!n) stopifnot(counts$predict == calls)
         stopifnot(identical(small$prediction, prob), nrow(prob) == n,
                   identical(levels(cls$.pred_class), levels(data$truth)),
-                  identical(names(small$details), c("row", "fold", "event_class", "lower", "upper", "probability")),
+                  identical(names(small$details), c("row", "fold", "event_class", "lower", "upper", "probability", "prediction_model", "model_source")),
                   all(vapply(prob, is.double, logical(1))), is.integer(small$details$row),
                   is.character(small$details$fold), is.character(small$details$event_class))
       }

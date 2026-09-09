@@ -147,7 +147,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
         cls <- predict(fitted, small, type = "class", loss = loss)
         stopifnot(nrow(prob) == n, nrow(cls) == n, nrow(details$details) == 3L * n,
                   identical(details$prediction, prob), identical(levels(cls$.pred_class), levels(data$truth)),
-                  identical(names(details$details), c("row", "fold", "event_class", "lower", "upper", "probability")),
+                  identical(names(details$details), c("row", "fold", "event_class", "lower", "upper", "probability", "prediction_model", "model_source")),
                   is.integer(details$details$row), is.character(details$details$fold),
                   is.character(details$details$event_class), all(vapply(prob, is.double, logical(1))))
         if (!n) stopifnot(counts$predict == before_predict)

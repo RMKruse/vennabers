@@ -5,7 +5,8 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                                 method = "inductive", classification = "binary",
                                 event_level = "first", calibration_prop = 0.2, v = 5L,
                                 strata = NULL, splits = NULL, seed = NULL, precision = NULL,
-                                loss = "log", m = NULL, epsilon = NULL, schema = NULL) {
+                                loss = "log", m = NULL, epsilon = NULL, schema = NULL,
+                                prediction_model = "matched") {
   .integration_dots(...)
   # Arguments before ... also need exact names (R otherwise partially matches).
   supplied <- names(sys.call())[-1L]
@@ -37,6 +38,7 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   }
   .validate_choice(method, c("inductive", "cross"), "method")
   .validate_choice(classification, c("binary", "ovo", "ovr"), "classification")
+  .validate_choice(prediction_model, c("matched", "full"), "prediction_model")
   .integration_packages()
   mode <- .validate_base_workflow(workflow, outcome, classification)
   if (!is.null(schema)) {
@@ -45,6 +47,9 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     if (inherits(pre, "recipe") && !is.null(pre$template)) .schema_encoded_data(pre$template, schema, truth = TRUE)
   }
   regression <- mode == "regression"
+  if ((regression || classification != "binary") && !missing(prediction_model)) {
+    stop("`prediction_model` requires a binary classification workflow.", call. = FALSE)
+  }
   if (regression && (explicit_classification || explicit_event ||
                      !missing(precision) || !missing(loss))) {
     stop("Regression does not accept explicit classification, event_level, precision or loss options.", call. = FALSE)
@@ -107,12 +112,12 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   requested <- list(mode = mode, predictors = predictors, method = method, classification = classification,
                     event_level = event_level, calibration_prop = calibration_prop, v = v,
                     strata = strata, splits = splits, seed = seed, precision = precision, loss = loss,
-                    m = m, epsilon = epsilon)
+                    m = m, epsilon = epsilon, prediction_model = prediction_model)
   explicit <- c(predictors = !missing(predictors), method = !missing(method),
                 classification = explicit_classification, event_level = explicit_event,
                 calibration_prop = !missing(calibration_prop), v = !missing(v), strata = !missing(strata),
                 splits = !missing(splits), seed = !missing(seed), precision = !missing(precision), loss = !missing(loss),
-                m = !missing(m), epsilon = !missing(epsilon))
+                m = !missing(m), epsilon = !missing(epsilon), prediction_model = !missing(prediction_model))
   spec <- parsnip::new_model_spec("vennabers", args = list(), eng_args = NULL,
                                 mode = mode, method = NULL, engine = method)
   spec <- parsnip::set_engine(spec, method, base_workflow = workflow,
@@ -231,6 +236,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     stop("Base workflow outcome must be ", sQuote(outcome), ".", call. = FALSE)
   }
   effective <- settings
+  if (regression || multiclass) effective$prediction_model <- NULL
   if (multiclass) effective$event_level <- NULL
   if (regression) effective[c("classification", "event_level", "loss", "precision")] <- NULL
   effective$predictors <- names(x)
@@ -314,12 +320,23 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     names(core$calibrators) <- core$folds
     core
   } else venn_abers(truths[[1L]], calibration_predictions[[1L]], precision = settings$precision)
+  calibration <- if (!regression && !multiclass) stats::setNames(lapply(seq_along(folds), function(k) {
+    data.frame(row = folds[[k]]$assessment, truth = truths[[k]], probability = calibration_predictions[[k]])
+  }), names(folds)) else NULL
+  if (identical(settings$prediction_model, "full")) {
+    full_model <- tryCatch(generics::fit(base_workflow, raw),
+      error = function(e) stop("Full1 base workflow training: ", conditionMessage(e), call. = FALSE))
+    # Check the prediction contract without using full-model values for calibration.
+    .base_probability(full_model, raw[1L, , drop = FALSE], classes, event, "Full1")
+    # Discard temporary source workflows only after the complete fit succeeds.
+    models <- list(Full1 = full_model)
+  }
   structure(list(parameters = parameters, schema = parameters$schema, outcome = outcome,
                  predictors = names(x), columns = names(raw), class_levels = classes,
                  event_class = event, loss = effective$loss,
-                 folds = folds, models = models, calibrator = calibrator,
+                 folds = folds, models = models, calibrator = calibrator, calibration = calibration,
                  versions = c(R = as.character(getRversion()),
-                              vapply(c("vennabers", names(.integration_versions)),
+                              vapply(unique(c("vennabers", names(.integration_versions), generics::required_pkgs(base_workflow))),
                                      function(p) as.character(utils::packageVersion(p)), "")),
                  rng_kind = rng_kind), class = "vennabers_fit")
 }
@@ -371,6 +388,9 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     else numeric()
   })
   names(p) <- names(object$models)
+  if (identical(object$parameters$requested$prediction_model, "full")) {
+    p <- stats::setNames(rep(p, length(object$folds)), names(object$folds))
+  }
   if (multiclass) {
     result <- stats::predict(object$calibrator, if (cross) p else p[[1L]], loss = object$loss,
                              type = if (include_details) "details" else "response")
@@ -392,7 +412,6 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   }
   if (cross) {
     p <- do.call(cbind, p)
-    colnames(p) <- names(object$models)
     result <- stats::predict(object$calibrator, p, loss = object$loss,
                              type = if (include_details) "details" else "response")
     probability <- if (include_details) result$prediction$probability else result$probability
@@ -409,8 +428,28 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   prediction <- tibble::as_tibble(probabilities, .name_repair = "minimal")
   if (!include_details) return(list(prediction = prediction))
   details$event_class <- rep(object$event_class, nrow(details))
+  if (!is.null(object$parameters$requested$prediction_model)) {
+    details$prediction_model <- rep(object$parameters$requested$prediction_model, nrow(details))
+    details$model_source <- if (identical(object$parameters$requested$prediction_model, "full"))
+      rep("Full1", nrow(details)) else details$fold
+  }
   list(prediction = prediction,
-       details = tibble::as_tibble(details[c("row", "fold", "event_class", "lower", "upper", "probability")]))
+       details = tibble::as_tibble(details[c("row", "fold", "event_class", "lower", "upper", "probability",
+                                            intersect(c("prediction_model", "model_source"), names(details)))]))
+}
+
+#' @export
+print.vennabers_fit <- function(x, ...) {
+  settings <- x$parameters$requested
+  cat("Venn-Abers", settings$method, "calibrated predictor\n")
+  if (!is.null(settings$prediction_model)) {
+    cat("Prediction model:", settings$prediction_model,
+        if (settings$prediction_model == "full") "(full-model transfer)" else "", "\n")
+  }
+  for (id in names(x$folds)) {
+    cat(" ", id, "->", if (identical(settings$prediction_model, "full")) "Full1" else id, "\n")
+  }
+  invisible(x)
 }
 
 .integration_regression_prediction <- function(object, new_data, include_details = FALSE) {

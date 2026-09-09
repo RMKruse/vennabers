@@ -1,3 +1,15 @@
+# vennabers (development)
+
+- Add explicit binary `prediction_model = "full"` for Inductive and Cross
+  workflows; `"matched"` remains the default. A fresh full recipe/model uses the
+  entire local fit domain while held-out values and calibrators remain unchanged.
+  Discard temporary source models after success; retain calibration provenance.
+- Full transfer costs 2 or K+1 base fits and one model prediction per nonempty
+  batch. Details/print identify mode and model source. Native prediction, loss
+  overrides, encoding, outer resampling, last_fit and RDS restoration are covered.
+  Frozen calibration has no new training path. No automatic calibration/coverage
+  guarantee or quality improvement follows from transfer to a different model.
+
 # vennabers 0.6.0
 
 - Prepare a local v0.6 candidate and cumulative benchmarks, including separate
