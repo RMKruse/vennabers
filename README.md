@@ -670,20 +670,29 @@ The comparative protocol replaces the historical 10-second ceiling. Historical
 measurements remain in the [v0.2 record](tools/acceptance-v02.md); they cannot
 substitute for remeasuring v0.3 on the same reference machine.
 
-### Reversible names for binary workflows
+### Reversible names for calibrated workflows
 
 Create one schema from the selected development columns, encode the data, and
 build the base formula/recipe and outer resamples on those encoded names. Pass
 `schema$encoded_outcome` and `schema = schema` to `calibrated_workflow()`.
 `venn_abers_decode()` keeps probability matrices, class factors, truth, the
-original outcome name, and resample identities in separate roles, so names such
+numeric regression predictions, original outcome name, and resample identities
+in separate roles, so names such
 as `class`, `.pred_class`, and `id` cannot overwrite each other. Native results
 remain encoded. Detached collector tables require their actually associated
 schema; matching codes alone cannot establish provenance.
 
-The installed example includes preparation, prediction, and a complete repeated
-outer evaluation with exact identity and decoded-metric checks:
+Factor outcomes use `classification = "binary"`, `"ovo"`, or `"ovr"`; only binary
+accepts `event_level`. Numeric outcomes remain regression, including 0/1, and
+require both options to be omitted. Multiclass preserves the complete factor
+level order, including the first-maximum tie rule with two classes. Regression
+keeps numeric points, details and available Cross aggregate bounds.
+
+The installed examples cover all eight trainable methods, with preparation,
+prediction and repeated outer evaluation with exact identity and decoded-metric
+checks:
 
 ```r
 source(system.file("examples", "encoded-binary.R", package = "vennabers"))
+source(system.file("examples", "encoded-multiclass-regression.R", package = "vennabers"))
 ```

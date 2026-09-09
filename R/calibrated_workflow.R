@@ -20,8 +20,8 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
         explicit_event && !identical(event_level, schema$event_level)) {
       stop("Outcome, classification and event_level must agree with `schema`.", call. = FALSE)
     }
-    classification <- schema$classification
-    event_level <- schema$event_level
+    if (schema$mode == "classification") classification <- schema$classification
+    if (identical(schema$classification, "binary")) event_level <- schema$event_level
     if (!is.null(predictors) && !setequal(predictors, setdiff(schema$columns, outcome))) {
       stop("Selected predictors must agree with `schema`.", call. = FALSE)
     }
@@ -45,7 +45,7 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     if (inherits(pre, "recipe") && !is.null(pre$template)) .schema_encoded_data(pre$template, schema, truth = TRUE)
   }
   regression <- mode == "regression"
-  if (regression && (!missing(classification) || !missing(event_level) ||
+  if (regression && (explicit_classification || explicit_event ||
                      !missing(precision) || !missing(loss))) {
     stop("Regression does not accept explicit classification, event_level, precision or loss options.", call. = FALSE)
   }
@@ -65,7 +65,7 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
       stop("`epsilon` must be one finite numeric value strictly between 0 and 1.", call. = FALSE)
     }
   }
-  if (classification != "binary" && !missing(event_level)) {
+  if (classification != "binary" && explicit_event) {
     stop("`event_level` requires classification = 'binary'.", call. = FALSE)
   }
   .validate_choice(event_level, c("first", "second"), "event_level")

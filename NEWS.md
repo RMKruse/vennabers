@@ -1,11 +1,17 @@
 # Development version
 
+- Extend reversible schemas to shared OvO/OvR and regression for Inductive and
+  Cross workflows. Decode original class/truth identities, regression points,
+  all available inner details and Cross regression aggregate bounds. Add installed
+  examples, manual-core comparisons, outer evaluation audits and fresh-process
+  worker checks for all six additional paths.
+
 - Add explicit binary naming schemas, lossless input encoding, and role-based
   decoding of predictions, truth, identities and details. `calibrated_workflow()`
   now accepts `schema` for Inductive/Cross fitting and ordinary outer resampling.
   Schemas preserve exact original names and class/event order without changing
-  the numerical cores or the direct naming contract. Multiclass/regression
-  schemas and frozen workflow adoption remain separate work.
+  the numerical cores or the direct naming contract. Frozen workflow adoption
+  remains separate work.
 
 # vennabers 0.5.0
 

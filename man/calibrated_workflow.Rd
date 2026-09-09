@@ -16,8 +16,8 @@ minimum versions or newer supported versions. Basis engines also need their own
 packages: the examples use \code{stats} for GLM/LM and \code{nnet} for a shared
 multinomial model. Fresh parallel workers must load \code{vennabers} and those
 engine namespaces, for example through \code{control_resamples(pkgs = ...)}.
-Binary reversible name encoding is available through \code{venn_abers_schema()}.
-Frozen workflow adoption, other schema modes and ordered reference holdouts
+Reversible name encoding for binary, OvO/OvR and regression is available through \code{venn_abers_schema()}.
+Frozen workflow adoption and ordered reference holdouts
 remain separate v0.6 work; pair training/full-model transfer in v0.7, tuning in v0.8 and
 learned postprocessing in v0.9. Shared multiclass training does not establish
 complete Python training parity.
@@ -35,8 +35,8 @@ venn_abers_details(object, new_data, ..., loss = NULL)
 \item{workflow}{An unfitted workflows object with a classification or regression model and
 recipe, formula, or variable selection. Prepped or partly trained recipes,
 unresolved tune placeholders, and additional postprocessors are rejected.}
-\item{schema}{NULL retains the direct naming contract. A binary schema from
-\code{venn_abers_schema()} fixes the encoded input names, class order and event.
+\item{schema}{NULL retains the direct naming contract. A schema from
+\code{venn_abers_schema()} fixes the encoded input names, mode, class order and binary event.
 Omitted classification/event options inherit the schema; contradictory explicit
 options fail before learning. Build the base formula/recipe and resamples on
 \code{venn_abers_encode()} data. All schema predictors must be selected.}

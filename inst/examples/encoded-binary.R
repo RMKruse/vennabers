@@ -1,38 +1,4 @@
-# Run against an installed package. This audit is for one fixed configuration.
-check_encoded_evaluation <- function(result, outer, schema) {
-  notes <- tune::collect_notes(result)
-  native <- tune::collect_predictions(result, summarize = FALSE)
-  metrics <- tune::collect_metrics(result, summarize = FALSE)
-  decoded <- vennabers::venn_abers_decode(native, schema)
-  stopifnot(nrow(notes) == 0L, !anyNA(decoded$truth), all(is.finite(metrics$.estimate)))
-  ids <- setdiff(names(outer), "splits")
-  expected <- do.call(rbind, lapply(seq_len(nrow(outer)), function(i) {
-    split <- outer$splits[[i]]
-    rows <- as.integer(split, data = "assessment")
-    stopifnot(!length(intersect(rows, as.integer(split, data = "analysis"))))
-    cbind(as.data.frame(outer[rep(i, length(rows)), ids, drop = FALSE]),
-          .row = rows, .config = "pre0_mod0_post0")
-  }))
-  actual <- decoded$identity
-  stopifnot(!anyNA(actual), !anyDuplicated(actual), nrow(actual) == nrow(expected),
-            nrow(merge(actual, expected, by = names(expected))) == nrow(expected),
-            !anyDuplicated(metrics[c(ids, ".config", ".metric")]), nrow(metrics) == 2L * nrow(outer),
-            all(metrics$.estimator == "binary"), all(metrics$.config == "pre0_mod0_post0"))
-  for (i in seq_len(nrow(outer))) {
-    matches <- function(table) Reduce(`&`, lapply(ids, function(id) table[[id]] == outer[[id]][i]))
-    rows <- matches(actual)
-    truth <- decoded$truth[rows]
-    encoded_truth <- outer$splits[[i]]$data[[schema$encoded_outcome]][actual$.row[rows]]
-    stopifnot(identical(as.character(truth), schema$class_levels[match(as.character(encoded_truth), schema$classes)]))
-    probability <- decoded$probability[rows, schema$event_class]
-    reconstructed <- c(brier_class = yardstick::brier_class_vec(truth, probability, event_level = schema$event_level),
-                       mn_log_loss = yardstick::mn_log_loss_vec(truth, probability, event_level = schema$event_level))
-    m <- metrics[matches(metrics), ]
-    stopifnot(setequal(m$.metric, names(reconstructed)),
-              all(abs(m$.estimate - reconstructed[m$.metric]) <= 1e-10))
-  }
-  invisible(list(decoded = decoded, metrics = metrics, notes = notes))
-}
+source(system.file("examples", "check-encoded-evaluation.R", package = "vennabers"), local = TRUE)
 
 if (all(vapply(c("vennabers", "workflows", "recipes", "rsample", "tune", "yardstick"),
                requireNamespace, logical(1), quietly = TRUE))) {
