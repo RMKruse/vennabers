@@ -9,7 +9,7 @@ postprocessor, is retained unchanged.}
 \usage{
 calibrate_workflow(fitted_workflow, data_calibration, outcome, ...,
   classification = "binary", event_level = "first", precision = NULL,
-  loss = "log", m = NULL, epsilon = NULL)
+  loss = "log", m = NULL, epsilon = NULL, schema = NULL)
 \method{predict}{vennabers_frozen}(object, new_data, type = NULL, ...,
   loss = NULL)
 }
@@ -26,7 +26,7 @@ Binary calibration may observe only one class. OvO/OvR must observe every
 stored class globally. Regression truth must be a finite numeric vector,
 including when all values are 0/1; the workflow fixes the mode.}
 \item{classification}{Exactly \code{"binary"} (default), \code{"ovo"} or \code{"ovr"}.
-Choose OvO/OvR explicitly, including for a two-class matrix problem.}
+Choose OvO/OvR explicitly or through the training schema, including for a two-class matrix problem.}
 \item{event_level}{Exactly \code{"first"} or \code{"second"}, selecting the
 event by the trained class order. Only accepted explicitly for binary calibration.}
 \item{precision}{NULL or a finite numeric whole number. Only calibration
@@ -45,6 +45,13 @@ supply exactly one non-NULL value: a whole number with
 m = floor(epsilon*(k+1)/2) within that same range, where k is the calibration
 size. At least three observations are needed. Requested values and effective
 m and epsilon = 2*m/(k+1) are retained. Classification rejects these options.}
+\item{schema}{NULL for an originally named workflow, or the fixed
+\code{\link{venn_abers_schema}} used to encode the original training data.
+With a schema, explicitly encode calibration and prediction data using
+\code{venn_abers_encode(data, schema)} and use \code{schema$encoded_outcome}.
+Omitted classification and binary event options inherit the schema; explicit
+options must agree. The workflow mode, input columns, class order and ordered
+factor status must match. A schema does not rename an existing workflow.}
 \item{object}{A fitted predictor returned by \code{calibrate_workflow()}.}
 \item{new_data}{A data frame in the learned input format. The outcome is not
 needed and, if present, is removed before the original workflow predicts.}
@@ -57,7 +64,7 @@ training, split, Cross and full-model options are rejected.}
 \value{An already fitted \code{vennabers_frozen} predictor, also inheriting
 \code{vennabers_fit}. It is not a trainable workflow or a specification for
 \code{fit_resamples()}. The object retains complete workflows in \code{models},
-the \code{calibrator}, \code{class_levels}, \code{event_class}, input column
+the \code{calibrator}, \code{schema}, \code{class_levels}, \code{event_class}, input column
 metadata, calibration size, requested/effective \code{parameters}, and relevant
 R, package and engine \code{versions}. No additional complete copy of new raw
 calibration data is stored; data already retained by the original workflow remain.
@@ -102,10 +109,29 @@ and linear postprocessing with OvO/OvR and IVAR. The original workflow must
 support the requested batch size: for example, the tested probably 1.2.0
 multinomial smooth=FALSE path fails on one row; smooth=TRUE supports it.
 Original prediction failures propagate without modifying the workflow.
-Explicit frozen-schema binding is reserved for the separate schema integration.
+
+For encoded training, retain the original schema together with the fitted
+workflow. No schema is learned from later calibration data. Inputs must carry
+the encoded names; valid reordered input columns and factor levels are matched
+by identity. Predictions and details carry the schema binding and remain
+encoded. \code{venn_abers_decode()} returns the existing roles with original
+names and classes, including diagnostics; it invents neither outer identities
+nor Cross aggregates for these Inductive methods. See the installed
+\code{examples/frozen-schema.R} for all four paths with learned postprocessing.
+
+Bindings retained on the workflow, its original recipe template, or incoming
+data are checked, along with learned metadata. Workflows and table operations
+can discard attributes: matching detached codes alone cannot prove which schema
+was used during training. The caller must supply the actually associated schema.
+An originally named workflow must continue receiving its original inputs with
+\code{schema = NULL}. Creating a schema afterward does not authorize recipe
+rewriting, refitting or encoded input substitution. An old workflow whose
+complete prediction path fails on reserved names reports the stage, names and
+underlying cause. The limited binary GLM raw-response probe without a
+postprocessor is not a product fallback; no engine or postprocessor is bypassed.
 }
 \seealso{\code{\link{calibrated_workflow}}, \code{\link{venn_abers_details}},
-\code{\link{venn_abers}}, \code{\link{venn_abers_regression}}}
+\code{\link{venn_abers_schema}}, \code{\link{venn_abers}}, \code{\link{venn_abers_regression}}}
 \examples{
 if (all(vapply(c("parsnip", "workflows", "hardhat", "rsample", "recipes",
                 "rlang", "tibble", "withr", "generics", "tidyselect"),

@@ -487,7 +487,7 @@ venn_abers_details <- function(object, new_data, ..., loss = NULL) {
   if (!inherits(state, "vennabers_fit")) {
     stop("`object` must be a fitted calibrated_workflow() or calibrate_workflow().", call. = FALSE)
   }
-  if (!is.null(state$schema)) .schema_encoded_data(new_data, state$schema)
+  if (!frozen && !is.null(state$schema)) .schema_encoded_data(new_data, state$schema)
   if (!missing(loss)) {
     if (state$parameters$requested$mode == "regression") {
       stop("Regression does not accept `loss`.", call. = FALSE)

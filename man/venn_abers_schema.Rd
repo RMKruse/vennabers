@@ -25,7 +25,8 @@ for factor outcomes. Must be omitted for numeric regression outcomes.}
 from the original factor levels in their stored order. Only binary classification
 accepts an explicit event option; omit it for OvO/OvR and regression.}
 \item{schema}{The fixed object returned by \code{venn_abers_schema()}. Pass the
-same schema to encoding, \code{calibrated_workflow()}, and decoding.}
+same schema to encoding, \code{calibrated_workflow()} or
+\code{\link{calibrate_workflow}}, and decoding.}
 \item{x}{A native probability, class or numeric prediction data frame, an unsummarized
 \code{tune::collect_predictions()} table, or a \code{venn_abers_details()} result.}
 }
@@ -78,6 +79,14 @@ Existing recipes are not rewritten. To retain prescribed outer memberships,
 rebuild their splits on the encoded data with the same row positions and IDs.
 Inner plan functions receive local encoded data; the exact local plan/data
 comparison and all training, calibration and assessment separation rules remain.
+
+For a frozen workflow originally trained on encoded data, pass that original
+schema to \code{calibrate_workflow()}, with encoded calibration data and
+\code{schema$encoded_outcome}. Encode new prediction data with the same schema.
+The stored workflow is never renamed or refitted. Without encoded training,
+keep original input names and \code{schema = NULL}; a new schema cannot repair
+an old workflow's failed complete prediction path. See
+\code{examples/frozen-schema.R} for the four frozen Inductive methods.
 
 Native predictions remain encoded. Separate decoded roles avoid collisions
 between an original class \code{class}, outcome \code{.pred_class}, and external

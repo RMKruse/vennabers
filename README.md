@@ -52,8 +52,20 @@ postprocessing and model selection, and keep final assessment separate as well.
 That history is not automatically checked. This is an R extension for Inductive
 calibration, not a Cross ensemble or full-model transfer. `saveRDS()` retains the
 complete predictor; fresh processes need its packages, and external resources
-retain their engine-specific storage requirements. Frozen schema binding
-remains separate work.
+retain their engine-specific storage requirements.
+
+For a workflow trained on encoded names, retain its original schema. Encode new
+calibration and prediction data with `venn_abers_encode(data, schema)` and pass
+`outcome = schema$encoded_outcome, schema = schema` to `calibrate_workflow()`.
+Omitted classification/event options inherit that schema; contradictory options
+fail. Native predictions remain encoded; `venn_abers_decode()` restores original
+identities and existing diagnostics in separate roles. Matching codes alone
+cannot prove a detached workflow's training provenance.
+
+Workflows trained on original names keep original inputs with `schema = NULL`.
+Creating a schema afterward cannot rewrite a learned recipe or repair an old
+workflow's failed prediction path. Errors retain stage, names and cause; there
+is no automatic raw or extracted-engine fallback.
 
 The installed example includes earlier recipe and Tailor learning, separate new
 calibration and independent assessment (requires Tailor and probably):
@@ -81,6 +93,7 @@ The installed example demonstrates all three paths with learned postprocessing:
 
 ```r
 source(system.file("examples", "frozen-multiclass-regression.R", package = "vennabers"))
+source(system.file("examples", "frozen-schema.R", package = "vennabers"))
 ```
 
 The original workflow must predict successfully at the requested batch size.

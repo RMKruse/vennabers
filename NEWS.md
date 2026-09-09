@@ -1,5 +1,11 @@
 # vennabers 0.6.0 (development)
 
+- Preserve the original training schema in `calibrate_workflow()` for binary,
+  shared OvO/OvR and IVAR. Check learned names, mode, class order and retained
+  bindings; preserve encoded native outputs and decoded identities/diagnostics.
+  Add final-postprocessor parity, no-learning and fresh-process RDS checks,
+  plus an installed example and explicit legacy-workflow limits.
+
 - Extend `calibrate_workflow()` to shared OvO/OvR (including two classes) and
   moderated IVAR. Reuse final frozen workflow outputs, native predictions and
   method-specific details. Preserve requested/effective moderation and add
@@ -20,8 +26,7 @@
   decoding of predictions, truth, identities and details. `calibrated_workflow()`
   now accepts `schema` for Inductive/Cross fitting and ordinary outer resampling.
   Schemas preserve exact original names and class/event order without changing
-  the numerical cores or the direct naming contract. Frozen schema binding
-  remains separate work.
+  the numerical cores or the direct naming contract.
 
 # vennabers 0.5.0
 
