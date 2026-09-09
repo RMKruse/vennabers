@@ -52,8 +52,8 @@ local({
       procedure <- function(outer = FALSE) {
         splits <- if (outer) local_calibration_splits(case$inner, names(case$data)) else case$split
         do.call(calibrated_workflow, c(list(workflow = case$base, outcome = if (encoded) case$schema$encoded_outcome else "truth",
-          schema = case$schema,
           method = if (case$cross) "cross" else "inductive", splits = splits, seed = case$seed),
+          if (encoded) list(schema = case$schema),
           if (regression) case$moderation else list(classification = case$method, loss = case$loss)))
       }
       fit_function <- function() generics::fit(procedure(), case$data)
