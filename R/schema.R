@@ -121,8 +121,10 @@ venn_abers_encode <- function(data, schema) {
   if (schema$mode == "regression" && schema$encoded_outcome %in% names(data)) {
     .validate_regression_vector(data[[schema$encoded_outcome]], schema$outcome)
   } else if (schema$encoded_outcome %in% names(data) &&
-      !identical(levels(data[[schema$encoded_outcome]]), unname(schema$classes))) {
-    stop("Encoded outcome class order must match the schema; use venn_abers_encode().", call. = FALSE)
+      (!is.factor(data[[schema$encoded_outcome]]) ||
+       !identical(levels(data[[schema$encoded_outcome]]), unname(schema$classes)) ||
+       !identical(is.ordered(data[[schema$encoded_outcome]]), schema$ordered))) {
+    stop("Encoded outcome must be a factor with class order and ordered status matching the schema; use venn_abers_encode().", call. = FALSE)
   }
   invisible(NULL)
 }

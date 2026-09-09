@@ -28,6 +28,24 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "tune", "yardstic
   error(calibrated_workflow(base, ".pred_class", schema = schema), "schema")
   bad <- data; bad[[outcome]] <- factor(bad[[outcome]], levels = rev(levels(bad[[outcome]])))
   error(generics::fit(model, bad), "schema")
+  # The encoded target must retain both factor type and the schema's ordered status.
+  for (ordered_target in c(FALSE, TRUE)) {
+    contract_data <- original
+    contract_data[[schema$outcome]] <- factor(contract_data[[schema$outcome]], ordered = ordered_target)
+    contract_schema <- venn_abers_schema(contract_data, schema$outcome)
+    contract_data <- venn_abers_encode(contract_data, contract_schema)
+    contract_model <- calibrated_workflow(base, outcome, schema = contract_schema, seed = 42)
+    contract_fit <- generics::fit(contract_model, contract_data)
+    trained <- workflows::extract_fit_engine(contract_fit)$models[[1L]]
+    stopifnot(identical(is.ordered(workflows::extract_mold(trained)$outcomes[[1L]]), ordered_target))
+    bad <- contract_data
+    bad[[outcome]] <- factor(bad[[outcome]], ordered = !ordered_target)
+    error(generics::fit(contract_model, bad), "schema")
+    error(predict(contract_fit, bad, type = "prob"), "schema")
+    error(venn_abers_details(contract_fit, bad), "schema")
+  }
+  bad <- data; bad[[outcome]] <- unclass(bad[[outcome]])
+  error(predict(fit, bad, type = "prob"), "schema")
   error(generics::fit(model, data[1]), "truth|outcome|column")
   foreign <- schema; foreign$event_level <- "first"; foreign$event_class <- "class"
   bad <- data; attr(bad, "vennabers_schema") <- foreign
