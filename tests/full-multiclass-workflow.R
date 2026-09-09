@@ -235,7 +235,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
 
 if (exists("shared_fit")) {
   before <- length(audit$fits)
-  for (bad in list(NULL, "s", "SHARED", "pairwise", NA_character_, c("shared", "shared"), TRUE)) {
+  for (bad in list(NULL, "s", "SHARED", NA_character_, c("shared", "shared"), TRUE)) {
     for (classification in c("ovo", "ovr")) error(calibrated_workflow(base, "truth",
       classification = classification, model_training = bad), "model_training")
   }

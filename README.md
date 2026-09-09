@@ -209,8 +209,32 @@ Cross, first merge each binary subproblem across folds using Log/Brier, then
 couple or normalize. Never average completed multiclass fold matrices.
 `event_level` is binary-only. This shared R plan does not establish parity with
 Python's separate pair-model training. `model_training = "shared"` is the
-multiclass default and currently the only offered training option; explicit
-values are rejected for binary and regression workflows.
+multiclass default. For separate binary models, use `model_training = "pairwise"`
+with `classification = "ovo"`, `method = "inductive"` and matching models:
+
+```r
+pair_data <- data.frame(x = sin(1:120),
+  truth = factor(rep(c("a", "b", "c"), 40)))
+pair_base <- workflows::workflow() |>
+  workflows::add_formula(truth ~ x) |>
+  workflows::add_model(parsnip::logistic_reg(engine = "glm"))
+pair_model <- calibrated_workflow(pair_base, "truth", classification = "ovo",
+  model_training = "pairwise", seed = 42)
+pair_fit <- generics::fit(pair_model, pair_data)
+```
+
+Each pair gets its own local holdout after filtering to its two classes; the later
+global level is the event. A split callback receives that pair's data, or a direct
+fit can supply a list named `pair_1`, `pair_2`, etc. All plans are validated before
+learning. Both classes must occur in training and calibration. Recipes learn only
+on pair training rows; binary calibrators use matching held-out predictions.
+The global schema and class order remain unchanged. Details retain pair/fold IDs,
+class identities, model sources and endpoints that reconstruct global probabilities.
+For K classes, the cost is K*(K-1)/2 base fits and model predictions per nonempty
+batch. Cross/full pair training and tuning are not enabled by this option.
+Explicit training options remain invalid for binary and regression workflows.
+See [the installed pairwise example](inst/examples/pairwise-inductive.R) for
+binary reference workflows, local plans, coupling, decoding and outer evaluation.
 
 The installed evaluation example uses ordinary repeated `fit_resamples()` and a
 prepared resolver, aligns constructor/control event levels, and retains every
@@ -747,7 +771,7 @@ extension, distinct from Python's trained pairwise model/fold plans.
 The package does not support package-managed predictive-model fitting, fold
 creation, learned preprocessing, tuning or resampling; repeated or overlapping
 partitions; one-fold public cross calibration;
-separate pairwise model training or pair-specific fold plans; observation weights; alternate event selection; automatic
+Cross/full pairwise model training or pair-specific Cross fold plans; observation weights; alternate event selection; automatic
 coercion or missing-value handling; fold-size weighting, pooling or averaging
 log-loss fold point predictions; public aggregate classification cross bounds; formula/data-frame
 cross interfaces; tidymodels/yardstick integrations; or new metrics, smoothing,

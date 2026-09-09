@@ -100,11 +100,10 @@
     newdata <- list(.class_probability(newdata, object$classes, "newdata"))
   }
   n <- nrow(newdata[[1L]])
-  k <- length(object$classes)
   ovr <- identical(object$method, "ovr")
   problems <- if (ovr) as.list(object$classes) else object$pairs
   details <- vector("list", length(problems))
-  prediction <- matrix(if (ovr) 0 else 2 - k, n, k, dimnames = dimnames(newdata[[1L]]))
+  points <- matrix(0, n, length(problems))
   for (i in seq_along(problems)) {
     problem <- problems[[i]]
     scores <- lapply(newdata, .subproblem_probability, problem = problem)
@@ -113,12 +112,7 @@
                              type = if (cross && type == "details") "details" else "response")
     point <- if (cross && type == "details") binary$prediction$probability else binary$probability
     event <- problem[length(problem)]
-    if (ovr) {
-      prediction[, event] <- point
-    } else {
-      prediction[, problem[1L]] <- prediction[, problem[1L]] + 1 / (1 - point)
-      prediction[, event] <- prediction[, event] + 1 / point
-    }
+    points[, i] <- point
     if (type == "details") {
       parts <- if (cross) binary$folds else data.frame(row = seq_len(n), binary)
       identity <- if (ovr) data.frame(event = rep(event, nrow(parts))) else
@@ -126,12 +120,25 @@
       details[[i]] <- cbind(parts["row"], identity, parts[setdiff(names(parts), "row")])
     }
   }
-  if (!ovr) prediction <- 1 / prediction
-  prediction <- prediction / rowSums(prediction)
+  prediction <- if (ovr) points / rowSums(points) else .couple_ovo(points, problems, object$classes)
+  dimnames(prediction) <- dimnames(newdata[[1L]])
   if (type == "class") {
     return(factor(object$classes[max.col(prediction, ties.method = "first")], levels = object$classes))
   }
   if (type == "response") return(prediction)
   if (ovr) list(prediction = prediction, classes = do.call(rbind, details)) else
     list(prediction = prediction, pairs = do.call(rbind, details))
+}
+
+# Both shared class matrices and separately trained binary pairs use this merger.
+.couple_ovo <- function(points, pairs, classes) {
+  prediction <- matrix(2 - length(classes), nrow(points), length(classes),
+                       dimnames = list(NULL, classes))
+  for (i in seq_along(pairs)) {
+    pair <- pairs[[i]]
+    prediction[, pair[1L]] <- prediction[, pair[1L]] + 1 / (1 - points[, i])
+    prediction[, pair[2L]] <- prediction[, pair[2L]] + 1 / points[, i]
+  }
+  prediction <- 1 / prediction
+  prediction / rowSums(prediction)
 }

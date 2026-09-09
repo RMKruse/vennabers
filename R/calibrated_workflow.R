@@ -39,7 +39,11 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   .validate_choice(method, c("inductive", "cross"), "method")
   .validate_choice(classification, c("binary", "ovo", "ovr"), "classification")
   .validate_choice(prediction_model, c("matched", "full"), "prediction_model")
-  .validate_choice(model_training, "shared", "model_training")
+  .validate_choice(model_training, c("shared", "pairwise"), "model_training")
+  pairwise <- model_training == "pairwise"
+  if (pairwise && (classification != "ovo" || method != "inductive" || prediction_model != "matched")) {
+    stop("`model_training = 'pairwise'` requires classification = 'ovo', method = 'inductive' and prediction_model = 'matched'.", call. = FALSE)
+  }
   .integration_packages()
   mode <- .validate_base_workflow(workflow, outcome, classification)
   if (!is.null(schema)) {
@@ -101,7 +105,11 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     stop("`precision` must be NULL or one finite numeric whole number.", call. = FALSE)
   }
   if (!is.null(splits)) {
-    if (!inherits(splits, if (method == "cross") "rset" else "rsplit") && !is.function(splits)) {
+    if (pairwise && !is.function(splits) &&
+        (!is.list(splits) || inherits(splits, c("rsplit", "rset", "data.frame")))) {
+      stop("Pairwise `splits` must be a function of local pair data or a named list of pair plans.", call. = FALSE)
+    }
+    if (!pairwise && !inherits(splits, if (method == "cross") "rset" else "rsplit") && !is.function(splits)) {
       stop("`splits` must be NULL, an IID ", if (method == "cross") "Cross rset" else "holdout rsplit",
            ", or a function of local data.", call. = FALSE)
     }
@@ -252,6 +260,16 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   # One local RNG scope includes the resolver, split generation and model learning.
   if (!is.null(settings$seed)) withr::local_seed(settings$seed)
   rng_kind <- RNGkind()
+  state <- structure(list(parameters = parameters, schema = parameters$schema, outcome = outcome,
+    predictors = names(x), columns = names(raw), class_levels = classes,
+    event_class = event, loss = effective$loss,
+    versions = c(R = as.character(getRversion()),
+      vapply(unique(c("vennabers", names(.integration_versions), generics::required_pkgs(base_workflow))),
+        function(p) as.character(utils::packageVersion(p)), "")),
+    rng_kind = rng_kind), class = "vennabers_fit")
+  if (identical(settings$model_training, "pairwise")) {
+    return(.fit_pairwise(base_workflow, raw, state))
+  }
   if (settings$method == "cross" && is.null(settings$splits) && settings$v > nrow(raw)) {
     stop("`v` cannot exceed the number of local rows; the fold count is not reduced.", call. = FALSE)
   }
@@ -336,14 +354,12 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     # Discard temporary source workflows only after the complete fit succeeds.
     models <- list(Full1 = full_model)
   }
-  structure(list(parameters = parameters, schema = parameters$schema, outcome = outcome,
-                 predictors = names(x), columns = names(raw), class_levels = classes,
-                 event_class = event, loss = effective$loss,
-                 folds = folds, models = models, calibrator = calibrator, calibration = calibration,
-                 versions = c(R = as.character(getRversion()),
-                              vapply(unique(c("vennabers", names(.integration_versions), generics::required_pkgs(base_workflow))),
-                                     function(p) as.character(utils::packageVersion(p)), "")),
-                 rng_kind = rng_kind), class = "vennabers_fit")
+  state$parameters <- parameters
+  state$folds <- folds
+  state$models <- models
+  state$calibrator <- calibrator
+  state$calibration <- calibration
+  state
 }
 
 .base_probability <- function(model, data, classes, event, id = "Inductive1") {
@@ -382,6 +398,9 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
 }
 
 .integration_prediction <- function(object, new_data, include_details = FALSE) {
+  if (identical(object$parameters$requested$model_training, "pairwise")) {
+    return(.predict_pairwise(object, new_data, include_details))
+  }
   if (object$parameters$requested$mode == "regression") {
     return(.integration_regression_prediction(object, new_data, include_details))
   }
@@ -458,6 +477,9 @@ print.vennabers_fit <- function(x, ...) {
   if (!is.null(settings$prediction_model)) {
     cat("Prediction model:", settings$prediction_model,
         if (settings$prediction_model == "full") "(full-model transfer)" else "", "\n")
+  }
+  if (identical(settings$model_training, "pairwise")) {
+    for (id in names(x$pair_models)) cat(" ", id, "Inductive1 ->", id, "Inductive1\n")
   }
   for (id in names(x$folds)) {
     cat(" ", id, "->", if (identical(settings$prediction_model, "full")) "Full1" else id, "\n")

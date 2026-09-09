@@ -19,7 +19,8 @@ engine namespaces, for example through \code{control_resamples(pkgs = ...)}.
 Reversible name encoding for binary, OvO/OvR and regression is available through \code{venn_abers_schema()}.
 Frozen classification/regression workflow adoption is available through \code{\link{calibrate_workflow}}.
 Ordered reference holdouts and binary/shared multiclass full-model transfer are supported.
-Pair training remains separate v0.7 work, tuning in v0.8 and
+Matching Inductive pair training is also supported; Cross/full pair training remains
+separate v0.7 work, tuning in v0.8 and
 learned postprocessing in v0.9. Shared multiclass training does not establish
 complete Python training parity.
 }
@@ -58,10 +59,13 @@ This is a fixed fit option; predict cannot change it.
 Matched uses each calibration source model for new observations. Full applies
 the unchanged held-out calibrators to predictions from one additional workflow
 trained on the entire permitted local fit domain, including calibration rows.}
-\item{model_training}{Exactly \code{"shared"} (default), for OvO/OvR only.
+\item{model_training}{Exactly \code{"shared"} (default) or \code{"pairwise"}.
 Explicit values are rejected for binary and regression workflows. A shared model
 produces one complete class matrix; OvO splits calibration into pairs without
-training pair models. No other training option is currently offered.}
+training pair models. Pairwise requires \code{classification="ovo"},
+\code{method="inductive"}, \code{prediction_model="matched"}, and a workflow
+that can train on a two-level factor. Each pair has its own model, recipe and
+holdout. The later global level is its event; no extra shared/OvR model is fitted.}
 \item{classification}{Exactly \code{"binary"} (default), \code{"ovo"}, or
 \code{"ovr"}. OvO/OvR explicitly use the
 factor/matrix core, including with two classes. Mode comes from the base model.
@@ -86,7 +90,10 @@ for Inductive; a simple \code{rset} from \code{rsample::vfold_cv()} or
 \code{rsample::manual_rset()} for Cross; or a serializable function receiving only
 selected local raw predictors followed by outcome and returning such a plan. Explicit plans cannot be combined with
 explicit \code{calibration_prop}, \code{v} or \code{strata}, even their defaults.
-Use \code{\link{local_calibration_splits}} for prepared assignments.}
+Use \code{\link{local_calibration_splits}} for prepared assignments.
+Pairwise accepts a function of the current local pair data, or for direct fits a
+list named by exactly \code{pair_1}, \code{pair_2}, etc. A single global
+multiclass plan is not a pair plan. Automatic holdouts are generated after filtering.}
 \item{seed}{NULL uses the caller's RNG stream. A finite whole number in R's integer
 seed range sets a local seed for splitting and base fitting, restoring the caller's
 state and RNG kind afterwards, including on error. The scope includes the plan
@@ -134,7 +141,7 @@ Trainable workflow details also contain character \code{prediction_model} and
 for every fold in full mode. These are model metadata, separate from original
 class identities and the \code{fold} identifying the held-out calibrator;
 \code{venn_abers_decode()} preserves them without decoding them as classes.
-Trainable OvO/OvR details include \code{model_training="shared"}.
+Trainable OvO/OvR details include \code{model_training}.
 OvO/OvR details additionally contain character \code{method} and either
 \code{class_1}/\code{class_2} (OvO) or \code{class} (OvR). Each row identifies
 one new observation, fold and binary subproblem. \code{event_class} is the later class
@@ -320,6 +327,46 @@ are descriptive. Improved scores on every data set are not
 promised. The engine cannot validate an outer partition it never receives.
 Validate outer analysis/assessment disjointness before calling fit_resamples;
 assessment sets from different outer resamples may overlap.}
+\section{Pairwise Inductive training}{
+Global factor levels fix the class order before decomposition. The stored
+\code{pairs} table maps stable \code{pair_id} values to \code{class_1} and
+\code{class_2}; the latter is always the event. Each complete binary workflow
+learns exclusively from its pair's training rows, including all recipe estimates.
+Only its held-out event probabilities fit the existing binary calibrator.
+Pair points are combined with the same reciprocal OvO merger as shared training.
+The global schema remains unchanged; only the unfitted recipe's outcome type is
+adapted to the two-level local domain, retaining steps, roles and blueprint options.
+
+\code{pair_models[[pair_id]]} retains \code{pair_id}, \code{class_levels},
+\code{event_class}, \code{rows} (positions in the current global fit domain),
+\code{folds$Inductive1} (positions in the local pair, plus sizes),
+\code{models$Inductive1}, \code{calibrator}, and \code{calibration$Inductive1}.
+These replace the shared model/fold/calibrator fields. Calibration records retain
+local row positions, binary truths and unrounded probabilities. Details add
+\code{pair_id}, \code{model_training="pairwise"},
+\code{prediction_model="matched"}, and \code{model_source} equal to the pair ID.
+The pair ID together with \code{fold="Inductive1"} identifies the source workflow
+and calibrator. Decoding changes class identities while preserving pair/fold/source
+IDs. Zero-row outputs retain all columns without calling any base model.
+
+All pair plans and data bindings are validated before the first base fit.
+Both classes must occur in each pair's training and calibration portions.
+Observations may recur across pairs. Explicit plans retain their local position
+order; an ordered pair holdout does not imply a global time cutoff. With a fixed
+\code{seed}, each pair resolver/automatic holdout starts from that same seed
+in a restored local scope, so plans do not depend on preceding fits or call counters.
+Base fits then consume the enclosing fit's seeded stream in stable pair order.
+With NULL, splitting and fitting consume the caller's stream. Prepared assignments
+use \code{local_calibration_splits()} over every local pair, which rejects
+conflicting plans for identical data. Resampling callbacks see only the current
+outer analysis pair; development-wide plans cannot be replayed on different data.
+
+For K classes, P=K*(K-1)/2 pairs cost P base fits and P predictions per nonempty
+batch. Recipes, calibrators and models remain stored; prediction never learns.
+Any failed component fails the whole fit. See installed
+\code{examples/pairwise-inductive.R} for separate binary references, explicit
+pair plans, independent coupling, decoding and complete outer evaluation.
+}
 \section{Full-model transfer}{For \code{prediction_model="full"}, the split isolates
 calibration observations from source learning only. The extra full model includes
 them. Existing matching-model calibration or coverage guarantees do not

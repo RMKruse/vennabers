@@ -1,5 +1,13 @@
 # vennabers (development)
 
+- Add matching Inductive `model_training = "pairwise"` for OvO at fixed settings.
+  Validate all pair-local holdouts before fitting separate binary workflows and
+  reuse the binary calibrator and reciprocal OvO merger. Retain global schema,
+  pair/fold identities, recipes and calibration records; add native/decoded
+  diagnostics, independent references, fit counts, outer evaluation and fresh
+  RDS checks. Shared training remains the default; Cross/full pair training
+  is not enabled. See the installed `pairwise-inductive.R` example.
+
 - Extend `prediction_model = "full"` to Inductive and Cross regression workflows.
   Keep held-out numeric predictions/truths and fold moderation; fit a fresh full
   recipe/model and discard temporary source workflows. IVAR's weighted merger
@@ -11,8 +19,7 @@
   guarantee is implied. Python's option belongs to the lower `VennAbersCV` class.
 
 - Extend full-model transfer to shared Inductive/Cross OvO and OvR workflows.
-  `model_training = "shared"` is the multiclass default and currently the only
-  offered training option; binary/regression reject explicit training options.
+  `model_training = "shared"` remains the multiclass default; binary/regression reject explicit training options.
   This is an R extension, separate from pairwise model training. Complete
   held-out class matrices/truths remain available after source models are
   discarded. Native/decoded details retain training mode and model source.
