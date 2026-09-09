@@ -210,7 +210,7 @@ couple or normalize. Never average completed multiclass fold matrices.
 `event_level` is binary-only. This shared R plan does not establish parity with
 Python's separate pair-model training. `model_training = "shared"` is the
 multiclass default. For separate binary models, use `model_training = "pairwise"`
-with `classification = "ovo"`, `method = "inductive"` and matching models:
+with `classification = "ovo"`, either calibration method, and matching models:
 
 ```r
 pair_data <- data.frame(x = sin(1:120),
@@ -223,18 +223,27 @@ pair_model <- calibrated_workflow(pair_base, "truth", classification = "ovo",
 pair_fit <- generics::fit(pair_model, pair_data)
 ```
 
-Each pair gets its own local holdout after filtering to its two classes; the later
+Each pair gets its own local holdout or Cross partition after filtering to its two classes; the later
 global level is the event. A split callback receives that pair's data, or a direct
 fit can supply a list named `pair_1`, `pair_2`, etc. All plans are validated before
-learning. Both classes must occur in training and calibration. Recipes learn only
+learning. Inductive requires both classes in training and calibration. Cross allows
+nonempty one-sided calibration folds when their complements produce trainable
+binary models and valid probabilities. Recipes learn only
 on pair training rows; binary calibrators use matching held-out predictions.
 The global schema and class order remain unchanged. Details retain pair/fold IDs,
 class identities, model sources and endpoints that reconstruct global probabilities.
-For K classes, the cost is K*(K-1)/2 base fits and model predictions per nonempty
-batch. Cross/full pair training and tuning are not enabled by this option.
+Cross aggregates binary folds within each pair before global reciprocal coupling.
+Explicit pair partitions may have different fold counts; equal fold IDs across
+pairs are unrelated. Every local row is assessed once, with complementary training.
+Automatic partitions use `v` without reduction. For K classes, Inductive costs
+K*(K-1)/2 base fits; Cross costs the sum of pair fold counts (15 for three classes
+with five folds). Each nonempty prediction calls every retained model once.
+Full pair training and tuning are not enabled by this option.
 Explicit training options remain invalid for binary and regression workflows.
 See [the installed pairwise example](inst/examples/pairwise-inductive.R) for
 binary reference workflows, local plans, coupling, decoding and outer evaluation.
+The [Cross pair example](inst/examples/pairwise-cross.R) shows explicit unequal
+partitions, binary reconstruction, native/decoded details and outer fit costs.
 
 The installed evaluation example uses ordinary repeated `fit_resamples()` and a
 prepared resolver, aligns constructor/control event levels, and retains every
@@ -771,7 +780,7 @@ extension, distinct from Python's trained pairwise model/fold plans.
 The package does not support package-managed predictive-model fitting, fold
 creation, learned preprocessing, tuning or resampling; repeated or overlapping
 partitions; one-fold public cross calibration;
-Cross/full pairwise model training or pair-specific Cross fold plans; observation weights; alternate event selection; automatic
+full pairwise model training; observation weights; alternate event selection; automatic
 coercion or missing-value handling; fold-size weighting, pooling or averaging
 log-loss fold point predictions; public aggregate classification cross bounds; formula/data-frame
 cross interfaces; tidymodels/yardstick integrations; or new metrics, smoothing,

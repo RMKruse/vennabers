@@ -41,8 +41,8 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   .validate_choice(prediction_model, c("matched", "full"), "prediction_model")
   .validate_choice(model_training, c("shared", "pairwise"), "model_training")
   pairwise <- model_training == "pairwise"
-  if (pairwise && (classification != "ovo" || method != "inductive" || prediction_model != "matched")) {
-    stop("`model_training = 'pairwise'` requires classification = 'ovo', method = 'inductive' and prediction_model = 'matched'.", call. = FALSE)
+  if (pairwise && (classification != "ovo" || prediction_model != "matched")) {
+    stop("`model_training = 'pairwise'` requires classification = 'ovo' and prediction_model = 'matched'.", call. = FALSE)
   }
   .integration_packages()
   mode <- .validate_base_workflow(workflow, outcome, classification)
@@ -479,7 +479,9 @@ print.vennabers_fit <- function(x, ...) {
         if (settings$prediction_model == "full") "(full-model transfer)" else "", "\n")
   }
   if (identical(settings$model_training, "pairwise")) {
-    for (id in names(x$pair_models)) cat(" ", id, "Inductive1 ->", id, "Inductive1\n")
+    for (id in names(x$pair_models)) for (fold in names(x$pair_models[[id]]$folds)) {
+      cat(" ", id, fold, "->", id, fold, "\n")
+    }
   }
   for (id in names(x$folds)) {
     cat(" ", id, "->", if (identical(settings$prediction_model, "full")) "Full1" else id, "\n")

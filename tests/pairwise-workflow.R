@@ -232,7 +232,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
       model_training = "pairwise", splits = bad), data), "pair_6 Inductive1")
   }
   for (args in list(list(classification = "binary"), list(classification = "ovr"),
-    list(classification = "ovo", method = "cross"), list(classification = "ovo", prediction_model = "full"),
+    list(classification = "ovo", prediction_model = "full"),
     list(classification = "ovo", event_level = "second"), list(classification = "ovo", m = NULL),
     list(classification = "ovo", splits = ordered(data)), list(classification = "ovo", splits = plans, strata = FALSE))) {
     error(do.call(calibrated_workflow, c(list(base, "truth", model_training = "pairwise"), args)))

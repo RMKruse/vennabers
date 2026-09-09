@@ -1,11 +1,19 @@
 # vennabers (development)
 
+- Extend matching pairwise OvO training to Cross calibration. Validate independent
+  local partitions before fitting; allow unequal explicit fold counts and nonempty
+  one-sided calibration sets with trainable complements. Reuse binary Cross
+  aggregation within each pair before reciprocal coupling. Retain complete fold
+  workflows, identities and diagnostics; reject swapped pair/fold sources. Add
+  numerical, data-role, fit-cost, outer-evaluation and fresh RDS checks, plus the
+  installed `pairwise-cross.R` example with unequal partitions.
+
 - Add matching Inductive `model_training = "pairwise"` for OvO at fixed settings.
   Validate all pair-local holdouts before fitting separate binary workflows and
   reuse the binary calibrator and reciprocal OvO merger. Retain global schema,
   pair/fold identities, recipes and calibration records; add native/decoded
   diagnostics, independent references, fit counts, outer evaluation and fresh
-  RDS checks. Shared training remains the default; Cross/full pair training
+  RDS checks. Shared training remains the default; full pair training
   is not enabled. See the installed `pairwise-inductive.R` example.
 
 - Extend `prediction_model = "full"` to Inductive and Cross regression workflows.

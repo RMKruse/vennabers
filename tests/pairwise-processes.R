@@ -1,8 +1,8 @@
 library(vennabers)
 packages <- c("workflows", "parsnip", "recipes", "rsample")
-if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
+if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) for (example_name in c("pairwise-inductive.R", "pairwise-cross.R")) local({
   example <- new.env()
-  sys.source(system.file("examples", "pairwise-inductive.R", package = "vennabers"), example)
+  sys.source(system.file("examples", example_name, package = "vennabers"), example)
   fit <- example$fit
   schema <- example$schema
   new <- example$assessment[setdiff(names(example$assessment), schema$encoded_outcome)]
@@ -26,8 +26,8 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
     identical(attr(native, "vennabers_schema"), schema))
   state <- workflows::extract_fit_engine(fit)
   stopifnot(identical(state$schema, schema))
-  for (component in state$pair_models) {
-    mold <- workflows::extract_mold(component$models$Inductive1)
+  for (component in state$pair_models) for (model in component$models) {
+    mold <- workflows::extract_mold(model)
     stopifnot(nlevels(mold$outcomes[[1L]]) == 2L,
       identical(levels(mold$outcomes[[1L]]), component$class_levels))
   }

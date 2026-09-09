@@ -1,5 +1,6 @@
 .fit_pairwise <- function(base_workflow, data, state) {
   settings <- state$parameters$requested
+  cross <- settings$method == "cross"
   pairs <- utils::combn(state$class_levels, 2L, simplify = FALSE)
   ids <- paste0("pair_", seq_along(pairs))
   state$pairs <- data.frame(pair_id = ids,
@@ -21,33 +22,43 @@
     local[[state$outcome]] <- factor(local[[state$outcome]], levels = pair,
                                    ordered = is.ordered(data[[state$outcome]]))
     local_data[[id]] <- local
-    fold <- tryCatch({
+    folds <- tryCatch({
       # A fixed local seed makes plans independent of preceding model draws.
       resolve <- function() {
-        if (is.function(plans)) plans(local) else if (!is.null(plans)) plans[[id]] else
-          if (identical(settings$strata, FALSE)) {
-            rsample::initial_split(local, prop = 1 - settings$calibration_prop)
-          } else rlang::inject(rsample::initial_split(local,
-            prop = 1 - settings$calibration_prop, strata = !!state$outcome, pool = 0))
+        if (is.function(plans)) return(plans(local))
+        if (!is.null(plans)) return(plans[[id]])
+        if (cross) {
+          if (settings$v > nrow(local)) {
+            stop("`v` cannot exceed the number of local pair rows; the fold count is not reduced.", call. = FALSE)
+          }
+          if (identical(settings$strata, FALSE)) rsample::vfold_cv(local, v = settings$v) else
+            rlang::inject(rsample::vfold_cv(local, v = settings$v, strata = !!state$outcome, pool = 0))
+        } else if (identical(settings$strata, FALSE)) {
+          rsample::initial_split(local, prop = 1 - settings$calibration_prop)
+        } else rlang::inject(rsample::initial_split(local,
+          prop = 1 - settings$calibration_prop, strata = !!state$outcome, pool = 0))
       }
       split <- if (is.null(settings$seed)) resolve() else withr::with_seed(settings$seed, resolve())
-      f <- .inductive_split(split, local)
-      for (part in c("analysis", "assessment")) {
-        if (any(tabulate(local[[state$outcome]][f[[part]]], nbins = 2L) == 0L)) {
-          stop("Both pair classes must occur in ", part, " (training/calibration).", call. = FALSE)
+      fs <- if (cross) .cross_splits(split, local) else list(Inductive1 = .inductive_split(split, local))
+      for (fold_id in names(fs)) {
+        f <- fs[[fold_id]]
+        if (!cross) for (part in c("analysis", "assessment")) {
+          if (any(tabulate(local[[state$outcome]][f[[part]]], nbins = 2L) == 0L)) {
+            stop("Both pair classes must occur in ", part, " (training/calibration).", call. = FALSE)
+          }
         }
+        f$training_size <- length(f$analysis)
+        f$calibration_size <- length(f$assessment)
+        fs[[fold_id]] <- f
       }
-      f$training_size <- length(f$analysis)
-      f$calibration_size <- length(f$assessment)
-      f
-    }, error = function(e) stop(id, " Inductive1: ", conditionMessage(e), call. = FALSE))
+      fs
+    }, error = function(e) stop(id, if (cross) " Cross: " else " Inductive1: ", conditionMessage(e), call. = FALSE))
     components[[id]] <- list(pair_id = id, class_levels = pair, event_class = pair[2L],
-      rows = rows, folds = list(Inductive1 = fold))
+      rows = rows, folds = folds)
   }
   for (id in ids) {
     component <- components[[id]]
     local <- local_data[[id]]
-    fold <- component$folds$Inductive1
     workflow <- base_workflow
     recipe <- workflows::extract_preprocessor(workflow)
     if (inherits(recipe, "recipe")) {
@@ -59,15 +70,31 @@
       workflow <- workflows::update_recipe(workflow, recipe,
         blueprint = workflow$pre$actions$recipe$blueprint)
     }
-    component$models <- list(Inductive1 = tryCatch(
-      generics::fit(workflow, local[fold$analysis, , drop = FALSE]),
-      error = function(e) stop(id, " Inductive1 base workflow training: ", conditionMessage(e), call. = FALSE)))
-    p <- .base_probability(component$models$Inductive1, local[fold$assessment, , drop = FALSE],
-                           component$class_levels, component$event_class, paste(id, "Inductive1"))
-    truth <- local[[state$outcome]][fold$assessment] == component$event_class
-    component$calibrator <- venn_abers(truth, p, precision = settings$precision)
-    component$calibration <- list(Inductive1 = data.frame(row = fold$assessment,
-      truth = truth, probability = p))
+    component$models <- component$calibration <- stats::setNames(
+      vector("list", length(component$folds)), names(component$folds))
+    for (fold_id in names(component$folds)) {
+      fold <- component$folds[[fold_id]]
+      identity <- list(pair_id = id, fold = fold_id, rows = component$rows,
+                       class_levels = component$class_levels, positions = fold)
+      model <- tryCatch(generics::fit(workflow, local[fold$analysis, , drop = FALSE]),
+        error = function(e) stop(id, " ", fold_id, " base workflow training: ", conditionMessage(e), call. = FALSE))
+      attr(model, "vennabers_pair_fold") <- identity
+      component$models[[fold_id]] <- model
+      p <- .base_probability(model, local[fold$assessment, , drop = FALSE],
+                             component$class_levels, component$event_class, paste(id, fold_id))
+      truth <- local[[state$outcome]][fold$assessment] == component$event_class
+      component$calibration[[fold_id]] <- data.frame(row = fold$assessment, truth = truth, probability = p)
+    }
+    calibration <- do.call(rbind, component$calibration)
+    component$calibrator <- if (cross) {
+      core <- cross_venn_abers(calibration$truth, calibration$probability,
+        rep(names(component$folds), vapply(component$folds, function(f) f$calibration_size, 1L)),
+        precision = settings$precision)
+      names(core$calibrators) <- core$folds
+      for (fold_id in core$folds) attr(core$calibrators[[fold_id]], "vennabers_pair_fold") <-
+        attr(component$models[[fold_id]], "vennabers_pair_fold", exact = TRUE)
+      core
+    } else venn_abers(calibration$truth, calibration$probability, precision = settings$precision)
     components[[id]] <- component
   }
   state$pair_models <- components
@@ -88,22 +115,49 @@
   for (i in seq_along(pairs)) {
     id <- ids[i]
     component <- object$pair_models[[id]]
+    cross <- object$parameters$requested$method == "cross"
+    fold_ids <- if (cross) component$calibrator$folds else "Inductive1"
     if (!identical(component$pair_id, id) || !identical(component$class_levels, pairs[[i]]) ||
         !identical(component$event_class, pairs[[i]][2L]) ||
-        !identical(names(component$models), "Inductive1") ||
-        !identical(names(component$folds), "Inductive1") ||
-        !identical(levels(workflows::extract_mold(component$models$Inductive1)$outcomes[[1L]]), pairs[[i]])) {
+        !identical(names(component$models), fold_ids) ||
+        !identical(names(component$folds), fold_ids) ||
+        !identical(names(component$calibration), fold_ids) ||
+        (cross && (length(fold_ids) < 2L || anyNA(fold_ids) || any(!nzchar(fold_ids)) ||
+                   anyDuplicated(fold_ids) || !identical(names(component$calibrator$calibrators), fold_ids)))) {
       stop(id, " model/pair/fold identity does not match the fitted mapping.", call. = FALSE)
     }
-    p <- if (n) .base_probability(component$models$Inductive1, new_data,
-      component$class_levels, component$event_class, paste(id, "Inductive1")) else numeric()
-    binary <- stats::predict(component$calibrator, p, loss = object$loss)
-    points[, i] <- binary$probability
-    if (include_details) details[[i]] <- data.frame(row = seq_len(n), pair_id = rep(id, n),
-      fold = rep("Inductive1", n), method = rep("ovo", n),
-      event_class = rep(component$event_class, n), class_1 = rep(pairs[[i]][1L], n),
-      class_2 = rep(pairs[[i]][2L], n), binary, model_training = rep("pairwise", n),
-      prediction_model = rep("matched", n), model_source = rep(id, n))
+    p <- lapply(fold_ids, function(fold_id) {
+      model <- component$models[[fold_id]]
+      identity <- list(pair_id = id, fold = fold_id, rows = component$rows,
+                       class_levels = component$class_levels, positions = component$folds[[fold_id]])
+      if (!identical(levels(workflows::extract_mold(model)$outcomes[[1L]]), pairs[[i]]) ||
+          !identical(attr(model, "vennabers_pair_fold", exact = TRUE), identity) ||
+          (cross && !identical(attr(component$calibrator$calibrators[[fold_id]],
+                                   "vennabers_pair_fold", exact = TRUE), identity))) {
+        stop(id, " ", fold_id, " model/pair/fold identity does not match the fitted mapping.", call. = FALSE)
+      }
+      if (n) .base_probability(model, new_data, component$class_levels,
+                              component$event_class, paste(id, fold_id)) else numeric()
+    })
+    names(p) <- fold_ids
+    if (cross) {
+      binary <- stats::predict(component$calibrator, do.call(cbind, p), loss = object$loss,
+                               type = if (include_details) "details" else "response")
+      points[, i] <- if (include_details) binary$prediction$probability else binary$probability
+      if (include_details) part <- binary$folds
+    } else {
+      binary <- stats::predict(component$calibrator, p[[1L]], loss = object$loss)
+      points[, i] <- binary$probability
+      if (include_details) part <- data.frame(row = seq_len(n), fold = rep("Inductive1", n), binary)
+    }
+    if (include_details) {
+      k <- nrow(part)
+      details[[i]] <- data.frame(row = part$row, pair_id = rep(id, k),
+        fold = part$fold, method = rep("ovo", k), event_class = rep(component$event_class, k),
+        class_1 = rep(pairs[[i]][1L], k), class_2 = rep(pairs[[i]][2L], k),
+        part[c("lower", "upper", "probability")], model_training = rep("pairwise", k),
+        prediction_model = rep("matched", k), model_source = rep(id, k))
+    }
   }
   prediction <- .couple_ovo(points, pairs, object$class_levels)
   colnames(prediction) <- paste0(".pred_", object$class_levels)
