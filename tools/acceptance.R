@@ -135,12 +135,18 @@ local({
       as.character(packageVersion("vennabers")), "\n")
   options(warn = 2)
 
-  # Read the README from the checked source artifact, never a stale installation.
-  readme_path <- file.path(description[["Package"]], "README.md")
-  utils::untar(artifact, files = readme_path, exdir = work_dir)
-  # Execute its R fences in order, sharing their environment.
-  # Shell fences describe installation and gate commands; those run above.
-  local({
+  if (profile == "core") {
+    # README/examples train workflows and deliberately require omitted Suggests.
+    stopifnot(nrow(predict(venn_abers(c(FALSE, TRUE), c(.1, .9)), .5)) == 1L,
+              is.double(predict(venn_abers_regression(1:3, 1:3), 2)$prediction))
+    cat("Core manual API smoke passed; integration README/examples are not applicable.\n")
+  } else {
+    # Read the README from the checked source artifact, never a stale installation.
+    readme_path <- file.path(description[["Package"]], "README.md")
+    utils::untar(artifact, files = readme_path, exdir = work_dir)
+    # Execute its R fences in order, sharing their environment.
+    # Shell fences describe installation and gate commands; those run above.
+    local({
     plot_file <- tempfile(fileext = ".pdf")
     on.exit(unlink(plot_file), add = TRUE)
     grDevices::pdf(plot_file)
@@ -156,15 +162,16 @@ local({
       eval(parse(text = readme[seq.int(start + 1L, end - 1L)]), example_environment)
     }
     cat("README R snippets passed:", length(starts), "\n")
-  })
+    })
 
-  # Standalone examples exercise the installed API. Discover new scripts too.
-  examples <- list.files(system.file("examples", package = "vennabers"),
-                         pattern = "\\.[Rr]$", full.names = TRUE, recursive = TRUE)
-  stopifnot(length(examples) > 0L)
-  for (example in examples) {
-    cat("Running example:", basename(example), "\n")
-    sys.source(example, envir = new.env())
+    # Standalone examples exercise the installed API. Discover new scripts too.
+    examples <- list.files(system.file("examples", package = "vennabers"),
+                           pattern = "\\.[Rr]$", full.names = TRUE, recursive = TRUE)
+    stopifnot(length(examples) > 0L)
+    for (example in examples) {
+      cat("Running example:", basename(example), "\n")
+      sys.source(example, envir = new.env())
+    }
   }
   cat("Acceptance gate passed.\n")
 })
