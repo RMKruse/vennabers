@@ -1,0 +1,198 @@
+
+R version 4.6.1 (2026-06-24) -- "Happy Hop"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin25.4.0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(vennabers)
+> packages <- c("workflows", "parsnip", "recipes", "rsample")
+> if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
++   example <- new.env()
++   sys.source(system.file("examples", "full-regression-workflow.R", package = "vennabers"), example)
++   error <- function(expr) stopifnot(inherits(tryCatch(force(expr), error = identity), "error"))
++   snapshot <- function(fit, new, schema) lapply(c(0L, 1L, 7L), function(n) {
++     x <- new[seq_len(n), , drop = FALSE]
++     native <- list(prediction = predict(fit, x), details = venn_abers_details(fit, x))
++     list(native = native, decoded = lapply(native, venn_abers_decode, schema = schema))
++   })
++   saved <- tempfile(fileext = ".rds"); script <- tempfile(fileext = ".R"); log <- tempfile(fileext = ".log")
++   on.exit(unlink(c(saved, script, log)), add = TRUE)
++   for (method in c("inductive", "cross")) for (outcome in c(".pred", ".row", "id")) {
++     case <- example$examples[[method]]
++     raw <- example$data; names(raw)[3L] <- outcome
++     schema <- venn_abers_schema(raw, outcome)
++     encoded <- venn_abers_encode(raw, schema)
++     options <- workflows::extract_fit_engine(case$fit)$parameters$requested
++     base <- workflows::update_recipe(case$base,
++       recipes::recipe(reformulate(names(encoded)[1:2], schema$encoded_outcome), encoded[1:90, ]) |>
++         recipes::step_normalize(recipes::all_numeric_predictors()))
++     model <- calibrated_workflow(base, schema$encoded_outcome, schema = schema,
++       method = method, prediction_model = "full", m = 2, seed = 42, splits = options$splits)
++     fit <- generics::fit(model, encoded[1:90, ])
++     new <- encoded[91:120, setdiff(names(encoded), schema$encoded_outcome)]
++     native <- venn_abers_details(fit, new)
++     decoded <- venn_abers_decode(native, schema)
++     stopifnot(identical(decoded$outcome, outcome), identical(decoded$prediction, native$prediction$.pred),
++       identical(decoded$details, native$details), all(decoded$details$model_source == "Full1"),
++       identical(attr(native, "vennabers_schema"), schema))
++     if (method == "cross") stopifnot(identical(decoded$aggregate, native$aggregate))
++     stopifnot(identical(native, venn_abers_details(fit, new[rev(names(new))])))
++     rows <- native$prediction
++     rows[[schema$encoded_outcome]] <- encoded[[schema$encoded_outcome]][91:120]
++     rows$.row <- 91:120; rows$id <- "Assessment"; rows$.config <- "pre0_mod0_post0"
++     decoded_rows <- venn_abers_decode(rows, schema)
++     stopifnot(identical(decoded_rows$truth, raw[[outcome]][91:120]),
++       identical(decoded_rows$identity$.row, 91:120), identical(decoded_rows$outcome, outcome))
++     foreign <- venn_abers_schema(data.frame(x = 1:6, other = as.double(1:6)), "other")
++     error(venn_abers_decode(native, foreign))
++     bad <- new; attr(bad, "vennabers_schema") <- foreign
++     for (input in list(bad, new[-1L], setNames(new, c("unknown", names(new)[2L])))) {
++       error(predict(fit, input)); error(venn_abers_details(fit, input))
++     }
++     saveRDS(list(fit = fit, new = new, schema = schema, snapshot = snapshot,
++       expected = snapshot(fit, new, schema)), saved)
++     writeLines(c(
++       paste0('.libPaths(', paste(deparse(.libPaths()), collapse = ''), ')'), 'library(vennabers)',
++       paste0('s <- readRDS(', deparse(saved), ')'),
++       'trace("fit.workflow", where = asNamespace("workflows"), tracer = quote(stop("Unexpected model fit")), print = FALSE)',
++       'trace("prep.recipe", where = asNamespace("recipes"), tracer = quote(stop("Unexpected preprocessing")), print = FALSE)',
++       'trace("venn_abers_regression", where = asNamespace("vennabers"), tracer = quote(stop("Unexpected calibration")), print = FALSE)',
++       'stopifnot(identical(s$expected, s$snapshot(s$fit, s$new, s$schema)),',
++       '  identical(names(workflows::extract_fit_engine(s$fit)$models), "Full1"))'
++     ), script)
++     status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
++     if (status != 0L) stop(paste(readLines(log), collapse = "\n"))
++   }
++ })
+      method   matched      full
+1  inductive 10.342823 10.342823
+2  inductive 10.679036 10.679036
+3  inductive  9.755873  9.755873
+4  inductive 10.733059 10.733059
+5  inductive 10.417595 10.417595
+6  inductive 11.814034 11.814034
+7  inductive 10.417595 10.417595
+8  inductive 10.733059 10.733059
+9  inductive  9.755873  9.755873
+10 inductive 10.733059 10.733059
+11 inductive 10.417595 10.417595
+12 inductive 11.814034 11.814034
+13 inductive 10.417595 10.417595
+14 inductive 10.733059 10.733059
+15 inductive  9.755873  9.755873
+16 inductive 10.679036 10.679036
+17 inductive 10.342823 10.342823
+18 inductive 11.608743 11.608743
+19 inductive 10.880839 10.880839
+20 inductive 10.326673 10.326673
+21 inductive 10.103305 10.103305
+22 inductive 10.103305 10.103305
+23 inductive 10.326673 10.326673
+24 inductive 10.880839 10.880839
+25 inductive 11.608743 11.608743
+26 inductive 10.342823 10.342823
+27 inductive 10.679036 10.679036
+28 inductive  9.755873  9.755873
+29 inductive 10.733059 10.733059
+30 inductive 10.417595 10.417595
+# A tibble: 6 × 7
+    row fold       prediction lower upper prediction_model model_source
+  <int> <chr>           <dbl> <dbl> <dbl> <chr>            <chr>       
+1     1 Inductive1      10.3   9.80 12.4  full             Full1       
+2     2 Inductive1      10.7   7.86 10.7  full             Full1       
+3     3 Inductive1       9.76  7.86  9.76 full             Full1       
+4     4 Inductive1      10.7   8.29 11.5  full             Full1       
+5     5 Inductive1      10.4  10.3  12.8  full             Full1       
+6     6 Inductive1      11.8  11.8  12.9  full             Full1       
+     method    mode     rmse      mae
+1 inductive matched 1.838205 1.700942
+2 inductive    full 1.838205 1.700942
+# A tibble: 8 × 6
+  id      id2   .metric .estimator .estimate .config        
+  <chr>   <chr> <chr>   <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 rmse    standard        2.25 pre0_mod0_post0
+2 Repeat1 Fold1 mae     standard        2.06 pre0_mod0_post0
+3 Repeat1 Fold2 rmse    standard        2.77 pre0_mod0_post0
+4 Repeat1 Fold2 mae     standard        2.26 pre0_mod0_post0
+5 Repeat2 Fold1 rmse    standard        1.83 pre0_mod0_post0
+6 Repeat2 Fold1 mae     standard        1.70 pre0_mod0_post0
+7 Repeat2 Fold2 rmse    standard        1.83 pre0_mod0_post0
+8 Repeat2 Fold2 mae     standard        1.68 pre0_mod0_post0
+   method   matched      full
+1   cross 10.411415 10.411415
+2   cross  9.287043  9.287043
+3   cross  8.781390  8.781390
+4   cross 10.091989 10.091989
+5   cross 11.411852 11.411852
+6   cross 12.127921 12.127921
+7   cross 10.787078 10.787078
+8   cross  9.699415  9.699415
+9   cross  8.280820  8.318010
+10  cross  9.842369  9.842369
+11  cross 11.014214 11.014214
+12  cross 12.232606 12.232606
+13  cross 11.221850 11.221850
+14  cross  9.965081  9.965081
+15  cross  8.507063  8.507063
+16  cross  9.497382  9.497382
+17  cross 10.594301 10.594301
+18  cross 12.014067 12.014067
+19  cross 11.616704 11.616704
+20  cross 10.238552 10.238552
+21  cross  9.039229  9.039229
+22  cross  9.039229  9.039229
+23  cross 10.238552 10.238552
+24  cross 11.616704 11.616704
+25  cross 12.014067 12.014067
+26  cross 10.594301 10.594301
+27  cross  9.497382  9.497382
+28  cross  8.507063  8.455686
+29  cross  9.965081  9.965081
+30  cross 11.221850 11.221850
+# A tibble: 6 × 7
+    row fold  prediction lower upper prediction_model model_source
+  <int> <chr>      <dbl> <dbl> <dbl> <chr>            <chr>       
+1     1 Part1      10.4   9.75 11.9  full             Full1       
+2     2 Part1       9.17  7.42  9.35 full             Full1       
+3     3 Part1       8.81  7.15  8.85 full             Full1       
+4     4 Part1      10.1   9.07 11.5  full             Full1       
+5     5 Part1      11.4  11.4  12.8  full             Full1       
+6     6 Part1      12.1  12.1  13.0  full             Full1       
+# A tibble: 6 × 5
+    row lower upper prediction_model model_source
+  <int> <dbl> <dbl> <chr>            <list>      
+1     1  9.84 12.0  full             <chr [1]>   
+2     2  7.46  9.50 full             <chr [1]>   
+3     3  7.14  8.81 full             <chr [1]>   
+4     4  9.03 11.4  full             <chr [1]>   
+5     5 11.4  12.8  full             <chr [1]>   
+6     6 12.1  13.0  full             <chr [1]>   
+  method    mode     rmse       mae
+1  cross matched 1.051280 0.9780498
+2  cross    full 1.050541 0.9775769
+# A tibble: 8 × 6
+  id      id2   .metric .estimator .estimate .config        
+  <chr>   <chr> <chr>   <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 rmse    standard        1.58 pre0_mod0_post0
+2 Repeat1 Fold1 mae     standard        1.49 pre0_mod0_post0
+3 Repeat1 Fold2 rmse    standard        1.52 pre0_mod0_post0
+4 Repeat1 Fold2 mae     standard        1.38 pre0_mod0_post0
+5 Repeat2 Fold1 rmse    standard        1.46 pre0_mod0_post0
+6 Repeat2 Fold1 mae     standard        1.38 pre0_mod0_post0
+7 Repeat2 Fold2 rmse    standard        1.58 pre0_mod0_post0
+8 Repeat2 Fold2 mae     standard        1.46 pre0_mod0_post0
+> 
+> proc.time()
+   user  system elapsed 
+  7.187   0.494   7.750 

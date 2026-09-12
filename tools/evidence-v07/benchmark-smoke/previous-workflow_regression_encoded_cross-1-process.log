@@ -1,0 +1,20 @@
+Tracing function "lm" in package "namespace:stats"
+Untracing function "lm" in package "namespace:stats"
+        2.35 real         2.26 user         0.07 sys
+           395493376  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               29296  page reclaims
+                  37  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   9  voluntary context switches
+                 288  involuntary context switches
+         34599388214  instructions retired
+         10376635368  cycles elapsed
+           375636832  peak memory footprint

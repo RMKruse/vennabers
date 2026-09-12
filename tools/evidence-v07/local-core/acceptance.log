@@ -1,0 +1,153 @@
+Acceptance environment: R version 4.6.1 (2026-06-24) on aarch64-apple-darwin25.4.0 
+ sysname  release  machine 
+"Darwin" "25.6.0"  "arm64" 
+R version 4.6.1 (2026-06-24)
+Platform: aarch64-apple-darwin25.4.0
+Running under: macOS Tahoe 26.6.2
+
+Matrix products: default
+BLAS:   /opt/homebrew/Cellar/openblas/0.3.34/lib/libopenblasp-r0.3.34.dylib 
+LAPACK: /opt/homebrew/Cellar/r/4.6.1/lib/R/lib/libRlapack.dylib;  LAPACK version 3.12.1
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: Europe/Berlin
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+loaded via a namespace (and not attached):
+[1] compiler_4.6.1
+* installing *source* package ‘vennabers’ ...
+** this is package ‘vennabers’ version ‘0.7.0’
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (vennabers)
+* using log directory ‘/Users/entropy/Git/venn-abers/.scratch/v07/final2-core/vennabers.Rcheck’
+* using R version 4.6.1 (2026-06-24)
+* using platform: aarch64-apple-darwin25.4.0
+* R was compiled by
+    Apple clang version 21.0.0 (clang-2100.0.123.102)
+    GNU Fortran (Homebrew GCC 16.1.0) 16.1.0
+* running under: macOS Tahoe 26.6.2
+* using session charset: UTF-8
+* current time: 2026-09-12 20:37:26 UTC
+* using options ‘--no-manual --as-cran’
+* checking for file ‘vennabers/DESCRIPTION’ ... OK
+* this is package ‘vennabers’ version ‘0.7.0’
+* package encoding: UTF-8
+* checking package namespace information ... OK
+* checking package dependencies ... INFO
+Packages suggested but not available for checking:
+  'parsnip', 'workflows', 'hardhat', 'rsample', 'recipes', 'rlang',
+  'tibble', 'withr', 'generics', 'tidyselect', 'tailor', 'probably',
+  'tune', 'yardstick', 'future'
+* checking if this is a source package ... OK
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... OK
+* checking for portable file names ... OK
+* checking for sufficient/correct file permissions ... OK
+* checking whether package ‘vennabers’ can be installed ... OK
+* checking installed package size ... INFO
+  installed size is  8.0Mb
+  sub-directories of 1Mb or more:
+    extdata   7.5Mb
+* checking package directory ... OK
+* checking for future file timestamps ... OK
+* checking DESCRIPTION meta-information ... OK
+* checking top-level files ... OK
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... OK
+* checking code files for non-ASCII characters ... OK
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking loading without being on the library search path ... OK
+* checking whether startup messages can be suppressed ... OK
+* checking dependencies in R code ... OK
+* checking S3 generic/method consistency ... OK
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... OK
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd line widths ... OK
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... OK
+* checking Rd \usage sections ... OK
+* checking Rd contents ... OK
+* checking for unstated dependencies in examples ... OK
+* checking examples ... OK
+* checking for unstated dependencies in ‘tests’ ... OK
+* checking tests ...
+  Running ‘binary-options-parity.R’
+  Running ‘binary-options.R’
+  Running ‘calibrated-workflow.R’
+  Running ‘cross-multiclass-workflow.R’
+  Running ‘cross-multiclass.R’
+  Running ‘cross-parity.R’
+  Running ‘cross-regression-parity.R’
+  Running ‘cross-regression.R’
+  Running ‘cross-venn-abers.R’
+  Running ‘cross-workflow.R’
+  Running ‘frozen-multiclass-processes.R’
+  Running ‘frozen-multiclass-regression.R’
+  Running ‘frozen-processes.R’
+  Running ‘frozen-schema.R’
+  Running ‘frozen-workflow.R’
+  Running ‘full-model-workflow.R’
+  Running ‘full-multiclass-processes.R’
+  Running ‘full-multiclass-workflow.R’
+  Running ‘full-pairwise-workflow.R’
+  Running ‘full-regression-processes.R’
+  Running ‘full-regression-workflow.R’
+  Running ‘inductive-multiclass.R’
+  Running ‘inductive-ovr.R’
+  Running ‘inductive-regression.R’
+  Running ‘integration-processes.R’
+  Running ‘local-plans.R’
+  Running ‘matched-last-fit.R’
+  Running ‘multiclass-workflow.R’
+  Running ‘outer-resampling.R’
+  Running ‘pairwise-cross-workflow.R’
+  Running ‘pairwise-processes.R’
+  Running ‘pairwise-workflow.R’
+  Running ‘prediction-response.R’
+  Running ‘print-costs.R’
+  Running ‘randomized-parity.R’
+  Running ‘reference-splits.R’
+  Running ‘regression-parity.R’
+  Running ‘regression-workflow.R’
+  Running ‘schema-multiclass-regression.R’
+  Running ‘schema-multiclass-resampling.R’
+  Running ‘schema-processes.R’
+  Running ‘schema-resampling.R’
+  Running ‘schema-workflow.R’
+  Running ‘schema.R’
+  Running ‘venn-abers.R’
+ OK
+* checking for non-standard things in the check directory ... OK
+* checking for detritus in the temp directory ... OK
+* DONE
+
+Status: OK
+
+Verified installed artifact: /Users/entropy/Git/venn-abers/.scratch/v07/final2-core/library/vennabers version 0.7.0 
+Core manual API smoke passed; integration README/examples are not applicable.
+Acceptance gate passed.

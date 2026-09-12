@@ -1,0 +1,5 @@
+"iteration","fit_count","retained_models","outer_fit_count","fit_seconds","predict_seconds","outer_seconds","schema_seconds","encode_seconds","decode_seconds","rds_bytes","release","case","process_peak_bytes"
+0,0,0,0,0.081,0.002,0,0,0,0,147923,"previous","3_inductive_ovo",93503488
+1,0,0,0,0.081,0.001,0,0,0,0,147923,"previous","3_inductive_ovo",93618176
+2,0,0,0,0.08,0.001,0,0,0,0,147923,"previous","3_inductive_ovo",93585408
+3,0,0,0,0.08,0.001,0,0,0,0,147923,"previous","3_inductive_ovo",93634560

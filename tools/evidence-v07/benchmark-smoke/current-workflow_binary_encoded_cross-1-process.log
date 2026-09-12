@@ -1,0 +1,20 @@
+Tracing function "glm" in package "namespace:stats"
+Untracing function "glm" in package "namespace:stats"
+        2.46 real         2.36 user         0.08 sys
+           407584768  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               30023  page reclaims
+                  37  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   9  voluntary context switches
+                1694  involuntary context switches
+         32159002590  instructions retired
+         10657161635  cycles elapsed
+           387711864  peak memory footprint

@@ -1,0 +1,20 @@
+Tracing function "multinom" in package "namespace:nnet"
+Untracing function "multinom" in package "namespace:nnet"
+        1.48 real         1.38 user         0.07 sys
+           364658688  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               27236  page reclaims
+                  73  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  14  voluntary context switches
+                 662  involuntary context switches
+         22124339435  instructions retired
+          6347105158  cycles elapsed
+           344818504  peak memory footprint

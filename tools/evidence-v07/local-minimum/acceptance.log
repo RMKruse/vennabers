@@ -1,0 +1,1892 @@
+Acceptance environment: R version 4.6.1 (2026-06-24) on aarch64-apple-darwin25.4.0 
+ sysname  release  machine 
+"Darwin" "25.6.0"  "arm64" 
+R version 4.6.1 (2026-06-24)
+Platform: aarch64-apple-darwin25.4.0
+Running under: macOS Tahoe 26.6.2
+
+Matrix products: default
+BLAS:   /opt/homebrew/Cellar/openblas/0.3.34/lib/libopenblasp-r0.3.34.dylib 
+LAPACK: /opt/homebrew/Cellar/r/4.6.1/lib/R/lib/libRlapack.dylib;  LAPACK version 3.12.1
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: Europe/Berlin
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+loaded via a namespace (and not attached):
+[1] compiler_4.6.1
+* installing *source* package ‘vennabers’ ...
+** this is package ‘vennabers’ version ‘0.7.0’
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (vennabers)
+* using log directory ‘/Users/entropy/Git/venn-abers/.scratch/v07/final3-minimum/vennabers.Rcheck’
+* using R version 4.6.1 (2026-06-24)
+* using platform: aarch64-apple-darwin25.4.0
+* R was compiled by
+    Apple clang version 21.0.0 (clang-2100.0.123.102)
+    GNU Fortran (Homebrew GCC 16.1.0) 16.1.0
+* running under: macOS Tahoe 26.6.2
+* using session charset: UTF-8
+* current time: 2026-09-12 20:59:16 UTC
+* using options ‘--no-manual --as-cran’
+* checking for file ‘vennabers/DESCRIPTION’ ... OK
+* this is package ‘vennabers’ version ‘0.7.0’
+* package encoding: UTF-8
+* checking package namespace information ... OK
+* checking package dependencies ... OK
+* checking if this is a source package ... OK
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... OK
+* checking for portable file names ... OK
+* checking for sufficient/correct file permissions ... OK
+* checking whether package ‘vennabers’ can be installed ... OK
+* checking installed package size ... INFO
+  installed size is  8.0Mb
+  sub-directories of 1Mb or more:
+    extdata   7.5Mb
+* checking package directory ... OK
+* checking for future file timestamps ... OK
+* checking DESCRIPTION meta-information ... OK
+* checking top-level files ... OK
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... OK
+* checking code files for non-ASCII characters ... OK
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking loading without being on the library search path ... OK
+* checking whether startup messages can be suppressed ... OK
+* checking dependencies in R code ... OK
+* checking S3 generic/method consistency ... OK
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... OK
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd line widths ... OK
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... OK
+* checking Rd \usage sections ... OK
+* checking Rd contents ... OK
+* checking for unstated dependencies in examples ... OK
+* checking examples ... OK
+* checking for unstated dependencies in ‘tests’ ... OK
+* checking tests ...
+  Running ‘binary-options-parity.R’
+  Running ‘binary-options.R’
+  Running ‘calibrated-workflow.R’
+  Running ‘cross-multiclass-workflow.R’ [17s/17s]
+  Running ‘cross-multiclass.R’
+  Running ‘cross-parity.R’
+  Running ‘cross-regression-parity.R’
+  Running ‘cross-regression.R’
+  Running ‘cross-venn-abers.R’
+  Running ‘cross-workflow.R’
+  Running ‘frozen-multiclass-processes.R’ [19s/19s]
+  Running ‘frozen-multiclass-regression.R’ [30s/30s]
+  Running ‘frozen-processes.R’
+  Running ‘frozen-schema.R’ [12s/12s]
+  Running ‘frozen-workflow.R’
+  Running ‘full-model-workflow.R’ [12s/13s]
+  Running ‘full-multiclass-processes.R’
+  Running ‘full-multiclass-workflow.R’ [30s/30s]
+  Running ‘full-pairwise-workflow.R’ [32s/32s]
+  Running ‘full-regression-processes.R’
+  Running ‘full-regression-workflow.R’ [22s/22s]
+  Running ‘inductive-multiclass.R’
+  Running ‘inductive-ovr.R’
+  Running ‘inductive-regression.R’
+  Running ‘integration-processes.R’ [46s/59s]
+  Running ‘local-plans.R’
+  Running ‘matched-last-fit.R’
+  Running ‘multiclass-workflow.R’ [17s/17s]
+  Running ‘outer-resampling.R’ [25s/25s]
+  Running ‘pairwise-cross-workflow.R’ [24s/24s]
+  Running ‘pairwise-processes.R’
+  Running ‘pairwise-workflow.R’ [14s/14s]
+  Running ‘prediction-response.R’
+  Running ‘print-costs.R’
+  Running ‘randomized-parity.R’
+  Running ‘reference-splits.R’
+  Running ‘regression-parity.R’
+  Running ‘regression-workflow.R’ [11s/11s]
+  Running ‘schema-multiclass-regression.R’ [11s/11s]
+  Running ‘schema-multiclass-resampling.R’ [20s/32s]
+  Running ‘schema-processes.R’ [6s/12s]
+  Running ‘schema-resampling.R’ [11s/11s]
+  Running ‘schema-workflow.R’
+  Running ‘schema.R’
+  Running ‘venn-abers.R’
+ [432s/463s] OK
+* checking for non-standard things in the check directory ... OK
+* checking for detritus in the temp directory ... OK
+* DONE
+
+Status: OK
+
+Verified installed artifact: /Users/entropy/Git/venn-abers/.scratch/v07/final3-minimum/library/vennabers version 0.7.0 
+Registered S3 method overwritten by 'butcher':
+  method                 from    
+  as.character.dev_topic generics
+ log_loss     brier 
+0.6155101 0.2141883 
+# A tibble: 6 × 3
+  .pred_third .pred_first .pred_second
+        <dbl>       <dbl>        <dbl>
+1       0.397       0.270        0.333
+2       0.344       0.348        0.308
+3       0.391       0.244        0.366
+4       0.427       0.289        0.285
+5       0.344       0.342        0.313
+6       0.291       0.332        0.377
+# A tibble: 6 × 3
+  .pred_third .pred_first .pred_second
+        <dbl>       <dbl>        <dbl>
+1       0.457       0.260        0.282
+2       0.350       0.337        0.313
+3       0.307       0.235        0.458
+4       0.503       0.238        0.258
+5       0.350       0.337        0.313
+6       0.304       0.301        0.395
+     rmse 
+0.7239547 
+# A tibble: 6 × 2
+  .pred_vaL0001 .pred_vaL0002
+          <dbl>         <dbl>
+1         0.457         0.543
+2         0.556         0.444
+3         0.556         0.444
+4         0.556         0.444
+5         0.457         0.543
+6         0.484         0.516
+# A tibble: 6 × 3
+  .pred_vaL0001 .pred_vaL0002 .pred_vaL0003
+          <dbl>         <dbl>         <dbl>
+1         0.407         0.255         0.337
+2         0.195         0.493         0.312
+3         0.340         0.362         0.298
+4         0.411         0.288         0.301
+5         0.340         0.362         0.298
+6         0.361         0.341         0.298
+# A tibble: 6 × 3
+  .pred_vaL0001 .pred_vaL0002 .pred_vaL0003
+          <dbl>         <dbl>         <dbl>
+1         0.328         0.325         0.347
+2         0.310         0.333         0.357
+3         0.310         0.333         0.357
+4         0.251         0.461         0.288
+5         0.557         0.245         0.198
+6         0.310         0.333         0.357
+# A tibble: 6 × 1
+  .pred
+  <dbl>
+1 0.725
+2 3.26 
+3 1.95 
+4 2.08 
+5 3.26 
+6 1.39 
+# A tibble: 6 × 2
+  .pred_yes .pred_no
+      <dbl>    <dbl>
+1     0.182    0.818
+2     0.583    0.417
+3     0.769    0.231
+4     0.222    0.778
+5     0.324    0.676
+6     0.769    0.231
+# A tibble: 6 × 8
+    row fold   event_class lower upper probability prediction_model model_source
+  <int> <chr>  <chr>       <dbl> <dbl>       <dbl> <chr>            <chr>       
+1     1 Induc… yes         0     0.222       0.182 matched          Inductive1  
+2     2 Induc… yes         0.5   0.7         0.583 matched          Inductive1  
+3     3 Induc… yes         0.7   1           0.769 matched          Inductive1  
+4     4 Induc… yes         0     0.286       0.222 matched          Inductive1  
+5     5 Induc… yes         0.167 0.4         0.324 matched          Inductive1  
+6     6 Induc… yes         0.7   1           0.769 matched          Inductive1  
+[1] 0.2128896
+
+── Recipe ──────────────────────────────────────────────────────────────────────
+
+── Inputs 
+Number of variables by role
+outcome:   1
+predictor: 1
+
+── Training information 
+Training data contained 160 data points and no incomplete rows.
+
+── Operations 
+• Median imputation for: x | Trained
+• Centering and scaling for: x | Trained
+# A tibble: 6 × 12
+    row fold  method event_class class_1 class_2    lower upper probability
+  <int> <chr> <chr>  <chr>       <chr>   <chr>      <dbl> <dbl>       <dbl>
+1     1 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+2     2 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+3     3 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+4     4 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+5     5 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+6     6 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+    brier  log_loss 
+0.4452066 0.7816807 
+# A tibble: 6 × 11
+    row fold  method event_class class  lower upper probability model_training
+  <int> <chr> <chr>  <chr>       <chr>  <dbl> <dbl>       <dbl> <chr>         
+1     1 Fold1 ovr    setosa      setosa     0     1         0.5 shared        
+2     2 Fold1 ovr    setosa      setosa     0     1         0.5 shared        
+3     3 Fold1 ovr    setosa      setosa     0     1         0.5 shared        
+4     4 Fold1 ovr    setosa      setosa     0     1         0.5 shared        
+5     5 Fold1 ovr    setosa      setosa     0     1         0.5 shared        
+6     6 Fold1 ovr    setosa      setosa     0     1         0.5 shared        
+# ℹ 2 more variables: prediction_model <chr>, model_source <chr>
+    brier  log_loss 
+0.4825278 0.8357005 
+# A tibble: 2 × 6
+  .metric .estimator  mean     n std_err .config        
+  <chr>   <chr>      <dbl> <int>   <dbl> <chr>          
+1 mae     standard    1.55     5   0.163 pre0_mod0_post0
+2 rmse    standard    1.73     5   0.182 pre0_mod0_post0
+# A tibble: 2 × 6
+  .metric .estimator  mean     n std_err .config        
+  <chr>   <chr>      <dbl> <int>   <dbl> <chr>          
+1 mae     standard    1.44     5  0.0833 pre0_mod0_post0
+2 rmse    standard    1.60     5  0.105  pre0_mod0_post0
+     method prediction_model     brier
+1 inductive          matched 0.2606347
+2 inductive             full 0.2793532
+Venn-Abers inductive calibrated predictor
+Prediction model: full (full-model transfer) 
+Base fits: 2 
+Models per nonempty prediction: 1 
+Stored calibration rows: 30 (held-out truth and model predictions)
+  Inductive1 -> Full1 
+# A tibble: 6 × 8
+    row fold   event_class lower upper probability prediction_model model_source
+  <int> <chr>  <chr>       <dbl> <dbl>       <dbl> <chr>            <chr>       
+1     1 Induc… yes         0     0.353       0.261 full             Full1       
+2     2 Induc… yes         0.312 0.5         0.421 full             Full1       
+3     3 Induc… yes         0.312 0.385       0.359 full             Full1       
+4     4 Induc… yes         0     0.125       0.111 full             Full1       
+5     5 Induc… yes         0     0.125       0.111 full             Full1       
+6     6 Induc… yes         0.6   0.8         0.667 full             Full1       
+  row truth probability
+1  91 FALSE   0.6346473
+2  92 FALSE   0.4197443
+3  93  TRUE   0.7083941
+4  94 FALSE   0.5970324
+5  95  TRUE   0.7261588
+6  96 FALSE   0.5223902
+
+── Recipe ──────────────────────────────────────────────────────────────────────
+
+── Inputs 
+Number of variables by role
+outcome:   1
+predictor: 1
+
+── Training information 
+Training data contained 120 data points and no incomplete rows.
+
+── Operations 
+• Centering and scaling for: x | Trained
+  method prediction_model     brier
+1  cross          matched 0.2318600
+2  cross             full 0.2299836
+Venn-Abers cross calibrated predictor
+Prediction model: full (full-model transfer) 
+Base fits: 4 
+Models per nonempty prediction: 1 
+Stored calibration rows: 120 (held-out truth and model predictions)
+  Fold1 -> Full1 
+  Fold2 -> Full1 
+  Fold3 -> Full1 
+# A tibble: 6 × 8
+    row fold  event_class lower upper probability prediction_model model_source
+  <int> <chr> <chr>       <dbl> <dbl>       <dbl> <chr>            <chr>       
+1     1 Fold1 yes         0.429 0.5         0.467 full             Full1       
+2     2 Fold1 yes         0.44  0.75        0.573 full             Full1       
+3     3 Fold1 yes         0.44  0.5         0.472 full             Full1       
+4     4 Fold1 yes         0.222 0.333       0.3   full             Full1       
+5     5 Fold1 yes         0.222 0.333       0.3   full             Full1       
+6     6 Fold1 yes         0.75  1           0.8   full             Full1       
+  row truth probability
+1   2  TRUE   0.7649890
+2   3 FALSE   0.3482471
+3   5  TRUE   0.2027754
+4   6  TRUE   0.4653904
+5   7 FALSE   0.4577605
+6   8 FALSE   0.4031153
+
+── Recipe ──────────────────────────────────────────────────────────────────────
+
+── Inputs 
+Number of variables by role
+outcome:   1
+predictor: 1
+
+── Training information 
+Training data contained 120 data points and no incomplete rows.
+
+── Operations 
+• Centering and scaling for: x | Trained
+Venn-Abers inductive calibrated predictor
+Model training: shared 
+Prediction model: full (full-model transfer) 
+Base fits: 2 
+Models per nonempty prediction: 1 
+Stored calibration rows: 23 (held-out truth and model predictions)
+  Inductive1 -> Full1 
+# A tibble: 6 × 12
+    row fold       method event_class class_1 class_2 lower upper probability
+  <int> <chr>      <chr>  <chr>       <chr>   <chr>   <dbl> <dbl>       <dbl>
+1     1 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.667   1         0.75 
+2     2 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.429   1         0.636
+3     3 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.4     0.5       0.455
+4     4 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.4     0.5       0.455
+5     5 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.4     0.6       0.5  
+6     6 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.429   1         0.636
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+# A tibble: 6 × 12
+    row fold       method event_class class_1 class_2    lower upper probability
+  <int> <chr>      <chr>  <chr>       <chr>   <chr>      <dbl> <dbl>       <dbl>
+1     1 Inductive1 ovo    .pred_class class   .pred_cla… 0.667   1         0.75 
+2     2 Inductive1 ovo    .pred_class class   .pred_cla… 0.429   1         0.636
+3     3 Inductive1 ovo    .pred_class class   .pred_cla… 0.4     0.5       0.455
+4     4 Inductive1 ovo    .pred_class class   .pred_cla… 0.4     0.5       0.455
+5     5 Inductive1 ovo    .pred_class class   .pred_cla… 0.4     0.6       0.5  
+6     6 Inductive1 ovo    .pred_class class   .pred_cla… 0.429   1         0.636
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+         class .pred_class       a b
+[1,] 0.1698693   0.3597233 0.4704074
+[2,] 0.2110230   0.3263496 0.4626274
+[3,] 0.3381625   0.2703777 0.3914598
+[4,] 0.3525865   0.3576066 0.2898069
+[5,] 0.3236570   0.3827026 0.2936404
+[6,] 0.2548454   0.3318917 0.4132629
+[1] a b         a b         a b         .pred_class .pred_class a b        
+Levels: class .pred_class a b
+# A tibble: 8 × 6
+  id      id2   .metric     .estimator .estimate .config        
+  <chr>   <chr> <chr>       <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 brier_class multiclass     0.389 pre0_mod0_post0
+2 Repeat1 Fold1 mn_log_loss multiclass     1.26  pre0_mod0_post0
+3 Repeat1 Fold2 brier_class multiclass     0.359 pre0_mod0_post0
+4 Repeat1 Fold2 mn_log_loss multiclass     1.24  pre0_mod0_post0
+5 Repeat2 Fold1 brier_class multiclass     0.353 pre0_mod0_post0
+6 Repeat2 Fold1 mn_log_loss multiclass     1.16  pre0_mod0_post0
+7 Repeat2 Fold2 brier_class multiclass     0.368 pre0_mod0_post0
+8 Repeat2 Fold2 mn_log_loss multiclass     1.21  pre0_mod0_post0
+Venn-Abers inductive calibrated predictor
+Model training: shared 
+Prediction model: full (full-model transfer) 
+Base fits: 2 
+Models per nonempty prediction: 1 
+Stored calibration rows: 23 (held-out truth and model predictions)
+  Inductive1 -> Full1 
+# A tibble: 6 × 11
+    row fold     method event_class class lower upper probability model_training
+  <int> <chr>    <chr>  <chr>       <chr> <dbl> <dbl>       <dbl> <chr>         
+1     1 Inducti… ovr    vaL0001     vaL0…  0    0.333       0.25  shared        
+2     2 Inducti… ovr    vaL0001     vaL0…  0    0.333       0.25  shared        
+3     3 Inducti… ovr    vaL0001     vaL0…  0.25 0.385       0.339 shared        
+4     4 Inducti… ovr    vaL0001     vaL0…  0.25 0.385       0.339 shared        
+5     5 Inducti… ovr    vaL0001     vaL0…  0.25 0.385       0.339 shared        
+6     6 Inducti… ovr    vaL0001     vaL0…  0    0.333       0.25  shared        
+# ℹ 2 more variables: prediction_model <chr>, model_source <chr>
+# A tibble: 6 × 11
+    row fold     method event_class class lower upper probability model_training
+  <int> <chr>    <chr>  <chr>       <chr> <dbl> <dbl>       <dbl> <chr>         
+1     1 Inducti… ovr    class       class  0    0.333       0.25  shared        
+2     2 Inducti… ovr    class       class  0    0.333       0.25  shared        
+3     3 Inducti… ovr    class       class  0.25 0.385       0.339 shared        
+4     4 Inducti… ovr    class       class  0.25 0.385       0.339 shared        
+5     5 Inducti… ovr    class       class  0.25 0.385       0.339 shared        
+6     6 Inducti… ovr    class       class  0    0.333       0.25  shared        
+# ℹ 2 more variables: prediction_model <chr>, model_source <chr>
+         class .pred_class       a b
+[1,] 0.1959102   0.3176922 0.4863977
+[2,] 0.2112933   0.2641166 0.5245902
+[3,] 0.3160576   0.2913656 0.3925768
+[4,] 0.3121817   0.3733524 0.3144659
+[5,] 0.2908625   0.3478558 0.3612818
+[6,] 0.2322431   0.3766105 0.3911463
+[1] a b         a b         a b         .pred_class a b         a b        
+Levels: class .pred_class a b
+# A tibble: 8 × 6
+  id      id2   .metric     .estimator .estimate .config        
+  <chr>   <chr> <chr>       <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 brier_class multiclass     0.395 pre0_mod0_post0
+2 Repeat1 Fold1 mn_log_loss multiclass     1.28  pre0_mod0_post0
+3 Repeat1 Fold2 brier_class multiclass     0.380 pre0_mod0_post0
+4 Repeat1 Fold2 mn_log_loss multiclass     1.33  pre0_mod0_post0
+5 Repeat2 Fold1 brier_class multiclass     0.360 pre0_mod0_post0
+6 Repeat2 Fold1 mn_log_loss multiclass     1.18  pre0_mod0_post0
+7 Repeat2 Fold2 brier_class multiclass     0.374 pre0_mod0_post0
+8 Repeat2 Fold2 mn_log_loss multiclass     1.21  pre0_mod0_post0
+Venn-Abers cross calibrated predictor
+Model training: shared 
+Prediction model: full (full-model transfer) 
+Base fits: 4 
+Models per nonempty prediction: 1 
+Stored calibration rows: 90 (held-out truth and model predictions)
+  Part1 -> Full1 
+  Part2 -> Full1 
+  Part3 -> Full1 
+# A tibble: 6 × 12
+    row fold  method event_class class_1 class_2 lower upper probability
+  <int> <chr> <chr>  <chr>       <chr>   <chr>   <dbl> <dbl>       <dbl>
+1     1 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 1           0.607
+2     2 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+3     3 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+4     4 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+5     5 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+6     6 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+# A tibble: 6 × 12
+    row fold  method event_class class_1 class_2     lower upper probability
+  <int> <chr> <chr>  <chr>       <chr>   <chr>       <dbl> <dbl>       <dbl>
+1     1 Part1 ovo    .pred_class class   .pred_class 0.353 1           0.607
+2     2 Part1 ovo    .pred_class class   .pred_class 0.353 0.412       0.389
+3     3 Part1 ovo    .pred_class class   .pred_class 0.353 0.412       0.389
+4     4 Part1 ovo    .pred_class class   .pred_class 0.353 0.412       0.389
+5     5 Part1 ovo    .pred_class class   .pred_class 0.353 0.412       0.389
+6     6 Part1 ovo    .pred_class class   .pred_class 0.353 0.412       0.389
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+         class .pred_class       a b
+[1,] 0.2453950   0.3150263 0.4395787
+[2,] 0.2820385   0.2940285 0.4239330
+[3,] 0.3954256   0.2590723 0.3455022
+[4,] 0.4429897   0.3069373 0.2500730
+[5,] 0.3927781   0.3502992 0.2569227
+[6,] 0.3022480   0.3866848 0.3110672
+[1] a b         a b         class       class       class       .pred_class
+Levels: class .pred_class a b
+# A tibble: 8 × 6
+  id      id2   .metric     .estimator .estimate .config        
+  <chr>   <chr> <chr>       <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 brier_class multiclass     0.363 pre0_mod0_post0
+2 Repeat1 Fold1 mn_log_loss multiclass     1.18  pre0_mod0_post0
+3 Repeat1 Fold2 brier_class multiclass     0.351 pre0_mod0_post0
+4 Repeat1 Fold2 mn_log_loss multiclass     1.16  pre0_mod0_post0
+5 Repeat2 Fold1 brier_class multiclass     0.357 pre0_mod0_post0
+6 Repeat2 Fold1 mn_log_loss multiclass     1.18  pre0_mod0_post0
+7 Repeat2 Fold2 brier_class multiclass     0.368 pre0_mod0_post0
+8 Repeat2 Fold2 mn_log_loss multiclass     1.21  pre0_mod0_post0
+Venn-Abers cross calibrated predictor
+Model training: shared 
+Prediction model: full (full-model transfer) 
+Base fits: 4 
+Models per nonempty prediction: 1 
+Stored calibration rows: 90 (held-out truth and model predictions)
+  Part1 -> Full1 
+  Part2 -> Full1 
+  Part3 -> Full1 
+# A tibble: 6 × 11
+    row fold  method event_class class   lower upper probability model_training
+  <int> <chr> <chr>  <chr>       <chr>   <dbl> <dbl>       <dbl> <chr>         
+1     1 Part1 ovr    vaL0001     vaL0001 0.1   0.455       0.336 shared        
+2     2 Part1 ovr    vaL0001     vaL0001 0.409 0.455       0.435 shared        
+3     3 Part1 ovr    vaL0001     vaL0001 0.409 0.455       0.435 shared        
+4     4 Part1 ovr    vaL0001     vaL0001 0.409 0.455       0.435 shared        
+5     5 Part1 ovr    vaL0001     vaL0001 0.409 0.455       0.435 shared        
+6     6 Part1 ovr    vaL0001     vaL0001 0.409 0.455       0.435 shared        
+# ℹ 2 more variables: prediction_model <chr>, model_source <chr>
+# A tibble: 6 × 11
+    row fold  method event_class class lower upper probability model_training
+  <int> <chr> <chr>  <chr>       <chr> <dbl> <dbl>       <dbl> <chr>         
+1     1 Part1 ovr    class       class 0.1   0.455       0.336 shared        
+2     2 Part1 ovr    class       class 0.409 0.455       0.435 shared        
+3     3 Part1 ovr    class       class 0.409 0.455       0.435 shared        
+4     4 Part1 ovr    class       class 0.409 0.455       0.435 shared        
+5     5 Part1 ovr    class       class 0.409 0.455       0.435 shared        
+6     6 Part1 ovr    class       class 0.409 0.455       0.435 shared        
+# ℹ 2 more variables: prediction_model <chr>, model_source <chr>
+         class .pred_class       a b
+[1,] 0.2554605   0.3242856 0.4202539
+[2,] 0.2933950   0.2688479 0.4377571
+[3,] 0.4244021   0.2606459 0.3149520
+[4,] 0.4202539   0.3242856 0.2554605
+[5,] 0.4095230   0.3160052 0.2744718
+[6,] 0.3068826   0.3533204 0.3397970
+[1] a b         a b         class       class       class       .pred_class
+Levels: class .pred_class a b
+# A tibble: 8 × 6
+  id      id2   .metric     .estimator .estimate .config        
+  <chr>   <chr> <chr>       <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 brier_class multiclass     0.374 pre0_mod0_post0
+2 Repeat1 Fold1 mn_log_loss multiclass     1.21  pre0_mod0_post0
+3 Repeat1 Fold2 brier_class multiclass     0.348 pre0_mod0_post0
+4 Repeat1 Fold2 mn_log_loss multiclass     1.15  pre0_mod0_post0
+5 Repeat2 Fold1 brier_class multiclass     0.353 pre0_mod0_post0
+6 Repeat2 Fold1 mn_log_loss multiclass     1.16  pre0_mod0_post0
+7 Repeat2 Fold2 brier_class multiclass     0.372 pre0_mod0_post0
+8 Repeat2 Fold2 mn_log_loss multiclass     1.21  pre0_mod0_post0
+      method   matched      full
+1  inductive 10.342823 10.342823
+2  inductive 10.679036 10.679036
+3  inductive  9.755873  9.755873
+4  inductive 10.733059 10.733059
+5  inductive 10.417595 10.417595
+6  inductive 11.814034 11.814034
+7  inductive 10.417595 10.417595
+8  inductive 10.733059 10.733059
+9  inductive  9.755873  9.755873
+10 inductive 10.733059 10.733059
+11 inductive 10.417595 10.417595
+12 inductive 11.814034 11.814034
+13 inductive 10.417595 10.417595
+14 inductive 10.733059 10.733059
+15 inductive  9.755873  9.755873
+16 inductive 10.679036 10.679036
+17 inductive 10.342823 10.342823
+18 inductive 11.608743 11.608743
+19 inductive 10.880839 10.880839
+20 inductive 10.326673 10.326673
+21 inductive 10.103305 10.103305
+22 inductive 10.103305 10.103305
+23 inductive 10.326673 10.326673
+24 inductive 10.880839 10.880839
+25 inductive 11.608743 11.608743
+26 inductive 10.342823 10.342823
+27 inductive 10.679036 10.679036
+28 inductive  9.755873  9.755873
+29 inductive 10.733059 10.733059
+30 inductive 10.417595 10.417595
+# A tibble: 6 × 7
+    row fold       prediction lower upper prediction_model model_source
+  <int> <chr>           <dbl> <dbl> <dbl> <chr>            <chr>       
+1     1 Inductive1      10.3   9.80 12.4  full             Full1       
+2     2 Inductive1      10.7   7.86 10.7  full             Full1       
+3     3 Inductive1       9.76  7.86  9.76 full             Full1       
+4     4 Inductive1      10.7   8.29 11.5  full             Full1       
+5     5 Inductive1      10.4  10.3  12.8  full             Full1       
+6     6 Inductive1      11.8  11.8  12.9  full             Full1       
+     method    mode     rmse      mae
+1 inductive matched 1.838205 1.700942
+2 inductive    full 1.838205 1.700942
+# A tibble: 8 × 6
+  id      id2   .metric .estimator .estimate .config        
+  <chr>   <chr> <chr>   <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 rmse    standard        2.25 pre0_mod0_post0
+2 Repeat1 Fold1 mae     standard        2.06 pre0_mod0_post0
+3 Repeat1 Fold2 rmse    standard        2.77 pre0_mod0_post0
+4 Repeat1 Fold2 mae     standard        2.26 pre0_mod0_post0
+5 Repeat2 Fold1 rmse    standard        1.83 pre0_mod0_post0
+6 Repeat2 Fold1 mae     standard        1.70 pre0_mod0_post0
+7 Repeat2 Fold2 rmse    standard        1.83 pre0_mod0_post0
+8 Repeat2 Fold2 mae     standard        1.68 pre0_mod0_post0
+   method   matched      full
+1   cross 10.411415 10.411415
+2   cross  9.287043  9.287043
+3   cross  8.781390  8.781390
+4   cross 10.091989 10.091989
+5   cross 11.411852 11.411852
+6   cross 12.127921 12.127921
+7   cross 10.787078 10.787078
+8   cross  9.699415  9.699415
+9   cross  8.280820  8.318010
+10  cross  9.842369  9.842369
+11  cross 11.014214 11.014214
+12  cross 12.232606 12.232606
+13  cross 11.221850 11.221850
+14  cross  9.965081  9.965081
+15  cross  8.507063  8.507063
+16  cross  9.497382  9.497382
+17  cross 10.594301 10.594301
+18  cross 12.014067 12.014067
+19  cross 11.616704 11.616704
+20  cross 10.238552 10.238552
+21  cross  9.039229  9.039229
+22  cross  9.039229  9.039229
+23  cross 10.238552 10.238552
+24  cross 11.616704 11.616704
+25  cross 12.014067 12.014067
+26  cross 10.594301 10.594301
+27  cross  9.497382  9.497382
+28  cross  8.507063  8.455686
+29  cross  9.965081  9.965081
+30  cross 11.221850 11.221850
+# A tibble: 6 × 7
+    row fold  prediction lower upper prediction_model model_source
+  <int> <chr>      <dbl> <dbl> <dbl> <chr>            <chr>       
+1     1 Part1      10.4   9.75 11.9  full             Full1       
+2     2 Part1       9.17  7.42  9.35 full             Full1       
+3     3 Part1       8.81  7.15  8.85 full             Full1       
+4     4 Part1      10.1   9.07 11.5  full             Full1       
+5     5 Part1      11.4  11.4  12.8  full             Full1       
+6     6 Part1      12.1  12.1  13.0  full             Full1       
+# A tibble: 6 × 5
+    row lower upper prediction_model model_source
+  <int> <dbl> <dbl> <chr>            <list>      
+1     1  9.84 12.0  full             <chr [1]>   
+2     2  7.46  9.50 full             <chr [1]>   
+3     3  7.14  8.81 full             <chr [1]>   
+4     4  9.03 11.4  full             <chr [1]>   
+5     5 11.4  12.8  full             <chr [1]>   
+6     6 12.1  13.0  full             <chr [1]>   
+  method    mode     rmse       mae
+1  cross matched 1.051280 0.9780498
+2  cross    full 1.050541 0.9775769
+# A tibble: 8 × 6
+  id      id2   .metric .estimator .estimate .config        
+  <chr>   <chr> <chr>   <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 rmse    standard        1.58 pre0_mod0_post0
+2 Repeat1 Fold1 mae     standard        1.49 pre0_mod0_post0
+3 Repeat1 Fold2 rmse    standard        1.52 pre0_mod0_post0
+4 Repeat1 Fold2 mae     standard        1.38 pre0_mod0_post0
+5 Repeat2 Fold1 rmse    standard        1.46 pre0_mod0_post0
+6 Repeat2 Fold1 mae     standard        1.38 pre0_mod0_post0
+7 Repeat2 Fold2 rmse    standard        1.58 pre0_mod0_post0
+8 Repeat2 Fold2 mae     standard        1.46 pre0_mod0_post0
+$requested
+$requested$epsilon
+[1] 0.1
+
+
+$m
+[1] 3
+
+$epsilon
+[1] 0.09836066
+
+     uncalibrated calibrated
+RMSE     1.395241   1.350256
+MAE      1.119748   1.065058
+$B
+$B$observations
+[1] 60
+
+$B$requested
+$B$requested$epsilon
+[1] 0.1
+
+
+$B$m
+[1] 3
+
+$B$epsilon
+[1] 0.09836066
+
+
+$C
+$C$observations
+[1] 70
+
+$C$requested
+$C$requested$epsilon
+[1] 0.1
+
+
+$C$m
+[1] 3
+
+$C$epsilon
+[1] 0.08450704
+
+
+$A
+$A$observations
+[1] 50
+
+$A$requested
+$A$requested$epsilon
+[1] 0.1
+
+
+$A$m
+[1] 2
+
+$A$epsilon
+[1] 0.07843137
+
+
+     uncalibrated calibrated
+RMSE    1.1990933  1.0587165
+MAE     0.9279984  0.8343754
+<cross_venn_abers>
+Folds: 3
+Calibration observations: 6
+$prediction
+           cat       dog      bird
+[1,] 0.4067797 0.3389831 0.2542373
+[2,] 0.2940769 0.4549128 0.2510103
+
+$pairs
+   row non_event event fold lower upper probability
+1    1       cat   dog    A   0.0   1.0   0.5000000
+2    2       cat   dog    A   0.0   1.0   0.5000000
+3    1       cat   dog    B   0.0   1.0   0.5000000
+4    2       cat   dog    B   0.5   1.0   0.6666667
+5    1       cat  bird    A   0.0   0.5   0.3333333
+6    2       cat  bird    A   0.0   1.0   0.5000000
+7    1       cat  bird    B   0.0   0.5   0.3333333
+8    2       cat  bird    B   0.0   1.0   0.5000000
+9    1       dog  bird    A   0.0   1.0   0.5000000
+10   2       dog  bird    A   0.0   0.5   0.3333333
+11   1       dog  bird    B   0.0   1.0   0.5000000
+12   2       dog  bird    B   0.0   0.5   0.3333333
+
+[1] cat dog
+Levels: cat dog bird
+[1] 0.4890319
+[1] 0.8435665
+$prediction
+           cat       dog      bird
+[1,] 0.3882353 0.3364706 0.2752941
+[2,] 0.3050691 0.4215574 0.2733736
+
+$pairs
+   row non_event event fold lower upper probability
+1    1       cat   dog    A   0.0   1.0       0.500
+2    2       cat   dog    A   0.0   1.0       0.500
+3    1       cat   dog    B   0.0   1.0       0.500
+4    2       cat   dog    B   0.5   1.0       0.625
+5    1       cat  bird    A   0.0   0.5       0.375
+6    2       cat  bird    A   0.0   1.0       0.500
+7    1       cat  bird    B   0.0   0.5       0.375
+8    2       cat  bird    B   0.0   1.0       0.500
+9    1       dog  bird    A   0.0   1.0       0.500
+10   2       dog  bird    A   0.0   0.5       0.375
+11   1       dog  bird    B   0.0   1.0       0.500
+12   2       dog  bird    B   0.0   0.5       0.375
+
+[1] cat dog
+Levels: cat dog bird
+[1] 0.5328257
+[1] 0.9049715
+$prediction
+           cat       dog      bird
+[1,] 0.5040615 0.2767490 0.2191896
+[2,] 0.2584184 0.5168368 0.2247449
+
+$classes
+   row event fold lower     upper probability
+1    1   cat    A   0.5 1.0000000   0.6666667
+2    2   cat    A   0.0 0.5000000   0.3333333
+3    1   cat    B   0.5 1.0000000   0.6666667
+4    2   cat    B   0.0 0.5000000   0.3333333
+5    1   dog    A   0.0 1.0000000   0.5000000
+6    2   dog    A   0.5 1.0000000   0.6666667
+7    1   dog    B   0.0 0.3333333   0.2500000
+8    2   dog    B   0.5 1.0000000   0.6666667
+9    1  bird    A   0.0 0.5000000   0.3333333
+10   2  bird    A   0.0 0.5000000   0.3333333
+11   1  bird    B   0.0 0.3333333   0.2500000
+12   2  bird    B   0.0 0.3333333   0.2500000
+
+[1] cat dog
+Levels: cat dog bird
+[1] 0.3606631
+[1] 0.6725426
+$prediction
+           cat       dog      bird
+[1,] 0.4663212 0.2901554 0.2435233
+[2,] 0.2827225 0.4712042 0.2460733
+
+$classes
+   row event fold lower     upper probability
+1    1   cat    A   0.5 1.0000000   0.6250000
+2    2   cat    A   0.0 0.5000000   0.3750000
+3    1   cat    B   0.5 1.0000000   0.6250000
+4    2   cat    B   0.0 0.5000000   0.3750000
+5    1   dog    A   0.0 1.0000000   0.5000000
+6    2   dog    A   0.5 1.0000000   0.6250000
+7    1   dog    B   0.0 0.3333333   0.2777778
+8    2   dog    B   0.5 1.0000000   0.6250000
+9    1  bird    A   0.0 0.5000000   0.3750000
+10   2  bird    A   0.0 0.5000000   0.3750000
+11   1  bird    B   0.0 0.3333333   0.2777778
+12   2  bird    B   0.0 0.3333333   0.2777778
+
+[1] cat dog
+Levels: cat dog bird
+[1] 0.4242079
+[1] 0.7576721
+README R snippets passed: 17 
+Running example: binary-options.R 
+      lower     upper probability
+1 0.0000000 0.6000000       0.375
+2 0.3333333 0.6666667       0.500
+3 0.4000000 1.0000000       0.625
+      lower     upper probability
+1 0.0000000 0.6000000        0.42
+2 0.3333333 0.6666667        0.50
+3 0.4000000 1.0000000        0.58
+$prediction
+  probability
+1   0.5000000
+2   0.6339746
+3   0.6666667
+
+$folds
+  row fold     lower upper probability
+1   1    A 0.0000000   0.5   0.3333333
+2   2    A 0.0000000   1.0   0.5000000
+3   3    A 0.0000000   1.0   0.5000000
+4   1    B 0.5000000   1.0   0.6666667
+5   2    B 0.6666667   1.0   0.7500000
+6   3    B 0.7500000   1.0   0.8000000
+
+    brier       log 
+0.1650286 0.5181196 
+$prediction
+  probability
+1   0.5000000
+2   0.6111111
+3   0.6406250
+
+$folds
+  row fold     lower upper probability
+1   1    A 0.0000000   0.5   0.3750000
+2   2    A 0.0000000   1.0   0.5000000
+3   3    A 0.0000000   1.0   0.5000000
+4   1    B 0.5000000   1.0   0.6250000
+5   2    B 0.6666667   1.0   0.7222222
+6   3    B 0.7500000   1.0   0.7812500
+
+    brier       log 
+0.1767950 0.5436449 
+Running example: calibrated-resampling.R 
+# A tibble: 2 × 6
+  .metric .estimator  mean     n std_err .config        
+  <chr>   <chr>      <dbl> <int>   <dbl> <chr>          
+1 mae     standard    1.55     5   0.163 pre0_mod0_post0
+2 rmse    standard    1.73     5   0.182 pre0_mod0_post0
+# A tibble: 2 × 6
+  .metric .estimator  mean     n std_err .config        
+  <chr>   <chr>      <dbl> <int>   <dbl> <chr>          
+1 mae     standard    1.44     5  0.0833 pre0_mod0_post0
+2 rmse    standard    1.60     5  0.105  pre0_mod0_post0
+Running example: calibrated-workflow.R 
+# A tibble: 6 × 2
+  .pred_yes .pred_no
+      <dbl>    <dbl>
+1     0.182    0.818
+2     0.583    0.417
+3     0.769    0.231
+4     0.222    0.778
+5     0.324    0.676
+6     0.769    0.231
+# A tibble: 6 × 8
+    row fold   event_class lower upper probability prediction_model model_source
+  <int> <chr>  <chr>       <dbl> <dbl>       <dbl> <chr>            <chr>       
+1     1 Induc… yes         0     0.222       0.182 matched          Inductive1  
+2     2 Induc… yes         0.5   0.7         0.583 matched          Inductive1  
+3     3 Induc… yes         0.7   1           0.769 matched          Inductive1  
+4     4 Induc… yes         0     0.286       0.222 matched          Inductive1  
+5     5 Induc… yes         0.167 0.4         0.324 matched          Inductive1  
+6     6 Induc… yes         0.7   1           0.769 matched          Inductive1  
+[1] 0.2128896
+
+── Recipe ──────────────────────────────────────────────────────────────────────
+
+── Inputs 
+Number of variables by role
+outcome:   1
+predictor: 1
+
+── Training information 
+Training data contained 160 data points and no incomplete rows.
+
+── Operations 
+• Median imputation for: x | Trained
+• Centering and scaling for: x | Trained
+# A tibble: 6 × 12
+    row fold  method event_class class_1 class_2    lower upper probability
+  <int> <chr> <chr>  <chr>       <chr>   <chr>      <dbl> <dbl>       <dbl>
+1     1 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+2     2 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+3     3 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+4     4 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+5     5 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+6     6 Fold1 ovo    versicolor  setosa  versicolor     0     1         0.5
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+    brier  log_loss 
+0.4452066 0.7816807 
+# A tibble: 6 × 11
+    row fold  method event_class class  lower upper probability model_training
+  <int> <chr> <chr>  <chr>       <chr>  <dbl> <dbl>       <dbl> <chr>         
+1     1 Fold1 ovr    setosa      setosa     0     1         0.5 shared        
+2     2 Fold1 ovr    setosa      setosa     0     1         0.5 shared        
+3     3 Fold1 ovr    setosa      setosa     0     1         0.5 shared        
+4     4 Fold1 ovr    setosa      setosa     0     1         0.5 shared        
+5     5 Fold1 ovr    setosa      setosa     0     1         0.5 shared        
+6     6 Fold1 ovr    setosa      setosa     0     1         0.5 shared        
+# ℹ 2 more variables: prediction_model <chr>, model_source <chr>
+    brier  log_loss 
+0.4825278 0.8357005 
+Running example: check-encoded-evaluation.R 
+Running example: cross-multiclass.R 
+<cross_venn_abers: ovo>
+Classes: cat, dog, bird
+Folds: 2
+Calibration observations: 6
+$prediction
+           cat       dog      bird
+[1,] 0.4209914 0.3487607 0.2302479
+[2,] 0.2612039 0.3693981 0.3693981
+[3,] 0.2500000 0.5000000 0.2500000
+
+$pairs
+   row non_event event fold lower upper probability
+1    1       cat   dog    A   0.0   1.0   0.5000000
+2    2       cat   dog    A   0.0   1.0   0.5000000
+3    3       cat   dog    A   0.5   1.0   0.6666667
+4    1       cat   dog    B   0.0   0.5   0.3333333
+5    2       cat   dog    B   0.5   1.0   0.6666667
+6    3       cat   dog    B   0.5   1.0   0.6666667
+7    1       cat  bird    A   0.0   1.0   0.5000000
+8    2       cat  bird    A   0.0   1.0   0.5000000
+9    3       cat  bird    A   0.0   1.0   0.5000000
+10   1       cat  bird    B   0.0   0.5   0.3333333
+11   2       cat  bird    B   0.5   1.0   0.6666667
+12   3       cat  bird    B   0.0   1.0   0.5000000
+13   1       dog  bird    A   0.0   0.5   0.3333333
+14   2       dog  bird    A   0.0   1.0   0.5000000
+15   3       dog  bird    A   0.0   0.5   0.3333333
+16   1       dog  bird    B   0.0   0.5   0.3333333
+17   2       dog  bird    B   0.0   1.0   0.5000000
+18   3       dog  bird    B   0.0   0.5   0.3333333
+
+[1] cat dog dog
+Levels: cat dog bird
+    brier       log 
+0.4957467 0.8513901 
+  class mean_probability event_rate count
+1   cat        0.3107318  0.3333333     3
+2   dog        0.4060529  0.3333333     3
+3  bird        0.2832153  0.3333333     3
+$prediction
+           cat       dog      bird
+[1,] 0.3949174 0.3497344 0.2553482
+[2,] 0.2800000 0.3600000 0.3600000
+[3,] 0.2727273 0.4545455 0.2727273
+
+$pairs
+   row non_event event fold lower upper probability
+1    1       cat   dog    A   0.0   1.0       0.500
+2    2       cat   dog    A   0.0   1.0       0.500
+3    3       cat   dog    A   0.5   1.0       0.625
+4    1       cat   dog    B   0.0   0.5       0.375
+5    2       cat   dog    B   0.5   1.0       0.625
+6    3       cat   dog    B   0.5   1.0       0.625
+7    1       cat  bird    A   0.0   1.0       0.500
+8    2       cat  bird    A   0.0   1.0       0.500
+9    3       cat  bird    A   0.0   1.0       0.500
+10   1       cat  bird    B   0.0   0.5       0.375
+11   2       cat  bird    B   0.5   1.0       0.625
+12   3       cat  bird    B   0.0   1.0       0.500
+13   1       dog  bird    A   0.0   0.5       0.375
+14   2       dog  bird    A   0.0   1.0       0.500
+15   3       dog  bird    A   0.0   0.5       0.375
+16   1       dog  bird    B   0.0   0.5       0.375
+17   2       dog  bird    B   0.0   1.0       0.500
+18   3       dog  bird    B   0.0   0.5       0.375
+
+[1] cat dog dog
+Levels: cat dog bird
+    brier       log 
+0.5391742 0.9130624 
+  class mean_probability event_rate count
+1   cat        0.3158816  0.3333333     3
+2   dog        0.3880933  0.3333333     3
+3  bird        0.2960252  0.3333333     3
+<cross_venn_abers: ovr>
+Classes: cat, dog, bird
+Folds: 2
+Calibration observations: 6
+$prediction
+           cat       dog      bird
+[1,] 0.4385330 0.3743113 0.1871557
+[2,] 0.2071068 0.3284271 0.4644661
+[3,] 0.2584184 0.5168368 0.2247449
+
+$classes
+   row event fold lower     upper probability
+1    1   cat    A   0.0 1.0000000   0.5000000
+2    2   cat    A   0.0 0.5000000   0.3333333
+3    3   cat    A   0.0 1.0000000   0.5000000
+4    1   cat    B   0.5 1.0000000   0.6666667
+5    2   cat    B   0.0 0.2500000   0.2000000
+6    3   cat    B   0.0 0.2500000   0.2000000
+7    1   dog    A   0.0 1.0000000   0.5000000
+8    2   dog    A   0.0 0.5000000   0.3333333
+9    3   dog    A   0.5 1.0000000   0.6666667
+10   1   dog    B   0.0 1.0000000   0.5000000
+11   2   dog    B   0.0 1.0000000   0.5000000
+12   3   dog    B   0.5 1.0000000   0.6666667
+13   1  bird    A   0.0 0.3333333   0.2500000
+14   2  bird    A   0.0 1.0000000   0.5000000
+15   3  bird    A   0.0 0.5000000   0.3333333
+16   1  bird    B   0.0 0.3333333   0.2500000
+17   2  bird    B   0.5 1.0000000   0.6666667
+18   3  bird    B   0.0 0.3333333   0.2500000
+
+[1] cat  bird dog 
+Levels: cat dog bird
+    brier       log 
+0.4262242 0.7504050 
+  class mean_probability event_rate count
+1   cat        0.3013527  0.3333333     3
+2   dog        0.4065251  0.3333333     3
+3  bird        0.2921222  0.3333333     3
+$prediction
+           cat       dog      bird
+[1,] 0.4196891 0.3730570 0.2072539
+[2,] 0.2289157 0.3373494 0.4337349
+[3,] 0.2741722 0.4768212 0.2490066
+
+$classes
+   row event fold lower     upper probability
+1    1   cat    A   0.0 1.0000000   0.5000000
+2    2   cat    A   0.0 0.5000000   0.3750000
+3    3   cat    A   0.0 1.0000000   0.5000000
+4    1   cat    B   0.5 1.0000000   0.6250000
+5    2   cat    B   0.0 0.2500000   0.2187500
+6    3   cat    B   0.0 0.2500000   0.2187500
+7    1   dog    A   0.0 1.0000000   0.5000000
+8    2   dog    A   0.0 0.5000000   0.3750000
+9    3   dog    A   0.5 1.0000000   0.6250000
+10   1   dog    B   0.0 1.0000000   0.5000000
+11   2   dog    B   0.0 1.0000000   0.5000000
+12   3   dog    B   0.5 1.0000000   0.6250000
+13   1  bird    A   0.0 0.3333333   0.2777778
+14   2  bird    A   0.0 1.0000000   0.5000000
+15   3  bird    A   0.0 0.5000000   0.3750000
+16   1  bird    B   0.0 0.3333333   0.2777778
+17   2  bird    B   0.5 1.0000000   0.6250000
+18   3  bird    B   0.0 0.3333333   0.2777778
+
+[1] cat  bird dog 
+Levels: cat dog bird
+    brier       log 
+0.4722134 0.8147255 
+  class mean_probability event_rate count
+1   cat        0.3075923  0.3333333     3
+2   dog        0.3957425  0.3333333     3
+3  bird        0.2966651  0.3333333     3
+Running example: cross-regression.R 
+$B
+$B$observations
+[1] 60
+
+$B$requested
+$B$requested$epsilon
+[1] 0.1
+
+
+$B$m
+[1] 3
+
+$B$epsilon
+[1] 0.09836066
+
+
+$C
+$C$observations
+[1] 70
+
+$C$requested
+$C$requested$epsilon
+[1] 0.1
+
+
+$C$m
+[1] 3
+
+$C$epsilon
+[1] 0.08450704
+
+
+$A
+$A$observations
+[1] 50
+
+$A$requested
+$A$requested$epsilon
+[1] 0.1
+
+
+$A$m
+[1] 2
+
+$A$epsilon
+[1] 0.07843137
+
+
+     uncalibrated calibrated
+RMSE    1.1990933  1.0587165
+MAE     0.9279984  0.8343754
+Running example: cross-venn-abers.R 
+brier_score    log_loss 
+  0.2029354   0.5874319 
+Running example: encoded-binary.R 
+Running example: encoded-multiclass-regression.R 
+Running example: frozen-binary.R 
+ log_loss     brier 
+0.6155101 0.2141883 
+Running example: frozen-multiclass-regression.R 
+# A tibble: 6 × 3
+  .pred_third .pred_first .pred_second
+        <dbl>       <dbl>        <dbl>
+1       0.397       0.270        0.333
+2       0.344       0.348        0.308
+3       0.391       0.244        0.366
+4       0.427       0.289        0.285
+5       0.344       0.342        0.313
+6       0.291       0.332        0.377
+# A tibble: 6 × 3
+  .pred_third .pred_first .pred_second
+        <dbl>       <dbl>        <dbl>
+1       0.457       0.260        0.282
+2       0.350       0.337        0.313
+3       0.307       0.235        0.458
+4       0.503       0.238        0.258
+5       0.350       0.337        0.313
+6       0.304       0.301        0.395
+     rmse 
+0.7239547 
+Running example: frozen-schema.R 
+# A tibble: 6 × 2
+  .pred_vaL0001 .pred_vaL0002
+          <dbl>         <dbl>
+1         0.457         0.543
+2         0.556         0.444
+3         0.556         0.444
+4         0.556         0.444
+5         0.457         0.543
+6         0.484         0.516
+# A tibble: 6 × 3
+  .pred_vaL0001 .pred_vaL0002 .pred_vaL0003
+          <dbl>         <dbl>         <dbl>
+1         0.407         0.255         0.337
+2         0.195         0.493         0.312
+3         0.340         0.362         0.298
+4         0.411         0.288         0.301
+5         0.340         0.362         0.298
+6         0.361         0.341         0.298
+# A tibble: 6 × 3
+  .pred_vaL0001 .pred_vaL0002 .pred_vaL0003
+          <dbl>         <dbl>         <dbl>
+1         0.328         0.325         0.347
+2         0.310         0.333         0.357
+3         0.310         0.333         0.357
+4         0.251         0.461         0.288
+5         0.557         0.245         0.198
+6         0.310         0.333         0.357
+# A tibble: 6 × 1
+  .pred
+  <dbl>
+1 0.725
+2 3.26 
+3 1.95 
+4 2.08 
+5 3.26 
+6 1.39 
+Running example: full-model-workflow.R 
+     method prediction_model     brier
+1 inductive          matched 0.2606347
+2 inductive             full 0.2793532
+Venn-Abers inductive calibrated predictor
+Prediction model: full (full-model transfer) 
+Base fits: 2 
+Models per nonempty prediction: 1 
+Stored calibration rows: 30 (held-out truth and model predictions)
+  Inductive1 -> Full1 
+# A tibble: 6 × 8
+    row fold   event_class lower upper probability prediction_model model_source
+  <int> <chr>  <chr>       <dbl> <dbl>       <dbl> <chr>            <chr>       
+1     1 Induc… yes         0     0.353       0.261 full             Full1       
+2     2 Induc… yes         0.312 0.5         0.421 full             Full1       
+3     3 Induc… yes         0.312 0.385       0.359 full             Full1       
+4     4 Induc… yes         0     0.125       0.111 full             Full1       
+5     5 Induc… yes         0     0.125       0.111 full             Full1       
+6     6 Induc… yes         0.6   0.8         0.667 full             Full1       
+  row truth probability
+1  91 FALSE   0.6346473
+2  92 FALSE   0.4197443
+3  93  TRUE   0.7083941
+4  94 FALSE   0.5970324
+5  95  TRUE   0.7261588
+6  96 FALSE   0.5223902
+
+── Recipe ──────────────────────────────────────────────────────────────────────
+
+── Inputs 
+Number of variables by role
+outcome:   1
+predictor: 1
+
+── Training information 
+Training data contained 120 data points and no incomplete rows.
+
+── Operations 
+• Centering and scaling for: x | Trained
+  method prediction_model     brier
+1  cross          matched 0.2318600
+2  cross             full 0.2299836
+Venn-Abers cross calibrated predictor
+Prediction model: full (full-model transfer) 
+Base fits: 4 
+Models per nonempty prediction: 1 
+Stored calibration rows: 120 (held-out truth and model predictions)
+  Fold1 -> Full1 
+  Fold2 -> Full1 
+  Fold3 -> Full1 
+# A tibble: 6 × 8
+    row fold  event_class lower upper probability prediction_model model_source
+  <int> <chr> <chr>       <dbl> <dbl>       <dbl> <chr>            <chr>       
+1     1 Fold1 yes         0.429 0.5         0.467 full             Full1       
+2     2 Fold1 yes         0.44  0.75        0.573 full             Full1       
+3     3 Fold1 yes         0.44  0.5         0.472 full             Full1       
+4     4 Fold1 yes         0.222 0.333       0.3   full             Full1       
+5     5 Fold1 yes         0.222 0.333       0.3   full             Full1       
+6     6 Fold1 yes         0.75  1           0.8   full             Full1       
+  row truth probability
+1   2  TRUE   0.7649890
+2   3 FALSE   0.3482471
+3   5  TRUE   0.2027754
+4   6  TRUE   0.4653904
+5   7 FALSE   0.4577605
+6   8 FALSE   0.4031153
+
+── Recipe ──────────────────────────────────────────────────────────────────────
+
+── Inputs 
+Number of variables by role
+outcome:   1
+predictor: 1
+
+── Training information 
+Training data contained 120 data points and no incomplete rows.
+
+── Operations 
+• Centering and scaling for: x | Trained
+Running example: full-multiclass-workflow.R 
+Venn-Abers inductive calibrated predictor
+Model training: shared 
+Prediction model: full (full-model transfer) 
+Base fits: 2 
+Models per nonempty prediction: 1 
+Stored calibration rows: 23 (held-out truth and model predictions)
+  Inductive1 -> Full1 
+# A tibble: 6 × 12
+    row fold       method event_class class_1 class_2 lower upper probability
+  <int> <chr>      <chr>  <chr>       <chr>   <chr>   <dbl> <dbl>       <dbl>
+1     1 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.667   1         0.75 
+2     2 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.429   1         0.636
+3     3 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.4     0.5       0.455
+4     4 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.4     0.5       0.455
+5     5 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.4     0.6       0.5  
+6     6 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.429   1         0.636
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+# A tibble: 6 × 12
+    row fold       method event_class class_1 class_2    lower upper probability
+  <int> <chr>      <chr>  <chr>       <chr>   <chr>      <dbl> <dbl>       <dbl>
+1     1 Inductive1 ovo    .pred_class class   .pred_cla… 0.667   1         0.75 
+2     2 Inductive1 ovo    .pred_class class   .pred_cla… 0.429   1         0.636
+3     3 Inductive1 ovo    .pred_class class   .pred_cla… 0.4     0.5       0.455
+4     4 Inductive1 ovo    .pred_class class   .pred_cla… 0.4     0.5       0.455
+5     5 Inductive1 ovo    .pred_class class   .pred_cla… 0.4     0.6       0.5  
+6     6 Inductive1 ovo    .pred_class class   .pred_cla… 0.429   1         0.636
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+         class .pred_class       a b
+[1,] 0.1698693   0.3597233 0.4704074
+[2,] 0.2110230   0.3263496 0.4626274
+[3,] 0.3381625   0.2703777 0.3914598
+[4,] 0.3525865   0.3576066 0.2898069
+[5,] 0.3236570   0.3827026 0.2936404
+[6,] 0.2548454   0.3318917 0.4132629
+[1] a b         a b         a b         .pred_class .pred_class a b        
+Levels: class .pred_class a b
+# A tibble: 8 × 6
+  id      id2   .metric     .estimator .estimate .config        
+  <chr>   <chr> <chr>       <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 brier_class multiclass     0.389 pre0_mod0_post0
+2 Repeat1 Fold1 mn_log_loss multiclass     1.26  pre0_mod0_post0
+3 Repeat1 Fold2 brier_class multiclass     0.359 pre0_mod0_post0
+4 Repeat1 Fold2 mn_log_loss multiclass     1.24  pre0_mod0_post0
+5 Repeat2 Fold1 brier_class multiclass     0.353 pre0_mod0_post0
+6 Repeat2 Fold1 mn_log_loss multiclass     1.16  pre0_mod0_post0
+7 Repeat2 Fold2 brier_class multiclass     0.368 pre0_mod0_post0
+8 Repeat2 Fold2 mn_log_loss multiclass     1.21  pre0_mod0_post0
+Venn-Abers inductive calibrated predictor
+Model training: shared 
+Prediction model: full (full-model transfer) 
+Base fits: 2 
+Models per nonempty prediction: 1 
+Stored calibration rows: 23 (held-out truth and model predictions)
+  Inductive1 -> Full1 
+# A tibble: 6 × 11
+    row fold     method event_class class lower upper probability model_training
+  <int> <chr>    <chr>  <chr>       <chr> <dbl> <dbl>       <dbl> <chr>         
+1     1 Inducti… ovr    vaL0001     vaL0…  0    0.333       0.25  shared        
+2     2 Inducti… ovr    vaL0001     vaL0…  0    0.333       0.25  shared        
+3     3 Inducti… ovr    vaL0001     vaL0…  0.25 0.385       0.339 shared        
+4     4 Inducti… ovr    vaL0001     vaL0…  0.25 0.385       0.339 shared        
+5     5 Inducti… ovr    vaL0001     vaL0…  0.25 0.385       0.339 shared        
+6     6 Inducti… ovr    vaL0001     vaL0…  0    0.333       0.25  shared        
+# ℹ 2 more variables: prediction_model <chr>, model_source <chr>
+# A tibble: 6 × 11
+    row fold     method event_class class lower upper probability model_training
+  <int> <chr>    <chr>  <chr>       <chr> <dbl> <dbl>       <dbl> <chr>         
+1     1 Inducti… ovr    class       class  0    0.333       0.25  shared        
+2     2 Inducti… ovr    class       class  0    0.333       0.25  shared        
+3     3 Inducti… ovr    class       class  0.25 0.385       0.339 shared        
+4     4 Inducti… ovr    class       class  0.25 0.385       0.339 shared        
+5     5 Inducti… ovr    class       class  0.25 0.385       0.339 shared        
+6     6 Inducti… ovr    class       class  0    0.333       0.25  shared        
+# ℹ 2 more variables: prediction_model <chr>, model_source <chr>
+         class .pred_class       a b
+[1,] 0.1959102   0.3176922 0.4863977
+[2,] 0.2112933   0.2641166 0.5245902
+[3,] 0.3160576   0.2913656 0.3925768
+[4,] 0.3121817   0.3733524 0.3144659
+[5,] 0.2908625   0.3478558 0.3612818
+[6,] 0.2322431   0.3766105 0.3911463
+[1] a b         a b         a b         .pred_class a b         a b        
+Levels: class .pred_class a b
+# A tibble: 8 × 6
+  id      id2   .metric     .estimator .estimate .config        
+  <chr>   <chr> <chr>       <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 brier_class multiclass     0.395 pre0_mod0_post0
+2 Repeat1 Fold1 mn_log_loss multiclass     1.28  pre0_mod0_post0
+3 Repeat1 Fold2 brier_class multiclass     0.380 pre0_mod0_post0
+4 Repeat1 Fold2 mn_log_loss multiclass     1.33  pre0_mod0_post0
+5 Repeat2 Fold1 brier_class multiclass     0.360 pre0_mod0_post0
+6 Repeat2 Fold1 mn_log_loss multiclass     1.18  pre0_mod0_post0
+7 Repeat2 Fold2 brier_class multiclass     0.374 pre0_mod0_post0
+8 Repeat2 Fold2 mn_log_loss multiclass     1.21  pre0_mod0_post0
+Venn-Abers cross calibrated predictor
+Model training: shared 
+Prediction model: full (full-model transfer) 
+Base fits: 4 
+Models per nonempty prediction: 1 
+Stored calibration rows: 90 (held-out truth and model predictions)
+  Part1 -> Full1 
+  Part2 -> Full1 
+  Part3 -> Full1 
+# A tibble: 6 × 12
+    row fold  method event_class class_1 class_2 lower upper probability
+  <int> <chr> <chr>  <chr>       <chr>   <chr>   <dbl> <dbl>       <dbl>
+1     1 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 1           0.607
+2     2 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+3     3 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+4     4 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+5     5 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+6     6 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+# A tibble: 6 × 12
+    row fold  method event_class class_1 class_2     lower upper probability
+  <int> <chr> <chr>  <chr>       <chr>   <chr>       <dbl> <dbl>       <dbl>
+1     1 Part1 ovo    .pred_class class   .pred_class 0.353 1           0.607
+2     2 Part1 ovo    .pred_class class   .pred_class 0.353 0.412       0.389
+3     3 Part1 ovo    .pred_class class   .pred_class 0.353 0.412       0.389
+4     4 Part1 ovo    .pred_class class   .pred_class 0.353 0.412       0.389
+5     5 Part1 ovo    .pred_class class   .pred_class 0.353 0.412       0.389
+6     6 Part1 ovo    .pred_class class   .pred_class 0.353 0.412       0.389
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+         class .pred_class       a b
+[1,] 0.2453950   0.3150263 0.4395787
+[2,] 0.2820385   0.2940285 0.4239330
+[3,] 0.3954256   0.2590723 0.3455022
+[4,] 0.4429897   0.3069373 0.2500730
+[5,] 0.3927781   0.3502992 0.2569227
+[6,] 0.3022480   0.3866848 0.3110672
+[1] a b         a b         class       class       class       .pred_class
+Levels: class .pred_class a b
+# A tibble: 8 × 6
+  id      id2   .metric     .estimator .estimate .config        
+  <chr>   <chr> <chr>       <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 brier_class multiclass     0.363 pre0_mod0_post0
+2 Repeat1 Fold1 mn_log_loss multiclass     1.18  pre0_mod0_post0
+3 Repeat1 Fold2 brier_class multiclass     0.351 pre0_mod0_post0
+4 Repeat1 Fold2 mn_log_loss multiclass     1.16  pre0_mod0_post0
+5 Repeat2 Fold1 brier_class multiclass     0.357 pre0_mod0_post0
+6 Repeat2 Fold1 mn_log_loss multiclass     1.18  pre0_mod0_post0
+7 Repeat2 Fold2 brier_class multiclass     0.368 pre0_mod0_post0
+8 Repeat2 Fold2 mn_log_loss multiclass     1.21  pre0_mod0_post0
+Venn-Abers cross calibrated predictor
+Model training: shared 
+Prediction model: full (full-model transfer) 
+Base fits: 4 
+Models per nonempty prediction: 1 
+Stored calibration rows: 90 (held-out truth and model predictions)
+  Part1 -> Full1 
+  Part2 -> Full1 
+  Part3 -> Full1 
+# A tibble: 6 × 11
+    row fold  method event_class class   lower upper probability model_training
+  <int> <chr> <chr>  <chr>       <chr>   <dbl> <dbl>       <dbl> <chr>         
+1     1 Part1 ovr    vaL0001     vaL0001 0.1   0.455       0.336 shared        
+2     2 Part1 ovr    vaL0001     vaL0001 0.409 0.455       0.435 shared        
+3     3 Part1 ovr    vaL0001     vaL0001 0.409 0.455       0.435 shared        
+4     4 Part1 ovr    vaL0001     vaL0001 0.409 0.455       0.435 shared        
+5     5 Part1 ovr    vaL0001     vaL0001 0.409 0.455       0.435 shared        
+6     6 Part1 ovr    vaL0001     vaL0001 0.409 0.455       0.435 shared        
+# ℹ 2 more variables: prediction_model <chr>, model_source <chr>
+# A tibble: 6 × 11
+    row fold  method event_class class lower upper probability model_training
+  <int> <chr> <chr>  <chr>       <chr> <dbl> <dbl>       <dbl> <chr>         
+1     1 Part1 ovr    class       class 0.1   0.455       0.336 shared        
+2     2 Part1 ovr    class       class 0.409 0.455       0.435 shared        
+3     3 Part1 ovr    class       class 0.409 0.455       0.435 shared        
+4     4 Part1 ovr    class       class 0.409 0.455       0.435 shared        
+5     5 Part1 ovr    class       class 0.409 0.455       0.435 shared        
+6     6 Part1 ovr    class       class 0.409 0.455       0.435 shared        
+# ℹ 2 more variables: prediction_model <chr>, model_source <chr>
+         class .pred_class       a b
+[1,] 0.2554605   0.3242856 0.4202539
+[2,] 0.2933950   0.2688479 0.4377571
+[3,] 0.4244021   0.2606459 0.3149520
+[4,] 0.4202539   0.3242856 0.2554605
+[5,] 0.4095230   0.3160052 0.2744718
+[6,] 0.3068826   0.3533204 0.3397970
+[1] a b         a b         class       class       class       .pred_class
+Levels: class .pred_class a b
+# A tibble: 8 × 6
+  id      id2   .metric     .estimator .estimate .config        
+  <chr>   <chr> <chr>       <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 brier_class multiclass     0.374 pre0_mod0_post0
+2 Repeat1 Fold1 mn_log_loss multiclass     1.21  pre0_mod0_post0
+3 Repeat1 Fold2 brier_class multiclass     0.348 pre0_mod0_post0
+4 Repeat1 Fold2 mn_log_loss multiclass     1.15  pre0_mod0_post0
+5 Repeat2 Fold1 brier_class multiclass     0.353 pre0_mod0_post0
+6 Repeat2 Fold1 mn_log_loss multiclass     1.16  pre0_mod0_post0
+7 Repeat2 Fold2 brier_class multiclass     0.372 pre0_mod0_post0
+8 Repeat2 Fold2 mn_log_loss multiclass     1.21  pre0_mod0_post0
+Running example: full-regression-workflow.R 
+      method   matched      full
+1  inductive 10.342823 10.342823
+2  inductive 10.679036 10.679036
+3  inductive  9.755873  9.755873
+4  inductive 10.733059 10.733059
+5  inductive 10.417595 10.417595
+6  inductive 11.814034 11.814034
+7  inductive 10.417595 10.417595
+8  inductive 10.733059 10.733059
+9  inductive  9.755873  9.755873
+10 inductive 10.733059 10.733059
+11 inductive 10.417595 10.417595
+12 inductive 11.814034 11.814034
+13 inductive 10.417595 10.417595
+14 inductive 10.733059 10.733059
+15 inductive  9.755873  9.755873
+16 inductive 10.679036 10.679036
+17 inductive 10.342823 10.342823
+18 inductive 11.608743 11.608743
+19 inductive 10.880839 10.880839
+20 inductive 10.326673 10.326673
+21 inductive 10.103305 10.103305
+22 inductive 10.103305 10.103305
+23 inductive 10.326673 10.326673
+24 inductive 10.880839 10.880839
+25 inductive 11.608743 11.608743
+26 inductive 10.342823 10.342823
+27 inductive 10.679036 10.679036
+28 inductive  9.755873  9.755873
+29 inductive 10.733059 10.733059
+30 inductive 10.417595 10.417595
+# A tibble: 6 × 7
+    row fold       prediction lower upper prediction_model model_source
+  <int> <chr>           <dbl> <dbl> <dbl> <chr>            <chr>       
+1     1 Inductive1      10.3   9.80 12.4  full             Full1       
+2     2 Inductive1      10.7   7.86 10.7  full             Full1       
+3     3 Inductive1       9.76  7.86  9.76 full             Full1       
+4     4 Inductive1      10.7   8.29 11.5  full             Full1       
+5     5 Inductive1      10.4  10.3  12.8  full             Full1       
+6     6 Inductive1      11.8  11.8  12.9  full             Full1       
+     method    mode     rmse      mae
+1 inductive matched 1.838205 1.700942
+2 inductive    full 1.838205 1.700942
+# A tibble: 8 × 6
+  id      id2   .metric .estimator .estimate .config        
+  <chr>   <chr> <chr>   <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 rmse    standard        2.25 pre0_mod0_post0
+2 Repeat1 Fold1 mae     standard        2.06 pre0_mod0_post0
+3 Repeat1 Fold2 rmse    standard        2.77 pre0_mod0_post0
+4 Repeat1 Fold2 mae     standard        2.26 pre0_mod0_post0
+5 Repeat2 Fold1 rmse    standard        1.83 pre0_mod0_post0
+6 Repeat2 Fold1 mae     standard        1.70 pre0_mod0_post0
+7 Repeat2 Fold2 rmse    standard        1.83 pre0_mod0_post0
+8 Repeat2 Fold2 mae     standard        1.68 pre0_mod0_post0
+   method   matched      full
+1   cross 10.411415 10.411415
+2   cross  9.287043  9.287043
+3   cross  8.781390  8.781390
+4   cross 10.091989 10.091989
+5   cross 11.411852 11.411852
+6   cross 12.127921 12.127921
+7   cross 10.787078 10.787078
+8   cross  9.699415  9.699415
+9   cross  8.280820  8.318010
+10  cross  9.842369  9.842369
+11  cross 11.014214 11.014214
+12  cross 12.232606 12.232606
+13  cross 11.221850 11.221850
+14  cross  9.965081  9.965081
+15  cross  8.507063  8.507063
+16  cross  9.497382  9.497382
+17  cross 10.594301 10.594301
+18  cross 12.014067 12.014067
+19  cross 11.616704 11.616704
+20  cross 10.238552 10.238552
+21  cross  9.039229  9.039229
+22  cross  9.039229  9.039229
+23  cross 10.238552 10.238552
+24  cross 11.616704 11.616704
+25  cross 12.014067 12.014067
+26  cross 10.594301 10.594301
+27  cross  9.497382  9.497382
+28  cross  8.507063  8.455686
+29  cross  9.965081  9.965081
+30  cross 11.221850 11.221850
+# A tibble: 6 × 7
+    row fold  prediction lower upper prediction_model model_source
+  <int> <chr>      <dbl> <dbl> <dbl> <chr>            <chr>       
+1     1 Part1      10.4   9.75 11.9  full             Full1       
+2     2 Part1       9.17  7.42  9.35 full             Full1       
+3     3 Part1       8.81  7.15  8.85 full             Full1       
+4     4 Part1      10.1   9.07 11.5  full             Full1       
+5     5 Part1      11.4  11.4  12.8  full             Full1       
+6     6 Part1      12.1  12.1  13.0  full             Full1       
+# A tibble: 6 × 5
+    row lower upper prediction_model model_source
+  <int> <dbl> <dbl> <chr>            <list>      
+1     1  9.84 12.0  full             <chr [1]>   
+2     2  7.46  9.50 full             <chr [1]>   
+3     3  7.14  8.81 full             <chr [1]>   
+4     4  9.03 11.4  full             <chr [1]>   
+5     5 11.4  12.8  full             <chr [1]>   
+6     6 12.1  13.0  full             <chr [1]>   
+  method    mode     rmse       mae
+1  cross matched 1.051280 0.9780498
+2  cross    full 1.050541 0.9775769
+# A tibble: 8 × 6
+  id      id2   .metric .estimator .estimate .config        
+  <chr>   <chr> <chr>   <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 rmse    standard        1.58 pre0_mod0_post0
+2 Repeat1 Fold1 mae     standard        1.49 pre0_mod0_post0
+3 Repeat1 Fold2 rmse    standard        1.52 pre0_mod0_post0
+4 Repeat1 Fold2 mae     standard        1.38 pre0_mod0_post0
+5 Repeat2 Fold1 rmse    standard        1.46 pre0_mod0_post0
+6 Repeat2 Fold1 mae     standard        1.38 pre0_mod0_post0
+7 Repeat2 Fold2 rmse    standard        1.58 pre0_mod0_post0
+8 Repeat2 Fold2 mae     standard        1.46 pre0_mod0_post0
+Running example: inductive-ovo.R 
+<venn_abers: ovo>
+Calibration observations: 6
+Classes: cat, dog, bird
+Class pairs: 3
+$prediction
+           cat       dog      bird
+[1,] 0.5172414 0.3103448 0.1724138
+[2,] 0.1674641 0.4306220 0.4019139
+[3,] 0.2000000 0.6000000 0.2000000
+
+$pairs
+  row non_event event     lower     upper probability
+1   1       cat   dog 0.0000000 0.5000000   0.3333333
+2   2       cat   dog 0.6666667 1.0000000   0.7500000
+3   3       cat   dog 0.6666667 1.0000000   0.7500000
+4   1       cat  bird 0.0000000 0.5000000   0.3333333
+5   2       cat  bird 0.5000000 1.0000000   0.6666667
+6   3       cat  bird 0.0000000 1.0000000   0.5000000
+7   1       dog  bird 0.0000000 0.3333333   0.2500000
+8   2       dog  bird 0.0000000 1.0000000   0.5000000
+9   3       dog  bird 0.0000000 0.3333333   0.2500000
+
+[1] cat dog dog
+Levels: cat dog bird
+    brier       log 
+0.3900943 0.6938629 
+  class mean_probability event_rate count
+1   cat        0.1674641          0     1
+2   cat        0.2000000          0     1
+3   cat        0.5172414          1     1
+4   dog        0.3103448          0     1
+5   dog        0.4306220          0     1
+6   dog        0.6000000          1     1
+7  bird        0.1724138          0     1
+8  bird        0.2000000          0     1
+9  bird        0.4019139          1     1
+$prediction
+           cat       dog      bird
+[1,] 0.4675672 0.3371199 0.1953129
+[2,] 0.1910496 0.4219525 0.3869979
+[3,] 0.2173913 0.5652174 0.2173913
+
+$pairs
+  row non_event event     lower     upper probability
+1   1       cat   dog 0.0000000 0.5000000   0.3750000
+2   2       cat   dog 0.6666667 1.0000000   0.7222222
+3   3       cat   dog 0.6666667 1.0000000   0.7222222
+4   1       cat  bird 0.0000000 0.5000000   0.3750000
+5   2       cat  bird 0.5000000 1.0000000   0.6250000
+6   3       cat  bird 0.0000000 1.0000000   0.5000000
+7   1       dog  bird 0.0000000 0.3333333   0.2777778
+8   2       dog  bird 0.0000000 1.0000000   0.5000000
+9   3       dog  bird 0.0000000 0.3333333   0.2777778
+
+[1] cat dog dog
+Levels: cat dog bird
+    brier       log 
+0.4363837 0.7600310 
+  class mean_probability event_rate count
+1   cat        0.1910496          0     1
+2   cat        0.2173913          0     1
+3   cat        0.4675672          1     1
+4   dog        0.3371199          0     1
+5   dog        0.4219525          0     1
+6   dog        0.5652174          1     1
+7  bird        0.1953129          0     1
+8  bird        0.2173913          0     1
+9  bird        0.3869979          1     1
+Running example: inductive-ovr.R 
+<venn_abers: ovr>
+Calibration observations: 6
+Classes: cat, dog, bird
+Classes against rest: 3
+$prediction
+           cat       dog      bird
+[1,] 0.4878049 0.3658537 0.1463415
+[2,] 0.1250000 0.3750000 0.5000000
+[3,] 0.1538462 0.6923077 0.1538462
+
+$classes
+  row event     lower upper probability
+1   1   cat 0.5000000  1.00   0.6666667
+2   2   cat 0.0000000  0.20   0.1666667
+3   3   cat 0.0000000  0.20   0.1666667
+4   1   dog 0.0000000  1.00   0.5000000
+5   2   dog 0.0000000  1.00   0.5000000
+6   3   dog 0.6666667  1.00   0.7500000
+7   1  bird 0.0000000  0.25   0.2000000
+8   2  bird 0.5000000  1.00   0.6666667
+9   3  bird 0.0000000  0.20   0.1666667
+
+[1] cat  bird dog 
+Levels: cat dog bird
+    brier       log 
+0.3219568 0.5929039 
+  class mean_probability event_rate count
+1   cat        0.1394231          0     2
+2   cat        0.4878049          1     1
+3   dog        0.3704268          0     2
+4   dog        0.6923077          1     1
+5  bird        0.1500938          0     2
+6  bird        0.5000000          1     1
+$prediction
+           cat       dog      bird
+[1,] 0.4651163 0.3720930 0.1627907
+[2,] 0.1379310 0.3831418 0.4789272
+[3,] 0.1663244 0.6673511 0.1663244
+
+$classes
+  row event     lower upper probability
+1   1   cat 0.5000000  1.00   0.6250000
+2   2   cat 0.0000000  0.20   0.1800000
+3   3   cat 0.0000000  0.20   0.1800000
+4   1   dog 0.0000000  1.00   0.5000000
+5   2   dog 0.0000000  1.00   0.5000000
+6   3   dog 0.6666667  1.00   0.7222222
+7   1  bird 0.0000000  0.25   0.2187500
+8   2  bird 0.5000000  1.00   0.6250000
+9   3  bird 0.0000000  0.20   0.1800000
+
+[1] cat  bird dog 
+Levels: cat dog bird
+    brier       log 
+0.3514590 0.6353712 
+  class mean_probability event_rate count
+1   cat        0.1521277          0     2
+2   cat        0.4651163          1     1
+3   dog        0.3776174          0     2
+4   dog        0.6673511          1     1
+5  bird        0.1645576          0     2
+6  bird        0.4789272          1     1
+Running example: inductive-regression.R 
+$requested
+$requested$epsilon
+[1] 0.1
+
+
+$m
+[1] 3
+
+$epsilon
+[1] 0.09836066
+
+     uncalibrated calibrated
+RMSE     1.395241   1.350256
+MAE      1.119748   1.065058
+Running example: pairwise-cross.R 
+Venn-Abers cross calibrated predictor
+Model training: pairwise 
+Prediction model: matched  
+Base fits: 12 
+Models per nonempty prediction: 12 
+Stored calibration rows: 180 (held-out truth and model predictions)
+  pair_1 Fold1 -> pair_1 Fold1 
+  pair_1 Fold2 -> pair_1 Fold2 
+  pair_1 Fold3 -> pair_1 Fold3 
+  pair_2 Fold1 -> pair_2 Fold1 
+  pair_2 Fold2 -> pair_2 Fold2 
+  pair_2 Fold3 -> pair_2 Fold3 
+  pair_2 Fold4 -> pair_2 Fold4 
+  pair_3 Fold1 -> pair_3 Fold1 
+  pair_3 Fold2 -> pair_3 Fold2 
+  pair_3 Fold3 -> pair_3 Fold3 
+  pair_3 Fold4 -> pair_3 Fold4 
+  pair_3 Fold5 -> pair_3 Fold5 
+  pair_id class_1 class_2
+1  pair_1 vaL0001 vaL0002
+2  pair_2 vaL0001 vaL0003
+3  pair_3 vaL0002 vaL0003
+# A tibble: 6 × 13
+    row pair_id fold  method event_class class_1 class_2 lower upper probability
+  <int> <chr>   <chr> <chr>  <chr>       <chr>   <chr>   <dbl> <dbl>       <dbl>
+1     1 pair_1  Fold1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.5         0.436
+2     2 pair_1  Fold1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+3     3 pair_1  Fold1 ovo    vaL0002     vaL0001 vaL0002 0     0.412       0.292
+4     4 pair_1  Fold1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+5     5 pair_1  Fold1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.5         0.436
+6     6 pair_1  Fold1 ovo    vaL0002     vaL0001 vaL0002 0.75  1           0.8  
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+         class       a b       a.b
+[1,] 0.2248126 0.2509775 0.5242099
+[2,] 0.3250636 0.2545128 0.4204236
+[3,] 0.3528458 0.2987658 0.3483884
+[4,] 0.4850143 0.3045260 0.2104597
+[5,] 0.4180041 0.3640992 0.2178968
+[6,] 0.2474718 0.4256955 0.3268326
+# A tibble: 6 × 13
+    row pair_id fold  method event_class class_1 class_2 lower upper probability
+  <int> <chr>   <chr> <chr>  <chr>       <chr>   <chr>   <dbl> <dbl>       <dbl>
+1     1 pair_1  Fold1 ovo    a b         class   a b     0.353 0.5         0.436
+2     2 pair_1  Fold1 ovo    a b         class   a b     0.353 0.412       0.389
+3     3 pair_1  Fold1 ovo    a b         class   a b     0     0.412       0.292
+4     4 pair_1  Fold1 ovo    a b         class   a b     0.353 0.412       0.389
+5     5 pair_1  Fold1 ovo    a b         class   a b     0.353 0.5         0.436
+6     6 pair_1  Fold1 ovo    a b         class   a b     0.75  1           0.8  
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+Base fits per complete local fit: 12 (3 + 4 + 5)
+# A tibble: 8 × 6
+  id      id2   .metric     .estimator .estimate .config        
+  <chr>   <chr> <chr>       <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 brier_class multiclass     0.351 pre0_mod0_post0
+2 Repeat1 Fold1 mn_log_loss multiclass     1.15  pre0_mod0_post0
+3 Repeat1 Fold2 brier_class multiclass     0.360 pre0_mod0_post0
+4 Repeat1 Fold2 mn_log_loss multiclass     1.19  pre0_mod0_post0
+5 Repeat2 Fold1 brier_class multiclass     0.345 pre0_mod0_post0
+6 Repeat2 Fold1 mn_log_loss multiclass     1.13  pre0_mod0_post0
+7 Repeat2 Fold2 brier_class multiclass     0.365 pre0_mod0_post0
+8 Repeat2 Fold2 mn_log_loss multiclass     1.19  pre0_mod0_post0
+Outer resampling base fits: 48 ; last_fit base fits: 12 
+# A tibble: 6 × 13
+    row pair_id fold  method event_class class_1 class_2 lower upper probability
+  <int> <chr>   <chr> <chr>  <chr>       <chr>   <chr>   <dbl> <dbl>       <dbl>
+1     1 pair_1  Fold1 ovo    a b         class   a b     0.353 0.5         0.436
+2     2 pair_1  Fold1 ovo    a b         class   a b     0.353 0.412       0.389
+3     3 pair_1  Fold1 ovo    a b         class   a b     0.353 0.412       0.389
+4     4 pair_1  Fold1 ovo    a b         class   a b     0.353 0.412       0.389
+5     5 pair_1  Fold1 ovo    a b         class   a b     0.353 0.412       0.389
+6     6 pair_1  Fold1 ovo    a b         class   a b     0.353 0.5         0.436
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+matched Brier: 0.7405542 log loss: 1.207264 
+full Brier: 0.6945537 log loss: 1.141728 
+Full transfer: 15 base fits, 3 retained models and 3 predictions per nonempty batch.
+Running example: pairwise-inductive.R 
+Venn-Abers inductive calibrated predictor
+Model training: pairwise 
+Prediction model: matched  
+Base fits: 3 
+Models per nonempty prediction: 3 
+Stored calibration rows: 45 (held-out truth and model predictions)
+  pair_1 Inductive1 -> pair_1 Inductive1 
+  pair_2 Inductive1 -> pair_2 Inductive1 
+  pair_3 Inductive1 -> pair_3 Inductive1 
+  pair_id class_1 class_2
+1  pair_1 vaL0001 vaL0002
+2  pair_2 vaL0001 vaL0003
+3  pair_3 vaL0002 vaL0003
+         class       a b       a.b
+[1,] 0.2122959 0.1633045 0.6243996
+[2,] 0.3745530 0.2176169 0.4078301
+[3,] 0.3897651 0.3207037 0.2895311
+[4,] 0.4187340 0.3158607 0.2654053
+[5,] 0.3966507 0.3194387 0.2839106
+[6,] 0.1694093 0.5446913 0.2858994
+# A tibble: 6 × 13
+    row pair_id fold  method event_class class_1 class_2 lower upper probability
+  <int> <chr>   <chr> <chr>  <chr>       <chr>   <chr>   <dbl> <dbl>       <dbl>
+1     1 pair_1  Indu… ovo    a b         class   a b     0.5   1           0.667
+2     2 pair_1  Indu… ovo    a b         class   a b     0.333 0.417       0.385
+3     3 pair_1  Indu… ovo    a b         class   a b     0.333 0.417       0.385
+4     4 pair_1  Indu… ovo    a b         class   a b     0.333 0.417       0.385
+5     5 pair_1  Indu… ovo    a b         class   a b     0.333 0.417       0.385
+6     6 pair_1  Indu… ovo    a b         class   a b     0.75  1           0.8  
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+# A tibble: 8 × 6
+  id      id2   .metric     .estimator .estimate .config        
+  <chr>   <chr> <chr>       <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 brier_class multiclass     0.367 pre0_mod0_post0
+2 Repeat1 Fold1 mn_log_loss multiclass     1.20  pre0_mod0_post0
+3 Repeat1 Fold2 brier_class multiclass     0.379 pre0_mod0_post0
+4 Repeat1 Fold2 mn_log_loss multiclass     1.30  pre0_mod0_post0
+5 Repeat2 Fold1 brier_class multiclass     0.353 pre0_mod0_post0
+6 Repeat2 Fold1 mn_log_loss multiclass     1.16  pre0_mod0_post0
+7 Repeat2 Fold2 brier_class multiclass     0.381 pre0_mod0_post0
+8 Repeat2 Fold2 mn_log_loss multiclass     1.25  pre0_mod0_post0
+# A tibble: 6 × 13
+    row pair_id fold  method event_class class_1 class_2 lower upper probability
+  <int> <chr>   <chr> <chr>  <chr>       <chr>   <chr>   <dbl> <dbl>       <dbl>
+1     1 pair_1  Indu… ovo    a b         class   a b     0.8   1           0.833
+2     2 pair_1  Indu… ovo    a b         class   a b     0.5   1           0.667
+3     3 pair_1  Indu… ovo    a b         class   a b     0.333 0.417       0.385
+4     4 pair_1  Indu… ovo    a b         class   a b     0.333 0.417       0.385
+5     5 pair_1  Indu… ovo    a b         class   a b     0.333 0.5         0.429
+6     6 pair_1  Indu… ovo    a b         class   a b     0.8   1           0.833
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+matched Brier: 0.800056 log loss: 1.3062 
+full Brier: 0.7889803 log loss: 1.281012 
+Full transfer: 6 base fits, 3 retained models and 3 predictions per nonempty batch.
+Running example: reference-splits.R 
+Acceptance gate passed.

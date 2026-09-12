@@ -1,0 +1,279 @@
+
+R version 4.6.1 (2026-06-24) -- "Happy Hop"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin25.4.0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(vennabers)
+> packages <- c("workflows", "parsnip", "recipes", "rsample", "nnet")
+> if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
++   example <- new.env()
++   sys.source(system.file("examples", "full-multiclass-workflow.R", package = "vennabers"), example)
++   error <- function(expr) stopifnot(inherits(tryCatch(force(expr), error = identity), "error"))
++   snapshot <- function(fit, new, schema) lapply(c("log", "brier"), function(loss) {
++     lapply(c(0L, 1L, 7L), function(n) {
++       x <- new[seq_len(n), , drop = FALSE]
++       native <- list(prob = predict(fit, x, type = "prob", loss = loss),
++         class = predict(fit, x, type = "class", loss = loss), details = venn_abers_details(fit, x, loss = loss))
++       list(native = native, decoded = lapply(native, venn_abers_decode, schema = schema))
++     })
++   })
++   saved <- tempfile(fileext = ".rds")
++   script <- tempfile(fileext = ".R")
++   log <- tempfile(fileext = ".log")
++   on.exit(unlink(c(saved, script, log)), add = TRUE)
++   for (case in example$examples) {
++     schema <- case$schema
++     fit <- case$fit
++     new <- case$assessment[setdiff(names(case$assessment), schema$encoded_outcome)]
++     native <- venn_abers_details(fit, new)
++     decoded <- venn_abers_decode(native, schema)
++     stopifnot(identical(colnames(decoded$probability), schema$class_levels),
++       all(decoded$details$model_training == "shared"), all(decoded$details$prediction_model == "full"),
++       all(decoded$details$model_source == "Full1"),
++       identical(decoded$details$fold, native$details$fold),
++       all(decoded$details$event_class %in% schema$class_levels),
++       identical(attr(native, "vennabers_schema"), schema))
++     if (schema$classification == "ovo") stopifnot(all(decoded$details$event_class == decoded$details$class_2)) else
++       stopifnot(all(decoded$details$event_class == decoded$details$class))
++     foreign <- venn_abers_schema(data.frame(x = 1:6, truth = factor(rep(c("a", "b", "c"), 2))), "truth",
++       classification = schema$classification)
++     error(venn_abers_decode(native, foreign))
++     stopifnot(identical(native, venn_abers_details(fit, new[rev(names(new))])))
++     wrong_levels <- case$assessment
++     wrong_levels[[schema$encoded_outcome]] <- factor(wrong_levels[[schema$encoded_outcome]], levels = rev(unname(schema$classes)))
++     wrong_schema <- new
++     attr(wrong_schema, "vennabers_schema") <- foreign
++     for (bad in list(wrong_levels, wrong_schema, new[-1L], setNames(new, c("unknown", names(new)[2L])))) {
++       error(predict(fit, bad, type = "prob"))
++       error(venn_abers_details(fit, bad))
++     }
++     error(calibrated_workflow(case$base, schema$encoded_outcome, schema = schema,
++       classification = if (schema$classification == "ovo") "ovr" else "ovo", prediction_model = "full"))
++     saveRDS(list(fit = fit, schema = schema, new = new, snapshot = snapshot,
++       expected = snapshot(fit, new, schema)), saved)
++     writeLines(c(
++       paste0('.libPaths(', paste(deparse(.libPaths()), collapse = ''), ')'),
++       'library(vennabers)',
++       paste0('s <- readRDS(', deparse(saved), ')'),
++       'trace("fit.workflow", where = asNamespace("workflows"), tracer = quote(stop("Unexpected model fit")), print = FALSE)',
++       'trace("prep.recipe", where = asNamespace("recipes"), tracer = quote(stop("Unexpected preprocessing")), print = FALSE)',
++       'trace("venn_abers", where = asNamespace("vennabers"), tracer = quote(stop("Unexpected calibrator fit")), print = FALSE)',
++       'stopifnot(identical(s$expected, s$snapshot(s$fit, s$new, s$schema)),',
++       '  identical(names(workflows::extract_fit_engine(s$fit)$models), "Full1"))'
++     ), script)
++     status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
++     if (status != 0L) stop(paste(readLines(log), collapse = "\n"))
++   }
++ })
+Venn-Abers inductive calibrated predictor
+Model training: shared 
+Prediction model: full (full-model transfer) 
+Base fits: 2 
+Models per nonempty prediction: 1 
+Stored calibration rows: 23 (held-out truth and model predictions)
+  Inductive1 -> Full1 
+# A tibble: 6 × 12
+    row fold       method event_class class_1 class_2 lower upper probability
+  <int> <chr>      <chr>  <chr>       <chr>   <chr>   <dbl> <dbl>       <dbl>
+1     1 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.667   1         0.75 
+2     2 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.429   1         0.636
+3     3 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.4     0.5       0.455
+4     4 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.4     0.5       0.455
+5     5 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.4     0.6       0.5  
+6     6 Inductive1 ovo    vaL0002     vaL0001 vaL0002 0.429   1         0.636
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+# A tibble: 6 × 12
+    row fold       method event_class class_1 class_2    lower upper probability
+  <int> <chr>      <chr>  <chr>       <chr>   <chr>      <dbl> <dbl>       <dbl>
+1     1 Inductive1 ovo    .pred_class class   .pred_cla… 0.667   1         0.75 
+2     2 Inductive1 ovo    .pred_class class   .pred_cla… 0.429   1         0.636
+3     3 Inductive1 ovo    .pred_class class   .pred_cla… 0.4     0.5       0.455
+4     4 Inductive1 ovo    .pred_class class   .pred_cla… 0.4     0.5       0.455
+5     5 Inductive1 ovo    .pred_class class   .pred_cla… 0.4     0.6       0.5  
+6     6 Inductive1 ovo    .pred_class class   .pred_cla… 0.429   1         0.636
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+         class .pred_class       a b
+[1,] 0.1698693   0.3597233 0.4704074
+[2,] 0.2110230   0.3263496 0.4626274
+[3,] 0.3381625   0.2703777 0.3914598
+[4,] 0.3525865   0.3576066 0.2898069
+[5,] 0.3236570   0.3827026 0.2936404
+[6,] 0.2548454   0.3318917 0.4132629
+[1] a b         a b         a b         .pred_class .pred_class a b        
+Levels: class .pred_class a b
+# A tibble: 8 × 6
+  id      id2   .metric     .estimator .estimate .config        
+  <chr>   <chr> <chr>       <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 brier_class multiclass     0.389 pre0_mod0_post0
+2 Repeat1 Fold1 mn_log_loss multiclass     1.26  pre0_mod0_post0
+3 Repeat1 Fold2 brier_class multiclass     0.359 pre0_mod0_post0
+4 Repeat1 Fold2 mn_log_loss multiclass     1.24  pre0_mod0_post0
+5 Repeat2 Fold1 brier_class multiclass     0.353 pre0_mod0_post0
+6 Repeat2 Fold1 mn_log_loss multiclass     1.16  pre0_mod0_post0
+7 Repeat2 Fold2 brier_class multiclass     0.368 pre0_mod0_post0
+8 Repeat2 Fold2 mn_log_loss multiclass     1.21  pre0_mod0_post0
+Venn-Abers inductive calibrated predictor
+Model training: shared 
+Prediction model: full (full-model transfer) 
+Base fits: 2 
+Models per nonempty prediction: 1 
+Stored calibration rows: 23 (held-out truth and model predictions)
+  Inductive1 -> Full1 
+# A tibble: 6 × 11
+    row fold     method event_class class lower upper probability model_training
+  <int> <chr>    <chr>  <chr>       <chr> <dbl> <dbl>       <dbl> <chr>         
+1     1 Inducti… ovr    vaL0001     vaL0…  0    0.333       0.25  shared        
+2     2 Inducti… ovr    vaL0001     vaL0…  0    0.333       0.25  shared        
+3     3 Inducti… ovr    vaL0001     vaL0…  0.25 0.385       0.339 shared        
+4     4 Inducti… ovr    vaL0001     vaL0…  0.25 0.385       0.339 shared        
+5     5 Inducti… ovr    vaL0001     vaL0…  0.25 0.385       0.339 shared        
+6     6 Inducti… ovr    vaL0001     vaL0…  0    0.333       0.25  shared        
+# ℹ 2 more variables: prediction_model <chr>, model_source <chr>
+# A tibble: 6 × 11
+    row fold     method event_class class lower upper probability model_training
+  <int> <chr>    <chr>  <chr>       <chr> <dbl> <dbl>       <dbl> <chr>         
+1     1 Inducti… ovr    class       class  0    0.333       0.25  shared        
+2     2 Inducti… ovr    class       class  0    0.333       0.25  shared        
+3     3 Inducti… ovr    class       class  0.25 0.385       0.339 shared        
+4     4 Inducti… ovr    class       class  0.25 0.385       0.339 shared        
+5     5 Inducti… ovr    class       class  0.25 0.385       0.339 shared        
+6     6 Inducti… ovr    class       class  0    0.333       0.25  shared        
+# ℹ 2 more variables: prediction_model <chr>, model_source <chr>
+         class .pred_class       a b
+[1,] 0.1959102   0.3176922 0.4863977
+[2,] 0.2112933   0.2641166 0.5245902
+[3,] 0.3160576   0.2913656 0.3925768
+[4,] 0.3121817   0.3733524 0.3144659
+[5,] 0.2908625   0.3478558 0.3612818
+[6,] 0.2322431   0.3766105 0.3911463
+[1] a b         a b         a b         .pred_class a b         a b        
+Levels: class .pred_class a b
+# A tibble: 8 × 6
+  id      id2   .metric     .estimator .estimate .config        
+  <chr>   <chr> <chr>       <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 brier_class multiclass     0.395 pre0_mod0_post0
+2 Repeat1 Fold1 mn_log_loss multiclass     1.28  pre0_mod0_post0
+3 Repeat1 Fold2 brier_class multiclass     0.380 pre0_mod0_post0
+4 Repeat1 Fold2 mn_log_loss multiclass     1.33  pre0_mod0_post0
+5 Repeat2 Fold1 brier_class multiclass     0.360 pre0_mod0_post0
+6 Repeat2 Fold1 mn_log_loss multiclass     1.18  pre0_mod0_post0
+7 Repeat2 Fold2 brier_class multiclass     0.374 pre0_mod0_post0
+8 Repeat2 Fold2 mn_log_loss multiclass     1.21  pre0_mod0_post0
+Venn-Abers cross calibrated predictor
+Model training: shared 
+Prediction model: full (full-model transfer) 
+Base fits: 4 
+Models per nonempty prediction: 1 
+Stored calibration rows: 90 (held-out truth and model predictions)
+  Part1 -> Full1 
+  Part2 -> Full1 
+  Part3 -> Full1 
+# A tibble: 6 × 12
+    row fold  method event_class class_1 class_2 lower upper probability
+  <int> <chr> <chr>  <chr>       <chr>   <chr>   <dbl> <dbl>       <dbl>
+1     1 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 1           0.607
+2     2 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+3     3 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+4     4 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+5     5 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+6     6 Part1 ovo    vaL0002     vaL0001 vaL0002 0.353 0.412       0.389
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+# A tibble: 6 × 12
+    row fold  method event_class class_1 class_2     lower upper probability
+  <int> <chr> <chr>  <chr>       <chr>   <chr>       <dbl> <dbl>       <dbl>
+1     1 Part1 ovo    .pred_class class   .pred_class 0.353 1           0.607
+2     2 Part1 ovo    .pred_class class   .pred_class 0.353 0.412       0.389
+3     3 Part1 ovo    .pred_class class   .pred_class 0.353 0.412       0.389
+4     4 Part1 ovo    .pred_class class   .pred_class 0.353 0.412       0.389
+5     5 Part1 ovo    .pred_class class   .pred_class 0.353 0.412       0.389
+6     6 Part1 ovo    .pred_class class   .pred_class 0.353 0.412       0.389
+# ℹ 3 more variables: model_training <chr>, prediction_model <chr>,
+#   model_source <chr>
+         class .pred_class       a b
+[1,] 0.2453950   0.3150263 0.4395787
+[2,] 0.2820385   0.2940285 0.4239330
+[3,] 0.3954256   0.2590723 0.3455022
+[4,] 0.4429897   0.3069373 0.2500730
+[5,] 0.3927781   0.3502992 0.2569227
+[6,] 0.3022480   0.3866848 0.3110672
+[1] a b         a b         class       class       class       .pred_class
+Levels: class .pred_class a b
+# A tibble: 8 × 6
+  id      id2   .metric     .estimator .estimate .config        
+  <chr>   <chr> <chr>       <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 brier_class multiclass     0.363 pre0_mod0_post0
+2 Repeat1 Fold1 mn_log_loss multiclass     1.18  pre0_mod0_post0
+3 Repeat1 Fold2 brier_class multiclass     0.351 pre0_mod0_post0
+4 Repeat1 Fold2 mn_log_loss multiclass     1.16  pre0_mod0_post0
+5 Repeat2 Fold1 brier_class multiclass     0.357 pre0_mod0_post0
+6 Repeat2 Fold1 mn_log_loss multiclass     1.18  pre0_mod0_post0
+7 Repeat2 Fold2 brier_class multiclass     0.368 pre0_mod0_post0
+8 Repeat2 Fold2 mn_log_loss multiclass     1.21  pre0_mod0_post0
+Venn-Abers cross calibrated predictor
+Model training: shared 
+Prediction model: full (full-model transfer) 
+Base fits: 4 
+Models per nonempty prediction: 1 
+Stored calibration rows: 90 (held-out truth and model predictions)
+  Part1 -> Full1 
+  Part2 -> Full1 
+  Part3 -> Full1 
+# A tibble: 6 × 11
+    row fold  method event_class class   lower upper probability model_training
+  <int> <chr> <chr>  <chr>       <chr>   <dbl> <dbl>       <dbl> <chr>         
+1     1 Part1 ovr    vaL0001     vaL0001 0.1   0.455       0.336 shared        
+2     2 Part1 ovr    vaL0001     vaL0001 0.409 0.455       0.435 shared        
+3     3 Part1 ovr    vaL0001     vaL0001 0.409 0.455       0.435 shared        
+4     4 Part1 ovr    vaL0001     vaL0001 0.409 0.455       0.435 shared        
+5     5 Part1 ovr    vaL0001     vaL0001 0.409 0.455       0.435 shared        
+6     6 Part1 ovr    vaL0001     vaL0001 0.409 0.455       0.435 shared        
+# ℹ 2 more variables: prediction_model <chr>, model_source <chr>
+# A tibble: 6 × 11
+    row fold  method event_class class lower upper probability model_training
+  <int> <chr> <chr>  <chr>       <chr> <dbl> <dbl>       <dbl> <chr>         
+1     1 Part1 ovr    class       class 0.1   0.455       0.336 shared        
+2     2 Part1 ovr    class       class 0.409 0.455       0.435 shared        
+3     3 Part1 ovr    class       class 0.409 0.455       0.435 shared        
+4     4 Part1 ovr    class       class 0.409 0.455       0.435 shared        
+5     5 Part1 ovr    class       class 0.409 0.455       0.435 shared        
+6     6 Part1 ovr    class       class 0.409 0.455       0.435 shared        
+# ℹ 2 more variables: prediction_model <chr>, model_source <chr>
+         class .pred_class       a b
+[1,] 0.2554605   0.3242856 0.4202539
+[2,] 0.2933950   0.2688479 0.4377571
+[3,] 0.4244021   0.2606459 0.3149520
+[4,] 0.4202539   0.3242856 0.2554605
+[5,] 0.4095230   0.3160052 0.2744718
+[6,] 0.3068826   0.3533204 0.3397970
+[1] a b         a b         class       class       class       .pred_class
+Levels: class .pred_class a b
+# A tibble: 8 × 6
+  id      id2   .metric     .estimator .estimate .config        
+  <chr>   <chr> <chr>       <chr>          <dbl> <chr>          
+1 Repeat1 Fold1 brier_class multiclass     0.374 pre0_mod0_post0
+2 Repeat1 Fold1 mn_log_loss multiclass     1.21  pre0_mod0_post0
+3 Repeat1 Fold2 brier_class multiclass     0.348 pre0_mod0_post0
+4 Repeat1 Fold2 mn_log_loss multiclass     1.15  pre0_mod0_post0
+5 Repeat2 Fold1 brier_class multiclass     0.353 pre0_mod0_post0
+6 Repeat2 Fold1 mn_log_loss multiclass     1.16  pre0_mod0_post0
+7 Repeat2 Fold2 brier_class multiclass     0.372 pre0_mod0_post0
+8 Repeat2 Fold2 mn_log_loss multiclass     1.21  pre0_mod0_post0
+> 
+> proc.time()
+   user  system elapsed 
+  6.445   0.386   6.883 

@@ -1,0 +1,5 @@
+"iteration","fit_count","retained_models","outer_fit_count","fit_seconds","predict_seconds","outer_seconds","schema_seconds","encode_seconds","decode_seconds","rds_bytes","release","case","process_peak_bytes"
+0,6,1,18,0.115,0.024,0.38,0,0,0,5979532,"current","workflow_regression_cross_full",391774208
+1,6,1,18,0.114,0.024,0.379,0,0,0,5979526,"current","workflow_regression_cross_full",392134656
+2,6,1,18,0.114,0.0250000000000001,0.373,0,0,0,5979531,"current","workflow_regression_cross_full",391774208
+3,6,1,18,0.116,0.024,0.373,0,0,0,5979533,"current","workflow_regression_cross_full",392970240

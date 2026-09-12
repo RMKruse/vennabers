@@ -1,0 +1,5 @@
+"iteration","fit_count","retained_models","outer_fit_count","fit_seconds","predict_seconds","outer_seconds","schema_seconds","encode_seconds","decode_seconds","rds_bytes","release","case","process_peak_bytes"
+0,0,0,0,0.049,0.001,0,0,0,0,117834,"previous","regression_inductive_m1",92766208
+1,0,0,0,0.048,0.001,0,0,0,0,117834,"previous","regression_inductive_m1",92700672
+2,0,0,0,0.048,0,0,0,0,0,117834,"previous","regression_inductive_m1",92618752
+3,0,0,0,0.048,0.001,0,0,0,0,117834,"previous","regression_inductive_m1",92717056

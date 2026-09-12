@@ -1,0 +1,5 @@
+"iteration","fit_count","retained_models","outer_fit_count","fit_seconds","predict_seconds","outer_seconds","schema_seconds","encode_seconds","decode_seconds","rds_bytes","release","case","process_peak_bytes"
+0,0,0,0,0.003,0.002,0,0,0,0,1175,"previous","binary_cross_brier_p2",82362368
+1,0,0,0,0.003,0.001,0,0,0,0,1175,"previous","binary_cross_brier_p2",82001920
+2,0,0,0,0.003,0.001,0,0,0,0,1175,"previous","binary_cross_brier_p2",82051072
+3,0,0,0,0.003,0.002,0,0,0,0,1175,"previous","binary_cross_brier_p2",82018304
