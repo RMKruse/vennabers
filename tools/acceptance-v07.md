@@ -286,11 +286,30 @@ Rscript --vanilla tools/test-performance-verifier.R /empty/output/benchmark
 
 ## Standards
 
-Independent review of the implementation: **0 findings**. Cost reporting reuses
-stored state, tracing measures real engines without replacements, and the runner
-adds no dependencies or speculative abstraction. The 20-path public print check
-passes. The focused matched last_fit test was also reviewed with no Standards findings.
-Report/evidence completeness is reviewed separately after execution.
+Independent review of the implementation: **0 findings** for the pre-execution
+implementation. Cost reporting reuses stored state, tracing measures real
+engines without replacements, and the runner adds no dependencies or
+speculative abstraction. The 20-path public print check passes. The focused
+matched last_fit test was also reviewed with no Standards findings.
+
+A second review, after full execution and evidence packaging, checked the
+final diff (`tools/acceptance.R`, `tools/performance.R`,
+`tools/test-performance.R`, `tools/test-performance-verifier.R`,
+`tests/matched-last-fit.R`) against this repo's smell baseline (no
+`CODING_STANDARDS.md`/`CONTRIBUTING.md` is documented here, so only the
+baseline judgement-call smells apply). It found one **possible Duplicated
+Code** in `tools/performance.R`: the `formula`/`selector` base-environment
+recipe construction was copied verbatim into the new ten-class pair-case
+block instead of reused. This was corrected by factoring it into a shared
+`base_env_recipe()` helper, used by both the original and pair-case call
+sites. The refactor was verified behavior-preserving: a full `--smoke` rerun
+against the same archives produced byte-identical `plan.csv` and generated
+`-input.rds` files (same MD5s), and identical `fit_count`/`retained_models`/
+`outer_fit_count`/status classification for every case in `comparison.csv`;
+only wall-clock timing/memory noise differed, as expected between runs (see
+[performance-refactor-check.log](evidence-v07/tooling/performance-refactor-check.log)).
+No other findings. Total: Standards 0 hard violations, 1 judgement-call smell
+(fixed).
 
 ## Spec
 
@@ -299,8 +318,23 @@ matrix, 48 common comparisons, 16 new baselines, saved pair plans, fresh-process
 restores and actual-count reconciliation match the ticket. An evidence-map review found missing matched last_fit checks and one collector
 comparison gap; both were corrected and reviewed in the final source. Incorrect
 full-schema citations and overbroad frozen benchmark wording were also corrected.
-Final artifact/evidence review follows execution. Total remaining: Standards 0;
-Spec 0 implementation findings.
+
+A final review, after full local execution and evidence packaging, checked the
+report's claims against the actually committed evidence files (hashes, commit
+SHAs, test/README/example counts, benchmark case counts, `SHA256SUMS`). It found
+one issue: the report cited a `tools/evidence-v07/tooling/historical-inputs.log`
+audit that did not exist in the diff. This was corrected by writing and running
+the actual v0.7 historical-input audit
+([historical-inputs.R](evidence-v07/tooling/historical-inputs.R),
+[historical-inputs.log](evidence-v07/tooling/historical-inputs.log)), comparing
+all 48 cases common with v0.6 (data, plan memberships, options and untrained
+model/recipe configuration, excluding only rsample fingerprints) — all 48
+verify unchanged. Every other claim in the report (candidate/predecessor
+hashes, 45/17/21 test/README/example counts, all three `00check.log` results,
+64/48/16 benchmark case split, the single flagged noise-level ratio, and the
+open-gates disclosures) was independently verified against the committed
+evidence and found accurate. Total remaining: Standards 0; Spec 0 implementation
+findings.
 
 ## Outstanding overall release gates
 

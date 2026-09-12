@@ -270,6 +270,13 @@ local({
       loss = NA_character_, precision = NULL, n_new = 1000L, moderation = moderation,
       calibration_row = seq_len(10000L), new_row = seq_len(1000L))
   }
+  # Formula/selector environments must not serialize the benchmark runner
+  # and its other cases into every saved input and fitted model.
+  base_env_recipe <- function(data) {
+    formula <- stats::as.formula("truth ~ .", env = baseenv())
+    selector <- rlang::new_quosure(quote(recipes::all_numeric_predictors()), env = baseenv())
+    recipes::recipe(formula, data) |> recipes::step_normalize(!!selector)
+  }
   if (v05) {
     # Append after historical draws. Store data, every actual split and the
     # untrained recipe/model configuration, not just seeds or split sizes.
@@ -286,13 +293,8 @@ local({
       spec <- if (method == "regression") parsnip::linear_reg(engine = "lm") else
         if (method == "binary") parsnip::logistic_reg(engine = "glm") else
           parsnip::multinom_reg(penalty = 0) |> parsnip::set_engine("nnet", trace = FALSE, maxit = 200)
-      # Formula/selector environments must not serialize the benchmark runner
-      # and its other cases into every saved input and fitted model.
-      formula <- stats::as.formula("truth ~ .", env = baseenv())
-      selector <- rlang::new_quosure(quote(recipes::all_numeric_predictors()), env = baseenv())
       base <- workflows::workflow() |>
-        workflows::add_recipe(recipes::recipe(formula, data) |>
-          recipes::step_normalize(!!selector)) |> workflows::add_model(spec)
+        workflows::add_recipe(base_env_recipe(data)) |> workflows::add_model(spec)
       split_local <- function(data) {
         if (cross) rsample::vfold_cv(data, v = 5) else rsample::initial_split(data, prop = .8)
       }
@@ -392,10 +394,7 @@ local({
       case$generator_seed <- if (k == 10L) 20260912L else 20260910L
       case$base <- workflows::update_model(case$base, parsnip::logistic_reg(engine = "glm"))
       # The template's outcome domain must follow the ten-class input too.
-      formula <- stats::as.formula("truth ~ .", env = baseenv())
-      selector <- rlang::new_quosure(quote(recipes::all_numeric_predictors()), env = baseenv())
-      case$base <- workflows::update_recipe(case$base, recipes::recipe(formula, case$data) |>
-        recipes::step_normalize(!!selector))
+      case$base <- workflows::update_recipe(case$base, base_env_recipe(case$data))
       pair_plans <- function(data) {
         pairs <- combn(levels(data$truth), 2L, simplify = FALSE)
         setNames(lapply(pairs, function(pair) {
