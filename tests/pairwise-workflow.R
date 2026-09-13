@@ -19,11 +19,18 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     held <- seq.int(n - ceiling(n / 4) + 1L, n)
     rsample::make_splits(list(analysis = setdiff(seq_len(n), held), assessment = held), data)
   }
-  fit <- generics::fit(calibrated_workflow(base, "truth", classification = "ovo",
-    model_training = "pairwise", splits = ordered, seed = 42), data)
   pairs <- combn(levels(data$truth), 2, simplify = FALSE)
   new <- data[1:7, ]
-  d <- venn_abers_details(fit, new)
+  for (mode in c("matched", "full")) {
+    fit <- generics::fit(calibrated_workflow(base, "truth", classification = "ovo",
+      model_training = "pairwise", prediction_model = mode, splits = ordered, seed = 42), data)
+    d <- venn_abers_details(fit, new)
+    if (mode == "full") {
+      stopifnot(all(vapply(workflows::extract_fit_engine(fit)$pair_models,
+        function(x) identical(names(x$models), "Full1"), logical(1))),
+        all(d$details$prediction_model == mode))
+      next
+    }
   q <- matrix(0, nrow(new), length(pairs))
   for (j in seq_along(pairs)) {
     pair <- pairs[[j]]
@@ -52,6 +59,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     1 / (1 + rowSums(odds))
   }, numeric(nrow(new)))
   close(as.matrix(d$prediction), p / rowSums(p))
+  }
 }
 
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {

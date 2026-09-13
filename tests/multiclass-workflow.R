@@ -9,10 +9,15 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "nnet"),
   base <- workflows::workflow() |> workflows::add_formula(truth ~ .) |>
     workflows::add_model(parsnip::multinom_reg(engine = "nnet"))
   split <- withr::with_seed(32, rsample::initial_split(data, .8, strata = truth, pool = 0))
-  for (method in c("ovo", "ovr")) {
+  for (method in c("ovo", "ovr")) for (mode in c("matched", "full")) {
     fit <- generics::fit(calibrated_workflow(base, "truth", classification = method,
-                                            splits = split, seed = 32), data)
+                                            prediction_model = mode, splits = split, seed = 32), data)
     state <- workflows::extract_fit_engine(fit)
+    if (mode == "full") {
+      stopifnot(identical(names(state$models), "Full1"),
+        all(venn_abers_details(fit, data)$details$prediction_model == mode))
+      next
+    }
     probabilities <- function(new_data) {
       p <- as.matrix(predict(state$models$Inductive1, new_data, type = "prob"))
       colnames(p) <- sub("^\\.pred_", "", colnames(p))

@@ -11,19 +11,24 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
   data <- data.frame(x = sin(1:80), truth = 10 + cos(1:80) + 3 * sin(1:80))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::linear_reg(engine = "lm"))
-  fitted <- generics::fit(calibrated_workflow(base, "truth", seed = 42), data)
-  state <- workflows::extract_fit_engine(fitted)
   plan <- withr::with_seed(42, rsample::initial_split(data, .8))
   held <- as.integer(plan, data = "assessment")
-  stopifnot(identical(state$folds$Inductive1$assessment, held))
-  expected <- predict(venn_abers_regression(data$truth[held],
-    predict(state$models$Inductive1, data[held, ])$.pred),
-    predict(state$models$Inductive1, data)$.pred)
-  actual <- venn_abers_details(fitted, data)
-  close(actual$prediction$.pred, expected$prediction)
-  close(as.matrix(actual$details[c("prediction", "lower", "upper")]), as.matrix(expected))
-  stopifnot(identical(actual$prediction, predict(fitted, data, type = "numeric")),
-            is.double(actual$prediction$.pred), identical(names(actual$prediction), ".pred"))
+  for (mode in c("matched", "full")) {
+    fitted <- generics::fit(calibrated_workflow(base, "truth", prediction_model = mode, seed = 42), data)
+    state <- workflows::extract_fit_engine(fitted)
+    actual <- venn_abers_details(fitted, data)
+    stopifnot(identical(state$folds$Inductive1$assessment, held),
+      all(actual$details$prediction_model == mode),
+      identical(names(state$models), if (mode == "full") "Full1" else "Inductive1"))
+    if (mode == "full") next
+    expected <- predict(venn_abers_regression(data$truth[held],
+      predict(state$models$Inductive1, data[held, ])$.pred),
+      predict(state$models$Inductive1, data)$.pred)
+    close(actual$prediction$.pred, expected$prediction)
+    close(as.matrix(actual$details[c("prediction", "lower", "upper")]), as.matrix(expected))
+    stopifnot(identical(actual$prediction, predict(fitted, data, type = "numeric")),
+      is.double(actual$prediction$.pred), identical(names(actual$prediction), ".pred"))
+  }
 }
 
 if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
