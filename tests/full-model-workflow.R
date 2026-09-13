@@ -200,7 +200,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     stopifnot(counts$fit == before)
   }
 
-  reference <- read.csv(system.file("extdata", "full-model-reference.csv", package = "vennabers"))
+  reference <- read.csv(file.path("extdata", "full-model-reference.csv"))
   stopifnot(nrow(reference) == 224L)
   maximum_error <- 0
   for (method in c("inductive", "cross")) for (precision in list(NULL, 0, 2, -1)) {

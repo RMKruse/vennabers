@@ -192,7 +192,7 @@ if (exists("transfer_fit")) {
   # through a raw numeric engine. Invalid direct Python cells are excluded;
   # the independent repaired oracle and the exact zero-weight cases remain.
   read_fixture <- function(name, text_columns) {
-    d <- read.csv(system.file("extdata", name, package = "vennabers", mustWork = TRUE), colClasses = "character")
+    d <- read.csv(file.path("extdata", name), colClasses = "character")
     for (column in setdiff(names(d), text_columns)) d[[column]] <- as.numeric(d[[column]])
     d
   }

@@ -5,7 +5,7 @@ expect_error <- function(expr, message) {
   stopifnot(inherits(error, "error"), grepl(message, conditionMessage(error), fixed = TRUE))
 }
 close <- function(x, y) stopifnot(identical(dim(x), dim(y)), all(abs(x - y) <= 1e-10))
-fixture <- function(name) read.csv(system.file("extdata", name, package = "vennabers"))
+fixture <- function(name) read.csv(file.path("extdata", name))
 calibration <- fixture("ovo-calibration.csv")
 inputs <- fixture("ovo-input.csv")
 case_ids <- unique(calibration$case_id)

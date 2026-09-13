@@ -1,7 +1,7 @@
 library(vennabers)
 
 read_fixture <- function(name, text_columns) {
-  result <- read.csv(system.file("extdata", name, package = "vennabers", mustWork = TRUE),
+  result <- read.csv(file.path("extdata", name),
                      colClasses = "character")
   for (column in setdiff(names(result), text_columns)) result[[column]] <- as.numeric(result[[column]])
   result

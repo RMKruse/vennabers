@@ -410,7 +410,7 @@ their common finite value. Empty and singleton prediction inputs preserve the
 three-column data frame; saved fits work in fresh R processes without training.
 
 This manual entry point is an R extension. The
-[reference record](inst/extdata/regression-reference.md) distinguishes valid
+[reference record](tests/extdata/regression-reference.md) distinguishes valid
 Python 1.5.4 regression components from lower-bound and zero-weight defects.
 The manual core does not train models or create splits. Regression score/plot
 helpers, exact minimax,
@@ -471,7 +471,7 @@ and a model fixed independently of its calibration observations.
 Aggregated bounds are descriptive fold summaries without an additional
 coverage or selector guarantee. They are not confidence or prediction intervals
 for individual outcomes, and no score improvement is promised. The
-[Cross reference record](inst/extdata/cross-regression-reference.md) documents
+[Cross reference record](tests/extdata/cross-regression-reference.md) documents
 offline Python 1.5.4 IVAR component evidence and independent aggregation;
 there is no corresponding public manual Python CVAR wrapper.
 
@@ -503,7 +503,7 @@ Logical, missing, nonfinite, fractional, and multiple precision values are
 rejected. R and NumPy can round differently at floating-point boundaries;
 native R behavior is intentional, with separate tests from Python parity.
 See the executable [binary options example](inst/examples/binary-options.R) and
-[reference record](inst/extdata/binary-options-reference.md).
+[reference record](tests/extdata/binary-options-reference.md).
 
 ## Cross Venn-Abers
 
@@ -714,7 +714,7 @@ independent coupling or normalization. **Manual Brier for both methods is a
 deliberate R extension**: the examined Python manual path does not forward a
 Brier selection. Zero-pair replacement, validation and native R rounding are
 explicit R rules. Regeneration is in `tools/generate-multiclass-fixtures.py`;
-`inst/extdata/ovo-environment.json` and `inst/extdata/ovr-environment.json` record
+`tests/extdata/ovo-environment.json` and `tests/extdata/ovr-environment.json` record
 provenance and hashes. Both methods share the `ovo-calibration.csv` and
 `ovo-input.csv` inputs. Ordinary tests need no Python.
 

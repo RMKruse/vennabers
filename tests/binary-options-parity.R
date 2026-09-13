@@ -1,7 +1,7 @@
 library(vennabers)
 
 fixture <- function(name) {
-  path <- system.file("extdata", name, package = "vennabers")
+  path <- file.path("extdata", name)
   stopifnot(nzchar(path))
   read.csv(path, stringsAsFactors = FALSE)
 }

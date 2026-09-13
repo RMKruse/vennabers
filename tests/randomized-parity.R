@@ -1,7 +1,7 @@
 library(vennabers)
 
-calibration_path <- system.file("extdata", "randomized-calibration.csv", package = "vennabers")
-prediction_path <- system.file("extdata", "randomized-predictions.csv", package = "vennabers")
+calibration_path <- file.path("extdata", "randomized-calibration.csv")
+prediction_path <- file.path("extdata", "randomized-predictions.csv")
 stopifnot(nzchar(calibration_path), nzchar(prediction_path))
 
 calibration <- read.csv(calibration_path, comment.char = "#")

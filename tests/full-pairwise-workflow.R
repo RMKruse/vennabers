@@ -237,7 +237,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     }
   }
   # Identical inputs to the pinned Python full-transfer component fixtures.
-  reference <- read.csv(system.file("extdata", "full-model-reference.csv", package = "vennabers"))
+  reference <- read.csv(file.path("extdata", "full-model-reference.csv"))
   data <- data.frame(p = seq(-3, 3, length.out = 40), x = sin(1:40), row_id = 1:40,
     truth = factor(rep(c("event", "other", "other", "event"), 10), levels = c("other", "event")))
   for (method in c("inductive", "cross")) for (precision in list(NULL, 0, 2, -1)) {
