@@ -1,5 +1,0 @@
-"iteration","fit_count","retained_models","outer_fit_count","fit_seconds","predict_seconds","outer_seconds","schema_seconds","encode_seconds","decode_seconds","rds_bytes","release","case","process_peak_bytes"
-0,0,1,0,0.0250000000000001,0.004,0,0,0,0,698846,"previous","workflow_binary_frozen",365821952
-1,0,1,0,0.0250000000000001,0.004,0,0,0,0,698845,"previous","workflow_binary_frozen",365838336
-2,0,1,0,0.026,0.00499999999999989,0,0,0,0,698850,"previous","workflow_binary_frozen",366657536
-3,0,1,0,0.0269999999999999,0.00500000000000012,0,0,0,0,698847,"previous","workflow_binary_frozen",366936064

@@ -1,4 +1,0 @@
-Error in eval(quote({ : 
-  Release measurements require Linux x86_64. Use --smoke for non-release validation.
-Calls: local -> eval.parent -> eval -> eval -> eval -> eval
-Execution halted

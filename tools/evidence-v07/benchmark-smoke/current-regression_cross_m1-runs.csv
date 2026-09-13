@@ -1,5 +1,0 @@
-"iteration","fit_count","retained_models","outer_fit_count","fit_seconds","predict_seconds","outer_seconds","schema_seconds","encode_seconds","decode_seconds","rds_bytes","release","case","process_peak_bytes"
-0,0,0,0,0.049,0.042,0,0,0,0,156527,"current","regression_cross_m1",91619328
-1,0,0,0,0.05,0.041,0,0,0,0,156527,"current","regression_cross_m1",91684864
-2,0,0,0,0.049,0.041,0,0,0,0,156527,"current","regression_cross_m1",91717632
-3,0,0,0,0.051,0.042,0,0,0,0,156527,"current","regression_cross_m1",91586560

@@ -1,8 +1,0 @@
-Prepared on 2026-09-09, before denied-network package checks.
-Source: https://cran.r-project.org/src/contrib/Archive/probably/probably_1.1.0.tar.gz
-SHA-256: see minimum-setup-sha256.txt.
-R CMD INSTALL target: /Users/entropy/Git/venn-abers/.scratch/v06/minimum-library
-Other 96 manifest packages already present in /tmp/venn-tidymodels-lib.
-The minimum acceptance profile verifies all 97 exact versions before checking;
-its environment.txt records the complete effective package/library/runtime set.
-Minimum manifest is retained beside this file, including transitive edges.

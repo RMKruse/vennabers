@@ -1,5 +1,0 @@
-"iteration","fit_count","retained_models","outer_fit_count","fit_seconds","predict_seconds","outer_seconds","schema_seconds","encode_seconds","decode_seconds","rds_bytes","release","case","process_peak_bytes"
-0,1,1,3,0.0740000000000001,0.00300000000000011,0.234,0,0,0,1882209,"previous","workflow_ovo_inductive",373096448
-1,1,1,3,0.0730000000000002,0.004,0.212,0,0,0,1882211,"previous","workflow_ovo_inductive",373211136
-2,1,1,3,0.0740000000000001,0.004,0.211,0,0,0,1882211,"previous","workflow_ovo_inductive",373014528
-3,1,1,3,0.073,0.00300000000000011,0.21,0,0,0,1882209,"previous","workflow_ovo_inductive",372850688

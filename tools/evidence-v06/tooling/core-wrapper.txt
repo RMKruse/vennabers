@@ -1,6 +1,0 @@
-The clean Homebrew core acceptance process completed with 'Acceptance gate passed.'
-and R CMD check 'Status: OK'. Its ad-hoc zsh command subsequently failed while
-assigning the read-only shell variable 'status'. No package check failed; the
-status summary was recovered by verifying both final success markers. The saved
-reproduction wrapper uses /bin/sh. The earlier framework core preflight remains
-separately recorded as a failed environment setup.
