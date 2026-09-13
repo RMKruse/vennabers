@@ -11,7 +11,7 @@ register_reference_engine <- function(model, mode, fit, predict, type, engine = 
       args = list(object = quote(object$fit), new_data = quote(new_data))))
 }
 
-pairwise_reference <- function() {
+pairwise_reference <- function(model = "va_pair_reference") {
   audit <- new.env()
   audit$fits <- audit$predictions <- list()
   pair_fit <- function(x, y, fail_size = integer(), bad = FALSE) {
@@ -31,8 +31,8 @@ pairwise_reference <- function() {
     if (object$bad) p[[1L]] <- NA_real_
     p[rev(seq_along(p))]
   }
-  register_reference_engine("va_pair_reference", "classification", "pair_fit", "pair_prob", "prob")
-  spec <- parsnip::new_model_spec("va_pair_reference", args = list(), eng_args = NULL,
+  register_reference_engine(model, "classification", "pair_fit", "pair_prob", "prob")
+  spec <- parsnip::new_model_spec(model, args = list(), eng_args = NULL,
     mode = "classification", method = NULL, engine = "reference")
   make_base <- function(data) workflows::workflow() |> workflows::add_recipe(
     recipes::recipe(truth ~ ., data) |> recipes::step_impute_median(x) |> recipes::step_normalize(x)) |>

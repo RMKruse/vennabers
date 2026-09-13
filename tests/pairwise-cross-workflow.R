@@ -21,7 +21,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     e <- tryCatch(suppressWarnings(force(expr)), error = identity)
     stopifnot(inherits(e, "error"), grepl(text, conditionMessage(e), fixed = TRUE))
   }
-  list2env(pairwise_reference(), environment())
+  list2env(pairwise_reference("va_pair_cross_reference"), environment())
   # Ordinary non-shuffled folds: one-sided assessment sets are intentional.
   partition <- function(data, v = 3L) {
     held <- split(seq_len(nrow(data)), cut(seq_len(nrow(data)), v, labels = FALSE))
