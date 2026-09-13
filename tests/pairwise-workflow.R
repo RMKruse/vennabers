@@ -1,7 +1,7 @@
 library(vennabers)
 source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 
-packages <- c("parsnip", "workflows", "recipes", "rsample", "withr")
+packages <- c("parsnip", "workflows", "recipes", "rsample", "withr", "tune")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
   close <- function(actual, expected) stopifnot(identical(dim(actual), dim(expected)),
     all(is.finite(actual)), all(abs(actual - expected) <= 1e-10))
