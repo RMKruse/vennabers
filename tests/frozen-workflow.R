@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 packages <- c("parsnip", "workflows", "hardhat", "rsample", "recipes",
               "rlang", "tibble", "withr", "generics", "tidyselect")
@@ -23,7 +24,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
                        predict(frozen, calibration[c("x", "z")], type = "prob")$.pred_yes)
   expected <- predict(manual, predict(frozen, new, type = "prob")$.pred_yes)
   actual <- venn_abers_details(fitted, new)
-  stopifnot(max(abs(as.matrix(actual$details[c("lower", "upper", "probability")]) -
+  assert_conditions(max(abs(as.matrix(actual$details[c("lower", "upper", "probability")]) -
                      as.matrix(expected))) <= 1e-10,
             identical(actual$prediction, predict(fitted, new, type = "prob")),
             identical(original, fitted$models[[1L]]),
@@ -74,7 +75,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
           actual <- venn_abers_details(calibrated, new, loss = loss)
           prob <- predict(calibrated, new, type = "prob", loss = loss)
           cls <- predict(calibrated, new, type = "class", loss = loss)$.pred_class
-          stopifnot(max(abs(as.matrix(actual$details[c("lower", "upper", "probability")]) -
+          assert_conditions(max(abs(as.matrix(actual$details[c("lower", "upper", "probability")]) -
                              as.matrix(expected))) <= 1e-10,
                     identical(prob, actual$prediction), identical(names(prob), c(".pred_yes", ".pred_no")),
                     identical(levels(cls), levels(training$truth)),
@@ -86,7 +87,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
           for (n in 0:1) {
             small <- new[seq_len(n), , drop = FALSE]
             detail <- venn_abers_details(calibrated, small, loss = loss)
-            stopifnot(identical(detail$prediction, predict(calibrated, small, loss = loss)),
+            assert_conditions(identical(detail$prediction, predict(calibrated, small, loss = loss)),
                       identical(names(detail$details), names(actual$details)),
                       nrow(detail$details) == n,
                       all(vapply(detail$prediction, is.double, logical(1))),
@@ -94,7 +95,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
                                 levels(training$truth)))
           }
         }
-        stopifnot(identical(calibrated$loss, default_loss),
+        assert_conditions(identical(calibrated$loss, default_loss),
                   identical(calibrated$models[[1L]], workflow), identical(calibrated$calibrator, manual),
                   identical(calibrated$parameters$requested$precision, precision),
                   identical(calibrated$parameters$effective$event_level, event),

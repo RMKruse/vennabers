@@ -1,4 +1,5 @@
 # Keep the schema from BEFORE training. Later data are explicitly encoded with it.
+source(system.file("examples", "assertions.R", package = "vennabers"))
 # Separate earlier model/recipe learning, earlier postprocessing, new VA
 # calibration, and independent assessment. Never rebuild a schema from calibration.
 packages <- c("workflows", "parsnip", "recipes", "tailor", "probably", "nnet", "mgcv",
@@ -35,7 +36,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
     new <- vennabers::venn_abers_encode(original[351:400, 1:2], schema)
     native <- predict(calibrated, new)
     decoded <- vennabers::venn_abers_decode(vennabers::venn_abers_details(calibrated, new), schema)
-    stopifnot(identical(calibrated$models[[1L]], earlier), identical(calibrated$schema, schema),
+    assert_conditions(identical(calibrated$models[[1L]], earlier), identical(calibrated$schema, schema),
               decoded$outcome == ".pred_class", is.null(decoded$identity), is.null(decoded$aggregate))
     if (method != "regression") {
       decisions <- vennabers::venn_abers_decode(predict(calibrated, new, type = "class"), schema)

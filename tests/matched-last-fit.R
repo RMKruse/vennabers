@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 packages <- c("tune", "yardstick", "rsample", "workflows", "recipes", "nnet")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
   for (path in c("binary", "ovo", "ovr", "regression")) for (method in c("inductive", "cross")) {
@@ -24,7 +25,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
       native <- tune::collect_predictions(result)
       decoded <- venn_abers_decode(native, schema)
       measured <- tune::collect_metrics(result)
-      stopifnot(nrow(tune::collect_notes(result)) == 0L, nrow(native) == 30L,
+      assert_conditions(nrow(tune::collect_notes(result)) == 0L, nrow(native) == 30L,
         identical(native$.row, 91:120), !anyDuplicated(native[c("id", ".row", ".config")]),
         all(native$id == result$id), all(native$.config == "pre0_mod0_post0"),
         identical(decoded$truth, raw$truth[91:120]), nrow(measured) == 2L,

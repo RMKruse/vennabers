@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 packages <- c("workflows", "parsnip", "recipes", "rsample")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
   example <- new.env()
@@ -26,7 +27,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
     new <- encoded[91:120, setdiff(names(encoded), schema$encoded_outcome)]
     native <- venn_abers_details(fit, new)
     decoded <- venn_abers_decode(native, schema)
-    stopifnot(identical(decoded$outcome, outcome), identical(decoded$prediction, native$prediction$.pred),
+    assert_conditions(identical(decoded$outcome, outcome), identical(decoded$prediction, native$prediction$.pred),
       identical(decoded$details, native$details), all(decoded$details$model_source == "Full1"),
       identical(attr(native, "vennabers_schema"), schema))
     if (method == "cross") stopifnot(identical(decoded$aggregate, native$aggregate))

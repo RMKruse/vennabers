@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
                requireNamespace, logical(1), quietly = TRUE))) {
@@ -84,7 +85,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
     before <- counts$fit
     fitted <- generics::fit(model(splits = plan, precision = precision, event_level = level, loss = "brier"), data)
     state <- workflows::extract_fit_engine(fitted)
-    stopifnot(counts$fit == before + 3L, identical(names(state$models), plan$id),
+    assert_conditions(counts$fit == before + 3L, identical(names(state$models), plan$id),
               identical(names(state$calibrator$calibrators), plan$id),
               is.null(state$parameters$effective$v), is.null(state$parameters$effective$calibration_prop),
               identical(state$parameters$requested$precision, precision))
@@ -99,7 +100,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
       learned <- workflows::extract_recipe(state$models[[id]])
       x <- data$x[train]
       x[is.na(x)] <- median(x, na.rm = TRUE)
-      stopifnot(identical(engine$x$id, data$id[train]), identical(as.vector(engine$y), as.vector(data$truth[train])),
+      assert_conditions(identical(engine$x$id, data$id[train]), identical(as.vector(engine$y), as.vector(data$truth[train])),
                 abs(learned$steps[[1]]$medians[["x"]] - median(x)) <= 1e-10,
                 abs(learned$steps[[2]]$means[["x"]] - mean(x)) <= 1e-10,
                 abs(learned$steps[[2]]$sds[["x"]] - sd(x)) <= 1e-10,
@@ -114,7 +115,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
       expected <- predict(core, new_p, loss = loss, type = "details")
       actual <- venn_abers_details(fitted, data, loss = loss)
       p <- actual$prediction[[paste0(".pred_", state$event_class)]]
-      stopifnot(max(abs(p - expected$prediction$probability)) <= 1e-10,
+      assert_conditions(max(abs(p - expected$prediction$probability)) <= 1e-10,
                 identical(as.data.frame(actual$details[names(expected$folds)]), expected$folds),
                 identical(actual$prediction, predict(fitted, data, type = "prob", loss = loss)),
                 identical(names(actual$prediction), paste0(".pred_", levels(data$truth))),
@@ -137,7 +138,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
         details <- venn_abers_details(fitted, small, loss = loss)
         prob <- predict(fitted, small, type = "prob", loss = loss)
         cls <- predict(fitted, small, type = "class", loss = loss)
-        stopifnot(nrow(prob) == n, nrow(cls) == n, nrow(details$details) == 3L * n,
+        assert_conditions(nrow(prob) == n, nrow(cls) == n, nrow(details$details) == 3L * n,
                   identical(details$prediction, prob), identical(levels(cls$.pred_class), levels(data$truth)),
                   identical(names(details$details), c("row", "fold", "event_class", "lower", "upper", "probability", "prediction_model", "model_source")),
                   is.integer(details$details$row), is.character(details$details$fold),

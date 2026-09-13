@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 
 integration_packages <- c("parsnip", "workflows", "hardhat", "rsample",
@@ -22,12 +23,10 @@ if (all(vapply(integration_packages, requireNamespace, logical(1), quietly = TRU
   new_p <- predict(manual_model, data, type = "prob")[[paste0(".pred_", state$event_class)]]
   expected <- predict(manual, new_p)
   actual <- venn_abers_details(fitted, data)
-  stopifnot(max(abs(actual$details$probability - expected$probability)) <= 1e-10,
-            max(abs(actual$details$lower - expected$lower)) <= 1e-10,
-            max(abs(actual$details$upper - expected$upper)) <= 1e-10,
-            identical(actual$prediction, predict(fitted, data, type = "prob")),
-            identical(state$folds$Inductive1$analysis, train),
-            identical(state$folds$Inductive1$assessment, held))
+  assert_conditions(max(abs(actual$details$probability - expected$probability)) <= 1e-10, max(abs(actual$details$lower -
+      expected$lower)) <= 1e-10, max(abs(actual$details$upper - expected$upper)) <= 1e-10, identical(actual$prediction,
+      predict(fitted, data, type = "prob")), identical(state$folds$Inductive1$analysis, train), identical(state$folds$Inductive1$assessment,
+      held))
 })
 
 if (all(vapply(integration_packages, requireNamespace, logical(1), quietly = TRUE))) {
@@ -76,13 +75,10 @@ if (all(vapply(integration_packages, requireNamespace, logical(1), quietly = TRU
     state <- workflows::extract_fit_engine(fitted)
     held <- state$folds$Inductive1$assessment
     train <- state$folds$Inductive1$analysis
-    stopifnot(identical(tibble::as_tibble(workflows::extract_fit_engine(state$models$Inductive1)$x),
-                        tibble::as_tibble(data[train, c("p", "id", "z")])),
-              identical(state$columns, names(data)),
-              identical(state$class_levels, levels(data$truth)),
-              identical(state$parameters$requested$precision, precision),
-              state$parameters$explicit[["precision"]], !state$parameters$explicit[["loss"]],
-              length(state$models) == 1L)
+    assert_conditions(identical(tibble::as_tibble(workflows::extract_fit_engine(state$models$Inductive1)$x),
+        tibble::as_tibble(data[train, c("p", "id", "z")])), identical(state$columns, names(data)), identical(state$class_levels,
+        levels(data$truth)), identical(state$parameters$requested$precision, precision), state$parameters$explicit[["precision"]],
+        !state$parameters$explicit[["loss"]], length(state$models) == 1L)
     event <- state$event_class
     calibration <- predict(state$models$Inductive1, data[held, ], type = "prob")
     manual <- venn_abers(data$truth[held] == event, calibration[[paste0(".pred_", event)]], precision)
@@ -103,11 +99,10 @@ if (all(vapply(integration_packages, requireNamespace, logical(1), quietly = TRU
         prob <- predict(fitted, new, type = "prob", loss = loss)
         cls <- predict(fitted, new, type = "class", loss = loss)
         if (!n) stopifnot(counts$predict == calls)
-        stopifnot(identical(small$prediction, prob), nrow(prob) == n,
-                  identical(levels(cls$.pred_class), levels(data$truth)),
-                  identical(names(small$details), c("row", "fold", "event_class", "lower", "upper", "probability", "prediction_model", "model_source")),
-                  all(vapply(prob, is.double, logical(1))), is.integer(small$details$row),
-                  is.character(small$details$fold), is.character(small$details$event_class))
+        assert_conditions(identical(small$prediction, prob), nrow(prob) == n, identical(levels(cls$.pred_class),
+            levels(data$truth)), identical(names(small$details), c("row", "fold", "event_class", "lower", "upper",
+            "probability", "prediction_model", "model_source")), all(vapply(prob, is.double, logical(1))), is.integer(small$details$row),
+            is.character(small$details$fold), is.character(small$details$event_class))
       }
     }
     before <- counts$fit

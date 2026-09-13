@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 
 if (all(vapply(c("parsnip", "workflows", "rsample", "nnet"),
@@ -107,20 +108,19 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes"),
         splits = plan, seed = 33, precision = precision, loss = "brier"), data)
       stopifnot(identical(rng, .Random.seed), audit$fits == before + 3L, length(audit$predictions) == 3L)
       state <- workflows::extract_fit_engine(fit)
-      stopifnot(identical(names(state$models), plan$id), identical(state$class_levels, classes),
-                is.null(state$event_class), is.null(state$parameters$effective$event_level),
-                identical(state$parameters$requested$precision, precision))
+      assert_conditions(identical(names(state$models), plan$id), identical(state$class_levels, classes), is.null(state$event_class),
+          is.null(state$parameters$effective$event_level), identical(state$parameters$requested$precision,
+              precision))
       for (i in seq_along(state$folds)) {
         f <- state$folds[[i]]
         model <- workflows::extract_fit_engine(state$models[[i]])
         learned <- workflows::extract_recipe(state$models[[i]])
         x <- data$x[f$analysis]
         x[is.na(x)] <- median(x, na.rm = TRUE)
-        stopifnot(identical(model$x$id, data$id[f$analysis]),
-                  identical(as.vector(model$y), as.vector(data$truth[f$analysis])),
-                  identical(audit$predictions[[i]], list(train = data$id[f$analysis], rows = data$id[f$assessment])),
-                  abs(learned$steps[[1]]$medians[["x"]] - median(x)) <= 1e-10,
-                  abs(learned$steps[[2]]$means[["x"]] - mean(x)) <= 1e-10)
+        assert_conditions(identical(model$x$id, data$id[f$analysis]), identical(as.vector(model$y), as.vector(data$truth[f$analysis])),
+            identical(audit$predictions[[i]], list(train = data$id[f$analysis], rows = data$id[f$assessment])),
+            abs(learned$steps[[1]]$medians[["x"]] - median(x)) <= 1e-10, abs(learned$steps[[2]]$means[["x"]] -
+                mean(x)) <= 1e-10)
       }
       inputs <- manual_inputs(state, data, new)
       core <- cross_venn_abers(inputs$truth, inputs$p, inputs$fold, precision = precision, method = method)
@@ -172,10 +172,9 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes"),
           calls <- length(audit$predictions)
           small <- venn_abers_details(fit, new[seq_len(n), ], loss = loss)
           cls <- predict(fit, new[seq_len(n), ], type = "class", loss = loss)
-          stopifnot(nrow(small$prediction) == n, nrow(cls) == n,
-                    nrow(small$details) == n * 3 * length(problems), identical(levels(cls$.pred_class), classes),
-                    identical(names(small$details), names(d)),
-                    identical(vapply(small$details, typeof, ""), vapply(d, typeof, "")))
+          assert_conditions(nrow(small$prediction) == n, nrow(cls) == n, nrow(small$details) == n * 3 * length(problems),
+              identical(levels(cls$.pred_class), classes), identical(names(small$details), names(d)), identical(vapply(small$details,
+                  typeof, ""), vapply(d, typeof, "")))
           if (!n) stopifnot(length(audit$predictions) == calls)
         }
       }
@@ -292,10 +291,9 @@ if (exists("cross_multi_fit") && all(vapply(c("tune", "yardstick"), requireNames
         learned <- workflows::extract_recipe(s$models[[id]])
         x <- local_data$x[f$analysis]
         x[is.na(x)] <- median(x, na.rm = TRUE)
-        stopifnot(identical(engine$x$id, local_data$id[f$analysis]),
-                  identical(as.vector(engine$y), as.vector(local_data$truth[f$analysis])),
-                  !any(engine$x$id %in% assessment$id), !any(local_data$id[f$assessment] %in% assessment$id),
-                  abs(learned$steps[[2]]$means[["x"]] - mean(x)) <= 1e-10)
+        assert_conditions(identical(engine$x$id, local_data$id[f$analysis]), identical(as.vector(engine$y), as.vector(local_data$truth[f$analysis])),
+            !any(engine$x$id %in% assessment$id), !any(local_data$id[f$assessment] %in% assessment$id), abs(learned$steps[[2]]$means[["x"]] -
+                mean(x)) <= 1e-10)
       }
       inputs <- manual_inputs(s, local_data, assessment)
       core <- cross_venn_abers(inputs$truth, inputs$p, inputs$fold, method = method)

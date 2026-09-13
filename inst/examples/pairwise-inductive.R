@@ -1,4 +1,5 @@
 # Separate binary training with matching Inductive calibration, at fixed settings.
+source(system.file("examples", "assertions.R", package = "vennabers"))
 packages <- c("vennabers", "parsnip", "workflows", "recipes", "rsample")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
   library(vennabers)
@@ -85,7 +86,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     final <- tune::last_fit(model, outer_split, metrics = scoring)
     predictions <- tune::collect_predictions(final)
     metrics <- tune::collect_metrics(final)
-    stopifnot(nrow(tune::collect_notes(final)) == 0L, identical(predictions$.row, 91:120),
+    assert_conditions(nrow(tune::collect_notes(final)) == 0L, identical(predictions$.row, 91:120),
       !anyDuplicated(predictions$.row), all(predictions$.config == "pre0_mod0_post0"),
       identical(predictions[[schema$encoded_outcome]], assessment[[schema$encoded_outcome]]),
       nrow(metrics) == 2L, all(is.finite(metrics$.estimate)),

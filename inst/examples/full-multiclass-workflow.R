@@ -1,4 +1,5 @@
 # Shared multiclass full-model transfer is an R extension. OvO still means
+source(system.file("examples", "assertions.R", package = "vennabers"))
 # pairwise calibration of one shared class matrix, not pairwise model training.
 packages <- c("vennabers", "parsnip", "workflows", "recipes", "rsample", "nnet")
 examples <- list()
@@ -57,7 +58,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
       final <- tune::last_fit(models[[2L]], outer_split, metrics = scoring)
       final_p <- tune::collect_predictions(final)
       final_m <- tune::collect_metrics(final)
-      stopifnot(nrow(tune::collect_notes(final)) == 0L, identical(final_p$.row, 91:120),
+      assert_conditions(nrow(tune::collect_notes(final)) == 0L, identical(final_p$.row, 91:120),
         !anyDuplicated(final_p$.row), all(final_p$.config == "pre0_mod0_post0"),
         identical(as.matrix(final_p[names(native$prediction)]), as.matrix(native$prediction)),
         nrow(final_m) == 2L, all(is.finite(final_m$.estimate)))

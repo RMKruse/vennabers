@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 packages <- c("parsnip", "workflows", "hardhat", "rsample", "recipes",
               "rlang", "tibble", "withr", "generics", "tidyselect")
@@ -20,7 +21,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
   decoded <- venn_abers_decode(venn_abers_details(fit, new), schema)
   manual <- venn_abers(encoded$vaV0003[41:80] == "vaL0002",
                        predict(frozen, encoded[41:80, 1:2], type = "prob")$.pred_vaL0002)
-  stopifnot(identical(fit$models[[1L]], frozen), identical(fit$schema, schema),
+  assert_conditions(identical(fit$models[[1L]], frozen), identical(fit$schema, schema),
             identical(fit$calibrator, manual), fit$event_class == "vaL0002",
             identical(attr(native, "vennabers_schema"), schema),
             identical(decoded$probability[, "vaL0001"], native$.pred_vaL0002),
@@ -38,7 +39,7 @@ if (all(vapply(c(packages, "nnet"), requireNamespace, logical(1), quietly = TRUE
     stopifnot(inherits(e, "error"), grepl(pattern, conditionMessage(e)))
   }
   close <- function(actual, expected, regression = FALSE) {
-    stopifnot(identical(dim(actual), dim(expected)), length(actual) == length(expected),
+    assert_conditions(identical(dim(actual), dim(expected)), length(actual) == length(expected),
               all(is.finite(actual)), all(is.finite(expected)),
               all(abs(actual - expected) <= if (regression) 1e-10 + 1e-10 * abs(expected) else 1e-10))
   }
@@ -106,7 +107,7 @@ if (all(vapply(c(packages, "nnet"), requireNamespace, logical(1), quietly = TRUE
               if (method == "binary") venn_abers(calibration$vaV0003 == fit$event_class,
                 final_cal[, fit$event_class], precision = option$precision) else
                   venn_abers(calibration$vaV0003, final_cal, method = method, precision = option$precision)
-            stopifnot(identical(fit$calibrator, manual), identical(fit$models[[1L]], frozen), identical(fit$schema, schema),
+            assert_conditions(identical(fit$calibrator, manual), identical(fit$models[[1L]], frozen), identical(fit$schema, schema),
                       is.null(fit$folds), !any(vapply(fit[setdiff(names(fit), "models")], is.data.frame, logical(1))))
             for (loss in if (k == 1L) "log" else c("log", "brier")) {
               native <- if (k == 1L) venn_abers_details(fit, new) else venn_abers_details(fit, new, loss = loss)

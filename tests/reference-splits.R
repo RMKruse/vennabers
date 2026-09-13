@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "nnet", "withr", "tune", "yardstick"),
                requireNamespace, logical(1), quietly = TRUE))) {
@@ -72,7 +73,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "nnet", "withr", 
       fit <- generics::fit(make_model(method, prepared), development)
       state <- workflows::extract_fit_engine(fit)
       before <- fits
-      stopifnot(identical(names(state$models), names(state$folds)),
+      assert_conditions(identical(names(state$models), names(state$folds)),
                 is.null(state$parameters$effective$calibration_prop),
                 is.null(state$parameters$effective$v), is.null(state$parameters$effective$strata),
                 state$parameters$explicit[["splits"]])
@@ -89,7 +90,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "nnet", "withr", 
       for (i in seq_along(state$folds)) {
         id <- names(state$folds)[i]
         f <- state$folds[[i]]
-        stopifnot(identical(f$analysis, as.integer(expected_folds[[i]], data = "analysis")),
+        assert_conditions(identical(f$analysis, as.integer(expected_folds[[i]], data = "analysis")),
                   identical(f$assessment, as.integer(expected_folds[[i]], data = "assessment")),
                   setequal(f$analysis, setdiff(1:60, f$assessment)),
                   f$training_size == length(f$analysis), f$calibration_size == length(f$assessment))
@@ -166,7 +167,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "nnet", "withr", 
       stopifnot(nrow(tune::collect_notes(first)) == 0L, nrow(tune::collect_notes(second)) == 0L)
       a <- tune::collect_extracts(first)$.extracts[[1L]]
       b <- tune::collect_extracts(second)$.extracts[[1L]]
-      stopifnot(identical(a$folds, state$folds), identical(a$calibrator, state$calibrator),
+      assert_conditions(identical(a$folds, state$folds), identical(a$calibrator, state$calibrator),
                 identical(a$folds, b$folds), identical(a$calibrator, b$calibrator),
                 identical(lapply(a$models, workflows::extract_fit_engine), lapply(b$models, workflows::extract_fit_engine)))
       p <- tune::collect_predictions(first)

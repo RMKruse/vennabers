@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 packages <- c("workflows", "parsnip", "recipes", "rsample")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) for (example_name in c("pairwise-inductive.R", "pairwise-cross.R")) local({
   example <- new.env()
@@ -27,7 +28,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) for (ex
     })
     native <- venn_abers_details(fit, new)
     decoded <- venn_abers_decode(native, schema)
-    stopifnot(identical(colnames(decoded$probability), schema$class_levels),
+    assert_conditions(identical(colnames(decoded$probability), schema$class_levels),
       all(decoded$details$model_training == "pairwise"), all(decoded$details$prediction_model == mode),
       identical(decoded$details$model_source, native$details$model_source),
       identical(decoded$details$pair_id, native$details$pair_id),

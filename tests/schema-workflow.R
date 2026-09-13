@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "tune", "yardstick"),
                requireNamespace, logical(1), quietly = TRUE))) {
@@ -20,7 +21,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "tune", "yardstic
   state <- workflows::extract_fit_engine(fit)
   prob <- predict(fit, data, type = "prob")
   decoded <- venn_abers_decode(prob, schema)
-  stopifnot(identical(state$schema, schema), identical(state$event_class, unname(schema$classes[[schema$event_class]])),
+  assert_conditions(identical(state$schema, schema), identical(state$event_class, unname(schema$classes[[schema$event_class]])),
             identical(state$class_levels, unname(schema$classes)),
             identical(venn_abers_details(fit, data)$prediction, prob),
             identical(decoded$probability[, 1], prob[[1]]))
@@ -128,7 +129,7 @@ if (exists("model")) {
           p <- venn_abers_decode(predict(fit, small, type = "prob", loss = loss), schema)
           cl <- venn_abers_decode(predict(fit, small, type = "class", loss = loss), schema)
           de <- venn_abers_decode(venn_abers_details(fit, small, loss = loss), schema)
-          stopifnot(identical(dim(p$probability), c(n, 2L)), is.double(p$probability),
+          assert_conditions(identical(dim(p$probability), c(n, 2L)), is.double(p$probability),
                     identical(levels(cl$class), schema$class_levels), length(cl$class) == n,
                     identical(p$probability, de$probability))
         }

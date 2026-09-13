@@ -1,4 +1,5 @@
 # Fixed binary settings; the same permitted splits compare two procedures.
+source(system.file("examples", "assertions.R", package = "vennabers"))
 packages <- c("vennabers", "parsnip", "workflows", "recipes", "rsample", "withr")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
   library(vennabers)
@@ -41,7 +42,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
       final <- tune::last_fit(model, final_split,
         metrics = yardstick::metric_set(yardstick::brier_class, yardstick::mn_log_loss))
       prediction <- tune::collect_predictions(final)
-      stopifnot(nrow(tune::collect_notes(final)) == 0L,
+      assert_conditions(nrow(tune::collect_notes(final)) == 0L,
                 identical(prediction$.row, 121:160), !anyDuplicated(prediction$.row),
                 all(prediction$.config == "pre0_mod0_post0"),
                 identical(as.matrix(prediction[names(p[[2L]])]), as.matrix(p[[2L]])))

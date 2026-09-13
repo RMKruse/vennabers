@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 stopifnot(identical(
   sort(getNamespaceExports("vennabers")),
@@ -86,7 +87,7 @@ fixtures <- list(
 for (case in fixtures) {
   calibrator <- expect_no_warning(venn_abers(case$truth, case$probability))
   actual <- predict(calibrator, case$newdata)
-  stopifnot(
+  assert_conditions(
     inherits(calibrator, "venn_abers"),
     identical(names(actual), c("lower", "upper", "probability")),
     all(vapply(actual, is.double, FALSE)),
@@ -124,7 +125,7 @@ names(regularized_probability) <- letters[1:3]
 for (truth in list(numeric_truth, logical_truth)) {
   brier <- brier_score(truth, regularized_probability)
   loss <- log_loss(truth, regularized_probability)
-  stopifnot(
+  assert_conditions(
     isTRUE(all.equal(brier, .07)),
     is.double(brier),
     length(brier) == 1L,
@@ -178,7 +179,7 @@ calibration <- withVisible(calibration_plot(
   c(0, .25, .5, .75, 1),
   bins = 4
 ))
-stopifnot(
+assert_conditions(
   !calibration$visible,
   identical(names(calibration$value), c("mean_probability", "event_rate", "count")),
   identical(calibration$value$count, c(1L, 1L, 1L, 2L)),

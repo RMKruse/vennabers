@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 packages <- c("workflows", "parsnip", "recipes", "rsample", "nnet")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
   example <- new.env()
@@ -22,7 +23,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
     new <- case$assessment[setdiff(names(case$assessment), schema$encoded_outcome)]
     native <- venn_abers_details(fit, new)
     decoded <- venn_abers_decode(native, schema)
-    stopifnot(identical(colnames(decoded$probability), schema$class_levels),
+    assert_conditions(identical(colnames(decoded$probability), schema$class_levels),
       all(decoded$details$model_training == "shared"), all(decoded$details$prediction_model == "full"),
       all(decoded$details$model_source == "Full1"),
       identical(decoded$details$fold, native$details$fold),

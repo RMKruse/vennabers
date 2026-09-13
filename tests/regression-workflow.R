@@ -1,10 +1,11 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
                requireNamespace, logical(1), quietly = TRUE))) {
   # Fixed before comparison: one outcome unit; multiply s when changing units.
   close <- function(actual, expected, s = 1) {
-    stopifnot(identical(dim(actual), dim(expected)), length(actual) == length(expected),
+    assert_conditions(identical(dim(actual), dim(expected)), length(actual) == length(expected),
               all(is.finite(actual)), all(is.finite(expected)),
               all(abs(actual - expected) <= 1e-10 * s + 1e-10 * abs(expected)))
   }
@@ -77,7 +78,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
       fitted <- generics::fit(do.call(calibrated_workflow,
         c(list(workflow = base, outcome = "truth", method = method, splits = plan), option)), data)
       state <- workflows::extract_fit_engine(fitted)
-      stopifnot(counts$fit == before + length(state$folds),
+      assert_conditions(counts$fit == before + length(state$folds),
                 identical(names(state$models), names(state$folds)),
                 state$parameters$requested$mode == "regression",
                 is.null(state$class_levels), is.null(state$event_class), is.null(state$loss),
@@ -117,7 +118,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
       }
       actual <- venn_abers_details(fitted, data)
       close(actual$prediction$.pred, points$prediction, scale)
-      stopifnot(identical(actual$prediction, predict(fitted, data)),
+      assert_conditions(identical(actual$prediction, predict(fitted, data)),
                 identical(actual$prediction, predict(fitted, data, type = "numeric")),
                 identical(names(actual$details), c("row", "fold", "prediction", "lower", "upper", "prediction_model", "model_source")),
                 all(actual$details$prediction_model == "matched"),
@@ -138,7 +139,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
       for (n in 0:1) {
         small <- data[seq_len(n), ]
         details <- venn_abers_details(fitted, small)
-        stopifnot(identical(details$prediction, predict(fitted, small)),
+        assert_conditions(identical(details$prediction, predict(fitted, small)),
                   nrow(details$details) == n * length(state$folds),
                   is.integer(details$details$row), is.character(details$details$fold),
                   all(vapply(details$details[c("prediction", "lower", "upper")], is.double, logical(1))))

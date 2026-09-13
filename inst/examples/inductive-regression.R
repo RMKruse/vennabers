@@ -1,6 +1,7 @@
 # After installation: source(system.file("examples", "inductive-regression.R",
 #                                       package = "vennabers"))
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 # Independent IID observations; roles are fixed before examining their outcomes.
 set.seed(20260907)
@@ -29,7 +30,7 @@ scores <- vapply(list(uncalibrated = uncalibrated, calibrated = result$predictio
                    c(RMSE = sqrt(mean((assessment$truth - prediction)^2)),
                      MAE = mean(abs(assessment$truth - prediction)))
                  }, c(RMSE = 0, MAE = 0))
-stopifnot(all(is.finite(scores)), nrow(result) == nrow(assessment),
+assert_conditions(all(is.finite(scores)), nrow(result) == nrow(assessment),
           all(result$lower <= result$prediction), all(result$prediction <= result$upper),
           abs(scores["RMSE", "calibrated"]^2 -
               sum((assessment$truth - result$prediction)^2) / nrow(assessment)) < 1e-12,

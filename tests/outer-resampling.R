@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 if (all(vapply(c("tune", "yardstick", "rsample", "workflows", "recipes"),
                requireNamespace, logical(1), quietly = TRUE))) {
@@ -116,7 +117,7 @@ if (all(vapply(c("tune", "yardstick", "rsample", "workflows", "recipes"),
     check(after, changed_outer)
     s1 <- tune::collect_extracts(before)$.extracts[[1]]
     s2 <- tune::collect_extracts(after)$.extracts[[1]]
-    stopifnot(identical(s1[setdiff(names(s1), "models")], s2[setdiff(names(s2), "models")]),
+    assert_conditions(identical(s1[setdiff(names(s1), "models")], s2[setdiff(names(s2), "models")]),
               identical(lapply(s1$models, workflows::extract_fit_engine), lapply(s2$models, workflows::extract_fit_engine)),
               identical(lapply(s1$models, function(w) workflows::extract_recipe(w)$steps),
                         lapply(s2$models, function(w) workflows::extract_recipe(w)$steps)),

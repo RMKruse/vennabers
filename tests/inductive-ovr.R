@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 close <- function(x, y) stopifnot(identical(dim(x), dim(y)), all(abs(x - y) <= 1e-10))
 
@@ -10,7 +11,7 @@ p <- matrix(1 / 3, 6, 3, dimnames = list(NULL, classes))
 x <- p[1, , drop = FALSE]
 fit <- venn_abers(truth, p, method = "ovr")
 details <- predict(fit, x, type = "details")
-stopifnot(identical(names(details), c("prediction", "classes")),
+assert_conditions(identical(names(details), c("prediction", "classes")),
           identical(names(details$classes), c("row", "event", "lower", "upper", "probability")),
           identical(details$classes$event, classes),
           identical(details$classes$row, rep(1L, 3)),
@@ -63,7 +64,7 @@ for (k in 2:4) {
     for (n in 0:1) {
       small <- x[seq_len(n), , drop = FALSE]
       actual <- predict(fit, small, loss = loss, type = "details")
-      stopifnot(identical(dim(actual$prediction), c(n, k)),
+      assert_conditions(identical(dim(actual$prediction), c(n, k)),
                 identical(dimnames(actual$prediction), dimnames(small)),
                 identical(actual$prediction, predict(fit, small, loss = loss)),
                 identical(names(actual$classes), c("row", "event", "lower", "upper", "probability")),

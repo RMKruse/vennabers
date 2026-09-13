@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 read_fixture <- function(name, text_columns) {
   path <- file.path("extdata", name)
@@ -39,7 +40,7 @@ for (i in seq_len(nrow(options))) {
   fit <- do.call(venn_abers_regression,
                  c(list(truth = cal$truth, prediction = cal$prediction),
                    setNames(list(option$requested), option$parameter)))
-  stopifnot(fit$m == option$m, fit$epsilon == option$epsilon,
+  assert_conditions(fit$m == option$m, fit$epsilon == option$epsilon,
             fit$a == option$a, fit$b == option$b,
             fit$observations == nrow(cal),
             identical(cal$row, as.numeric(seq_len(nrow(cal)))),

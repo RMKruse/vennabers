@@ -1,4 +1,5 @@
 # Run against an installed vennabers package. Helpers here are an executable
+source(system.file("examples", "assertions.R", package = "vennabers"))
 # audit of these fixed-configuration examples, not an evaluation API.
 check_outer_splits <- function(outer) {
   ids <- setdiff(names(outer), "splits")
@@ -6,7 +7,7 @@ check_outer_splits <- function(outer) {
   for (split in outer$splits) {
     a <- as.integer(split, data = "analysis")
     b <- as.integer(split, data = "assessment")
-    stopifnot(length(a) > 0L, length(b) > 0L, !anyDuplicated(a), !anyDuplicated(b),
+    assert_conditions(length(a) > 0L, length(b) > 0L, !anyDuplicated(a), !anyDuplicated(b),
               !anyNA(c(a, b)), all(c(a, b) == floor(c(a, b))),
               all(c(a, b) >= 1L & c(a, b) <= nrow(split$data)), !length(intersect(a, b)))
   }

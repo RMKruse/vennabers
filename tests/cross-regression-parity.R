@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 read_fixture <- function(name, text_columns) {
   result <- read.csv(file.path("extdata", name),
@@ -20,16 +21,13 @@ schema <- function(actual, rows) {
   # The IVAR contract permits endpoint interpolation roundoff. Check ordering
   # separately from reference tolerances, at a few machine epsilons of the bounds.
   rounding <- 8 * .Machine$double.eps * pmax(abs(actual$lower), abs(actual$upper))
-  stopifnot(is.data.frame(actual), nrow(actual) == rows,
-            identical(names(actual), columns),
-            all(vapply(actual, typeof, "") == "double"),
-            all(is.finite(as.matrix(actual))),
-            all(actual$lower <= actual$prediction + rounding),
-            all(actual$prediction <= actual$upper + rounding))
+  assert_conditions(is.data.frame(actual), nrow(actual) == rows, identical(names(actual), columns), all(vapply(actual,
+      typeof, "") == "double"), all(is.finite(as.matrix(actual))), all(actual$lower <= actual$prediction +
+      rounding), all(actual$prediction <= actual$upper + rounding))
 }
-stopifnot(length(unique(options$case_id)) == 80L, nrow(options) == 220L,
-          nrow(components) == 1540L, nrow(aggregate) == 560L,
-          sum(components$direct_valid) == 1243L, sum(!components$direct_valid) == 297L)
+assert_conditions(length(unique(options$case_id)) == 80L, nrow(options) == 220L, nrow(components) ==
+    1540L, nrow(aggregate) == 560L, sum(components$direct_valid) == 1243L, sum(!components$direct_valid) ==
+    297L)
 for (case in unique(options$case_id)) {
   option <- options[options$case_id == case, ]
   cal <- calibration[calibration$case_id == case, ]
@@ -52,10 +50,9 @@ for (case in unique(options$case_id)) {
     opt <- option[option$fold == id, ]
     expected <- expected_folds[expected_folds$fold == id, ]
     component <- fit$calibrators[[id]]
-    stopifnot(identical(expected$row, as.numeric(seq_len(nrow(expected)))),
-              component$observations == opt$observations,
-              component$m == opt$m, component$epsilon == opt$epsilon,
-              component$a == opt$a, component$b == opt$b)
+    assert_conditions(identical(expected$row, as.numeric(seq_len(nrow(expected)))), component$observations ==
+        opt$observations, component$m == opt$m, component$epsilon == opt$epsilon, component$a == opt$a, component$b ==
+        opt$b)
     requested <- if (opt$parameter == "default") list() else setNames(list(opt$requested), opt$parameter)
     stopifnot(identical(component$requested, requested))
     schema(actual$folds[[id]], nrow(expected))

@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 close <- function(x, y) stopifnot(identical(dim(x), dim(y)), all(abs(x - y) <= 1e-10))
 expect_error <- function(expr, text) {
@@ -72,18 +73,15 @@ for (k in 2:4) {
       for (loss in c("log", "brier")) {
         actual <- predict(fit, newdata, loss = loss, type = "details")
         parts <- actual[[2L]]
-        stopifnot(identical(names(actual), c("prediction", if (method == "ovo") "pairs" else "classes")),
-                  identical(names(parts), c("row", if (method == "ovo") "non_event", "event",
-                                            "fold", "lower", "upper", "probability")),
-                  identical(dimnames(actual$prediction), dimnames(newdata[[1L]])),
-                  identical(actual$prediction, predict(fit, newdata, loss = loss)),
-                  identical(predict(fit, newdata, loss = loss, type = "class"),
-                            factor(classes[max.col(actual$prediction, ties.method = "first")], levels = classes)),
-                  !anyDuplicated(parts[c("row", "fold", if (method == "ovo") "non_event", "event")]),
-                  nrow(parts) == 7L * length(unique(fold)) * length(problems),
-                  is.integer(parts$row), is.character(parts$fold), is.character(parts$event),
-                  all(vapply(parts[c("lower", "upper", "probability")], is.double, FALSE)),
-                  all(is.finite(actual$prediction)), all(actual$prediction >= 0 & actual$prediction <= 1))
+        assert_conditions(identical(names(actual), c("prediction", if (method == "ovo") "pairs" else "classes")),
+            identical(names(parts), c("row", if (method == "ovo") "non_event", "event", "fold", "lower", "upper",
+                "probability")), identical(dimnames(actual$prediction), dimnames(newdata[[1L]])), identical(actual$prediction,
+                predict(fit, newdata, loss = loss)), identical(predict(fit, newdata, loss = loss, type = "class"),
+                factor(classes[max.col(actual$prediction, ties.method = "first")], levels = classes)), !anyDuplicated(parts[c("row",
+                "fold", if (method == "ovo") "non_event", "event")]), nrow(parts) == 7L * length(unique(fold)) *
+                length(problems), is.integer(parts$row), is.character(parts$fold), is.character(parts$event),
+            all(vapply(parts[c("lower", "upper", "probability")], is.double, FALSE)), all(is.finite(actual$prediction)),
+            all(actual$prediction >= 0 & actual$prediction <= 1))
         close(rowSums(actual$prediction), rep(1, 7))
         if (!is.null(endpoints)) stopifnot(identical(parts[c("lower", "upper")], endpoints))
         endpoints <- parts[c("lower", "upper")]
@@ -148,21 +146,18 @@ for (k in 2:4) {
         for (n in 0:1) {
           small <- lapply(newdata, function(x) x[seq_len(n), , drop = FALSE])
           out <- predict(fit, small, loss = loss, type = "details")
-          stopifnot(identical(dim(out$prediction), c(n, k)),
-                    identical(out$prediction, actual$prediction[seq_len(n), , drop = FALSE]),
-                    identical(names(out[[2L]]), names(parts)),
-                    identical(vapply(out[[2L]], typeof, ""), vapply(parts, typeof, "")),
-                    nrow(out[[2L]]) == n * length(problems) * 3L,
-                    identical(predict(fit, small, loss = loss, type = "class"),
-                              predict(fit, newdata, loss = loss, type = "class")[seq_len(n)]))
+          assert_conditions(identical(dim(out$prediction), c(n, k)), identical(out$prediction, actual$prediction[seq_len(n),
+              , drop = FALSE]), identical(names(out[[2L]]), names(parts)), identical(vapply(out[[2L]], typeof,
+              ""), vapply(parts, typeof, "")), nrow(out[[2L]]) == n * length(problems) * 3L, identical(predict(fit,
+              small, loss = loss, type = "class"), predict(fit, newdata, loss = loss, type = "class")[seq_len(n)]))
         }
       }
       stopifnot(identical(serialize(fit, NULL), before))
     }
   }
 }
-stopifnot(differs_from_fold_average, differs_from_pooling, differs_from_weighting,
-          rounding_order_matters, prediction_rounding_matters)
+assert_conditions(differs_from_fold_average, differs_from_pooling, differs_from_weighting, rounding_order_matters,
+    prediction_rounding_matters)
 
 # Validation is shared with binary Cross and Inductive multiclass; exercise
 # the new dispatch and nested list boundary as well as contextual empty pairs.

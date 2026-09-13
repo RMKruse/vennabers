@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 
 packages <- c("parsnip", "workflows", "recipes", "rsample", "withr", "tune")
@@ -78,7 +79,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
       fit <- generics::fit(calibrated_workflow(base, "truth", classification = "ovo",
         model_training = "pairwise", splits = plans[rev(names(plans))], seed = 51, precision = precision), data)
       state <- workflows::extract_fit_engine(fit)
-      stopifnot(length(audit$fits) == before + length(locals),
+      assert_conditions(length(audit$fits) == before + length(locals),
         length(audit$predictions) == calls + length(locals),
         identical(state$class_levels, classes),
         identical(names(state$pair_models), names(locals)), is.null(state$event_class))
@@ -87,7 +88,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
         engine <- workflows::extract_fit_engine(s$models$Inductive1)
         training <- rsample::analysis(plans[[id]])
         held <- rsample::assessment(plans[[id]])
-        stopifnot(identical(engine$x$row_id, training$row_id), identical(engine$y, training$truth),
+        assert_conditions(identical(engine$x$row_id, training$row_id), identical(engine$y, training$truth),
           nlevels(engine$y) == 2L, identical(s$event_class, tail(levels(training$truth), 1)),
           !any(engine$x$row_id %in% held$row_id), identical(data$row_id[s$rows], locals[[id]]$row_id),
           identical(s$folds$Inductive1$assessment, as.integer(plans[[id]], data = "assessment")))
@@ -99,7 +100,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
         before <- length(audit$fits)
         calls <- length(audit$predictions)
         details <- venn_abers_details(fit, new, loss = loss)
-        stopifnot(length(audit$fits) == before, length(audit$predictions) == calls + length(locals),
+        assert_conditions(length(audit$fits) == before, length(audit$predictions) == calls + length(locals),
           all(details$details$model_training == "pairwise"), all(details$details$prediction_model == "matched"),
           identical(details$details$model_source, details$details$pair_id),
           all(details$details$fold == "Inductive1"), all(details$details$event_class == details$details$class_2))
@@ -126,7 +127,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
           result <- predict(fit, input, type = "prob", loss = loss)
           cl <- predict(fit, input, type = "class", loss = loss)
           d <- venn_abers_details(fit, input, loss = loss)
-          stopifnot(identical(result, details$prediction[seq_len(n), ]), identical(result, d$prediction),
+          assert_conditions(identical(result, details$prediction[seq_len(n), ]), identical(result, d$prediction),
             identical(names(d$details), names(details$details)), nrow(d$details) == n * length(locals),
             identical(cl$.pred_class, factor(classes[max.col(as.matrix(result), ties.method = "first")], levels = classes)),
             length(audit$fits) == before, length(audit$predictions) == calls + if (n) 3L * length(locals) else 0L)
@@ -330,7 +331,7 @@ if (exists("pair_fit") && all(vapply(c("tune", "yardstick"), requireNamespace, l
     final <- tune::last_fit(model, holdout, metrics = scoring)
     p <- tune::collect_predictions(final)
     m <- tune::collect_metrics(final)
-    stopifnot(length(audit$fits) == before + pair_count, nrow(tune::collect_notes(final)) == 0L,
+    assert_conditions(length(audit$fits) == before + pair_count, nrow(tune::collect_notes(final)) == 0L,
       identical(p$.row, assessment), !anyDuplicated(p$.row), all(p$.config == "pre0_mod0_post0"),
       identical(p$truth, data$truth[assessment]), nrow(m) == 2L,
       setequal(m$.metric, c("brier_class", "mn_log_loss")), all(is.finite(m$.estimate)))

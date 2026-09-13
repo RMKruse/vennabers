@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 packages <- c("parsnip", "workflows", "hardhat", "rsample", "recipes", "nnet",
               "rlang", "tibble", "withr", "generics", "tidyselect")
@@ -95,7 +96,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
           close(as.matrix(actual$details[c("lower", "upper", "probability")]),
                 as.matrix(parts[c("lower", "upper", "probability")]))
           cls <- predict(fit, new, type = "class", loss = loss)$.pred_class
-          stopifnot(identical(actual$prediction, predict(fit, new, loss = loss)),
+          assert_conditions(identical(actual$prediction, predict(fit, new, loss = loss)),
                     identical(names(actual$prediction), paste0(".pred_", classes)),
                     identical(cls, predict(manual, final_new, type = "class", loss = loss)),
                     identical(actual$details$row, parts$row),
@@ -107,14 +108,14 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
           for (n in 0:1) {
             small <- new[seq_len(n), , drop = FALSE]
             detail <- venn_abers_details(fit, small, loss = loss)
-            stopifnot(nrow(detail$prediction) == n, nrow(detail$details) == n * length(manual$calibrators),
+            assert_conditions(nrow(detail$prediction) == n, nrow(detail$details) == n * length(manual$calibrators),
                       identical(names(detail$details), names(actual$details)),
                       identical(detail$prediction, predict(fit, small, loss = loss)),
                       all(vapply(detail$prediction, is.double, logical(1))),
                       identical(levels(predict(fit, small, type = "class")$.pred_class), classes))
           }
         }
-        stopifnot(identical(fit$models[[1L]], model), identical(fit$calibrator, manual),
+        assert_conditions(identical(fit$models[[1L]], model), identical(fit$calibrator, manual),
                   identical(fit$parameters$requested$precision, precision),
                   identical(fit$parameters$effective$precision, precision), fit$loss == default_loss,
                   is.null(fit$event_class), is.null(fit$parameters$effective$event_level),
@@ -151,7 +152,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
       actual <- venn_abers_details(fit, new)
       close(actual$prediction$.pred, expected$prediction, scale)
       close(as.matrix(actual$details[c("prediction", "lower", "upper")]), as.matrix(expected), scale)
-      stopifnot(identical(actual$prediction, predict(fit, new)),
+      assert_conditions(identical(actual$prediction, predict(fit, new)),
                 identical(actual$prediction, predict(fit, new, type = "numeric")),
                 identical(names(actual$prediction), ".pred"), is.double(actual$prediction$.pred),
                 identical(actual$details$row, seq_len(nrow(new))), all(actual$details$fold == "Inductive1"),

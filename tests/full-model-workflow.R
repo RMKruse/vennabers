@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 
 packages <- c("parsnip", "workflows", "rsample", "recipes", "withr")
@@ -76,7 +77,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
           splits = plan, prediction_model = mode, event_level = event, precision = precision,
           loss = "brier", seed = 13), data)
         state <- states[[mode]] <- workflows::extract_fit_engine(fits[[mode]])
-        stopifnot(counts$fit == before + k + (mode == "full"), identical(rng, .Random.seed),
+        assert_conditions(counts$fit == before + k + (mode == "full"), identical(rng, .Random.seed),
                   length(state$models) == if (mode == "full") 1L else k,
                   state$parameters$requested$prediction_model == mode,
                   state$parameters$explicit[["prediction_model"]],
@@ -85,7 +86,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
       }
       source <- states$matched
       state <- states$full
-      stopifnot(identical(source$calibrator, state$calibrator), identical(source$calibration, state$calibration),
+      assert_conditions(identical(source$calibrator, state$calibrator), identical(source$calibration, state$calibration),
                 identical(source$folds, state$folds), identical(state$rng_kind, RNGkind()),
                 all(c("R", "vennabers", "workflows", "recipes") %in% names(state$versions)))
       full_engine <- workflows::extract_fit_engine(state$models$Full1)
@@ -115,7 +116,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
         before_fit <- counts$fit
         before <- counts$predict
         details <- venn_abers_details(fits$full, new, loss = loss)
-        stopifnot(counts$predict == before + 1L,
+        assert_conditions(counts$predict == before + 1L,
                   all(details$details$prediction_model == "full"), all(details$details$model_source == "Full1"),
                   identical(unique(details$details$fold), names(state$folds)),
                   max(abs(details$prediction[[paste0(".pred_", state$event_class)]] - expected)) <= 1e-10)
@@ -135,7 +136,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
           small <- venn_abers_details(fits$full, new[seq_len(n), ], loss = loss)
           small_p <- predict(fits$full, new[seq_len(n), ], type = "prob", loss = loss)
           small_c <- predict(fits$full, new[seq_len(n), ], type = "class", loss = loss)
-          stopifnot(counts$predict == before + 3L * n, identical(names(small$details), names(details$details)),
+          assert_conditions(counts$predict == before + 3L * n, identical(names(small$details), names(details$details)),
                     identical(small$prediction, small_p), nrow(small_p) == n, nrow(small$details) == k * n,
                     is.integer(small$details$row), is.character(small$details$model_source),
                     identical(levels(small_c$.pred_class), levels(data$truth)))
@@ -263,7 +264,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
       stopifnot(counts$fit == before + if (method == "cross") 3L else 2L)
       final_p <- tune::collect_predictions(final)
       final_m <- tune::collect_metrics(final)
-      stopifnot(nrow(tune::collect_notes(final)) == 0L,
+      assert_conditions(nrow(tune::collect_notes(final)) == 0L,
                 identical(final_p$.row, 33:40), !anyDuplicated(final_p$.row),
                 all(final_p$.config == "pre0_mod0_post0"),
                 identical(final_p$truth, data$truth[33:40]),
@@ -274,7 +275,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
         control = tune::control_last_fit(event_level = event))
       state <- workflows::extract_fit_engine(tune::extract_workflow(final))
       other <- workflows::extract_fit_engine(tune::extract_workflow(mutated))
-      stopifnot(identical(state$calibration, other$calibration), identical(state$calibrator, other$calibrator),
+      assert_conditions(identical(state$calibration, other$calibration), identical(state$calibrator, other$calibrator),
                 identical(state$folds, other$folds),
                 identical(workflows::extract_fit_engine(state$models$Full1), workflows::extract_fit_engine(other$models$Full1)),
                 identical(workflows::extract_fit_engine(state$models$Full1)$x$id, data$id[1:32]),

@@ -1,4 +1,5 @@
 # Installed example: optional integration; failures propagate when available.
+source(system.file("examples", "assertions.R", package = "vennabers"))
 packages <- c("parsnip", "workflows", "recipes", "rsample", "hardhat", "generics",
               "rlang", "tibble", "tidyselect", "withr")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
@@ -23,7 +24,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
   class <- predict(fitted, assessment, type = "class")
   details <- venn_abers_details(fitted, assessment)
   state <- workflows::extract_fit_engine(fitted)
-  stopifnot(identical(probability, details$prediction), nrow(class) == 50L,
+  assert_conditions(identical(probability, details$prediction), nrow(class) == 50L,
             length(state$models) == 1L, state$event_class == "yes",
             state$folds$Inductive1$training_size + state$folds$Inductive1$calibration_size == 200L)
   # Prediction-time loss changes neither the fitted model nor its stored default.

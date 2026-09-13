@@ -1,4 +1,5 @@
 # Fixed-setting IVAR/CVAR full-model transfer. Python 1.5.4 exposes this option
+source(system.file("examples", "assertions.R", package = "vennabers"))
 # in the exported lower VennAbersCV class, not its regression facade.
 packages <- c("vennabers", "parsnip", "workflows", "recipes", "rsample")
 examples <- list()
@@ -62,7 +63,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
       print(checked$metrics)
       final <- tune::last_fit(models[[2L]], outer_split, metrics = scoring)
       p <- tune::collect_predictions(final); metrics <- tune::collect_metrics(final)
-      stopifnot(nrow(tune::collect_notes(final)) == 0L, identical(p$.row, 91:120), !anyDuplicated(p$.row),
+      assert_conditions(nrow(tune::collect_notes(final)) == 0L, identical(p$.row, 91:120), !anyDuplicated(p$.row),
         all(p$.config == "pre0_mod0_post0"), identical(p[[schema$encoded_outcome]], truth),
         identical(p$.pred, native$prediction$.pred), nrow(metrics) == 2L,
         setequal(metrics$.metric, c("rmse", "mae")), all(is.finite(metrics$.estimate)),
