@@ -3,10 +3,20 @@ packages <- c("workflows", "parsnip", "recipes", "rsample")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) for (example_name in c("pairwise-inductive.R", "pairwise-cross.R")) local({
   example <- new.env()
   sys.source(system.file("examples", example_name, package = "vennabers"), example)
+  objects <- as.list(example)
+  engine <- function(x) tryCatch(workflows::extract_fit_engine(x), error = function(...) NULL)
+  fits <- function(mode) Filter(function(x) {
+    state <- engine(x)
+    inherits(x, "workflow") && !is.null(state) &&
+      identical(state$parameters$requested$model_training, "pairwise") &&
+      identical(state$parameters$requested$prediction_model, mode)
+  }, objects)
   for (mode in c("matched", "full")) {
-    fit <- if (mode == "full") example$full_fit else example$fit
-    schema <- example$schema
-    new <- example$assessment[setdiff(names(example$assessment), schema$encoded_outcome)]
+    fit <- fits(mode)[[1L]]
+    state <- engine(fit)
+    schema <- state$schema
+    assessment <- Filter(function(x) is.data.frame(x) && schema$encoded_outcome %in% names(x), objects)[[1L]]
+    new <- assessment[setdiff(names(assessment), schema$encoded_outcome)]
     snapshot <- function(fit, new, schema) lapply(c("log", "brier"), function(loss) {
       lapply(c(0L, 1L, 7L), function(n) {
         x <- new[seq_len(n), , drop = FALSE]
