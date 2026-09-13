@@ -34,7 +34,10 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
   fit <- generics::fit(explicit, development)
   state <- workflows::extract_fit_engine(fit)
   print(state)
-  print(state$pairs)
+  pair_table <- data.frame(pair_id = names(state$pair_models),
+    class_1 = vapply(state$pair_models, function(s) s$class_levels[1L], ""),
+    class_2 = vapply(state$pair_models, function(s) s$class_levels[2L], ""))
+  print(pair_table)
   native <- venn_abers_details(fit, assessment)
   decoded <- venn_abers_decode(native, schema)
   print(head(native$details))
@@ -58,9 +61,9 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
       }
     }, numeric(nrow(assessment)))
     p <- vapply(state$class_levels, function(cl) {
-      relevant <- which(state$pairs$class_1 == cl | state$pairs$class_2 == cl)
+      relevant <- which(pair_table$class_1 == cl | pair_table$class_2 == cl)
       odds <- lapply(relevant, function(j) {
-        probability <- if (state$pairs$class_2[j] == cl) q[, j] else 1 - q[, j]
+        probability <- if (pair_table$class_2[j] == cl) q[, j] else 1 - q[, j]
         (1 - probability) / probability
       })
       1 / (1 + Reduce(`+`, odds))

@@ -307,8 +307,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     },
     fit_error = function(fold, e) stop(fold, " base workflow training: ", conditionMessage(e), call. = FALSE),
     full_error = function(e) stop("Full1 base workflow training: ", conditionMessage(e), call. = FALSE),
-    annotate = function(model, fold, positions) model,
-    annotate_calibrator = function(calibrator, models, folds) calibrator,
+    pred_id = function(fold) fold,
     fields = function() list())
   task <- .component_task(if (regression) "regression" else if (multiclass) "multiclass" else "binary",
                           settings, moderation)
@@ -330,9 +329,8 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
 # Every fit is a list of components: one shared component, or one per class
 # pair with its recipe-retargeted workflow. Three phase functions, each applied
 # in turn, give one path for all task and model-training combinations. Domains
-# carry their own error decoration and pair-only hooks so the phases stay
-# branch-free; fail-fast ordering and RNG scoping match the former per-path
-# implementations.
+# carry their own error decoration so the phases stay branch-free; fail-fast
+# ordering and RNG scoping match the former per-path implementations.
 .fit_domains <- function(domains, task, settings) {
   plans <- lapply(domains, function(domain) .plan_component(domain, settings))
   fitted <- lapply(seq_along(domains), function(i) .fit_component_sources(plans[[i]], domains[[i]], task, settings))
@@ -396,15 +394,14 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   for (id in names(folds)) {
     analysis <- folds[[id]]$analysis
     assessment <- folds[[id]]$assessment
-    models[[id]] <- domain$annotate(tryCatch(generics::fit(workflow, local[analysis, , drop = FALSE]),
-      error = function(e) domain$fit_error(id, e)), id, folds[[id]])
+    models[[id]] <- tryCatch(generics::fit(workflow, local[analysis, , drop = FALSE]),
+      error = function(e) domain$fit_error(id, e))
     k <- match(id, names(folds))
-    calibration_predictions[[k]] <- task$pred(models[[id]], local[assessment, , drop = FALSE], id, classes, event)
+    calibration_predictions[[k]] <- task$pred(models[[id]], local[assessment, , drop = FALSE], domain$pred_id(id), classes, event)
     truths[[k]] <- task$truth(y, assessment, classes, event)
     fold_ids[[k]] <- rep(id, length(assessment))
   }
-  calibrator <- domain$annotate_calibrator(
-    task$calibrate(truths, calibration_predictions, fold_ids, folds, settings), models, folds)
+  calibrator <- task$calibrate(truths, calibration_predictions, fold_ids, folds, settings)
   calibration <- stats::setNames(lapply(seq_along(folds), function(k) {
     task$record(folds[[k]]$assessment, truths[[k]], calibration_predictions[[k]])
   }), names(folds))
@@ -419,10 +416,9 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   local <- domain$data
   model <- tryCatch(generics::fit(domain$workflow, local), error = domain$full_error)
   # Check the prediction contract without using full-model values for calibration.
-  task$pred(model, local[1L, , drop = FALSE], "Full1", domain$classes, domain$event)
+  task$pred(model, local[1L, , drop = FALSE], domain$pred_id("Full1"), domain$classes, domain$event)
   # Discard temporary source workflows only after the complete fit succeeds.
-  component$models <- list(Full1 = domain$annotate(model, "Full1",
-    list(analysis = seq_len(nrow(local)), assessment = integer())))
+  component$models <- list(Full1 = model)
   component$sources[] <- "Full1"
   component
 }

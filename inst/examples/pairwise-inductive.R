@@ -27,7 +27,10 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
   fit <- generics::fit(model, development)
   state <- workflows::extract_fit_engine(fit)
   print(state)
-  print(state$pairs)
+  pair_table <- data.frame(pair_id = names(state$pair_models),
+    class_1 = vapply(state$pair_models, function(s) s$class_levels[1L], ""),
+    class_2 = vapply(state$pair_models, function(s) s$class_levels[2L], ""))
+  print(pair_table)
   native <- venn_abers_details(fit, assessment)
   decoded <- venn_abers_decode(native, schema)
   print(head(decoded$probability))
@@ -44,7 +47,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
   stopifnot(identical(native, venn_abers_details(explicit, assessment)))
   # Independent complete binary workflows: preprocessing sees only each pair's
   # training rows, and held-out model probabilities fit the existing binary core.
-  q <- matrix(0, nrow(assessment), nrow(state$pairs))
+  q <- matrix(0, nrow(assessment), nrow(pair_table))
   for (j in seq_along(plans)) {
     training <- rsample::analysis(plans[[j]])
     held <- rsample::assessment(plans[[j]])
@@ -52,19 +55,19 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
       recipes::recipe(formula, training) |> recipes::step_normalize(recipes::all_numeric_predictors())) |>
       workflows::add_model(parsnip::logistic_reg(engine = "glm"))
     binary <- generics::fit(reference, training)
-    event <- state$pairs$class_2[j]
+    event <- pair_table$class_2[j]
     column <- paste0(".pred_", event)
     cal <- venn_abers(held[[schema$encoded_outcome]] == event, predict(binary, held, type = "prob")[[column]])
     expected <- predict(cal, predict(binary, assessment, type = "prob")[[column]])
-    parts <- native$details[native$details$pair_id == state$pairs$pair_id[j], c("lower", "upper", "probability")]
+    parts <- native$details[native$details$pair_id == pair_table$pair_id[j], c("lower", "upper", "probability")]
     stopifnot(all(abs(as.matrix(parts) - as.matrix(expected)) <= 1e-10))
     q[, j] <- expected$probability
   }
   # Reciprocal OvO coupling, written independently as sums of binary odds.
   p <- vapply(state$class_levels, function(cl) {
-    relevant <- which(state$pairs$class_1 == cl | state$pairs$class_2 == cl)
+    relevant <- which(pair_table$class_1 == cl | pair_table$class_2 == cl)
     odds <- lapply(relevant, function(j) {
-      probability <- if (state$pairs$class_2[j] == cl) q[, j] else 1 - q[, j]
+      probability <- if (pair_table$class_2[j] == cl) q[, j] else 1 - q[, j]
       (1 - probability) / probability
     })
     1 / (1 + Reduce(`+`, odds))

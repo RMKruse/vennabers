@@ -330,9 +330,10 @@ promised. The engine cannot validate an outer partition it never receives.
 Validate outer analysis/assessment disjointness before calling fit_resamples;
 assessment sets from different outer resamples may overlap.}
 \section{Pairwise model training}{
-Global factor levels fix the class order before decomposition. The stored
-\code{pairs} table maps stable \code{pair_id} values to \code{class_1} and
-\code{class_2}; the latter is always the event. Each complete binary workflow
+Global factor levels fix the class order before decomposition. Each stable
+\code{pair_id} names its two classes through
+\code{pair_models[[pair_id]]$class_levels}; the second is always the event.
+Each complete binary workflow
 learns exclusively from its pair's training rows, including all recipe estimates.
 Only its held-out event probabilities fit the existing binary calibrator.
 For Cross, the existing binary core first aggregates within each pair using stable
@@ -348,8 +349,9 @@ adapted to the two-level local domain, retaining steps, roles and blueprint opti
 \code{calibrator}, and \code{calibration}. Folds, models and calibration records
 are named by local fold ID: \code{Inductive1} or the supplied Cross IDs.
 The Cross calibrator retains its ordered, named binary fold calibrators.
-Stored model/calibrator identities bind each source to its pair, classes,
-fold and local positions; prediction rejects mismatched assignments.
+Prediction re-derives the pair order from the global class levels and rejects
+components whose \code{pair_id}, \code{class_levels} or fold names disagree,
+as well as models whose fitted two-class outcome mold is not the pair's.
 These replace the shared model/fold/calibrator fields. Calibration records retain
 local row positions, binary truths and unrounded probabilities. Details add
 \code{pair_id}, \code{model_training="pairwise"},

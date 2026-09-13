@@ -222,16 +222,11 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     error(generics::fit(calibrated_workflow(base, "truth", classification = "ovo",
       model_training = "pairwise", method = method, prediction_model = "full", splits = plans), data[n:1, ]), "data binding")
     stopifnot(length(audit$fits) == before)
-    for (change in c("rows", "fold", "model", "calibrator")) {
+    if (k > 2L) {
+      # A foreign pair's model is rejected through its fitted two-class mold.
       bad <- fits$full
       s <- bad$fit$fit$fit
-      if (change == "rows") s$pair_models[[1L]]$rows <- rev(s$pair_models[[1L]]$rows)
-      if (change == "fold") s$pair_models[[1L]]$folds[[1L]]$analysis <- rev(s$pair_models[[1L]]$folds[[1L]]$analysis)
-      if (change == "model") s$pair_models[[1L]]$models$Full1 <- states$matched$pair_models[[1L]]$models[[1L]]
-      if (change == "calibrator") {
-        if (method == "cross") s$pair_models[[1L]]$calibrator$calibrators[1:2] <- s$pair_models[[1L]]$calibrator$calibrators[2:1] else
-          attr(s$pair_models[[1L]]$calibrator, "vennabers_pair_fold") <- NULL
-      }
+      s$pair_models[[1L]]$models$Full1 <- states$matched$pair_models[[2L]]$models[[1L]]
       bad$fit$fit$fit <- s
       error(predict(bad, new, type = "prob"), "mapping")
     }

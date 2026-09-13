@@ -7,8 +7,6 @@
   cross <- settings$method == "cross"
   pairs <- utils::combn(state$class_levels, 2L, simplify = FALSE)
   ids <- paste0("pair_", seq_along(pairs))
-  state$pairs <- data.frame(pair_id = ids,
-    class_1 = vapply(pairs, `[`, "", 1L), class_2 = vapply(pairs, `[`, "", 2L))
   pair_plans <- settings$splits
   named <- !is.null(pair_plans) && !is.function(pair_plans)
   if (named && (is.null(names(pair_plans)) || anyNA(names(pair_plans)) || anyDuplicated(names(pair_plans)) ||
@@ -65,21 +63,7 @@
       fit_error = function(fold, e) stop(id, " ", fold, " base workflow training: ",
         conditionMessage(e), call. = FALSE),
       full_error = function(e) stop(id, " Full1 base workflow training: ", conditionMessage(e), call. = FALSE),
-      annotate = function(model, fold, positions) {
-        attr(model, "vennabers_pair_fold") <- list(pair_id = id, fold = fold, rows = rows,
-          class_levels = pair, positions = positions)
-        model
-      },
-      annotate_calibrator = function(calibrator, models, folds) {
-        if (cross) {
-          names(calibrator$calibrators) <- calibrator$folds
-          for (fold_id in calibrator$folds) attr(calibrator$calibrators[[fold_id]], "vennabers_pair_fold") <-
-            attr(models[[fold_id]], "vennabers_pair_fold", exact = TRUE)
-        } else {
-          attr(calibrator, "vennabers_pair_fold") <- attr(models$Inductive1, "vennabers_pair_fold", exact = TRUE)
-        }
-        calibrator
-      },
+      pred_id = function(fold) paste(id, fold),
       fields = function() list(pair_id = id, class_levels = pair, event_class = pair[2L], rows = rows))
   })
   task <- .component_task("binary", settings, list())
@@ -93,9 +77,7 @@
 .predict_pairwise <- function(object, new_data, include_details) {
   pairs <- utils::combn(object$class_levels, 2L, simplify = FALSE)
   ids <- paste0("pair_", seq_along(pairs))
-  expected <- data.frame(pair_id = ids,
-    class_1 = vapply(pairs, `[`, "", 1L), class_2 = vapply(pairs, `[`, "", 2L))
-  if (!identical(object$pairs, expected) || !identical(names(object$pair_models), ids)) {
+  if (!identical(names(object$pair_models), ids)) {
     stop("Pair/class mapping does not match the fitted global class order.", call. = FALSE)
   }
   n <- nrow(new_data)
@@ -128,24 +110,11 @@
                  anyDuplicated(fold_ids) || !identical(names(component$calibrator$calibrators), fold_ids)))) {
     stop(id, " model/pair/fold identity does not match the fitted mapping.", call. = FALSE)
   }
-  for (fold_id in fold_ids) {
-    identity <- list(pair_id = id, fold = fold_id, rows = component$rows,
-                     class_levels = component$class_levels, positions = component$folds[[fold_id]])
-    calibrator <- if (cross) component$calibrator$calibrators[[fold_id]] else component$calibrator
-    if (!identical(attr(calibrator, "vennabers_pair_fold", exact = TRUE), identity)) {
-      stop(id, " ", fold_id, " calibrator/pair/fold identity does not match the fitted mapping.", call. = FALSE)
-    }
-  }
   p <- .source_predictions(component$models, component$sources, new_data,
     function(model, model_id) {
-      # A model id absent from `folds` is the shared Full1 refit on every row.
-      positions <- if (is.null(component$folds[[model_id]]))
-        list(analysis = seq_along(component$rows), assessment = integer()) else component$folds[[model_id]]
-      identity <- list(pair_id = id, fold = model_id, rows = component$rows,
-                       class_levels = component$class_levels, positions = positions)
-      if (!identical(levels(workflows::extract_mold(model)$outcomes[[1L]]), pair) ||
-          !identical(attr(model, "vennabers_pair_fold", exact = TRUE), identity)) {
-        stop(id, " ", model_id, " model/pair/fold identity does not match the fitted mapping.", call. = FALSE)
+      # The mold's fitted outcome domain binds every retained model to its pair.
+      if (!identical(levels(workflows::extract_mold(model)$outcomes[[1L]]), pair)) {
+        stop(id, " ", model_id, " model/pair identity does not match the fitted mapping.", call. = FALSE)
       }
       .base_probability(model, new_data, component$class_levels, component$event_class, paste(id, model_id))
     },

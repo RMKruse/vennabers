@@ -97,7 +97,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
       fit <- generics::fit(model, data)
       state <- workflows::extract_fit_engine(fit)
       stopifnot(length(audit$fits) == before + cost, length(audit$predictions) == calls + cost,
-        identical(state$class_levels, classes), identical(state$pairs$pair_id, names(locals)),
+        identical(state$class_levels, classes),
         identical(state$rng_kind, RNGkind()), identical(state$parameters$effective$precision, precision))
       for (j in seq_along(locals)) {
         component <- state$pair_models[[j]]
@@ -235,16 +235,12 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
   conflict <- prepared[[1L]]
   conflict$splits[[1L]]$in_id <- rev(conflict$splits[[1L]]$in_id)
   error(local_calibration_splits(c(prepared, list(conflict)), names(data)), "Conflicting")
-  for (change in c("pair", "classes", "pair_model", "fold_model", "fold", "calibrator", "fold_names")) {
+  for (change in c("pair", "classes", "pair_model", "fold_names")) {
     bad <- fit
     s <- bad$fit$fit$fit
     if (change == "pair") s$pair_models[c(1, 2)] <- s$pair_models[c(2, 1)]
-    if (change == "classes") s$pairs$class_2[1L] <- s$pairs$class_2[2L]
+    if (change == "classes") s$pair_models[[1L]]$class_levels <- s$pair_models[[2L]]$class_levels
     if (change == "pair_model") s$pair_models[[1L]]$models[[1L]] <- s$pair_models[[2L]]$models[[1L]]
-    if (change == "fold_model") s$pair_models[[1L]]$models[1:2] <- s$pair_models[[1L]]$models[2:1]
-    if (change == "fold") s$pair_models[[1L]]$folds[1:2] <- s$pair_models[[1L]]$folds[2:1]
-    if (change == "calibrator") s$pair_models[[1L]]$calibrator$calibrators[1:2] <-
-      s$pair_models[[1L]]$calibrator$calibrators[2:1]
     if (change == "fold_names") names(s$pair_models[[1L]]$models)[1L] <- "wrong"
     bad$fit$fit$fit <- s
     error(predict(bad, new, type = "prob"), "mapping")

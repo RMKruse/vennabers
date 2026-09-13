@@ -122,7 +122,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
       state <- workflows::extract_fit_engine(fit)
       stopifnot(length(audit$fits) == before + length(locals),
         length(audit$predictions) == calls + length(locals),
-        identical(state$class_levels, classes), identical(state$pairs$pair_id, names(locals)),
+        identical(state$class_levels, classes),
         identical(names(state$pair_models), names(locals)), is.null(state$event_class))
       for (id in names(locals)) {
         s <- state$pair_models[[id]]
@@ -251,7 +251,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     bad <- fit
     s <- bad$fit$fit$fit
     if (change == "pair") s$pair_models[c(1, 2)] <- s$pair_models[c(2, 1)]
-    if (change == "classes") s$pairs$class_2[1L] <- s$pairs$class_2[2L]
+    if (change == "classes") s$pair_models[[1L]]$class_levels <- s$pair_models[[2L]]$class_levels
     if (change == "model") s$pair_models[[1L]]$models <- s$pair_models[[2L]]$models
     bad$fit$fit$fit <- s
     error(predict(bad, new, type = "prob"), "mapping")
@@ -290,7 +290,7 @@ if (exists("pair_fit")) local({
       stopifnot(identical(unname(sizes), if (minimum) c(2L, 2L, 2L) else c(3L, 4L, 5L)))
       for (loss in c("log", "brier")) {
         actual <- venn_abers_details(fit, data, loss = loss)
-        q <- matrix(0, nrow(data), nrow(state$pairs))
+        q <- matrix(0, nrow(data), length(state$pair_models))
         for (j in seq_along(state$pair_models)) {
           component <- state$pair_models[[j]]
           local <- data[component$rows, ]
