@@ -345,6 +345,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     if (multiclass) list(row = folds[[k]]$assessment, truth = truths[[k]], probability = calibration_predictions[[k]]) else
       data.frame(row = folds[[k]]$assessment, truth = truths[[k]], probability = calibration_predictions[[k]])
   }), names(folds))
+  sources <- stats::setNames(names(folds), names(folds))
   if (identical(settings$prediction_model, "full")) {
     full_model <- tryCatch(generics::fit(base_workflow, raw),
       error = function(e) stop("Full1 base workflow training: ", conditionMessage(e), call. = FALSE))
@@ -353,10 +354,12 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
       .base_probability(full_model, raw[1L, , drop = FALSE], classes, event, "Full1")
     # Discard temporary source workflows only after the complete fit succeeds.
     models <- list(Full1 = full_model)
+    sources[] <- "Full1"
   }
   state$parameters <- parameters
   state$folds <- folds
   state$models <- models
+  state$sources <- sources
   state$calibrator <- calibrator
   state$calibration <- calibration
   state
@@ -406,15 +409,15 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   }
   multiclass <- object$parameters$requested$classification != "binary"
   cross <- object$parameters$requested$method == "cross"
-  p <- lapply(names(object$models), function(id) {
+  by_model <- lapply(names(object$models), function(id) {
     if (nrow(new_data)) .base_probability(object$models[[id]], new_data, object$class_levels, object$event_class, id)
     else if (multiclass) matrix(numeric(), 0L, length(object$class_levels), dimnames = list(NULL, object$class_levels))
     else numeric()
   })
-  names(p) <- names(object$models)
-  if (identical(object$parameters$requested$prediction_model, "full")) {
-    p <- stats::setNames(rep(p, length(object$folds)), names(object$folds))
-  }
+  names(by_model) <- names(object$models)
+  # `sources` maps every fold slot to the model it predicts with, so full-model
+  # reuse is just a repeated lookup instead of a `full` branch.
+  p <- stats::setNames(by_model[object$sources], names(object$sources))
   if (multiclass) {
     result <- stats::predict(object$calibrator, if (cross) p else p[[1L]], loss = object$loss,
                              type = if (include_details) "details" else "response")
@@ -429,17 +432,20 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     if (!cross) details$fold <- rep("Inductive1", nrow(details))
     details$method <- rep(method, nrow(details))
     details$event_class <- if (method == "ovo") details$class_2 else details$class
+    extra <- character(0)
     if (!is.null(object$parameters$requested$model_training)) {
       details$model_training <- rep(object$parameters$requested$model_training, nrow(details))
+      extra <- c(extra, "model_training")
+    }
+    if (!is.null(object$parameters$requested$prediction_model)) {
       details$prediction_model <- rep(object$parameters$requested$prediction_model, nrow(details))
-      details$model_source <- if (identical(object$parameters$requested$prediction_model, "full"))
-        rep("Full1", nrow(details)) else details$fold
+      details$model_source <- unname(object$sources[details$fold])
+      extra <- c(extra, "prediction_model", "model_source")
     }
     identity <- if (method == "ovo") c("class_1", "class_2") else "class"
     return(list(prediction = prediction,
                 details = tibble::as_tibble(details[c("row", "fold", "method", "event_class", identity,
-                                                    "lower", "upper", "probability",
-                                                    intersect(c("model_training", "prediction_model", "model_source"), names(details)))])))
+                                                    "lower", "upper", "probability", extra)])))
   }
   if (cross) {
     p <- do.call(cbind, p)
@@ -459,14 +465,14 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   prediction <- tibble::as_tibble(probabilities, .name_repair = "minimal")
   if (!include_details) return(list(prediction = prediction))
   details$event_class <- rep(object$event_class, nrow(details))
+  extra <- character(0)
   if (!is.null(object$parameters$requested$prediction_model)) {
     details$prediction_model <- rep(object$parameters$requested$prediction_model, nrow(details))
-    details$model_source <- if (identical(object$parameters$requested$prediction_model, "full"))
-      rep("Full1", nrow(details)) else details$fold
+    details$model_source <- unname(object$sources[details$fold])
+    extra <- c("prediction_model", "model_source")
   }
   list(prediction = prediction,
-       details = tibble::as_tibble(details[c("row", "fold", "event_class", "lower", "upper", "probability",
-                                            intersect(c("prediction_model", "model_source"), names(details)))]))
+       details = tibble::as_tibble(details[c("row", "fold", "event_class", "lower", "upper", "probability", extra)]))
 }
 
 #' @export
@@ -488,27 +494,23 @@ print.vennabers_fit <- function(x, ...) {
   cat("Models per nonempty prediction:", retained, "\n")
   cat("Stored calibration rows:", calibration_rows, "(held-out truth and model predictions)\n")
   if (identical(settings$model_training, "pairwise")) {
-    for (id in names(x$pair_models)) for (fold in names(x$pair_models[[id]]$folds)) {
-      cat(" ", id, fold, "->", id,
-          if (identical(settings$prediction_model, "full")) "Full1" else fold, "\n")
+    for (id in names(x$pair_models)) {
+      component <- x$pair_models[[id]]
+      for (fold in names(component$sources)) cat(" ", id, fold, "->", id, component$sources[[fold]], "\n")
     }
   }
-  for (id in names(x$folds)) {
-    cat(" ", id, "->", if (identical(settings$prediction_model, "full")) "Full1" else id, "\n")
-  }
+  for (id in names(x$sources)) cat(" ", id, "->", x$sources[[id]], "\n")
   invisible(x)
 }
 
 .integration_regression_prediction <- function(object, new_data, include_details = FALSE) {
   cross <- object$parameters$requested$method == "cross"
   mode <- object$parameters$requested$prediction_model
-  p <- lapply(names(object$models), function(id) {
+  by_model <- lapply(names(object$models), function(id) {
     if (nrow(new_data)) .base_numeric(object$models[[id]], new_data, id) else numeric()
   })
-  names(p) <- names(object$models)
-  if (identical(mode, "full")) {
-    p <- stats::setNames(rep(p, length(object$folds)), names(object$folds))
-  }
+  names(by_model) <- names(object$models)
+  p <- stats::setNames(by_model[object$sources], names(object$sources))
   if (cross) {
     result <- stats::predict(object$calibrator, do.call(cbind, p),
                              type = if (include_details) "details" else "response")
@@ -525,7 +527,7 @@ print.vennabers_fit <- function(x, ...) {
   }))
   if (!is.null(mode)) {
     details$prediction_model <- rep(mode, nrow(details))
-    details$model_source <- if (identical(mode, "full")) rep("Full1", nrow(details)) else details$fold
+    details$model_source <- unname(object$sources[details$fold])
   }
   result <- list(prediction = prediction,
                  details = tibble::as_tibble(details))

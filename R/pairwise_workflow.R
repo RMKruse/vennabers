@@ -101,6 +101,9 @@
       attr(core, "vennabers_pair_fold") <- attr(component$models$Inductive1, "vennabers_pair_fold", exact = TRUE)
       core
     }
+    # `sources` maps every fold slot to the model that predicts it: itself when
+    # matched, the shared Full1 refit when full.
+    component$sources <- stats::setNames(names(component$folds), names(component$folds))
     components[[id]] <- component
     if (full) full_workflows[[id]] <- workflow
   }
@@ -118,7 +121,10 @@
       full_workflows[[id]] <- model
     }
     # Release temporary sources only after every full workflow has succeeded.
-    for (id in ids) components[[id]]$models <- list(Full1 = full_workflows[[id]])
+    for (id in ids) {
+      components[[id]]$models <- list(Full1 = full_workflows[[id]])
+      components[[id]]$sources[] <- "Full1"
+    }
   }
   state$pair_models <- components
   state
@@ -135,7 +141,6 @@
   n <- nrow(new_data)
   points <- matrix(0, n, length(pairs))
   details <- vector("list", length(pairs))
-  full <- object$parameters$requested$prediction_model == "full"
   for (i in seq_along(pairs)) {
     id <- ids[i]
     component <- object$pair_models[[id]]
@@ -143,7 +148,8 @@
     fold_ids <- if (cross) component$calibrator$folds else "Inductive1"
     if (!identical(component$pair_id, id) || !identical(component$class_levels, pairs[[i]]) ||
         !identical(component$event_class, pairs[[i]][2L]) ||
-        !identical(names(component$models), if (full) "Full1" else fold_ids) ||
+        !identical(names(component$sources), fold_ids) ||
+        !identical(names(component$models), unique(unname(component$sources))) ||
         !identical(names(component$folds), fold_ids) ||
         !identical(names(component$calibration), fold_ids) ||
         (cross && (length(fold_ids) < 2L || anyNA(fold_ids) || any(!nzchar(fold_ids)) ||
@@ -158,9 +164,11 @@
         stop(id, " ", fold_id, " calibrator/pair/fold identity does not match the fitted mapping.", call. = FALSE)
       }
     }
-    p <- lapply(names(component$models), function(model_id) {
+    by_model <- lapply(names(component$models), function(model_id) {
       model <- component$models[[model_id]]
-      positions <- if (full) list(analysis = seq_along(component$rows), assessment = integer()) else component$folds[[model_id]]
+      # A model id absent from `folds` is the shared Full1 refit on every row.
+      positions <- if (is.null(component$folds[[model_id]]))
+        list(analysis = seq_along(component$rows), assessment = integer()) else component$folds[[model_id]]
       identity <- list(pair_id = id, fold = model_id, rows = component$rows,
                        class_levels = component$class_levels, positions = positions)
       if (!identical(levels(workflows::extract_mold(model)$outcomes[[1L]]), pairs[[i]]) ||
@@ -170,8 +178,10 @@
       if (n) .base_probability(model, new_data, component$class_levels,
                               component$event_class, paste(id, model_id)) else numeric()
     })
-    if (full) p <- rep(p, length(fold_ids))
-    names(p) <- fold_ids
+    names(by_model) <- names(component$models)
+    # `component$sources` maps every fold slot to the model that predicts it, so
+    # full-model reuse across folds is a lookup instead of a `full` branch.
+    p <- stats::setNames(by_model[component$sources], names(component$sources))
     if (cross) {
       binary <- stats::predict(component$calibrator, do.call(cbind, p), loss = object$loss,
                                type = if (include_details) "details" else "response")
@@ -184,12 +194,15 @@
     }
     if (include_details) {
       k <- nrow(part)
+      # The shared model id (constant per component) decides whether the source
+      # label needs qualifying beyond the pair id.
+      shared <- unname(component$sources[[1L]])
       details[[i]] <- data.frame(row = part$row, pair_id = rep(id, k),
         fold = part$fold, method = rep("ovo", k), event_class = rep(component$event_class, k),
         class_1 = rep(pairs[[i]][1L], k), class_2 = rep(pairs[[i]][2L], k),
         part[c("lower", "upper", "probability")], model_training = rep("pairwise", k),
-        prediction_model = rep(if (full) "full" else "matched", k),
-        model_source = rep(if (full) paste0(id, "/Full1") else id, k))
+        prediction_model = rep(object$parameters$requested$prediction_model, k),
+        model_source = rep(if (identical(shared, "Full1")) paste0(id, "/Full1") else id, k))
     }
   }
   prediction <- .couple_ovo(points, pairs, object$class_levels)
