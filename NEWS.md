@@ -1,64 +1,16 @@
 # vennabers 0.7.0
 
-- Print trained predictors with their source mapping, base fit count, retained
-  prediction-model count and stored held-out calibration rows. Keep matched/shared
-  defaults and manual/frozen APIs. Fixed settings cover all 20 training paths;
-  automatic tuning follows in v0.8 and new postprocessor training in v0.9.
-  Local acceptance retains the v0.6 prerequisite and all missing platform and
-  controlled Linux evidence as release blockers; Actions stays disabled.
-
-- Support `prediction_model = "full"` with pairwise OvO Inductive and Cross
-  calibration at fixed settings. Fit one additional workflow per complete local
-  pair, preserving held-out calibrators and source RNG order; retain only the
-  full workflows for prediction. Details distinguish `pair_N/Full1` sources from
-  pair/fold calibrators. Add fit/predict counters, preprocessing/data-role checks,
-  binary references, outer resampling and fresh-process schema/RDS checks.
-  Installed pair examples compare matched/full cost and scores without transferring
-  matching-model guarantees or promising improved quality.
-
-- Extend matching pairwise OvO training to Cross calibration. Validate independent
-  local partitions before fitting; allow unequal explicit fold counts and nonempty
-  one-sided calibration sets with trainable complements. Reuse binary Cross
-  aggregation within each pair before reciprocal coupling. Retain complete fold
-  workflows and diagnostics; reject swapped pair sources. Add
-  numerical, data-role, fit-cost, outer-evaluation and fresh RDS checks, plus the
-  installed `pairwise-cross.R` example with unequal partitions.
-
-- Add matching Inductive `model_training = "pairwise"` for OvO at fixed settings.
-  Validate all pair-local holdouts before fitting separate binary workflows and
-  reuse the binary calibrator and reciprocal OvO merger. Retain global schema,
-  pair component fields, recipes and calibration records; add native/decoded
-  diagnostics, independent references, fit counts, outer evaluation and fresh
-  RDS checks. Shared training remains the default. See the installed `pairwise-inductive.R` example.
-
-- Extend `prediction_model = "full"` to Inductive and Cross regression workflows.
-  Keep held-out numeric predictions/truths and fold moderation; fit a fresh full
-  recipe/model and discard temporary source workflows. IVAR's weighted merger
-  and CVAR's separate equal-weight points/bounds remain unchanged. Trainable
-  regression details and descriptive aggregates identify mode and model sources;
-  native `.pred`, decoding and frozen outputs retain their contracts. Add offline
-  component/reconstruction, role/count, outer evaluation and fresh RDS checks,
-  plus an installed matched/full RMSE/MAE example. No coverage or quality
-  guarantee is implied. Python's option belongs to the lower `VennAbersCV` class.
-
-- Extend full-model transfer to shared Inductive/Cross OvO and OvR workflows.
-  `model_training = "shared"` remains the multiclass default; binary/regression reject explicit training options.
-  This is an R extension, separate from pairwise model training. Complete
-  held-out class matrices/truths remain available after source models are
-  discarded. Native/decoded details retain training mode and model source.
-  Binary aggregation precedes multiclass combination; class ties, precision
-  and yardstick conventions remain unchanged. Add component reconstruction,
-  outer evaluation, fresh-process restoration and an installed example.
-
-- Add explicit binary `prediction_model = "full"` for Inductive and Cross
-  workflows; `"matched"` remains the default. A fresh full recipe/model uses the
-  entire local fit domain while held-out values and calibrators remain unchanged.
-  Discard temporary source models after success; retain calibration provenance.
-- Full transfer costs 2 or K+1 base fits and one model prediction per nonempty
-  batch. Details/print identify mode and model source. Native prediction, loss
-  overrides, encoding, outer resampling, last_fit and RDS restoration are covered.
-  Frozen calibration has no new training path. No automatic calibration/coverage
-  guarantee or quality improvement follows from transfer to a different model.
+- Add `prediction_model = "full"` (default: `"matched"`) to train one extra
+  recipe/model on all local fit rows, including calibration rows, while retaining
+  the original held-out calibrators. It is available for binary, shared or
+  pairwise OvO/OvR, and regression Inductive and Cross workflows.
+- `"full"` costs one extra fit per shared/binary/regression workflow (2 fits for
+  Inductive; K+1 for K-fold Cross), or one per OvO pair with
+  `model_training = "pairwise"`; source models are discarded after fitting.
+- Add `model_training = "pairwise"` for OvO (default: `"shared"`), training a
+  separate binary workflow and local calibration plan for each class pair.
+- Full-model transfer is fixed at fit time and does not automatically transfer
+  matching-model calibration or coverage guarantees, nor promise better quality.
 
 # vennabers 0.6.0
 
