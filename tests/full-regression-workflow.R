@@ -1,4 +1,5 @@
 library(vennabers)
+source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 
 packages <- c("parsnip", "workflows", "rsample", "recipes", "withr")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
@@ -48,16 +49,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     if (nrow(object$x) %in% object$bad_size) p[1L] <- Inf
     p
   }
-  parsnip::set_new_model("va_regression_transfer")
-  parsnip::set_model_mode("va_regression_transfer", "regression")
-  parsnip::set_model_engine("va_regression_transfer", "regression", "reference")
-  parsnip::set_fit("va_regression_transfer", "regression", "reference",
-    list(interface = "data.frame", protect = c("x", "y"), func = c(fun = "transfer_fit"), defaults = list()))
-  parsnip::set_encoding("va_regression_transfer", "regression", "reference",
-    list(predictor_indicators = "none", compute_intercept = FALSE, remove_intercept = FALSE, allow_sparse_x = FALSE))
-  parsnip::set_pred("va_regression_transfer", "regression", "reference", "numeric",
-    list(pre = NULL, post = NULL, func = c(fun = "transfer_predict"),
-      args = list(object = quote(object$fit), new_data = quote(new_data))))
+  register_reference_engine("va_regression_transfer", "regression", "transfer_fit", "transfer_predict", "numeric")
   spec <- parsnip::new_model_spec("va_regression_transfer", args = list(), eng_args = NULL,
     mode = "regression", method = NULL, engine = "reference")
   make_base <- function(data, raw = FALSE) {

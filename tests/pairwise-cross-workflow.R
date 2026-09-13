@@ -1,4 +1,5 @@
 library(vennabers)
+source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 
 packages <- c("parsnip", "workflows", "recipes", "rsample", "withr")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
@@ -20,58 +21,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     e <- tryCatch(suppressWarnings(force(expr)), error = identity)
     stopifnot(inherits(e, "error"), grepl(text, conditionMessage(e), fixed = TRUE))
   }
-  audit <- new.env()
-  audit$fits <- audit$predictions <- list()
-  pair_fit <- function(x, y, fail_size = integer(), bad = FALSE) {
-    audit$fits[[length(audit$fits) + 1L]] <- list(x = x, y = y)
-    if (nrow(x) %in% fail_size) stop("planned pair failure")
-    list(x = x, y = y, levels = levels(y), bad = bad, draw = runif(1))
-  }
-  pair_prob <- function(object, new_data) {
-    stopifnot(nrow(new_data) > 0L)
-    audit$predictions[[length(audit$predictions) + 1L]] <- new_data$row_id
-    p <- vapply(seq_along(object$levels), function(i) {
-      exp(sin(new_data$row_id / (i + 1)) + mean(object$x$x[object$y == object$levels[i]]))
-    }, numeric(nrow(new_data)))
-    p <- matrix(p, nrow(new_data), length(object$levels))
-    p <- as.data.frame(p / rowSums(p))
-    names(p) <- paste0(".pred_", object$levels)
-    if (object$bad) p[[1L]] <- NA_real_
-    p[rev(seq_along(p))]
-  }
-  parsnip::set_new_model("va_pair_reference")
-  parsnip::set_model_mode("va_pair_reference", "classification")
-  parsnip::set_model_engine("va_pair_reference", "classification", "reference")
-  parsnip::set_fit("va_pair_reference", "classification", "reference",
-    list(interface = "data.frame", protect = c("x", "y"), func = c(fun = "pair_fit"), defaults = list()))
-  parsnip::set_encoding("va_pair_reference", "classification", "reference",
-    list(predictor_indicators = "none", compute_intercept = FALSE, remove_intercept = FALSE, allow_sparse_x = FALSE))
-  parsnip::set_pred("va_pair_reference", "classification", "reference", "prob",
-    list(pre = NULL, post = NULL, func = c(fun = "pair_prob"),
-      args = list(object = quote(object$fit), new_data = quote(new_data))))
-  spec <- parsnip::new_model_spec("va_pair_reference", args = list(), eng_args = NULL,
-    mode = "classification", method = NULL, engine = "reference")
-  make_base <- function(data) workflows::workflow() |> workflows::add_recipe(
-    recipes::recipe(truth ~ ., data) |> recipes::step_impute_median(x) |> recipes::step_normalize(x)) |>
-    workflows::add_model(spec)
-  pair_data <- function(data) setNames(lapply(combn(levels(data$truth), 2, simplify = FALSE), function(pair) {
-    local <- data[data$truth %in% pair, , drop = FALSE]
-    local$truth <- factor(local$truth, levels = pair)
-    local
-  }), paste0("pair_", seq_len(choose(nlevels(data$truth), 2))))
-  couple <- function(q, classes) {
-    pairs <- combn(classes, 2, simplify = FALSE)
-    p <- vapply(classes, function(cl) {
-      relevant <- which(vapply(pairs, function(pair) cl %in% pair, logical(1)))
-      odds <- lapply(relevant, function(j) {
-        prob <- if (cl == pairs[[j]][2L]) q[, j] else 1 - q[, j]
-        (1 - prob) / prob
-      })
-      1 / (1 + Reduce(`+`, odds))
-    }, numeric(nrow(q)))
-    p <- matrix(p, nrow(q), length(classes))
-    p / rowSums(p)
-  }
+  list2env(pairwise_reference(), environment())
   # Ordinary non-shuffled folds: one-sided assessment sets are intentional.
   partition <- function(data, v = 3L) {
     held <- split(seq_len(nrow(data)), cut(seq_len(nrow(data)), v, labels = FALSE))

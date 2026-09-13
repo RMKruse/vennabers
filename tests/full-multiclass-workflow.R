@@ -1,4 +1,5 @@
 library(vennabers)
+source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 
 packages <- c("parsnip", "workflows", "rsample", "recipes", "nnet")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
@@ -61,16 +62,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     }
     p[rev(seq_along(p))]
   }
-  parsnip::set_new_model("va_shared_transfer")
-  parsnip::set_model_mode("va_shared_transfer", "classification")
-  parsnip::set_model_engine("va_shared_transfer", "classification", "reference")
-  parsnip::set_fit("va_shared_transfer", "classification", "reference",
-    list(interface = "data.frame", protect = c("x", "y"), func = c(fun = "shared_fit"), defaults = list()))
-  parsnip::set_encoding("va_shared_transfer", "classification", "reference",
-    list(predictor_indicators = "none", compute_intercept = FALSE, remove_intercept = FALSE, allow_sparse_x = FALSE))
-  parsnip::set_pred("va_shared_transfer", "classification", "reference", "prob",
-    list(pre = NULL, post = NULL, func = c(fun = "shared_prob"),
-      args = list(object = quote(object$fit), new_data = quote(new_data))))
+  register_reference_engine("va_shared_transfer", "classification", "shared_fit", "shared_prob", "prob")
   spec <- parsnip::new_model_spec("va_shared_transfer", args = list(), eng_args = NULL,
     mode = "classification", method = NULL, engine = "reference")
   make_plan <- function(data, method, held = NULL) {

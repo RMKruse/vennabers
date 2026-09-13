@@ -1,4 +1,5 @@
 library(vennabers)
+source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "nnet", "withr", "tune", "yardstick"),
                requireNamespace, logical(1), quietly = TRUE))) {
   example <- new.env()
@@ -40,16 +41,9 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "nnet", "withr", 
   reference_numeric <- function(object, new_data) mean(object$y) + new_data$x
   parsnip::set_new_model("split_reference")
   for (mode in c("classification", "regression")) {
-    parsnip::set_model_mode("split_reference", mode)
-    parsnip::set_model_engine("split_reference", mode, "reference")
-    parsnip::set_fit("split_reference", mode, "reference",
-      list(interface = "data.frame", protect = c("x", "y"), func = c(fun = "reference_fit"), defaults = list()))
-    parsnip::set_encoding("split_reference", mode, "reference",
-      list(predictor_indicators = "none", compute_intercept = FALSE, remove_intercept = FALSE, allow_sparse_x = FALSE))
-    parsnip::set_pred("split_reference", mode, "reference", if (mode == "regression") "numeric" else "prob",
-      list(pre = NULL, post = NULL,
-           func = c(fun = if (mode == "regression") "reference_numeric" else "reference_prob"),
-           args = list(object = quote(object$fit), new_data = quote(new_data))))
+    register_reference_engine("split_reference", mode, "reference_fit",
+      if (mode == "regression") "reference_numeric" else "reference_prob",
+      if (mode == "regression") "numeric" else "prob", new_model = FALSE)
   }
   # Public fit/predict/extract seams: observe actual recipe and engine inputs,
   # then compare the core on exactly the outputs of the retained fold models.

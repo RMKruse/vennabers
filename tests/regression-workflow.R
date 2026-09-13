@@ -1,4 +1,5 @@
 library(vennabers)
+source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
                requireNamespace, logical(1), quietly = TRUE))) {
   # Fixed before comparison: one outcome unit; multiply s when changing units.
@@ -46,16 +47,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
     if (object$output == "nonfinite") p[1L] <- Inf
     p
   }
-  parsnip::set_new_model("regression_reference")
-  parsnip::set_model_mode("regression_reference", "regression")
-  parsnip::set_model_engine("regression_reference", "regression", "reference")
-  parsnip::set_fit("regression_reference", "regression", "reference",
-    list(interface = "data.frame", protect = c("x", "y"), func = c(fun = "regression_fit"), defaults = list()))
-  parsnip::set_encoding("regression_reference", "regression", "reference",
-    list(predictor_indicators = "none", compute_intercept = FALSE, remove_intercept = FALSE, allow_sparse_x = FALSE))
-  parsnip::set_pred("regression_reference", "regression", "reference", "numeric",
-    list(pre = NULL, post = NULL, func = c(fun = "regression_predict"),
-         args = list(object = quote(object$fit), new_data = quote(new_data))))
+  register_reference_engine("regression_reference", "regression", "regression_fit", "regression_predict", "numeric")
   spec <- parsnip::new_model_spec("regression_reference", args = list(), eng_args = NULL,
                                  mode = "regression", method = NULL, engine = "reference")
   make_base <- function(data, output = "normal") workflows::workflow() |>

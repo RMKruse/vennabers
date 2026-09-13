@@ -1,4 +1,5 @@
 library(vennabers)
+source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
                requireNamespace, logical(1), quietly = TRUE))) {
   error <- function(expr, pattern = "") {
@@ -21,15 +22,9 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
   encoded_numeric <- function(object, new_data) mean(object$y) + sd(object$y) * new_data[[1]]
   parsnip::set_new_model("encoded_reference")
   for (mode in c("classification", "regression")) {
-    parsnip::set_model_mode("encoded_reference", mode)
-    parsnip::set_model_engine("encoded_reference", mode, "reference")
-    parsnip::set_fit("encoded_reference", mode, "reference",
-      list(interface = "data.frame", protect = c("x", "y"), func = c(fun = "encoded_fit"), defaults = list()))
-    parsnip::set_encoding("encoded_reference", mode, "reference",
-      list(predictor_indicators = "none", compute_intercept = FALSE, remove_intercept = FALSE, allow_sparse_x = FALSE))
-    parsnip::set_pred("encoded_reference", mode, "reference", if (mode == "regression") "numeric" else "prob",
-      list(pre = NULL, post = NULL, func = c(fun = if (mode == "regression") "encoded_numeric" else "encoded_prob"),
-           args = list(object = quote(object$fit), new_data = quote(new_data))))
+    register_reference_engine("encoded_reference", mode, "encoded_fit",
+      if (mode == "regression") "encoded_numeric" else "encoded_prob",
+      if (mode == "regression") "numeric" else "prob", new_model = FALSE)
   }
   make_base <- function(data, outcome, mode) workflows::workflow() |>
     workflows::add_formula(reformulate(setdiff(names(data), outcome), outcome)) |>

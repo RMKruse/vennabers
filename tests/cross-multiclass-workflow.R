@@ -1,4 +1,5 @@
 library(vennabers)
+source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 
 if (all(vapply(c("parsnip", "workflows", "rsample", "nnet"),
                requireNamespace, logical(1), quietly = TRUE))) {
@@ -63,16 +64,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes"),
     if (object$output == "tolerance") p <- p * (1 + 5e-9)
     p[rev(seq_along(p))]
   }
-  parsnip::set_new_model("va_cross_multi")
-  parsnip::set_model_mode("va_cross_multi", "classification")
-  parsnip::set_model_engine("va_cross_multi", "classification", "reference")
-  parsnip::set_fit("va_cross_multi", "classification", "reference",
-    list(interface = "data.frame", protect = c("x", "y"), func = c(fun = "cross_multi_fit"), defaults = list()))
-  parsnip::set_encoding("va_cross_multi", "classification", "reference",
-    list(predictor_indicators = "none", compute_intercept = FALSE, remove_intercept = FALSE, allow_sparse_x = FALSE))
-  parsnip::set_pred("va_cross_multi", "classification", "reference", "prob",
-    list(pre = NULL, post = NULL, func = c(fun = "cross_multi_prob"),
-         args = list(object = quote(object$fit), new_data = quote(new_data))))
+  register_reference_engine("va_cross_multi", "classification", "cross_multi_fit", "cross_multi_prob", "prob")
   spec <- parsnip::new_model_spec("va_cross_multi", args = list(), eng_args = NULL,
                                   mode = "classification", method = NULL, engine = "reference")
   make_plan <- function(data, held = list(1:7, 8:24, 25:60)) {

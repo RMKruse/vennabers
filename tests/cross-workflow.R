@@ -1,4 +1,5 @@
 library(vennabers)
+source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
                requireNamespace, logical(1), quietly = TRUE))) {
   data <- data.frame(x = sin(1:80), truth = factor(rep(c("yes", "no", "no", "yes"), 20)))
@@ -63,16 +64,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
     if (object$output == "nonfinite") result[[1L]][1L] <- NA_real_
     result[2:1]
   }
-  parsnip::set_new_model("cross_reference")
-  parsnip::set_model_mode("cross_reference", "classification")
-  parsnip::set_model_engine("cross_reference", "classification", "reference")
-  parsnip::set_fit("cross_reference", "classification", "reference",
-    list(interface = "data.frame", protect = c("x", "y"), func = c(fun = "cross_fit"), defaults = list()))
-  parsnip::set_encoding("cross_reference", "classification", "reference",
-    list(predictor_indicators = "none", compute_intercept = FALSE, remove_intercept = FALSE, allow_sparse_x = FALSE))
-  parsnip::set_pred("cross_reference", "classification", "reference", "prob",
-    list(pre = NULL, post = NULL, func = c(fun = "cross_prob"),
-         args = list(object = quote(object$fit), new_data = quote(new_data))))
+  register_reference_engine("cross_reference", "classification", "cross_fit", "cross_prob", "prob")
   spec <- parsnip::new_model_spec("cross_reference", args = list(), eng_args = NULL,
                                  mode = "classification", method = NULL, engine = "reference")
   data <- data.frame(x = c(1000, NA, sin(3:40)), id = 1:40,

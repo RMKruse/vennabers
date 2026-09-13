@@ -1,4 +1,5 @@
 library(vennabers)
+source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 packages <- c("parsnip", "workflows", "recipes", "rsample", "withr")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
   data <- data.frame(x = sin(1:90), truth = factor(rep(c("z", "a", "b"), 30)))
@@ -41,16 +42,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     # Reverse columns to verify named event selection, not positional selection.
     setNames(data.frame(p, 1 - p), paste0(".pred_", rev(object$levels)))
   }
-  parsnip::set_new_model("va_full_pair")
-  parsnip::set_model_mode("va_full_pair", "classification")
-  parsnip::set_model_engine("va_full_pair", "classification", "reference")
-  parsnip::set_fit("va_full_pair", "classification", "reference",
-    list(interface = "data.frame", protect = c("x", "y"), func = c(fun = "full_pair_fit"), defaults = list()))
-  parsnip::set_encoding("va_full_pair", "classification", "reference",
-    list(predictor_indicators = "none", compute_intercept = FALSE, remove_intercept = FALSE, allow_sparse_x = FALSE))
-  parsnip::set_pred("va_full_pair", "classification", "reference", "prob",
-    list(pre = NULL, post = NULL, func = c(fun = "full_pair_prob"),
-      args = list(object = quote(object$fit), new_data = quote(new_data))))
+  register_reference_engine("va_full_pair", "classification", "full_pair_fit", "full_pair_prob", "prob")
   spec <- parsnip::new_model_spec("va_full_pair", args = list(), eng_args = NULL,
     mode = "classification", method = NULL, engine = "reference")
   make_base <- function(data, model = spec) workflows::workflow() |> workflows::add_recipe(

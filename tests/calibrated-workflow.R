@@ -1,4 +1,5 @@
 library(vennabers)
+source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 
 integration_packages <- c("parsnip", "workflows", "hardhat", "rsample",
                           "recipes", "rlang", "tibble", "withr", "generics")
@@ -58,18 +59,7 @@ if (all(vapply(integration_packages, requireNamespace, logical(1), quietly = TRU
     if (object$output == "sum") result[[1L]] <- result[[2L]] <- rep(.2, nrow(new_data))
     result[2:1]
   }
-  parsnip::set_new_model("va_reference")
-  parsnip::set_model_mode("va_reference", "classification")
-  parsnip::set_model_engine("va_reference", "classification", "reference")
-  parsnip::set_fit("va_reference", "classification", "reference",
-                   list(interface = "data.frame", protect = c("x", "y"),
-                        func = c(fun = "reference_fit"), defaults = list()))
-  parsnip::set_encoding("va_reference", "classification", "reference",
-                        list(predictor_indicators = "none", compute_intercept = FALSE,
-                             remove_intercept = FALSE, allow_sparse_x = FALSE))
-  parsnip::set_pred("va_reference", "classification", "reference", "prob",
-                    list(pre = NULL, post = NULL, func = c(fun = "reference_prob"),
-                         args = list(object = quote(object$fit), new_data = quote(new_data))))
+  register_reference_engine("va_reference", "classification", "reference_fit", "reference_prob", "prob")
   reference <- parsnip::new_model_spec("va_reference", args = list(), eng_args = NULL,
                                       mode = "classification", method = NULL, engine = "reference")
   data <- data.frame(p = seq(.013, .987, length.out = 40),

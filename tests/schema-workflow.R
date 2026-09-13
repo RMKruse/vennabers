@@ -1,4 +1,5 @@
 library(vennabers)
+source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "tune", "yardstick"),
                requireNamespace, logical(1), quietly = TRUE))) {
   error <- function(expr, pattern = "") {
@@ -72,16 +73,7 @@ if (exists("model")) {
     p <- new_data[[1L]]
     stats::setNames(data.frame(p, 1 - p), paste0(".pred_", object$levels))[2:1]
   }
-  parsnip::set_new_model("va_schema_reference")
-  parsnip::set_model_mode("va_schema_reference", "classification")
-  parsnip::set_model_engine("va_schema_reference", "classification", "reference")
-  parsnip::set_fit("va_schema_reference", "classification", "reference",
-    list(interface = "data.frame", protect = c("x", "y"), func = c(fun = "schema_fit"), defaults = list()))
-  parsnip::set_encoding("va_schema_reference", "classification", "reference",
-    list(predictor_indicators = "none", compute_intercept = FALSE, remove_intercept = FALSE, allow_sparse_x = FALSE))
-  parsnip::set_pred("va_schema_reference", "classification", "reference", "prob",
-    list(pre = NULL, post = NULL, func = c(fun = "schema_prob"),
-         args = list(object = quote(object$fit), new_data = quote(new_data))))
+  register_reference_engine("va_schema_reference", "classification", "schema_fit", "schema_prob", "prob")
   reference <- parsnip::new_model_spec("va_schema_reference", args = list(), eng_args = NULL,
                                       mode = "classification", method = NULL, engine = "reference")
   class_names <- c("class", ".pred_yes", "a b", "a-b", "a.b", "1yes", "ümlaut", "vaL0001")
