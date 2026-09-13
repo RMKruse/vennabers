@@ -160,11 +160,11 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     stopifnot(nlevels(workflows::extract_fit_engine(workflows::extract_fit_engine(shared)$models$Inductive1)$y) == k)
     if (k > 2L) stopifnot(any(abs(as.matrix(predict(shared, new, type = "prob")) -
       as.matrix(predict(fit, new, type = "prob"))) > 1e-6))
-  }
   # Every malformed pair plan fails before the first model fit, including later pairs.
   before <- length(audit$fits)
-  for (bad in list(plans[-1L], c(plans, plans[1L]), setNames(plans, rev(names(plans))),
-                   setNames(plans, rep("pair_1", length(plans))), unname(plans))) {
+  malformed <- if (length(plans) > 1L) list(plans[-1L], c(plans, plans[1L]),
+    setNames(plans, rev(names(plans))), setNames(plans, rep("pair_1", length(plans))), unname(plans)) else list()
+  for (bad in malformed) {
     error(generics::fit(calibrated_workflow(base, "truth", classification = "ovo",
       model_training = "pairwise", splits = bad), data))
   }
@@ -187,9 +187,10 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
         list(analysis = h, assessment = a), locals[[j]])
     }
     error(generics::fit(calibrated_workflow(base, "truth", classification = "ovo",
-      model_training = "pairwise", splits = bad), data), "pair_6 Inductive1")
+      model_training = "pairwise", splits = bad), data),
+      paste0("pair_", length(plans), " Inductive1"))
   }
-  for (args in list(list(classification = "binary"), list(classification = "ovr"),
+  for (args in c(if (k > 2L) list(list(classification = "binary")) else list(), list(list(classification = "ovr")),
     list(classification = "ovo", event_level = "second"), list(classification = "ovo", m = NULL),
     list(classification = "ovo", splits = ordered(data)), list(classification = "ovo", splits = plans, strata = FALSE))) {
     error(do.call(calibrated_workflow, c(list(base, "truth", model_training = "pairwise"), args)))
@@ -205,7 +206,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
   conflict <- prepared[[1L]]
   conflict$in_id <- rev(conflict$in_id)
   error(local_calibration_splits(c(prepared, list(conflict)), names(data)), "Conflicting")
-  for (change in c("pair", "classes", "model")) {
+  if (length(plans) > 1L) for (change in c("pair", "classes", "model")) {
     bad <- fit
     s <- bad$fit$fit$fit
     if (change == "pair") s$pair_models[c(1, 2)] <- s$pair_models[c(2, 1)]
@@ -226,6 +227,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     model_training = "pairwise", splits = function(data) rsample::make_splits(list(analysis = 1:12, assessment = 13:20), data)), tied)
   for (loss in c("log", "brier")) stopifnot(all(predict(tied_fit, tied, type = "prob", loss = loss) == .5),
     all(predict(tied_fit, tied, type = "class", loss = loss)$.pred_class == "z"))
+  }
 }
 
 # Minimal and unequal calibration sets on an imbalanced global domain.
@@ -273,13 +275,21 @@ if (exists("pair_fit")) local({
 })
 
 if (exists("pair_fit") && all(vapply(c("tune", "yardstick"), requireNamespace, logical(1), quietly = TRUE))) {
+  for (k in 2:4) {
+    classes <- c("z", "a b", "a.b", "4")[seq_len(k)]
+    data <- data.frame(x = c(NA, sin(2:90), 1000 + 1:30), row_id = 1:120,
+      truth = factor(rep(classes, length.out = 120), levels = classes))
+    base <- make_base(data)
+    pair_count <- length(pair_data(data))
+    plans <- lapply(pair_data(data), ordered)
   checker <- new.env()
   sys.source(system.file("examples", "calibrated-resampling.R", package = "vennabers"), checker)
   check <- checker$check_evaluation
   scoring <- yardstick::metric_set(yardstick::brier_class, yardstick::mn_log_loss)
   control <- tune::control_resamples(save_pred = TRUE, extract = identity, allow_par = FALSE)
   outer <- withr::with_seed(201, rsample::vfold_cv(data, v = 2, repeats = 2, strata = truth))
-  holdout <- rsample::make_splits(list(analysis = 1:96, assessment = 97:120), data)
+  assessment <- tail(seq_len(nrow(data)), ceiling(nrow(data) / 5L))
+  holdout <- rsample::make_splits(list(analysis = setdiff(seq_len(nrow(data)), assessment), assessment = assessment), data)
   for (loss in c("log", "brier")) {
     model <- calibrated_workflow(base, "truth", classification = "ovo", model_training = "pairwise", seed = 42, loss = loss)
     before <- length(audit$fits)
@@ -320,13 +330,14 @@ if (exists("pair_fit") && all(vapply(c("tune", "yardstick"), requireNamespace, l
     final <- tune::last_fit(model, holdout, metrics = scoring)
     p <- tune::collect_predictions(final)
     m <- tune::collect_metrics(final)
-    stopifnot(length(audit$fits) == before + 6L, nrow(tune::collect_notes(final)) == 0L,
-      identical(p$.row, 97:120), !anyDuplicated(p$.row), all(p$.config == "pre0_mod0_post0"),
-      identical(p$truth, data$truth[97:120]), nrow(m) == 2L,
+    stopifnot(length(audit$fits) == before + pair_count, nrow(tune::collect_notes(final)) == 0L,
+      identical(p$.row, assessment), !anyDuplicated(p$.row), all(p$.config == "pre0_mod0_post0"),
+      identical(p$truth, data$truth[assessment]), nrow(m) == 2L,
       setequal(m$.metric, c("brier_class", "mn_log_loss")), all(is.finite(m$.estimate)))
     changed <- data
-    changed$truth[97:120] <- classes[1L]
-    mutated <- tune::last_fit(model, rsample::make_splits(list(analysis = 1:96, assessment = 97:120), changed), metrics = scoring)
+    changed$truth[assessment] <- classes[1L]
+    mutated <- tune::last_fit(model, rsample::make_splits(
+      list(analysis = setdiff(seq_len(nrow(data)), assessment), assessment = assessment), changed), metrics = scoring)
     one <- tune::extract_workflow(final)
     two <- tune::extract_workflow(mutated)
     a <- workflows::extract_fit_engine(one)$pair_models
@@ -349,7 +360,9 @@ if (exists("pair_fit") && all(vapply(c("tune", "yardstick"), requireNamespace, l
       }
       partial <- rsample::manual_rset(list(holdout,
         rsample::make_splits(list(analysis = 1:80, assessment = 81:120), data)), c("First", "Second"))
-      for (sizes in list(36L, c(30L, 36L))) {
+      sizes <- vapply(partial$splits, function(split) nrow(rsample::analysis(
+        ordered(pair_data(rsample::analysis(split))[[1L]]))), 1L)
+      for (sizes in list(sizes[1L], sizes)) {
         broken <- workflows::update_model(base, parsnip::set_engine(spec, "reference", fail_size = sizes))
         bad_model <- calibrated_workflow(broken, "truth", classification = "ovo", model_training = "pairwise", splits = ordered)
         bad <- suppressWarnings(tune::fit_resamples(bad_model, partial, metrics = scoring, control = control))
@@ -367,5 +380,6 @@ if (exists("pair_fit") && all(vapply(c("tune", "yardstick"), requireNamespace, l
       stopifnot(nrow(tune::collect_notes(bad)) == nrow(outer))
       error(check(bad, outer, classification = "ovo"))
     }
+  }
   }
 }

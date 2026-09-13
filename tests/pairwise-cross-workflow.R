@@ -147,13 +147,13 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
         model_training = "pairwise", splits = resolver, seed = 42), data)
       stopifnot(identical(venn_abers_details(automatic, new), venn_abers_details(explicit, new)))
     }
-  }
   # Reject malformed later pairs before *any* training.
   before <- length(audit$fits)
   run <- function(plans) generics::fit(calibrated_workflow(base, "truth", classification = "ovo",
     model_training = "pairwise", method = "cross", splits = plans), data)
-  for (bad in list(plans[-1L], c(plans, plans[1L]), setNames(plans, rev(names(plans))),
-                   setNames(plans, rep("pair_1", length(plans))), unname(plans))) error(run(bad))
+  malformed <- if (length(plans) > 1L) list(plans[-1L], c(plans, plans[1L]),
+    setNames(plans, rev(names(plans))), setNames(plans, rep("pair_1", length(plans))), unname(plans)) else list()
+  for (bad in malformed) error(run(bad))
   for (change in c("values", "type", "levels", "order", "missing", "overlap", "duplicate", "fraction",
                    "empty", "outside", "na", "fold_id", "missing_id", "repeated", "forward", "coverage")) {
     bad <- plans
@@ -175,7 +175,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     if (change == "missing_id") bad[[j]]$id[1L] <- NA_character_
     if (change == "repeated") bad[[j]] <- rsample::vfold_cv(locals[[j]], v = 3, repeats = 2)
     if (change == "coverage") bad[[j]]$splits[[1L]] <- bad[[j]]$splits[[2L]]
-    error(run(bad), "pair_6")
+    error(run(bad), paste0("pair_", length(plans)))
   }
   error(generics::fit(calibrated_workflow(base, "truth", classification = "ovo", method = "cross",
     model_training = "pairwise", v = nrow(data) + 1L), data), "not reduced")
@@ -185,7 +185,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
   conflict <- prepared[[1L]]
   conflict$splits[[1L]]$in_id <- rev(conflict$splits[[1L]]$in_id)
   error(local_calibration_splits(c(prepared, list(conflict)), names(data)), "Conflicting")
-  for (change in c("pair", "classes", "pair_model", "fold_names")) {
+  if (length(plans) > 1L) for (change in c("pair", "classes", "pair_model", "fold_names")) {
     bad <- fit
     s <- bad$fit$fit$fit
     if (change == "pair") s$pair_models[c(1, 2)] <- s$pair_models[c(2, 1)]
@@ -195,7 +195,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     bad$fit$fit$fit <- s
     error(predict(bad, new, type = "prob"), "mapping")
   }
-  for (bad in list(list(fail_size = length(plans[[2L]]$splits[[2L]]$in_id)), list(bad = TRUE))) {
+  for (bad in list(list(fail_size = length(plans[[1L]]$splits[[1L]]$in_id)), list(bad = TRUE))) {
     broken <- workflows::update_model(base, do.call(parsnip::set_engine, c(list(spec, "reference"), bad)))
     error(generics::fit(calibrated_workflow(broken, "truth", classification = "ovo", method = "cross",
       model_training = "pairwise", splits = plans), data), "pair_")
@@ -214,9 +214,20 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     model_training = "pairwise", splits = partition), tied)
   for (loss in c("log", "brier")) stopifnot(all(predict(tied_fit, tied, type = "prob", loss = loss) == .5),
     all(predict(tied_fit, tied, type = "class", loss = loss)$.pred_class == "z"))
+  }
 }
 
 if (exists("pair_fit") && all(vapply(c("tune", "yardstick"), requireNamespace, logical(1), quietly = TRUE))) {
+  for (k in 2:4) {
+    classes <- c("z", "a b", "a.b", "4")[seq_len(k)]
+    n <- sum(18L + 6L * seq_len(k))
+    data <- data.frame(x = c(NA, sin(2:(n - 6L)), 1000 + 1:6), row_id = seq_len(n),
+      truth = factor(rep(classes, 18L + 6L * seq_len(k)), levels = classes))
+    base <- make_base(data)
+    locals <- pair_data(data)
+    plans <- setNames(lapply(seq_along(locals), function(i) partition(locals[[i]], 3L + i %% 3L)), names(locals))
+    pair_count <- length(locals)
+    fold_count <- nrow(partition(locals[[1L]]))
   checker <- new.env()
   sys.source(system.file("examples", "calibrated-resampling.R", package = "vennabers"), checker)
   check <- checker$check_evaluation
@@ -232,7 +243,7 @@ if (exists("pair_fit") && all(vapply(c("tune", "yardstick"), requireNamespace, l
       method = "cross", splits = partition, seed = 42, loss = loss)
     before <- length(audit$fits)
     result <- tune::fit_resamples(model, outer, metrics = scoring, control = control)
-    stopifnot(length(audit$fits) == before + nrow(outer) * 18L)
+    stopifnot(length(audit$fits) == before + nrow(outer) * fold_count * pair_count)
     checked <- check(result, outer, classification = "ovo")
     fits <- tune::collect_extracts(result)$.extracts
     prepared <- list()
@@ -275,7 +286,7 @@ if (exists("pair_fit") && all(vapply(c("tune", "yardstick"), requireNamespace, l
       before <- length(audit$fits)
       final <- evaluate(split)
       mutated <- evaluate(altered)
-      stopifnot(length(audit$fits) == before + 36L, nrow(tune::collect_notes(final)) == 0L,
+      stopifnot(length(audit$fits) == before + 2L * fold_count * pair_count, nrow(tune::collect_notes(final)) == 0L,
         nrow(tune::collect_notes(mutated)) == 0L)
       p <- tune::collect_predictions(final)
       m <- tune::collect_metrics(final)
@@ -323,5 +334,6 @@ if (exists("pair_fit") && all(vapply(c("tune", "yardstick"), requireNamespace, l
       stopifnot(nrow(tune::collect_notes(bad)) == nrow(outer))
       error(check(bad, outer, classification = "ovo"))
     }
+  }
   }
 }
