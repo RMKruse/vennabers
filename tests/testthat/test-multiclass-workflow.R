@@ -1,3 +1,4 @@
+testthat::test_that("multiclass-workflow", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 source("helper-helpers.R")
@@ -321,3 +322,6 @@ if (exists("multi_fit") && all(vapply(c("tune", "yardstick"), requireNamespace, 
               identical(p, original))
   }
 }
+
+  testthat::expect_true(TRUE)
+})

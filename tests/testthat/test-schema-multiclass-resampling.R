@@ -1,3 +1,4 @@
+testthat::test_that("schema-multiclass-resampling", {
 library(vennabers)
 if (all(vapply(c("tune", "yardstick", "rsample", "workflows", "recipes", "nnet", "future"),
                requireNamespace, logical(1), quietly = TRUE))) local({
@@ -143,4 +144,7 @@ if (all(vapply(c("tune", "yardstick", "rsample", "workflows", "recipes", "nnet",
               abs(yardstick::brier_class_vec(original$y, estimate) - brier_score(original$y, decoded) / 2) <= 1e-10,
               identical(unname(decoded), p))
   }
+})
+
+  testthat::expect_true(TRUE)
 })

@@ -1,3 +1,4 @@
+testthat::test_that("cross-venn-abers", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 
@@ -123,3 +124,6 @@ grDevices::dev.off()
 unlink(plot_file)
 stopifnot(!summary$visible, sum(summary$value$count) == nrow(newdata),
           identical(names(summary$value), c("mean_probability", "event_rate", "count")))
+
+  testthat::expect_true(TRUE)
+})

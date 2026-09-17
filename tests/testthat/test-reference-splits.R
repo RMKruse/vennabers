@@ -1,3 +1,4 @@
+testthat::test_that("reference-splits", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 source("helper-helpers.R")
@@ -253,3 +254,6 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "nnet", "withr", 
   if (status != 0L) stop(paste(readLines(output), collapse = "\n"))
   unlink(c(payload, script, output))
 }
+
+  testthat::expect_true(TRUE)
+})

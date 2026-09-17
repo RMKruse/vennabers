@@ -1,3 +1,4 @@
+testthat::test_that("inductive-regression", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 
@@ -126,4 +127,7 @@ local({
                "x <- readRDS(args[1L])", "saveRDS(predict(x$fit, x$newdata), args[2L])"), script)
   status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script), shQuote(input), shQuote(output)))
   stopifnot(status == 0, identical(readRDS(output), predict(fit, c(1, 0, -1))))
+})
+
+  testthat::expect_true(TRUE)
 })

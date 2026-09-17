@@ -1,3 +1,4 @@
+testthat::test_that("frozen-workflow", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 
@@ -230,4 +231,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
     expect_error(venn_abers_details(reference_fit, bad), "x")
   }
   expect_error(generics::fit(reference_fit, training), "fit")
+})
+
+  testthat::expect_true(TRUE)
 })

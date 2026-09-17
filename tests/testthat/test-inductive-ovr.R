@@ -1,3 +1,4 @@
+testthat::test_that("inductive-ovr", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 
@@ -105,3 +106,6 @@ for (precision in list(NULL, 0, 2, -1)) {
   }
 }
 stopifnot(rounding_changes_prediction)
+
+  testthat::expect_true(TRUE)
+})

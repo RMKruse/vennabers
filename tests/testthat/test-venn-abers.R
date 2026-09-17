@@ -1,3 +1,4 @@
+testthat::test_that("venn-abers", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 
@@ -223,3 +224,6 @@ for (bad_probability in invalid_probabilities) {
 }
 expect_error(calibration_plot(numeric(0), numeric(0)), "truth")
 expect_error(calibration_plot(c(0, 1), .5), "probability")
+
+  testthat::expect_true(TRUE)
+})

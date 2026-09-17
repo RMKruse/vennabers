@@ -1,3 +1,4 @@
+testthat::test_that("randomized-parity", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 
@@ -57,3 +58,6 @@ for (case_id in case_ids) {
 }
 
 stopifnot(maximum_error <= 1e-10)
+
+  testthat::expect_true(TRUE)
+})

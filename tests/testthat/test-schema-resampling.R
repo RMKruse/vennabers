@@ -1,3 +1,4 @@
+testthat::test_that("schema-resampling", {
 library(vennabers)
 if (all(vapply(c("tune", "yardstick", "rsample", "workflows", "recipes"),
                requireNamespace, logical(1), quietly = TRUE))) {
@@ -98,3 +99,6 @@ if (all(vapply(c("tune", "yardstick", "rsample", "workflows", "recipes"),
     }
   }
 }
+
+  testthat::expect_true(TRUE)
+})

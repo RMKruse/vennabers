@@ -1,3 +1,4 @@
+testthat::test_that("full-model-workflow", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 source("helper-helpers.R")
@@ -307,3 +308,6 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     }
   }
 }
+
+  testthat::expect_true(TRUE)
+})

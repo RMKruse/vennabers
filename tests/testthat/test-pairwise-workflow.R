@@ -1,3 +1,4 @@
+testthat::test_that("pairwise-workflow", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 source("helper-helpers.R")
@@ -384,3 +385,6 @@ if (exists("pair_fit") && all(vapply(c("tune", "yardstick"), requireNamespace, l
   }
   }
 }
+
+  testthat::expect_true(TRUE)
+})

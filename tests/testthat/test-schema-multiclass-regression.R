@@ -1,3 +1,4 @@
+testthat::test_that("schema-multiclass-regression", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 source("helper-helpers.R")
@@ -264,3 +265,6 @@ if (exists("encoded_fit")) {
     splits = rsample::manual_rset(plans, c("valid", "invalid"))), data), "invalid calibration size 2")
   stopifnot(fits == before)
 }
+
+  testthat::expect_true(TRUE)
+})

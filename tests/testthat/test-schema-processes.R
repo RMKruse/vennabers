@@ -1,3 +1,4 @@
+testthat::test_that("schema-processes", {
 library(vennabers)
 if (all(vapply(c("parsnip", "workflows", "recipes", "tune", "yardstick", "future", "rsample"),
                requireNamespace, logical(1), quietly = TRUE))) local({
@@ -61,4 +62,7 @@ if (all(vapply(c("parsnip", "workflows", "recipes", "tune", "yardstick", "future
     status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = output, stderr = output)
     if (status != 0L) stop(paste(readLines(output), collapse = "\n"))
   }
+})
+
+  testthat::expect_true(TRUE)
 })

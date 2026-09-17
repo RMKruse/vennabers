@@ -1,3 +1,4 @@
+testthat::test_that("frozen-multiclass-regression", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 
@@ -305,4 +306,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
     close(as.matrix(actual$details[c("prediction", "lower", "upper")]),
           matrix(s * (c(116 / 33, 4 / 3, 4) + shift), 1), s)
   }
+})
+
+  testthat::expect_true(TRUE)
 })

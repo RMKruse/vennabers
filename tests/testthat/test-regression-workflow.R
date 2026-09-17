@@ -1,3 +1,4 @@
+testthat::test_that("regression-workflow", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 source("helper-helpers.R")
@@ -305,3 +306,6 @@ if (all(vapply(c("tune", "yardstick", "rsample", "workflows", "recipes"),
   close(yardstick::rmse_vec(c(0, 3), c(0, 1)), sqrt(2))
   close(yardstick::mae_vec(c(0, 3), c(0, 1)), 1)
 }
+
+  testthat::expect_true(TRUE)
+})

@@ -1,3 +1,4 @@
+testthat::test_that("frozen-multiclass-processes", {
 library(vennabers)
 
 packages <- c("workflows", "parsnip", "recipes", "rsample", "hardhat", "rlang", "nnet",
@@ -56,4 +57,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
       unlink(path)
     }
   }
+})
+
+  testthat::expect_true(TRUE)
 })

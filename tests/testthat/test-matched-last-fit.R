@@ -1,3 +1,4 @@
+testthat::test_that("matched-last-fit", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 packages <- c("tune", "yardstick", "rsample", "workflows", "recipes", "nnet")
@@ -77,3 +78,6 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
       identical(state$calibration, workflows::extract_fit_engine(other)$calibration))
   }
 }
+
+  testthat::expect_true(TRUE)
+})

@@ -1,3 +1,4 @@
+testthat::test_that("inductive-multiclass", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 
@@ -242,4 +243,7 @@ local({
   }
   expect_error(calibration_plot(assessment, prob, bins = 0), "bins")
   stopifnot(identical(graphics::par("mfrow"), layout))
+})
+
+  testthat::expect_true(TRUE)
 })

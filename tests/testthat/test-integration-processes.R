@@ -1,3 +1,4 @@
+testthat::test_that("integration-processes", {
 # Each process uses an installed package; startup files cannot mask load order.
 package_root <- find.package("vennabers")
 package_library <- dirname(package_root)
@@ -196,3 +197,6 @@ if (all(vapply(c("parsnip", "workflows", "recipes", "tune", "yardstick", "future
     ))
   }
 }
+
+  testthat::expect_true(TRUE)
+})

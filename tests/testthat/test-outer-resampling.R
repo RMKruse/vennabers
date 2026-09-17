@@ -1,3 +1,4 @@
+testthat::test_that("outer-resampling", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 source("helper-helpers.R")
@@ -206,3 +207,6 @@ if (all(vapply(c("tune", "yardstick", "rsample", "workflows", "recipes"),
               identical(p, c(0, 1, .25, .75)))
   }
 }
+
+  testthat::expect_true(TRUE)
+})

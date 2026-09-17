@@ -1,3 +1,4 @@
+testthat::test_that("regression-parity", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 
@@ -70,3 +71,6 @@ for (i in seq_len(nrow(options))) {
     close(actual$upper, upper, option$scale)
   }
 }
+
+  testthat::expect_true(TRUE)
+})

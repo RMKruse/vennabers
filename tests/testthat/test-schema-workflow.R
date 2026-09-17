@@ -1,3 +1,4 @@
+testthat::test_that("schema-workflow", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 source("helper-helpers.R")
@@ -149,3 +150,6 @@ if (exists("model")) {
     }
   }
 }
+
+  testthat::expect_true(TRUE)
+})

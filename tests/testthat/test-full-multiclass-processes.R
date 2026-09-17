@@ -1,3 +1,4 @@
+testthat::test_that("full-multiclass-processes", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 packages <- c("workflows", "parsnip", "recipes", "rsample", "nnet")
@@ -60,4 +61,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
     status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
     if (status != 0L) stop(paste(readLines(log), collapse = "\n"))
   }
+})
+
+  testthat::expect_true(TRUE)
 })

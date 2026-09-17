@@ -1,3 +1,4 @@
+testthat::test_that("schema", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 error <- function(expr, pattern = "") {
@@ -171,3 +172,6 @@ for (schema in list(ms, rs)) {
   attr(original, "vennabers_schema") <- foreign_schema
   error(venn_abers_encode(original, schema), "different schema")
 }
+
+  testthat::expect_true(TRUE)
+})

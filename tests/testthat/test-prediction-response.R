@@ -1,3 +1,4 @@
+testthat::test_that("prediction-response", {
 library(vennabers)
 
 # Reject diagnostic requests while still running the real core prediction method.
@@ -53,3 +54,6 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     }
   }
 }
+
+  testthat::expect_true(TRUE)
+})

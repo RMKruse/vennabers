@@ -1,3 +1,4 @@
+testthat::test_that("print-costs", {
 library(vennabers)
 packages <- c("parsnip", "workflows", "rsample", "withr", "nnet")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
@@ -27,3 +28,6 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     }
   }
 }
+
+  testthat::expect_true(TRUE)
+})

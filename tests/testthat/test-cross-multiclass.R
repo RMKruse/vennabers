@@ -1,3 +1,4 @@
+testthat::test_that("cross-multiclass", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 
@@ -233,3 +234,6 @@ for (k in 2:4) {
     }
   }
 }
+
+  testthat::expect_true(TRUE)
+})

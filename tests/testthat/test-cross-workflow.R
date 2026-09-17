@@ -1,3 +1,4 @@
+testthat::test_that("cross-workflow", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 source("helper-helpers.R")
@@ -270,3 +271,6 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
     }
   }
 }
+
+  testthat::expect_true(TRUE)
+})

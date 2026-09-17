@@ -1,3 +1,4 @@
+testthat::test_that("cross-parity", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 
@@ -93,3 +94,6 @@ for (case_id in case_ids) {
 }
 cat("Cross reference maximum absolute errors: endpoints =", maximum_endpoint_error,
     "; probability =", maximum_probability_error, "\n")
+
+  testthat::expect_true(TRUE)
+})

@@ -1,3 +1,4 @@
+testthat::test_that("calibrated-workflow", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 source("helper-helpers.R")
@@ -250,3 +251,6 @@ if (all(vapply(integration_packages, requireNamespace, logical(1), quietly = TRU
             abs(learned$steps[[2L]]$means[["id"]] - mean(expected)) < 1e-10,
             abs(learned$steps[[2L]]$sds[["id"]] - sd(expected)) < 1e-10)
 }
+
+  testthat::expect_true(TRUE)
+})

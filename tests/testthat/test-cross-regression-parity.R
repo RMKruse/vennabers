@@ -1,3 +1,4 @@
+testthat::test_that("cross-regression-parity", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 
@@ -77,3 +78,6 @@ for (case in unique(options$case_id)) {
   close(as.matrix(predict(reordered, newdata[7:1, , drop = FALSE])),
         as.matrix(actual$prediction[7:1, ]), option$scale[1])
 }
+
+  testthat::expect_true(TRUE)
+})

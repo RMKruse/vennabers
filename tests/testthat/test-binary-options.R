@@ -1,3 +1,4 @@
+testthat::test_that("binary-options", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 
@@ -143,3 +144,6 @@ for (bad in list(NULL, NA_character_, "Class", "c", "", c("class", "response"),
 expect_error(predict(fit, .5, type = "details"), "type")
 expect_error(predict(fit, .5, precision = 2), "...")
 expect_error(predict(cross_fit, cross_input, precision = 2), "...")
+
+  testthat::expect_true(TRUE)
+})

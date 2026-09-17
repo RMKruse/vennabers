@@ -1,3 +1,4 @@
+testthat::test_that("assertion-labels", {
 walk_calls <- function(x, calls = list()) {
   if (!is.recursive(x)) return(calls)
   if (is.call(x) && identical(as.character(x[[1L]]), "stopifnot")) {
@@ -45,3 +46,6 @@ if (!all(inherits(failure, "error"),
          grepl("precision=NULL", conditionMessage(failure), fixed = TRUE))) {
   stop("The assertion diagnostic omitted a failed condition or loop value.", call. = FALSE)
 }
+
+  testthat::expect_true(TRUE)
+})

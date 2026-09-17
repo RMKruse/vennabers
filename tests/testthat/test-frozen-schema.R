@@ -1,3 +1,4 @@
+testthat::test_that("frozen-schema", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 
@@ -272,4 +273,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
   e <- tryCatch(calibrate_workflow(frozen, d[41:80, ], "y"), error = identity)
   stopifnot(inherits(e, "error"), grepl("Frozen calibration.*class.*x", conditionMessage(e)),
             grepl("probability|unique|duplicat", conditionMessage(e)))
+})
+
+  testthat::expect_true(TRUE)
 })

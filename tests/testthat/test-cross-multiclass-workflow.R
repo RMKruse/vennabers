@@ -1,3 +1,4 @@
+testthat::test_that("cross-multiclass-workflow", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 source("helper-helpers.R")
@@ -344,3 +345,6 @@ if (exists("cross_multi_fit") && all(vapply(c("tune", "yardstick"), requireNames
     error(check(failed, make_outer(data), classification = method), "")
   }
 }
+
+  testthat::expect_true(TRUE)
+})

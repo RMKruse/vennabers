@@ -1,3 +1,4 @@
+testthat::test_that("local-plans", {
 library(vennabers)
 if (all(vapply(c("parsnip", "workflows", "rsample", "withr"), requireNamespace,
                logical(1), quietly = TRUE))) local({
@@ -152,4 +153,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "withr"), requireNamespace,
   rm(".Random.seed", envir = .GlobalEnv)
   generics::fit(model, data)
   stopifnot(!exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE))
+})
+
+  testthat::expect_true(TRUE)
 })

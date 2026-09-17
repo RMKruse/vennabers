@@ -1,3 +1,4 @@
+testthat::test_that("binary-options-parity", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 
@@ -66,3 +67,6 @@ for (setting in unique(combined_reference$precision)) {
   }
 }
 cat("Binary option reference maximum absolute error:", maximum_error, "\n")
+
+  testthat::expect_true(TRUE)
+})
