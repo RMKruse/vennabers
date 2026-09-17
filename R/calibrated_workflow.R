@@ -6,7 +6,8 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                                 event_level = "first", calibration_prop = 0.2, v = 5L,
                                 strata = NULL, splits = NULL, seed = NULL, precision = NULL,
                                 loss = "log", m = NULL, epsilon = NULL, schema = NULL,
-                                prediction_model = "matched", model_training = "shared") {
+                                prediction_model = "matched", model_training = "shared",
+                                tuning = NULL) {
   .integration_dots(...)
   # Arguments before ... also need exact names (R otherwise partially matches).
   supplied <- names(sys.call())[-1L]
@@ -14,6 +15,7 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   if (length(bad)) stop("Unknown argument: ", sQuote(bad[1L]), ".", call. = FALSE)
   explicit_classification <- !missing(classification)
   explicit_event <- !missing(event_level)
+  explicit_tuning <- !missing(tuning)
   if (!is.null(schema)) {
     .validate_schema(schema)
     if (!identical(outcome, schema$encoded_outcome) ||
@@ -45,7 +47,7 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     stop("`model_training = 'pairwise'` requires classification = 'ovo'.", call. = FALSE)
   }
   .integration_packages()
-  mode <- .validate_base_workflow(workflow, outcome, classification)
+  mode <- .validate_base_workflow(workflow, outcome, classification, allow_tune = !is.null(tuning))
   if (!is.null(schema)) {
     if (!identical(mode, schema$mode)) stop("Base workflow mode must agree with `schema`.", call. = FALSE)
     pre <- workflows::extract_preprocessor(workflow)
@@ -79,7 +81,7 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     stop("`event_level` requires classification = 'binary'.", call. = FALSE)
   }
   .validate_choice(event_level, c("first", "second"), "event_level")
-  .validate_choice(loss, c("log", "brier"), "loss")
+  if (is.null(.tune_id(loss))) .validate_choice(loss, c("log", "brier"), "loss")
   if (method == "inductive" && !missing(v)) stop("`v` requires method = 'cross'.", call. = FALSE)
   if (method == "cross" && !missing(calibration_prop)) {
     stop("`calibration_prop` requires method = 'inductive'.", call. = FALSE)
@@ -100,7 +102,8 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                         !is.finite(seed) || seed != floor(seed) || abs(seed) > .Machine$integer.max)) {
     stop("`seed` must be NULL or one integer in R's seed range.", call. = FALSE)
   }
-  if (!is.null(precision) && (!is.numeric(precision) || !is.vector(precision) ||
+  if (!is.null(precision) && is.null(.tune_id(precision)) &&
+      (!is.numeric(precision) || !is.vector(precision) ||
                             length(precision) != 1L || !is.finite(precision) || precision != floor(precision))) {
     stop("`precision` must be NULL or one finite numeric whole number.", call. = FALSE)
   }
@@ -117,18 +120,23 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
       stop("Explicit `splits` cannot be combined with `calibration_prop`, `v` or `strata`.", call. = FALSE)
     }
   }
+  tuning <- .validate_tuning(tuning, workflow, mode, classification, loss, precision, seed)
+  if (!is.null(tuning$calibration) && !is.null(splits) && !is.function(splits)) {
+    stop("Calibration grid selection requires a local `splits` provider function or NULL.", call. = FALSE)
+  }
   .register_vennabers()
   requested <- list(mode = mode, predictors = predictors, method = method, classification = classification,
                     event_level = event_level, calibration_prop = calibration_prop, v = v,
                     strata = strata, splits = splits, seed = seed, precision = precision, loss = loss,
                     m = m, epsilon = epsilon, prediction_model = prediction_model,
-                    model_training = if (!regression && classification != "binary") model_training else NULL)
+                    model_training = if (!regression && classification != "binary") model_training else NULL,
+                    tuning = tuning)
   explicit <- c(predictors = !missing(predictors), method = !missing(method),
                 classification = explicit_classification, event_level = explicit_event,
                 calibration_prop = !missing(calibration_prop), v = !missing(v), strata = !missing(strata),
                 splits = !missing(splits), seed = !missing(seed), precision = !missing(precision), loss = !missing(loss),
                 m = !missing(m), epsilon = !missing(epsilon), prediction_model = !missing(prediction_model),
-                model_training = !missing(model_training))
+                model_training = !missing(model_training), tuning = explicit_tuning)
   spec <- parsnip::new_model_spec("vennabers", args = list(), eng_args = NULL,
                                 mode = mode, method = NULL, engine = method)
   spec <- parsnip::set_engine(spec, method, base_workflow = workflow,
@@ -171,7 +179,7 @@ predict.vennabers_workflow <- function(object, new_data, ...) {
                      ": names must be unique, nonmissing and nonempty; rename explicitly.", call. = FALSE)
 }
 
-.validate_base_workflow <- function(workflow, outcome, classification) {
+.validate_base_workflow <- function(workflow, outcome, classification, allow_tune = FALSE) {
   if (!inherits(workflow, "workflow")) stop("`workflow` must be an unfitted workflow.", call. = FALSE)
   fitted <- tryCatch(workflows::extract_fit_parsnip(workflow), error = function(e) NULL)
   if (!is.null(fitted)) stop("`workflow` is already fitted.", call. = FALSE)
@@ -195,7 +203,7 @@ predict.vennabers_workflow <- function(object, new_data, ...) {
       stop("Base formula outcome must be the raw column ", sQuote(outcome), ".", call. = FALSE)
     }
   }
-  if (nrow(generics::tune_args(workflow))) stop("Resolve all tune() placeholders before calibration.", call. = FALSE)
+  if (!allow_tune && nrow(generics::tune_args(workflow))) stop("Resolve all tune() placeholders before calibration.", call. = FALSE)
   spec$mode
 }
 
@@ -224,11 +232,22 @@ predict.vennabers_workflow <- function(object, new_data, ...) {
 # Public only as a parsnip engine entry point; use calibrated_workflow().
 #' @export
 fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
+  if (isTRUE(parameters$grid_proxy)) {
+    return(.fit_grid_candidate(x, y, outcome, base_workflow,
+                               parameters$candidate_workflow, parameters$candidates,
+                               parameters$event_level, parameters$counter))
+  }
   .integration_packages()
   settings <- parameters$requested
+  if (!is.null(settings$tuning) && is.null(settings$.fit_counter)) {
+    settings$.fit_counter <- new.env(parent = emptyenv())
+    settings$.fit_counter$n <- 0L
+  }
+  parameters$requested <- settings
   regression <- settings$mode == "regression"
   multiclass <- !regression && settings$classification != "binary"
-  .validate_base_workflow(base_workflow, outcome, settings$classification)
+  .validate_base_workflow(base_workflow, outcome, settings$classification,
+                          allow_tune = !is.null(settings$tuning$model))
   .integration_names(names(x), "input column")
   if (is.data.frame(y) && ncol(y) == 1L) y <- y[[1L]]
   classes <- .integration_truth(y, outcome, settings$classification, settings$mode)
@@ -240,6 +259,20 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   if (!is.null(parameters$schema)) {
     .schema_encoded_data(raw, parameters$schema, truth = TRUE)
     raw <- .bind_schema(raw, parameters$schema)
+  }
+  if (!is.null(settings$seed)) withr::local_seed(settings$seed)
+  original_tuning <- settings$tuning
+  tuning_result <- NULL
+  if (!is.null(settings$tuning$calibration)) {
+    chosen <- .choose_calibration(raw, base_workflow, outcome, parameters)
+    raw <- chosen$data
+    y <- raw[[outcome]]
+    settings <- chosen$settings
+    parameters$requested <- settings
+    tuning_result <- chosen$diagnostics
+    if (any(tabulate(y, nbins = length(classes)) == 0L)) {
+      stop("Final fit F must contain both binary classes after the S/F split.", call. = FALSE)
+    }
   }
   pre <- workflows::extract_preprocessor(base_workflow)
   if (inherits(pre, "workflow_variables") &&
@@ -258,7 +291,6 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   parameters$effective <- effective
   event <- if (regression || multiclass) NULL else classes[if (settings$event_level == "first") 1L else 2L]
   # One local RNG scope includes the resolver, split generation and model learning.
-  if (!is.null(settings$seed)) withr::local_seed(settings$seed)
   rng_kind <- RNGkind()
   state <- structure(list(parameters = parameters, schema = parameters$schema, outcome = outcome,
     predictors = names(x), columns = names(raw), class_levels = classes,
@@ -266,7 +298,10 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     versions = c(R = as.character(getRversion()),
       vapply(unique(c("vennabers", names(.integration_versions), generics::required_pkgs(base_workflow))),
         function(p) as.character(utils::packageVersion(p)), "")),
-    rng_kind = rng_kind), class = "vennabers_fit")
+    rng_kind = rng_kind,
+    tuning = if (!is.null(settings$tuning)) list(config = original_tuning,
+      calibration = tuning_result, models = NULL, seed = settings$seed) else NULL),
+    class = "vennabers_fit")
   if (identical(settings$model_training, "pairwise")) {
     return(.fit_pairwise(base_workflow, raw, state))
   }
@@ -277,6 +312,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     if (!is.null(settings$epsilon)) moderation$epsilon <- settings$epsilon
   }
   domain <- list(data = raw, workflow = base_workflow, plan = settings$splits,
+    schema = parameters$schema,
     outcome = outcome, strata = effective$strata, classes = classes, event = event, y = y,
     rows_word = "local rows", seed_wrap = FALSE,
     precheck = if (cross && is.null(settings$splits)) function(local) {
@@ -323,6 +359,11 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   state$sources <- component$sources
   state$calibrator <- component$calibrator
   state$calibration <- component$calibration
+  if (!is.null(state$tuning)) state$tuning$models <- component$model_selection
+  if (!is.null(settings$.fit_counter)) {
+    state$parameters$requested$.fit_counter <- NULL
+    if (!is.null(state$tuning)) state$tuning$cost <- list(observed_base_fits = settings$.fit_counter$n)
+  }
   state
 }
 
@@ -390,11 +431,15 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   event <- domain$event
   y <- domain$y
   models <- calibration_predictions <- truths <- fold_ids <- vector("list", length(folds))
+  model_selection <- vector("list", length(folds))
   names(models) <- names(folds)
+  names(model_selection) <- names(folds)
   for (id in names(folds)) {
     analysis <- folds[[id]]$analysis
     assessment <- folds[[id]]$assessment
-    models[[id]] <- tryCatch(generics::fit(workflow, local[analysis, , drop = FALSE]),
+    selected <- .choose_model(workflow, local[analysis, , drop = FALSE], domain, settings)
+    model_selection[id] <- list(selected$diagnostics)
+    models[[id]] <- tryCatch(.fit_base_model(selected$workflow, local[analysis, , drop = FALSE], settings),
       error = function(e) domain$fit_error(id, e))
     k <- match(id, names(folds))
     calibration_predictions[[k]] <- task$pred(models[[id]], local[assessment, , drop = FALSE], domain$pred_id(id), classes, event)
@@ -407,18 +452,20 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   }), names(folds))
   # `sources` maps every fold slot to the model that predicts it: itself when
   # matched, the shared Full1 refit when full.
-  c(domain$fields(), list(folds = folds, models = models,
+  c(domain$fields(), list(folds = folds, models = models, model_selection = model_selection,
     sources = stats::setNames(names(folds), names(folds)),
     calibrator = calibrator, calibration = calibration))
 }
 
 .fit_component_full <- function(component, domain, task, settings) {
   local <- domain$data
-  model <- tryCatch(generics::fit(domain$workflow, local), error = domain$full_error)
+  selected <- .choose_model(domain$workflow, local, domain, settings)
+  model <- tryCatch(.fit_base_model(selected$workflow, local, settings), error = domain$full_error)
   # Check the prediction contract without using full-model values for calibration.
   task$pred(model, local[1L, , drop = FALSE], domain$pred_id("Full1"), domain$classes, domain$event)
   # Discard temporary source workflows only after the complete fit succeeds.
   component$models <- list(Full1 = model)
+  component$model_selection["Full1"] <- list(selected$diagnostics)
   component$sources[] <- "Full1"
   component
 }
@@ -653,11 +700,21 @@ predict_vennabers_numeric <- function(object, new_data) {
 
 #' @export
 predict_vennabers_prob <- function(object, new_data) {
+  if (inherits(object, "vennabers_grid_fit")) {
+    return(stats::predict(object$fitted, new_data, type = "prob"))
+  }
   .integration_prediction(object, new_data)$prediction
 }
 
 #' @export
 predict_vennabers_class <- function(object, new_data) {
+  if (inherits(object, "vennabers_grid_fit")) {
+    probabilities <- predict_vennabers_prob(object, new_data)
+    classes <- object$class_levels
+    event <- classes[if (object$event_level == "first") 1L else 2L]
+    return(factor(ifelse(probabilities[[paste0(".pred_", event)]] >= .5,
+                         event, setdiff(classes, event)), levels = classes))
+  }
   probabilities <- .integration_prediction(object, new_data)$prediction
   if (object$parameters$requested$classification != "binary") {
     return(factor(object$class_levels[max.col(as.matrix(probabilities), ties.method = "first")],

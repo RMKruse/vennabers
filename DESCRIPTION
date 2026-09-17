@@ -37,6 +37,7 @@ Suggests:
     tailor (>= 0.1.0),
     probably (>= 1.1.0),
     tune (>= 2.1.0),
+    dials (>= 1.4.0),
     yardstick (>= 1.4.0),
     future (>= 1.67.0),
     testthat (>= 3.0.0)

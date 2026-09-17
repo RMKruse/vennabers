@@ -102,6 +102,36 @@ The example uses smooth multinomial Tailor calibration: the tested probably
 
 ## Automatic classification workflow calibration
 
+### Binary grid selection
+
+Set `tuning = list(strategy = "joint", ...)` to choose model/recipe and
+calibration settings by calibrated assessment predictions. With
+`strategy = "two_stage"`, local model/recipe selection uses uncalibrated
+predictions first; calibration settings are then selected while that first
+stage's rule stays fixed. Mark parameters with unique `tune::tune("id")` IDs.
+Each `model` or `calibration` search needs `method = "grid"`, a grid table
+(or integer size with dials `param_info`, generated in each local search), and
+local `resamples = function(data)`.
+The main metric defaults to `yardstick::mn_log_loss`; it is separate from the
+calibrator's `loss`. Additional metrics are reports and cannot change the winner.
+
+When calibration options are searched, set `selection_prop` or
+`selection_split` explicitly. Its selection rows S are excluded from final fit
+rows F. Local model grids run again inside each permitted training portion,
+including a separate search for `prediction_model = "full"`. Only candidates
+with finite complete predictions and a valid main score on every resample can
+win; exact ties keep grid order. `venn_abers_tuning(fitted)` records native
+`tune_grid()` results, candidates, plans, choices, data roles, a gross fit
+estimate when plan sizes are known, and observed base-fit attempts. Outer `fit_resamples()` and
+`last_fit()` rerun selection within their own analysis data.
+
+The installed example runs both strategies and the narrower loss-only choice
+after a fixed fit, which uses validation predictions without a new training API:
+
+```r
+source(system.file("examples", "binary-grid.R", package = "vennabers"))
+```
+
 `calibrated_workflow(base, outcome = "truth", seed = 42)` wraps a configured,
 unfitted tidymodels workflow. Use `generics::fit()` on development data, then
 ordinary `predict(..., type = "prob")` or `type = "class"`. The outer Variables

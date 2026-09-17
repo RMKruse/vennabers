@@ -20,7 +20,7 @@ Reversible name encoding for binary, OvO/OvR and regression is available through
 Frozen classification/regression workflow adoption is available through \code{\link{calibrate_workflow}}.
 Ordered reference holdouts and binary/shared multiclass full-model transfer are supported.
 Matched/full Inductive and Cross pair training are also supported in v0.7.
-Automatic local tuning follows in v0.8 and
+Binary joint/two-stage grid selection is available in v0.8; other tuning follows later in v0.8 and
 learned postprocessing in v0.9. Shared multiclass training does not establish
 complete Python training parity.
 }
@@ -29,7 +29,7 @@ calibrated_workflow(workflow, outcome, ..., predictors = NULL,
   method = "inductive", classification = "binary", event_level = "first",
   calibration_prop = 0.2, v = 5L, strata = NULL, splits = NULL, seed = NULL,
   precision = NULL, loss = "log", m = NULL, epsilon = NULL, schema = NULL,
-  prediction_model = "matched", model_training = "shared")
+  prediction_model = "matched", model_training = "shared", tuning = NULL)
 venn_abers_details(object, new_data, ..., loss = NULL)
 \method{predict}{_vennabers_fit}(object, new_data, type = NULL,
   opts = list(), ..., loss = NULL)
@@ -37,7 +37,27 @@ venn_abers_details(object, new_data, ..., loss = NULL)
 \arguments{
 \item{workflow}{An unfitted workflows object with a classification or regression model and
 recipe, formula, or variable selection. Prepped or partly trained recipes,
-unresolved tune placeholders, and additional postprocessors are rejected.}
+unresolved tune placeholders without \code{tuning}, and additional postprocessors are rejected.}
+\item{tuning}{NULL keeps fixed settings. For binary classification, a named list
+with \code{strategy = "joint"} or \code{"two_stage"} and \code{model} and/or
+\code{calibration} searches matching the present \code{tune()} placeholders.
+Each search has \code{method = "grid"}, a concrete grid data frame with columns
+named by placeholder IDs or a positive integer grid size with dials
+\code{param_info}, and \code{resamples = function(data) ...} (or a locally bound
+rsample rset). Optional \code{primary_metric} defaults to
+\code{yardstick::mn_log_loss}; \code{report_metrics} are independent yardstick
+metrics. Explicit \code{control} must be a \code{tune::control_grid()}
+with \code{save_pred=TRUE}. Inner parallelism is disabled, and a custom
+\code{extract} callback is unavailable because selection uses extraction for
+diagnostics.
+Model/recipe and calibration IDs must be unique. Calibration search requires
+exactly one of \code{selection_prop} (the proportion reserved for selection S)
+or \code{selection_split} (rsplit or function, with analysis=final fit F and
+assessment=selection S). S is never included in F. Automatic calibration
+selection requires \code{splits=NULL} or a local plan provider function.
+Loss candidates are \code{"log"}/\code{"brier"}; precision candidates are
+\code{"none"}, \code{"0"}, \code{"2"}, and \code{"-2"}. See
+\code{\link{venn_abers_tuning}} for selections and diagnostics.}
 \item{schema}{NULL retains the direct naming contract. A schema from
 \code{venn_abers_schema()} fixes the encoded input names, mode, class order and binary event.
 Omitted classification/event options inherit the schema; contradictory explicit
@@ -411,7 +431,8 @@ model predictions. Pairwise calibration rows count membership in each pair.}
 calibration observations from source learning only. The extra full model includes
 them. Existing matching-model calibration or coverage guarantees do not
 automatically transfer to this differently trained model; improved quality is
-not guaranteed. All settings are fixed, with no automatic search or mode choice.
+not guaranteed. Binary grids give Full1 its own local model/recipe search;
+the training method and prediction-model mode remain fixed per run.
 \code{fit_resamples()} rebuilds the complete procedure inside each outer analysis
 domain. \code{last_fit()} trains solely on its analysis domain, never analysis
 plus test. \code{calibrate_workflow()} remains a frozen-model path and does not
