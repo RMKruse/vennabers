@@ -22,3 +22,5 @@ renv/python/
 CONTEXT.md
 tools/
 .DS_Store
+inst/
+
