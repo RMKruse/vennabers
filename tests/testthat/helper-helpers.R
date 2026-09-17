@@ -1,4 +1,6 @@
 register_reference_engine <- function(model, mode, fit, predict, type, engine = "reference", new_model = TRUE) {
+  assign(fit, get(fit, envir = parent.frame()), envir = globalenv())
+  assign(predict, get(predict, envir = parent.frame()), envir = globalenv())
   if (new_model) parsnip::set_new_model(model)
   parsnip::set_model_mode(model, mode)
   parsnip::set_model_engine(model, mode, engine)

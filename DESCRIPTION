@@ -38,5 +38,7 @@ Suggests:
     probably (>= 1.1.0),
     tune (>= 2.1.0),
     yardstick (>= 1.4.0),
-    future (>= 1.67.0)
+    future (>= 1.67.0),
+    testthat (>= 3.0.0)
 Config/roxygen2/version: 8.1.0
+Config/testthat/edition: 3

@@ -13,8 +13,11 @@ walk_calls <- function(x, calls = list()) {
   calls
 }
 
-files <- c(list.files("tests", "\\.R$", full.names = TRUE),
-           list.files("inst/examples", "\\.R$", full.names = TRUE))
+root <- Sys.getenv("TESTTHAT_WD")
+examples <- file.path(root, "inst", "examples")
+if (!dir.exists(examples)) examples <- system.file("examples", package = "vennabers")
+files <- c(list.files(".", "^test-.*\\.R$", full.names = TRUE),
+           list.files(examples, "\\.R$", full.names = TRUE))
 for (file in files) {
   labels <- walk_calls(parse(file))
   if (length(labels)) {
@@ -22,8 +25,8 @@ for (file in files) {
   }
 }
 
-source(if (file.exists("inst/examples/assertions.R")) {
-  "inst/examples/assertions.R"
+source(if (file.exists(file.path(examples, "assertions.R"))) {
+  file.path(examples, "assertions.R")
 } else {
   system.file("examples", "assertions.R", package = "vennabers")
 })

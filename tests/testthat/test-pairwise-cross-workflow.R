@@ -1,6 +1,6 @@
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
-source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
+source("helper-helpers.R")
 
 packages <- c("parsnip", "workflows", "recipes", "rsample", "withr")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {

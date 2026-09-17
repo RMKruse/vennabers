@@ -1,5 +1,12 @@
-# Each process uses the installed package; startup files cannot mask load order.
-package_library <- dirname(find.package("vennabers"))
+# Each process uses an installed package; startup files cannot mask load order.
+package_root <- find.package("vennabers")
+package_library <- dirname(package_root)
+if (file.exists(file.path(package_root, "R", "venn_abers.R"))) {
+  package_library <- withr::local_tempdir("vennabers-library-")
+  status <- system2(file.path(R.home("bin"), "R"),
+                    c("CMD", "INSTALL", paste0("--library=", package_library), package_root))
+  if (status != 0L) stop("Could not install vennabers for process tests.", call. = FALSE)
+}
 run_process <- function(code, libraries = .libPaths()) {
   script <- tempfile(fileext = ".R")
   output <- tempfile(fileext = ".log")
