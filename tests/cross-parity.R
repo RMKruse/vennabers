@@ -1,7 +1,8 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 fixture <- function(name) {
-  path <- system.file("extdata", paste0("cross-", name, ".csv"), package = "vennabers")
+  path <- file.path("extdata", paste0("cross-", name, ".csv"))
   stopifnot(nzchar(path))
   read.csv(path, stringsAsFactors = FALSE)
 }
@@ -17,17 +18,12 @@ sizes <- vapply(random_folds, nrow, 0L)
 class_counts <- vapply(random_folds, function(x) length(unique(x$truth)), 0L)
 fold_counts <- vapply(split(random_calibration$fold, random_calibration$case_id),
                       function(x) length(unique(x)), 0L)
-stopifnot(
-  length(case_ids) == 105L, length(random_ids) == 100L,
-  identical(sort(unique(fold_counts)), 2:10),
-  identical(sort(unique(sizes)), 1:200),
-  identical(sort(unique(class_counts)), 1:2),
-  any(vapply(random_folds, function(x) anyDuplicated(x$probability) > 0, FALSE)),
-  any(vapply(random_folds, function(x) nrow(x) > 1L && !anyDuplicated(x$probability), FALSE)),
-  identical(as.integer(table(combined$case_id[combined$case_id %in% random_ids])), rep(25L, 100)),
-  identical(sort(unique(prediction$case_id)), sort(case_ids)),
-  identical(sort(unique(combined$case_id)), sort(case_ids))
-)
+assert_conditions(length(case_ids) == 105L, length(random_ids) == 100L, identical(sort(unique(fold_counts)),
+    2:10), identical(sort(unique(sizes)), 1:200), identical(sort(unique(class_counts)), 1:2), any(vapply(random_folds,
+    function(x) anyDuplicated(x$probability) > 0, FALSE)), any(vapply(random_folds, function(x) nrow(x) >
+    1L && !anyDuplicated(x$probability), FALSE)), identical(as.integer(table(combined$case_id[combined$case_id %in%
+    random_ids])), rep(25L, 100)), identical(sort(unique(prediction$case_id)), sort(case_ids)), identical(sort(unique(combined$case_id)),
+    sort(case_ids)))
 
 maximum_endpoint_error <- maximum_probability_error <- 0
 for (case_id in case_ids) {
@@ -47,10 +43,9 @@ for (case_id in case_ids) {
     # The existing public IVAP boundary supplies the endpoints composed by
     # cross prediction; this does not freeze the cross object's storage layout.
     endpoints <- stats::predict(venn_abers(a$truth, a$probability), b$probability)
-    stopifnot(identical(dim(endpoints), c(nrow(expected), 3L)),
-              identical(names(endpoints), c("lower", "upper", "probability")),
-              all(vapply(endpoints, is.double, FALSE)),
-              all(is.finite(as.matrix(endpoints))), all(endpoints >= 0 & endpoints <= 1))
+    assert_conditions(identical(dim(endpoints), c(nrow(expected), 3L)), identical(names(endpoints), c("lower",
+        "upper", "probability")), all(vapply(endpoints, is.double, FALSE)), all(is.finite(as.matrix(endpoints))),
+        all(endpoints >= 0 & endpoints <= 1))
     error <- max(abs(as.matrix(endpoints[c("lower", "upper")]) -
                        as.matrix(b[c("lower", "upper")])))
     if (error > 1e-10) stop("Fold endpoint parity failed: ", case_id, "/", id)
@@ -61,9 +56,9 @@ for (case_id in case_ids) {
   stopifnot(identical(expected$row, seq_len(nrow(expected))))
   fit <- cross_venn_abers(cal$truth, cal$probability, cal$fold)
   actual <- stats::predict(fit, input)
-  stopifnot(is.data.frame(actual), identical(names(actual), "probability"),
-            identical(dim(actual), c(nrow(expected), 1L)), is.double(actual$probability),
-            all(is.finite(actual$probability)), all(actual >= 0 & actual <= 1))
+  assert_conditions(is.data.frame(actual), identical(names(actual), "probability"), identical(dim(actual),
+      c(nrow(expected), 1L)), is.double(actual$probability), all(is.finite(actual$probability)), all(actual >=
+      0 & actual <= 1))
   error <- max(abs(actual$probability - expected$probability))
   if (error > 1e-10) stop("Cross probability parity failed: ", case_id)
   maximum_probability_error <- max(maximum_probability_error, error)
@@ -83,9 +78,8 @@ for (case_id in case_ids) {
   }
   if (case_id == "near_knots") {
     # CSV round-tripping must preserve the exact knot and its neighbours.
-    stopifnot(input[1, 1] < .5, input[2, 1] == .5,
-              input[3, 1] > .5, input[3, 1] - .5 == .Machine$double.eps / 2,
-              cal$probability[2] == input[3, 1])
+    assert_conditions(input[1, 1] < 0.5, input[2, 1] == 0.5, input[3, 1] > 0.5, input[3, 1] - 0.5 == .Machine$double.eps/2,
+        cal$probability[2] == input[3, 1])
   }
   if (case_id == "unequal") {
     averaged <- rowMeans(upper / (1 - lower + upper))

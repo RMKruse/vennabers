@@ -1,4 +1,5 @@
 # Run against an installed package. This audit is for one fixed configuration.
+source(system.file("examples", "assertions.R", package = "vennabers"))
 check_encoded_evaluation <- function(result, outer, schema) {
   notes <- tune::collect_notes(result)
   native <- tune::collect_predictions(result, summarize = FALSE)
@@ -14,7 +15,7 @@ check_encoded_evaluation <- function(result, outer, schema) {
           .row = rows, .config = "pre0_mod0_post0")
   }))
   actual <- decoded$identity
-  stopifnot(!anyNA(actual), !anyDuplicated(actual), nrow(actual) == nrow(expected),
+  assert_conditions(!anyNA(actual), !anyDuplicated(actual), nrow(actual) == nrow(expected),
             nrow(merge(actual, expected, by = names(expected))) == nrow(expected),
             !anyDuplicated(metrics[c(ids, ".config", ".metric")]), nrow(metrics) == 2L * nrow(outer),
             all(metrics$.estimator == if (schema$mode == "regression") "standard" else

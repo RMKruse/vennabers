@@ -5,7 +5,8 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                                 method = "inductive", classification = "binary",
                                 event_level = "first", calibration_prop = 0.2, v = 5L,
                                 strata = NULL, splits = NULL, seed = NULL, precision = NULL,
-                                loss = "log", m = NULL, epsilon = NULL, schema = NULL) {
+                                loss = "log", m = NULL, epsilon = NULL, schema = NULL,
+                                prediction_model = "matched", model_training = "shared") {
   .integration_dots(...)
   # Arguments before ... also need exact names (R otherwise partially matches).
   supplied <- names(sys.call())[-1L]
@@ -37,6 +38,12 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   }
   .validate_choice(method, c("inductive", "cross"), "method")
   .validate_choice(classification, c("binary", "ovo", "ovr"), "classification")
+  .validate_choice(prediction_model, c("matched", "full"), "prediction_model")
+  .validate_choice(model_training, c("shared", "pairwise"), "model_training")
+  pairwise <- model_training == "pairwise"
+  if (pairwise && classification != "ovo") {
+    stop("`model_training = 'pairwise'` requires classification = 'ovo'.", call. = FALSE)
+  }
   .integration_packages()
   mode <- .validate_base_workflow(workflow, outcome, classification)
   if (!is.null(schema)) {
@@ -45,6 +52,9 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     if (inherits(pre, "recipe") && !is.null(pre$template)) .schema_encoded_data(pre$template, schema, truth = TRUE)
   }
   regression <- mode == "regression"
+  if ((regression || classification == "binary") && !missing(model_training)) {
+    stop("`model_training` requires classification = 'ovo' or 'ovr'.", call. = FALSE)
+  }
   if (regression && (explicit_classification || explicit_event ||
                      !missing(precision) || !missing(loss))) {
     stop("Regression does not accept explicit classification, event_level, precision or loss options.", call. = FALSE)
@@ -95,7 +105,11 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     stop("`precision` must be NULL or one finite numeric whole number.", call. = FALSE)
   }
   if (!is.null(splits)) {
-    if (!inherits(splits, if (method == "cross") "rset" else "rsplit") && !is.function(splits)) {
+    if (pairwise && !is.function(splits) &&
+        (!is.list(splits) || inherits(splits, c("rsplit", "rset", "data.frame")))) {
+      stop("Pairwise `splits` must be a function of local pair data or a named list of pair plans.", call. = FALSE)
+    }
+    if (!pairwise && !inherits(splits, if (method == "cross") "rset" else "rsplit") && !is.function(splits)) {
       stop("`splits` must be NULL, an IID ", if (method == "cross") "Cross rset" else "holdout rsplit",
            ", or a function of local data.", call. = FALSE)
     }
@@ -107,12 +121,14 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   requested <- list(mode = mode, predictors = predictors, method = method, classification = classification,
                     event_level = event_level, calibration_prop = calibration_prop, v = v,
                     strata = strata, splits = splits, seed = seed, precision = precision, loss = loss,
-                    m = m, epsilon = epsilon)
+                    m = m, epsilon = epsilon, prediction_model = prediction_model,
+                    model_training = if (!regression && classification != "binary") model_training else NULL)
   explicit <- c(predictors = !missing(predictors), method = !missing(method),
                 classification = explicit_classification, event_level = explicit_event,
                 calibration_prop = !missing(calibration_prop), v = !missing(v), strata = !missing(strata),
                 splits = !missing(splits), seed = !missing(seed), precision = !missing(precision), loss = !missing(loss),
-                m = !missing(m), epsilon = !missing(epsilon))
+                m = !missing(m), epsilon = !missing(epsilon), prediction_model = !missing(prediction_model),
+                model_training = !missing(model_training))
   spec <- parsnip::new_model_spec("vennabers", args = list(), eng_args = NULL,
                                 mode = mode, method = NULL, engine = method)
   spec <- parsnip::set_engine(spec, method, base_workflow = workflow,
@@ -244,84 +260,230 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   # One local RNG scope includes the resolver, split generation and model learning.
   if (!is.null(settings$seed)) withr::local_seed(settings$seed)
   rng_kind <- RNGkind()
-  if (settings$method == "cross" && is.null(settings$splits) && settings$v > nrow(raw)) {
-    stop("`v` cannot exceed the number of local rows; the fold count is not reduced.", call. = FALSE)
+  state <- structure(list(parameters = parameters, schema = parameters$schema, outcome = outcome,
+    predictors = names(x), columns = names(raw), class_levels = classes,
+    event_class = event, loss = effective$loss,
+    versions = c(R = as.character(getRversion()),
+      vapply(unique(c("vennabers", names(.integration_versions), generics::required_pkgs(base_workflow))),
+        function(p) as.character(utils::packageVersion(p)), "")),
+    rng_kind = rng_kind), class = "vennabers_fit")
+  if (identical(settings$model_training, "pairwise")) {
+    return(.fit_pairwise(base_workflow, raw, state))
   }
-  split <- tryCatch(if (is.function(settings$splits)) {
-    settings$splits(raw)
-  } else if (!is.null(settings$splits)) {
-    settings$splits
-  } else if (settings$method == "cross") {
-    if (identical(effective$strata, FALSE)) rsample::vfold_cv(raw, v = settings$v) else
-      rlang::inject(rsample::vfold_cv(raw, v = settings$v, strata = !!outcome, pool = 0))
-  } else if (identical(effective$strata, FALSE)) {
-    rsample::initial_split(raw, prop = 1 - settings$calibration_prop)
-  } else {
-    rlang::inject(rsample::initial_split(raw, prop = 1 - settings$calibration_prop,
-                                       strata = !!outcome, pool = 0))
-  }, error = function(e) stop(settings$method, " rsample split failed (nonempty training and calibration required): ",
-                              conditionMessage(e), call. = FALSE))
-  folds <- if (settings$method == "cross") .cross_splits(split, raw) else
-    list(Inductive1 = .inductive_split(split, raw))
-  if (multiclass) {
-    held <- lapply(folds, `[[`, "assessment")
-    fold <- if (settings$method == "cross") rep(names(folds), lengths(held)) else NULL
-    .multiclass_eligibility(y[unlist(held, use.names = FALSE)], settings$classification, fold)
-  }
+  cross <- settings$method == "cross"
   moderation <- list()
   if (regression) {
     if (!is.null(settings$m)) moderation$m <- settings$m
     if (!is.null(settings$epsilon)) moderation$epsilon <- settings$epsilon
-    # Validate every fold before the first recipe/model fit, using the core domain.
-    for (id in names(folds)) {
-      k <- length(folds[[id]]$assessment)
-      folds[[id]]$moderation <- tryCatch(
-        do.call(.regression_moderation, c(list(k = k), moderation)),
-        error = function(e) stop(id, " calibration size ", k, ": ", conditionMessage(e), call. = FALSE))
-    }
-    parameters$effective$m <- vapply(folds, function(f) f$moderation$m, 0)
-    parameters$effective$epsilon <- vapply(folds, function(f) f$moderation$epsilon, 0)
   }
+  domain <- list(data = raw, workflow = base_workflow, plan = settings$splits,
+    outcome = outcome, strata = effective$strata, classes = classes, event = event, y = y,
+    rows_word = "local rows", seed_wrap = FALSE,
+    precheck = if (cross && is.null(settings$splits)) function(local) {
+      if (settings$v > nrow(local)) {
+        stop("`v` cannot exceed the number of local rows; the fold count is not reduced.", call. = FALSE)
+      }
+    } else NULL,
+    resolve_error = function(e) stop(settings$method,
+      " rsample split failed (nonempty training and calibration required): ",
+      conditionMessage(e), call. = FALSE),
+    folds_error = NULL,
+    post = function(folds, local) {
+      if (multiclass) {
+        held <- lapply(folds, `[[`, "assessment")
+        fold <- if (cross) rep(names(folds), lengths(held)) else NULL
+        .multiclass_eligibility(y[unlist(held, use.names = FALSE)], settings$classification, fold)
+      }
+      if (regression) {
+        # Validate every fold before the first recipe/model fit, using the core domain.
+        for (id in names(folds)) {
+          k <- length(folds[[id]]$assessment)
+          folds[[id]]$moderation <- tryCatch(
+            do.call(.regression_moderation, c(list(k = k), moderation)),
+            error = function(e) stop(id, " calibration size ", k, ": ", conditionMessage(e), call. = FALSE))
+        }
+      }
+      folds
+    },
+    fit_error = function(fold, e) stop(fold, " base workflow training: ", conditionMessage(e), call. = FALSE),
+    full_error = function(e) stop("Full1 base workflow training: ", conditionMessage(e), call. = FALSE),
+    pred_id = function(fold) fold,
+    fields = function() list())
+  task <- .component_task(if (regression) "regression" else if (multiclass) "multiclass" else "binary",
+                          settings, moderation)
+  result <- .fit_domains(list(domain), task, settings)
+  if (regression) {
+    parameters$effective$m <- vapply(result$plans[[1L]], function(f) f$moderation$m, 0)
+    parameters$effective$epsilon <- vapply(result$plans[[1L]], function(f) f$moderation$epsilon, 0)
+  }
+  component <- result$fitted[[1L]]
+  state$parameters <- parameters
+  state$folds <- component$folds
+  state$models <- component$models
+  state$sources <- component$sources
+  state$calibrator <- component$calibrator
+  state$calibration <- component$calibration
+  state
+}
+
+# Every fit is a list of components: one shared component, or one per class
+# pair with its recipe-retargeted workflow. Three phase functions, each applied
+# in turn, give one path for all task and model-training combinations. Domains
+# carry their own error decoration so the phases stay branch-free; fail-fast
+# ordering and RNG scoping match the former per-path implementations.
+.fit_domains <- function(domains, task, settings) {
+  plans <- lapply(domains, function(domain) .plan_component(domain, settings))
+  fitted <- lapply(seq_along(domains), function(i) .fit_component_sources(plans[[i]], domains[[i]], task, settings))
+  if (identical(settings$prediction_model, "full")) {
+    fitted <- lapply(seq_along(domains), function(i) .fit_component_full(fitted[[i]], domains[[i]], task, settings))
+  }
+  list(plans = plans, fitted = fitted)
+}
+
+.resolve_split <- function(domain, settings, local, cross) {
+  plan <- domain$plan
+  if (is.function(plan)) return(plan(local))
+  if (!is.null(plan)) return(plan)
+  outcome <- domain$outcome
+  if (cross) {
+    if (settings$v > nrow(local)) {
+      stop("`v` cannot exceed the number of ", domain$rows_word,
+           "; the fold count is not reduced.", call. = FALSE)
+    }
+    if (identical(domain$strata, FALSE)) rsample::vfold_cv(local, v = settings$v) else
+      rlang::inject(rsample::vfold_cv(local, v = settings$v, strata = !!outcome, pool = 0))
+  } else if (identical(domain$strata, FALSE)) {
+    rsample::initial_split(local, prop = 1 - settings$calibration_prop)
+  } else {
+    rlang::inject(rsample::initial_split(local, prop = 1 - settings$calibration_prop,
+                                         strata = !!outcome, pool = 0))
+  }
+}
+
+.plan_component <- function(domain, settings) {
+  local <- domain$data
+  cross <- settings$method == "cross"
+  if (!is.null(domain$precheck)) domain$precheck(local)
+  resolve <- function() {
+    # A fixed local seed makes pair plans independent of preceding model draws.
+    if (!is.null(settings$seed) && isTRUE(domain$seed_wrap)) {
+      withr::with_seed(settings$seed, .resolve_split(domain, settings, local, cross))
+    } else .resolve_split(domain, settings, local, cross)
+  }
+  split <- if (is.null(domain$resolve_error)) resolve() else tryCatch(resolve(), error = domain$resolve_error)
+  validate <- function() {
+    folds <- if (cross) .cross_splits(split, local) else list(Inductive1 = .inductive_split(split, local))
+    for (fold_id in names(folds)) {
+      folds[[fold_id]]$training_size <- length(folds[[fold_id]]$analysis)
+      folds[[fold_id]]$calibration_size <- length(folds[[fold_id]]$assessment)
+    }
+    domain$post(folds, local)
+  }
+  if (is.null(domain$folds_error)) validate() else
+    tryCatch(validate(), error = function(e) domain$folds_error(e, if (cross) "Cross" else "Inductive1"))
+}
+
+.fit_component_sources <- function(folds, domain, task, settings) {
+  local <- domain$data
+  workflow <- domain$workflow
+  classes <- domain$classes
+  event <- domain$event
+  y <- domain$y
   models <- calibration_predictions <- truths <- fold_ids <- vector("list", length(folds))
   names(models) <- names(folds)
   for (id in names(folds)) {
     analysis <- folds[[id]]$analysis
     assessment <- folds[[id]]$assessment
-    models[[id]] <- tryCatch(generics::fit(base_workflow, raw[analysis, , drop = FALSE]),
-      error = function(e) stop(id, " base workflow training: ", conditionMessage(e), call. = FALSE))
+    models[[id]] <- tryCatch(generics::fit(workflow, local[analysis, , drop = FALSE]),
+      error = function(e) domain$fit_error(id, e))
     k <- match(id, names(folds))
-    calibration_predictions[[k]] <- if (regression) .base_numeric(models[[id]], raw[assessment, , drop = FALSE], id) else
-      .base_probability(models[[id]], raw[assessment, , drop = FALSE], classes, event, id)
-    truths[[k]] <- if (regression || multiclass) y[assessment] else y[assessment] == event
+    calibration_predictions[[k]] <- task$pred(models[[id]], local[assessment, , drop = FALSE], domain$pred_id(id), classes, event)
+    truths[[k]] <- task$truth(y, assessment, classes, event)
     fold_ids[[k]] <- rep(id, length(assessment))
-    folds[[id]]$training_size <- length(analysis)
-    folds[[id]]$calibration_size <- length(assessment)
   }
-  calibrator <- if (regression) {
-    if (settings$method == "cross") {
-      do.call(cross_venn_abers_regression,
-              c(list(truth = unlist(truths), prediction = unlist(calibration_predictions), fold = unlist(fold_ids)), moderation))
-    } else do.call(venn_abers_regression,
-                   c(list(truth = truths[[1L]], prediction = calibration_predictions[[1L]]), moderation))
-  } else if (multiclass) {
-    if (settings$method == "cross") {
-      cross_venn_abers(do.call(c, truths), do.call(rbind, calibration_predictions), unlist(fold_ids),
-                       precision = settings$precision, method = settings$classification)
-    } else venn_abers(truths[[1L]], calibration_predictions[[1L]], precision = settings$precision,
-                      method = settings$classification)
-  } else if (settings$method == "cross") {
-    core <- cross_venn_abers(unlist(truths), unlist(calibration_predictions), unlist(fold_ids), precision = settings$precision)
-    names(core$calibrators) <- core$folds
-    core
-  } else venn_abers(truths[[1L]], calibration_predictions[[1L]], precision = settings$precision)
-  structure(list(parameters = parameters, schema = parameters$schema, outcome = outcome,
-                 predictors = names(x), columns = names(raw), class_levels = classes,
-                 event_class = event, loss = effective$loss,
-                 folds = folds, models = models, calibrator = calibrator,
-                 versions = c(R = as.character(getRversion()),
-                              vapply(c("vennabers", names(.integration_versions)),
-                                     function(p) as.character(utils::packageVersion(p)), "")),
-                 rng_kind = rng_kind), class = "vennabers_fit")
+  calibrator <- task$calibrate(truths, calibration_predictions, fold_ids, folds, settings)
+  calibration <- stats::setNames(lapply(seq_along(folds), function(k) {
+    task$record(folds[[k]]$assessment, truths[[k]], calibration_predictions[[k]])
+  }), names(folds))
+  # `sources` maps every fold slot to the model that predicts it: itself when
+  # matched, the shared Full1 refit when full.
+  c(domain$fields(), list(folds = folds, models = models,
+    sources = stats::setNames(names(folds), names(folds)),
+    calibrator = calibrator, calibration = calibration))
+}
+
+.fit_component_full <- function(component, domain, task, settings) {
+  local <- domain$data
+  model <- tryCatch(generics::fit(domain$workflow, local), error = domain$full_error)
+  # Check the prediction contract without using full-model values for calibration.
+  task$pred(model, local[1L, , drop = FALSE], domain$pred_id("Full1"), domain$classes, domain$event)
+  # Discard temporary source workflows only after the complete fit succeeds.
+  component$models <- list(Full1 = model)
+  component$sources[] <- "Full1"
+  component
+}
+
+# The binary/multiclass/regression variation in one place: held-out truth and
+# prediction transforms, calibrator construction and calibration record shape.
+.component_task <- function(kind, settings, moderation) {
+  regression <- kind == "regression"
+  multiclass <- kind == "multiclass"
+  list(kind = kind,
+    pred = function(model, data, id, classes, event) {
+      if (regression) .base_numeric(model, data, id) else
+        .base_probability(model, data, classes, event, id)
+    },
+    truth = function(y, assessment, classes, event) {
+      if (regression || multiclass) y[assessment] else y[assessment] == event
+    },
+    calibrate = function(truths, predictions, fold_ids, folds, settings) {
+      if (regression) {
+        if (settings$method == "cross") {
+          do.call(cross_venn_abers_regression,
+            c(list(truth = unlist(truths), prediction = unlist(predictions), fold = unlist(fold_ids)), moderation))
+        } else do.call(venn_abers_regression,
+          c(list(truth = truths[[1L]], prediction = predictions[[1L]]), moderation))
+      } else if (multiclass) {
+        if (settings$method == "cross") {
+          cross_venn_abers(do.call(c, truths), do.call(rbind, predictions), unlist(fold_ids),
+            precision = settings$precision, method = settings$classification)
+        } else venn_abers(truths[[1L]], predictions[[1L]], precision = settings$precision,
+          method = settings$classification)
+      } else if (settings$method == "cross") {
+        core <- cross_venn_abers(unlist(truths), unlist(predictions), unlist(fold_ids), precision = settings$precision)
+        names(core$calibrators) <- core$folds
+        core
+      } else venn_abers(truths[[1L]], predictions[[1L]], precision = settings$precision)
+    },
+    record = function(rows, truth, prediction) {
+      if (regression) data.frame(row = rows, truth = truth, prediction = prediction) else
+      if (multiclass) list(row = rows, truth = truth, probability = prediction) else
+        data.frame(row = rows, truth = truth, probability = prediction)
+    })
+}
+
+# `sources` maps every fold slot to the model it predicts with, so full-model
+# reuse is just a repeated lookup instead of a `full` branch.
+.source_predictions <- function(models, sources, new_data, predict_one, empty_one) {
+  by_model <- lapply(names(models), function(id) {
+    if (nrow(new_data)) predict_one(models[[id]], id) else empty_one()
+  })
+  names(by_model) <- names(models)
+  stats::setNames(by_model[sources], names(sources))
+}
+
+.calibrate_binary_points <- function(calibrator, p, cross, loss, n, include_details) {
+  if (cross) {
+    result <- stats::predict(calibrator, do.call(cbind, p), loss = loss,
+      type = if (include_details) "details" else "response")
+    probability <- if (include_details) result$prediction$probability else result$probability
+    details <- if (include_details) result$folds
+  } else {
+    bounds <- stats::predict(calibrator, p[[1L]], loss = loss)
+    probability <- bounds$probability
+    if (include_details) details <- data.frame(row = seq_len(n), fold = rep("Inductive1", n), bounds)
+  }
+  list(probability = probability, details = if (include_details) details)
 }
 
 .base_probability <- function(model, data, classes, event, id = "Inductive1") {
@@ -360,17 +522,18 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
 }
 
 .integration_prediction <- function(object, new_data, include_details = FALSE) {
+  if (identical(object$parameters$requested$model_training, "pairwise")) {
+    return(.predict_pairwise(object, new_data, include_details))
+  }
   if (object$parameters$requested$mode == "regression") {
     return(.integration_regression_prediction(object, new_data, include_details))
   }
   multiclass <- object$parameters$requested$classification != "binary"
   cross <- object$parameters$requested$method == "cross"
-  p <- lapply(names(object$models), function(id) {
-    if (nrow(new_data)) .base_probability(object$models[[id]], new_data, object$class_levels, object$event_class, id)
-    else if (multiclass) matrix(numeric(), 0L, length(object$class_levels), dimnames = list(NULL, object$class_levels))
-    else numeric()
-  })
-  names(p) <- names(object$models)
+  p <- .source_predictions(object$models, object$sources, new_data,
+    function(model, id) .base_probability(model, new_data, object$class_levels, object$event_class, id),
+    function() if (multiclass) matrix(numeric(), 0L, length(object$class_levels),
+      dimnames = list(NULL, object$class_levels)) else numeric())
   if (multiclass) {
     result <- stats::predict(object$calibrator, if (cross) p else p[[1L]], loss = object$loss,
                              type = if (include_details) "details" else "response")
@@ -385,23 +548,24 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     if (!cross) details$fold <- rep("Inductive1", nrow(details))
     details$method <- rep(method, nrow(details))
     details$event_class <- if (method == "ovo") details$class_2 else details$class
+    extra <- character(0)
+    if (!is.null(object$parameters$requested$model_training)) {
+      details$model_training <- rep(object$parameters$requested$model_training, nrow(details))
+      extra <- c(extra, "model_training")
+    }
+    if (!is.null(object$parameters$requested$prediction_model)) {
+      details$prediction_model <- rep(object$parameters$requested$prediction_model, nrow(details))
+      details$model_source <- unname(object$sources[details$fold])
+      extra <- c(extra, "prediction_model", "model_source")
+    }
     identity <- if (method == "ovo") c("class_1", "class_2") else "class"
     return(list(prediction = prediction,
                 details = tibble::as_tibble(details[c("row", "fold", "method", "event_class", identity,
-                                                    "lower", "upper", "probability")])))
+                                                    "lower", "upper", "probability", extra)])))
   }
-  if (cross) {
-    p <- do.call(cbind, p)
-    colnames(p) <- names(object$models)
-    result <- stats::predict(object$calibrator, p, loss = object$loss,
-                             type = if (include_details) "details" else "response")
-    probability <- if (include_details) result$prediction$probability else result$probability
-    if (include_details) details <- result$folds
-  } else {
-    bounds <- stats::predict(object$calibrator, p[[1L]], loss = object$loss)
-    probability <- bounds$probability
-    if (include_details) details <- data.frame(row = seq_len(nrow(new_data)), fold = rep("Inductive1", nrow(new_data)), bounds)
-  }
+  binary <- .calibrate_binary_points(object$calibrator, p, cross, object$loss, nrow(new_data), include_details)
+  probability <- binary$probability
+  if (include_details) details <- binary$details
   probabilities <- lapply(object$class_levels, function(cl) {
     if (cl == object$event_class) probability else 1 - probability
   })
@@ -409,16 +573,49 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   prediction <- tibble::as_tibble(probabilities, .name_repair = "minimal")
   if (!include_details) return(list(prediction = prediction))
   details$event_class <- rep(object$event_class, nrow(details))
+  extra <- character(0)
+  if (!is.null(object$parameters$requested$prediction_model)) {
+    details$prediction_model <- rep(object$parameters$requested$prediction_model, nrow(details))
+    details$model_source <- unname(object$sources[details$fold])
+    extra <- c("prediction_model", "model_source")
+  }
   list(prediction = prediction,
-       details = tibble::as_tibble(details[c("row", "fold", "event_class", "lower", "upper", "probability")]))
+       details = tibble::as_tibble(details[c("row", "fold", "event_class", "lower", "upper", "probability", extra)]))
+}
+
+#' @export
+print.vennabers_fit <- function(x, ...) {
+  settings <- x$parameters$requested
+  cat("Venn-Abers", settings$method, "calibrated predictor\n")
+  if (!is.null(settings$model_training)) cat("Model training:", settings$model_training, "\n")
+  if (!is.null(settings$prediction_model)) {
+    cat("Prediction model:", settings$prediction_model,
+        if (settings$prediction_model == "full") "(full-model transfer)" else "", "\n")
+  }
+  components <- if (identical(settings$model_training, "pairwise")) x$pair_models else list(x)
+  source_fits <- sum(vapply(components, function(part) length(part$folds), 1L))
+  retained <- sum(vapply(components, function(part) length(part$models), 1L))
+  calibration_rows <- sum(vapply(components, function(part) {
+    sum(vapply(part$calibration, function(values) length(values$row), 1L))
+  }, 0))
+  cat("Base fits:", source_fits + if (identical(settings$prediction_model, "full")) length(components) else 0L, "\n")
+  cat("Models per nonempty prediction:", retained, "\n")
+  cat("Stored calibration rows:", calibration_rows, "(held-out truth and model predictions)\n")
+  if (identical(settings$model_training, "pairwise")) {
+    for (id in names(x$pair_models)) {
+      component <- x$pair_models[[id]]
+      for (fold in names(component$sources)) cat(" ", id, fold, "->", id, component$sources[[fold]], "\n")
+    }
+  }
+  for (id in names(x$sources)) cat(" ", id, "->", x$sources[[id]], "\n")
+  invisible(x)
 }
 
 .integration_regression_prediction <- function(object, new_data, include_details = FALSE) {
   cross <- object$parameters$requested$method == "cross"
-  p <- lapply(names(object$models), function(id) {
-    if (nrow(new_data)) .base_numeric(object$models[[id]], new_data, id) else numeric()
-  })
-  names(p) <- names(object$models)
+  mode <- object$parameters$requested$prediction_model
+  p <- .source_predictions(object$models, object$sources, new_data,
+    function(model, id) .base_numeric(model, new_data, id), numeric)
   if (cross) {
     result <- stats::predict(object$calibrator, do.call(cbind, p),
                              type = if (include_details) "details" else "response")
@@ -433,10 +630,19 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   details <- do.call(rbind, lapply(names(folds), function(id) {
     data.frame(row = seq_len(nrow(new_data)), fold = rep(id, nrow(new_data)), folds[[id]])
   }))
+  if (!is.null(mode)) {
+    details$prediction_model <- rep(mode, nrow(details))
+    details$model_source <- unname(object$sources[details$fold])
+  }
   result <- list(prediction = prediction,
                  details = tibble::as_tibble(details))
-  if (cross) result$aggregate <- tibble::tibble(row = seq_len(nrow(new_data)),
-                                               lower = points$lower, upper = points$upper)
+  if (cross) {
+    result$aggregate <- tibble::tibble(row = seq_len(nrow(new_data)), lower = points$lower, upper = points$upper)
+    if (!is.null(mode)) {
+      result$aggregate$prediction_model <- rep(mode, nrow(new_data))
+      result$aggregate$model_source <- rep(list(names(object$models)), nrow(new_data))
+    }
+  }
   result
 }
 

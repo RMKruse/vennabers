@@ -1,11 +1,12 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 expect_error <- function(expr, message) {
   error <- tryCatch({ force(expr); NULL }, error = identity)
   stopifnot(inherits(error, "error"), grepl(message, conditionMessage(error), fixed = TRUE))
 }
 close <- function(x, y) stopifnot(identical(dim(x), dim(y)), all(abs(x - y) <= 1e-10))
-fixture <- function(name) read.csv(system.file("extdata", name, package = "vennabers"))
+fixture <- function(name) read.csv(file.path("extdata", name))
 calibration <- fixture("ovo-calibration.csv")
 inputs <- fixture("ovo-input.csv")
 case_ids <- unique(calibration$case_id)
@@ -58,7 +59,7 @@ for (method in c("ovo", "ovr")) {
                                              binary_reference$loss == loss, ]
         actual <- predict(fit, x, loss = loss, type = "details")
         parts <- actual[[2L]]
-        stopifnot(identical(names(actual), c("prediction", if (method == "ovo") "pairs" else "classes")),
+        assert_conditions(identical(names(actual), c("prediction", if (method == "ovo") "pairs" else "classes")),
                   identical(names(parts), c("row", if (method == "ovo") "non_event", "event", "lower", "upper", "probability")),
                   identical(colnames(actual$prediction), classes),
                   identical(actual$prediction, predict(fit, x, loss = loss)),
@@ -131,7 +132,7 @@ for (precision in list(NULL, 0, 2, -1)) {
     for (n in 0:1) {
       small <- x[seq_len(n), , drop = FALSE]
       details <- predict(fit, small, loss = loss, type = "details")
-      stopifnot(identical(dim(details$prediction), c(n, 3L)), nrow(details$pairs) == n * 3L,
+      assert_conditions(identical(dim(details$prediction), c(n, 3L)), nrow(details$pairs) == n * 3L,
                 identical(names(details$pairs), names(actual$pairs)),
                 identical(levels(predict(fit, small, type = "class", loss = loss)), classes),
                 length(predict(fit, small, type = "class", loss = loss)) == n,

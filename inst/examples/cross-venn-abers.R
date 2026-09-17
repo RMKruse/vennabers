@@ -1,6 +1,7 @@
 # Run from the checkout root after installation:
 # Rscript examples/cross-venn-abers.R
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 set.seed(20260906)
 observations <- data.frame(x1 = rnorm(900L), x2 = rnorm(900L))
@@ -43,7 +44,7 @@ calibrator <- cross_venn_abers(
   development$truth, out_of_fold_probability, fold
 )
 prediction <- predict(calibrator, test_probability)
-stopifnot(
+assert_conditions(
   is.data.frame(prediction), nrow(prediction) == nrow(test),
   identical(names(prediction), "probability"),
   is.double(prediction$probability), all(is.finite(prediction$probability)),

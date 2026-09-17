@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 # Unequal folds with distinct model columns, from the pinned Python reference.
 truth <- c(0, 1, 0, 0, 1, 0, 1, 1)
@@ -7,14 +8,9 @@ fold <- c(rep("A", 3), rep("B", 5))
 newdata <- cbind(A = c(0, .2, .25, 1), B = c(1, .4, .2, 0))
 calibrator <- cross_venn_abers(truth, probability, fold)
 actual <- stats::predict(calibrator, newdata)
-stopifnot(
-  inherits(calibrator, "cross_venn_abers"),
-  identical(names(actual), "probability"),
-  is.double(actual$probability),
-  nrow(actual) == nrow(newdata),
-  max(abs(actual$probability - c(.5, .513167019494862, .486832980505138,
-                                .486832980505138))) <= 1e-10
-)
+assert_conditions(inherits(calibrator, "cross_venn_abers"), identical(names(actual), "probability"),
+    is.double(actual$probability), nrow(actual) == nrow(newdata), max(abs(actual$probability - c(0.5,
+        0.513167019494862, 0.486832980505138, 0.486832980505138))) <= 1e-10)
 
 expect_error <- function(expr, argument) {
   error <- tryCatch({ force(expr); NULL }, error = identity)
@@ -31,18 +27,12 @@ named <- cross_venn_abers(
   setNames(probability, letters[1:8]),
   setNames(fold, rep("same", 8))
 )
-stopifnot(
-  identical(stats::predict(calibrator, newdata), actual),
-  identical(stats::predict(calibrator, newdata[, 2:1]), actual),
-  max(abs(stats::predict(permuted, newdata)$probability - actual$probability)) <= 1e-10,
-  identical(stats::predict(named, newdata), actual),
-  identical(stats::predict(calibrator, newdata[c(4, 1, 3, 2), ])$probability,
-            actual$probability[c(4, 1, 3, 2)]),
-  # If the implementation were matching positionally, this would not differ.
-  max(abs(stats::predict(calibrator, newdata[, c("B", "A")])$probability -
-          stats::predict(calibrator, `colnames<-`(newdata, c("B", "A")))$probability)) > 1e-5,
-  identical(stats::predict(calibrator, newdata[FALSE, ]), data.frame(probability = numeric()))
-)
+assert_conditions(identical(stats::predict(calibrator, newdata), actual), identical(stats::predict(calibrator,
+    newdata[, 2:1]), actual), max(abs(stats::predict(permuted, newdata)$probability - actual$probability)) <=
+    1e-10, identical(stats::predict(named, newdata), actual), identical(stats::predict(calibrator, newdata[c(4,
+    1, 3, 2), ])$probability, actual$probability[c(4, 1, 3, 2)]), max(abs(stats::predict(calibrator,
+    newdata[, c("B", "A")])$probability - stats::predict(calibrator, `colnames<-`(newdata, c("B", "A")))$probability)) >
+    1e-05, identical(stats::predict(calibrator, newdata[FALSE, ]), data.frame(probability = numeric())))
 
 # Supported degenerate inputs: integer/logical truth, integer probabilities,
 # numeric fold IDs, singleton and single-class folds.
@@ -51,9 +41,8 @@ for (y in list(c(FALSE, TRUE), c(0L, 1L), c(0, 1))) {
     fit <- cross_venn_abers(y, c(0L, 1L), ids)
     input <- matrix(c(0L, 1L, 0L, 1L), 2, dimnames = list(NULL, as.character(ids)))
     out <- stats::predict(fit, input)
-    stopifnot(identical(names(out), "probability"), is.double(out$probability),
-              nrow(out) == 2L, all(is.finite(out$probability)),
-              all(out$probability >= 0 & out$probability <= 1))
+    assert_conditions(identical(names(out), "probability"), is.double(out$probability), nrow(out) == 2L,
+        all(is.finite(out$probability)), all(out$probability >= 0 & out$probability <= 1))
   }
 }
 literal <- cross_venn_abers(c(0, 1), c(0, 1), c(" A", "A"))

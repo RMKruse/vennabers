@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 close_regression <- function(actual, expected, scale = 1) {
   stopifnot(identical(dim(actual), dim(expected)),
@@ -26,11 +27,9 @@ expect_error <- function(expr, argument) {
   stopifnot(inherits(error, "error"), grepl(argument, conditionMessage(error), fixed = TRUE))
 }
 check_schema <- function(result, rows) {
-  stopifnot(is.data.frame(result), nrow(result) == rows,
-            identical(names(result), c("prediction", "lower", "upper")),
-            all(vapply(result, typeof, "") == "double"),
-            all(is.finite(as.matrix(result))),
-            all(result$lower <= result$prediction), all(result$prediction <= result$upper))
+  assert_conditions(is.data.frame(result), nrow(result) == rows, identical(names(result), c("prediction",
+      "lower", "upper")), all(vapply(result, typeof, "") == "double"), all(is.finite(as.matrix(result))),
+      all(result$lower <= result$prediction), all(result$prediction <= result$upper))
 }
 for (column in names(details$prediction)) {
   close_regression(details$prediction[[column]],
@@ -54,10 +53,9 @@ stopifnot(identical(fit$folds, c("tied", "constant")), fit$observations == 8,
           identical(names(fit$calibrators), fit$folds))
 for (id in fit$folds) {
   component <- fit$calibrators[[id]]
-  stopifnot(inherits(component, "venn_abers_regression"),
-            identical(component$requested, list()), component$m == 1,
-            component$observations == sum(fold == id),
-            component$epsilon == 2 / (sum(fold == id) + 1))
+  assert_conditions(inherits(component, "venn_abers_regression"), identical(component$requested, list()),
+      component$m == 1, component$observations == sum(fold == id), component$epsilon == 2/(sum(fold ==
+          id) + 1))
   stopifnot(identical(details$folds[[id]], predict(component, newdata[, id])))
 }
 moderation_folds <- rep(c("five", "eight"), c(5, 8))
@@ -209,11 +207,10 @@ for (residual in c(1e-16, 1e-300, 5 * 5e-324)) {
     }
   }
 }
-stopifnot(identical(fold_mean(c(5e-324, 5e-324)), 5e-324),
-          identical(fold_mean(c(1e16, 1, 1)), (1e16 + 2) / 3),
-          identical(fold_mean(rep(.Machine$double.xmax, 3)), .Machine$double.xmax),
-          identical(fold_mean(rep(-.Machine$double.xmax, 3)), -.Machine$double.xmax),
-          identical(fold_mean(c(5e-324, 0, 0)), 0))
+assert_conditions(identical(fold_mean(c(4.94065645841247e-324, 4.94065645841247e-324)), 4.94065645841247e-324),
+    identical(fold_mean(c(1e+16, 1, 1)), (1e+16 + 2)/3), identical(fold_mean(rep(.Machine$double.xmax,
+        3)), .Machine$double.xmax), identical(fold_mean(rep(-.Machine$double.xmax, 3)), -.Machine$double.xmax),
+    identical(fold_mean(c(4.94065645841247e-324, 0, 0)), 0))
 
 local({
   input <- tempfile(fileext = ".rds")

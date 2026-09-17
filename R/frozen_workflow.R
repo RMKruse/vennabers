@@ -95,7 +95,10 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
                           predictors = names(mold$blueprint$ptypes$predictors),
                           class_levels = classes,
                           event_class = event,
-                          loss = effective$loss, models = list(Inductive1 = fitted_workflow)),
+                          loss = effective$loss, models = list(Inductive1 = fitted_workflow),
+                          # A frozen fit has exactly one source model; the identity map keeps it
+                          # on the same `sources` contract as matched/full calibrated_workflow() fits.
+                          sources = c(Inductive1 = "Inductive1")),
                      class = c("vennabers_frozen", "vennabers_fit"))
   input <- .frozen_data(state, data_calibration, "calibration")
   if (!nrow(input)) stop("Frozen calibration data must be nonempty.", call. = FALSE)

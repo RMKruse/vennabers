@@ -1,28 +1,35 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
+source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
                requireNamespace, logical(1), quietly = TRUE))) {
   # Fixed before comparison: one outcome unit; multiply s when changing units.
   close <- function(actual, expected, s = 1) {
-    stopifnot(identical(dim(actual), dim(expected)), length(actual) == length(expected),
+    assert_conditions(identical(dim(actual), dim(expected)), length(actual) == length(expected),
               all(is.finite(actual)), all(is.finite(expected)),
               all(abs(actual - expected) <= 1e-10 * s + 1e-10 * abs(expected)))
   }
   data <- data.frame(x = sin(1:80), truth = 10 + cos(1:80) + 3 * sin(1:80))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::linear_reg(engine = "lm"))
-  fitted <- generics::fit(calibrated_workflow(base, "truth", seed = 42), data)
-  state <- workflows::extract_fit_engine(fitted)
   plan <- withr::with_seed(42, rsample::initial_split(data, .8))
   held <- as.integer(plan, data = "assessment")
-  stopifnot(identical(state$folds$Inductive1$assessment, held))
-  expected <- predict(venn_abers_regression(data$truth[held],
-    predict(state$models$Inductive1, data[held, ])$.pred),
-    predict(state$models$Inductive1, data)$.pred)
-  actual <- venn_abers_details(fitted, data)
-  close(actual$prediction$.pred, expected$prediction)
-  close(as.matrix(actual$details[c("prediction", "lower", "upper")]), as.matrix(expected))
-  stopifnot(identical(actual$prediction, predict(fitted, data, type = "numeric")),
-            is.double(actual$prediction$.pred), identical(names(actual$prediction), ".pred"))
+  for (mode in c("matched", "full")) {
+    fitted <- generics::fit(calibrated_workflow(base, "truth", prediction_model = mode, seed = 42), data)
+    state <- workflows::extract_fit_engine(fitted)
+    actual <- venn_abers_details(fitted, data)
+    stopifnot(identical(state$folds$Inductive1$assessment, held),
+      all(actual$details$prediction_model == mode),
+      identical(names(state$models), if (mode == "full") "Full1" else "Inductive1"))
+    if (mode == "full") next
+    expected <- predict(venn_abers_regression(data$truth[held],
+      predict(state$models$Inductive1, data[held, ])$.pred),
+      predict(state$models$Inductive1, data)$.pred)
+    close(actual$prediction$.pred, expected$prediction)
+    close(as.matrix(actual$details[c("prediction", "lower", "upper")]), as.matrix(expected))
+    stopifnot(identical(actual$prediction, predict(fitted, data, type = "numeric")),
+      is.double(actual$prediction$.pred), identical(names(actual$prediction), ".pred"))
+  }
 }
 
 if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
@@ -46,16 +53,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
     if (object$output == "nonfinite") p[1L] <- Inf
     p
   }
-  parsnip::set_new_model("regression_reference")
-  parsnip::set_model_mode("regression_reference", "regression")
-  parsnip::set_model_engine("regression_reference", "regression", "reference")
-  parsnip::set_fit("regression_reference", "regression", "reference",
-    list(interface = "data.frame", protect = c("x", "y"), func = c(fun = "regression_fit"), defaults = list()))
-  parsnip::set_encoding("regression_reference", "regression", "reference",
-    list(predictor_indicators = "none", compute_intercept = FALSE, remove_intercept = FALSE, allow_sparse_x = FALSE))
-  parsnip::set_pred("regression_reference", "regression", "reference", "numeric",
-    list(pre = NULL, post = NULL, func = c(fun = "regression_predict"),
-         args = list(object = quote(object$fit), new_data = quote(new_data))))
+  register_reference_engine("regression_reference", "regression", "regression_fit", "regression_predict", "numeric")
   spec <- parsnip::new_model_spec("regression_reference", args = list(), eng_args = NULL,
                                  mode = "regression", method = NULL, engine = "reference")
   make_base <- function(data, output = "normal") workflows::workflow() |>
@@ -80,7 +78,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
       fitted <- generics::fit(do.call(calibrated_workflow,
         c(list(workflow = base, outcome = "truth", method = method, splits = plan), option)), data)
       state <- workflows::extract_fit_engine(fitted)
-      stopifnot(counts$fit == before + length(state$folds),
+      assert_conditions(counts$fit == before + length(state$folds),
                 identical(names(state$models), names(state$folds)),
                 state$parameters$requested$mode == "regression",
                 is.null(state$class_levels), is.null(state$event_class), is.null(state$loss),
@@ -120,9 +118,11 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
       }
       actual <- venn_abers_details(fitted, data)
       close(actual$prediction$.pred, points$prediction, scale)
-      stopifnot(identical(actual$prediction, predict(fitted, data)),
+      assert_conditions(identical(actual$prediction, predict(fitted, data)),
                 identical(actual$prediction, predict(fitted, data, type = "numeric")),
-                identical(names(actual$details), c("row", "fold", "prediction", "lower", "upper")))
+                identical(names(actual$details), c("row", "fold", "prediction", "lower", "upper", "prediction_model", "model_source")),
+                all(actual$details$prediction_model == "matched"),
+                identical(actual$details$model_source, actual$details$fold))
       if (method == "cross") {
         for (id in names(state$folds)) close(as.matrix(actual$details[actual$details$fold == id,
           c("prediction", "lower", "upper")]), as.matrix(expected$folds[[id]]), scale)
@@ -139,12 +139,14 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
       for (n in 0:1) {
         small <- data[seq_len(n), ]
         details <- venn_abers_details(fitted, small)
-        stopifnot(identical(details$prediction, predict(fitted, small)),
+        assert_conditions(identical(details$prediction, predict(fitted, small)),
                   nrow(details$details) == n * length(state$folds),
                   is.integer(details$details$row), is.character(details$details$fold),
                   all(vapply(details$details[c("prediction", "lower", "upper")], is.double, logical(1))))
         if (!n) stopifnot(counts$predict == pred_count)
-        if (method == "cross") stopifnot(identical(names(details$aggregate), c("row", "lower", "upper")), nrow(details$aggregate) == n)
+        if (method == "cross") stopifnot(identical(names(details$aggregate),
+          c("row", "lower", "upper", "prediction_model", "model_source")), nrow(details$aggregate) == n,
+          identical(details$aggregate$model_source, rep(list(names(state$models)), n)))
       }
       batched <- do.call(rbind, lapply(unname(split(seq_len(nrow(data)), rep(1:3, each = 10))),
         function(rows) predict(fitted, data[rows, ])))

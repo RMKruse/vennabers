@@ -1,4 +1,6 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
+source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 
 if (all(vapply(c("parsnip", "workflows", "rsample", "nnet"),
                requireNamespace, logical(1), quietly = TRUE))) {
@@ -8,10 +10,15 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "nnet"),
   base <- workflows::workflow() |> workflows::add_formula(truth ~ .) |>
     workflows::add_model(parsnip::multinom_reg(engine = "nnet"))
   split <- withr::with_seed(32, rsample::initial_split(data, .8, strata = truth, pool = 0))
-  for (method in c("ovo", "ovr")) {
+  for (method in c("ovo", "ovr")) for (mode in c("matched", "full")) {
     fit <- generics::fit(calibrated_workflow(base, "truth", classification = method,
-                                            splits = split, seed = 32), data)
+                                            prediction_model = mode, splits = split, seed = 32), data)
     state <- workflows::extract_fit_engine(fit)
+    if (mode == "full") {
+      stopifnot(identical(names(state$models), "Full1"),
+        all(venn_abers_details(fit, data)$details$prediction_model == mode))
+      next
+    }
     probabilities <- function(new_data) {
       p <- as.matrix(predict(state$models$Inductive1, new_data, type = "prob"))
       colnames(p) <- sub("^\\.pred_", "", colnames(p))
@@ -58,16 +65,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes"),
     if (object$output == "tolerance") p <- p * (1 + 5e-9)
     p[rev(seq_along(p))]
   }
-  parsnip::set_new_model("va_multi")
-  parsnip::set_model_mode("va_multi", "classification")
-  parsnip::set_model_engine("va_multi", "classification", "reference")
-  parsnip::set_fit("va_multi", "classification", "reference",
-    list(interface = "data.frame", protect = c("x", "y"), func = c(fun = "multi_fit"), defaults = list()))
-  parsnip::set_encoding("va_multi", "classification", "reference",
-    list(predictor_indicators = "none", compute_intercept = FALSE, remove_intercept = FALSE, allow_sparse_x = FALSE))
-  parsnip::set_pred("va_multi", "classification", "reference", "prob",
-    list(pre = NULL, post = NULL, func = c(fun = "multi_prob"),
-         args = list(object = quote(object$fit), new_data = quote(new_data))))
+  register_reference_engine("va_multi", "classification", "multi_fit", "multi_prob", "prob")
   spec <- parsnip::new_model_spec("va_multi", args = list(), eng_args = NULL,
                                   mode = "classification", method = NULL, engine = "reference")
   probabilities <- function(model, data) {
@@ -98,7 +96,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes"),
       stopifnot(identical(rng, .Random.seed), audit$fits == before + 1L)
       state <- workflows::extract_fit_engine(fit)
       split <- state$folds$Inductive1
-      stopifnot(identical(state$class_levels, classes), is.null(state$event_class),
+      assert_conditions(identical(state$class_levels, classes), is.null(state$event_class),
                 is.null(state$parameters$effective$event_level), state$calibrator$method == method,
                 length(state$models) == 1L,
                 identical(workflows::extract_fit_engine(state$models$Inductive1)$x$id, data$id[split$analysis]))
@@ -143,7 +141,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes"),
           prob <- predict(fit, small, type = "prob", loss = loss)
           cls <- predict(fit, small, type = "class", loss = loss)
           if (!n) stopifnot(audit$predictions == calls)
-          stopifnot(identical(small_details$prediction, prob), nrow(prob) == n,
+          assert_conditions(identical(small_details$prediction, prob), nrow(prob) == n,
                     nrow(small_details$details) == n * if (method == "ovo") choose(k, 2) else k,
                     identical(levels(cls$.pred_class), classes),
                     identical(names(small_details$details), names(d)),
@@ -251,7 +249,7 @@ if (exists("multi_fit") && all(vapply(c("tune", "yardstick"), requireNamespace, 
         f <- s$folds$Inductive1
         engine <- workflows::extract_fit_engine(s$models$Inductive1)
         learned <- workflows::extract_recipe(s$models$Inductive1)
-        stopifnot(identical(engine$x$id, local_data$id[f$analysis]),
+        assert_conditions(identical(engine$x$id, local_data$id[f$analysis]),
                   identical(as.vector(engine$y), as.vector(local_data$truth[f$analysis])),
                   !any(engine$x$id %in% assessment$id),
                   !any(local_data$id[f$assessment] %in% assessment$id), s$loss == loss,
@@ -292,7 +290,7 @@ if (exists("multi_fit") && all(vapply(c("tune", "yardstick"), requireNamespace, 
     check(after, make_outer(changed), classification = method)
     s1 <- tune::collect_extracts(before)$.extracts[[1L]]
     s2 <- tune::collect_extracts(after)$.extracts[[1L]]
-    stopifnot(identical(s1[setdiff(names(s1), "models")], s2[setdiff(names(s2), "models")]),
+    assert_conditions(identical(s1[setdiff(names(s1), "models")], s2[setdiff(names(s2), "models")]),
               identical(workflows::extract_fit_engine(s1$models$Inductive1), workflows::extract_fit_engine(s2$models$Inductive1)),
               identical(workflows::extract_recipe(s1$models$Inductive1)$steps, workflows::extract_recipe(s2$models$Inductive1)$steps),
               identical(tune::collect_predictions(before)[paste0(".pred_", classes)],

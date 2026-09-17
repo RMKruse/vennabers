@@ -1,7 +1,8 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 fixture <- function(name) {
-  path <- system.file("extdata", name, package = "vennabers")
+  path <- file.path("extdata", name)
   stopifnot(nzchar(path))
   read.csv(path, stringsAsFactors = FALSE)
 }
@@ -32,18 +33,12 @@ for (setting in unique(combined_reference$precision)) {
     endpoints <- NULL
     for (loss in c("log", "brier")) {
       actual <- predict(fit, input, loss = loss, type = "details")
-      stopifnot(
-        identical(actual$folds$row, expected_folds$row),
-        identical(actual$folds$fold, expected_folds$fold),
-        identical(actual$prediction, predict(fit, input, loss = loss)),
-        identical(predict(fit, input, loss = loss, type = "class"), actual$prediction$probability >= .5),
-        identical(predict(fit, input[, rev(identities)], loss = loss, type = "details"), actual),
-        all(is.finite(as.matrix(actual$folds[3:5]))),
-        all(actual$folds[3:5] >= 0 & actual$folds[3:5] <= 1),
-        all(actual$folds$lower <= actual$folds$upper),
-        all(is.finite(actual$prediction$probability)),
-        all(actual$prediction$probability >= 0 & actual$prediction$probability <= 1)
-      )
+      assert_conditions(identical(actual$folds$row, expected_folds$row), identical(actual$folds$fold, expected_folds$fold),
+          identical(actual$prediction, predict(fit, input, loss = loss)), identical(predict(fit, input, loss = loss,
+              type = "class"), actual$prediction$probability >= 0.5), identical(predict(fit, input[, rev(identities)],
+              loss = loss, type = "details"), actual), all(is.finite(as.matrix(actual$folds[3:5]))), all(actual$folds[3:5] >=
+              0 & actual$folds[3:5] <= 1), all(actual$folds$lower <= actual$folds$upper), all(is.finite(actual$prediction$probability)),
+          all(actual$prediction$probability >= 0 & actual$prediction$probability <= 1))
       if (!is.null(endpoints)) stopifnot(identical(actual$folds[3:4], endpoints))
       endpoints <- actual$folds[3:4]
       maximum_error <- max(maximum_error,

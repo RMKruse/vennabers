@@ -1,8 +1,0 @@
-PASS: identical local data, distinct preassigned plans; native per-occurrence resampling
-PASS: repeated, reversed, RDS job replay, two fresh PSOCK workers; predictions/metrics/context identical
-PASS: exact inner training rows and held predictions; outer 24 rows excluded; mismatched plan rejected
-PASS: saved prediction path; distinct plans produce distinct predictions
-LIMIT: explicit external orchestration, not one native multi-occurrence fit_resamples call; no VA math
-R version 4.6.1 (2026-06-24)
-  parsnip workflows   hardhat   rsample      tune yardstick
-  "1.6.0"   "1.3.0"   "1.4.3"   "1.3.2"   "2.1.0"   "1.4.0"

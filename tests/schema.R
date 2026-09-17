@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 error <- function(expr, pattern = "") {
   result <- tryCatch(force(expr), error = identity)
   stopifnot(inherits(result, "error"), grepl(pattern, conditionMessage(result)))
@@ -9,7 +10,7 @@ d <- data.frame(x = c(.13, .81, .37), z = factor(c("a b", "a-b", "a b")),
 names(d) <- c("vaV0001", "ümlaut", ".pred_class")
 s <- venn_abers_schema(d, ".pred_class", event_level = "second")
 e <- venn_abers_encode(d, s)
-stopifnot(identical(s, venn_abers_schema(d[3:1, ], ".pred_class", event_level = "second")),
+assert_conditions(identical(s, venn_abers_schema(d[3:1, ], ".pred_class", event_level = "second")),
           identical(s$encoded_outcome, unname(s$columns[[".pred_class"]])),
           identical(e[[s$columns[["vaV0001"]]]], d[["vaV0001"]]),
           identical(e[[s$columns[["ümlaut"]]]], d[["ümlaut"]]),
@@ -46,7 +47,7 @@ p$id2 <- c("Fold2", "Fold1", "Fold1"); p$.config <- rep("pre0_mod0_post0", 3)
 for (rows in list(1:3, 1L, integer())) {
   native <- p[rows, rev(names(p)), drop = FALSE]
   decoded <- venn_abers_decode(native, s)
-  stopifnot(identical(colnames(decoded$probability), s$class_levels),
+  assert_conditions(identical(colnames(decoded$probability), s$class_levels),
             identical(dim(decoded$probability), c(length(rows), 2L)),
             identical(unname(decoded$probability[, 1]), c(.1, .9, .3)[rows]),
             identical(decoded$class, factor(c(".pred_yes", "class", ".pred_yes")[rows], levels = s$class_levels)),
@@ -93,7 +94,7 @@ for (method in c("ovo", "ovr")) {
 r <- d; r[[s$outcome]] <- c(0L, 1L, 0L)
 rs <- venn_abers_schema(r, s$outcome)
 re <- venn_abers_encode(r, rs)
-stopifnot(rs$mode == "regression", is.null(rs$class_levels), is.null(rs$classification),
+assert_conditions(rs$mode == "regression", is.null(rs$class_levels), is.null(rs$classification),
           is.null(rs$event_class), identical(re[[rs$encoded_outcome]], r[[s$outcome]]))
 error(venn_abers_schema(r, s$outcome, classification = "binary"), "Regression")
 error(venn_abers_schema(r, s$outcome, event_level = "first"), "Regression")
@@ -111,7 +112,7 @@ for (method in c("ovo", "ovr")) {
   for (n in 0:1) {
     decoded <- venn_abers_decode(list(prediction = native[seq_len(n), rev(names(native))],
                                      details = diagnostic[seq_len(n), ]), ms)
-    stopifnot(identical(dim(decoded$probability), c(n, 4L)),
+    assert_conditions(identical(dim(decoded$probability), c(n, 4L)),
               identical(colnames(decoded$probability), ms$class_levels),
               identical(levels(decoded$class), ms$class_levels),
               identical(levels(decoded$truth), ms$class_levels),
@@ -137,7 +138,7 @@ for (outcome in c(".pred", ".pred_class", ".pred_vaL0001", ".row", ".config", "i
                              prediction = x$.pred, lower = x$.pred - 1, upper = x$.pred + 1)
     aggregate <- diagnostic[c("row", "lower", "upper")]
     decoded <- venn_abers_decode(list(prediction = x, details = diagnostic, aggregate = aggregate), rs)
-    stopifnot(identical(decoded$prediction, x$.pred), identical(decoded$truth, x[[rs$encoded_outcome]]),
+    assert_conditions(identical(decoded$prediction, x$.pred), identical(decoded$truth, x[[rs$encoded_outcome]]),
               identical(decoded$outcome, outcome), identical(decoded$details, diagnostic),
               identical(decoded$aggregate, aggregate), is.null(decoded$probability), is.null(decoded$class),
               identical(decoded$identity, x[c("id", "id2", ".row", ".config")]))

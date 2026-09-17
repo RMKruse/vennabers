@@ -1,6 +1,6 @@
 Package: vennabers
 Title: Venn-Abers Classification and Regression Calibration
-Version: 0.6.0
+Version: 0.7.0
 Authors@R: c(person("Venn-Abers", "Authors", role = "aut"),
     person("René-M.", "Kruse", email = "rene.marcel.kruse@protonmail.com", role = "cre"))
 Description: Fits binary Inductive and Cross Venn-Abers calibrators from

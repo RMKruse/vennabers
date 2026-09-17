@@ -208,8 +208,51 @@ reconstruct final probabilities through OvO coupling or OvR normalization. For
 Cross, first merge each binary subproblem across folds using Log/Brier, then
 couple or normalize. Never average completed multiclass fold matrices.
 `event_level` is binary-only. This shared R plan does not establish parity with
-Python's separate pair-model training; pair training and full-model transfer
-remain outside this path.
+Python's separate pair-model training. `model_training = "shared"` is the
+multiclass default. For separate binary models, use `model_training = "pairwise"`
+with `classification = "ovo"` and either calibration method:
+
+```r
+pair_data <- data.frame(x = sin(1:120),
+  truth = factor(rep(c("a", "b", "c"), 40)))
+pair_base <- workflows::workflow() |>
+  workflows::add_formula(truth ~ x) |>
+  workflows::add_model(parsnip::logistic_reg(engine = "glm"))
+pair_model <- calibrated_workflow(pair_base, "truth", classification = "ovo",
+  model_training = "pairwise", seed = 42)
+pair_fit <- generics::fit(pair_model, pair_data)
+```
+
+Each pair gets its own local holdout or Cross partition after filtering to its two classes; the later
+global level is the event. A split callback receives that pair's data, or a direct
+fit can supply a list named `pair_1`, `pair_2`, etc. All plans are validated before
+learning. Inductive requires both classes in training and calibration. Cross allows
+nonempty one-sided calibration folds when their complements produce trainable
+binary models and valid probabilities. Recipes learn only
+on pair training rows; binary calibrators use matching held-out predictions.
+The global schema and class order remain unchanged. Details retain pair/fold IDs,
+class identities, model sources and endpoints that reconstruct global probabilities.
+Cross aggregates binary folds within each pair before global reciprocal coupling.
+Explicit pair partitions may have different fold counts; equal fold IDs across
+pairs are unrelated. Every local row is assessed once, with complementary training.
+Automatic partitions use `v` without reduction. For K classes, Inductive costs
+K*(K-1)/2 base fits; Cross costs the sum of pair fold counts (15 for three classes
+with five folds). Each nonempty prediction calls every retained model once.
+Set `prediction_model = "full"` to add one complete workflow per pair on its entire
+local two-class domain, including calibration rows. Inductive then costs 2P fits;
+Cross costs the sum of pair fold counts plus P (18 for three classes and five folds).
+Only P full workflows remain and each nonempty predict calls each once. Unchanged
+held-out calibrators receive their pair's full-model probability; Cross aggregates
+within pairs before coupling. Details identify the source as `pair_N/Full1`, separately
+from the pair/fold calibrator. Matching-model guarantees do not automatically carry
+over to this transfer, and improved quality is not promised. Settings remain fixed;
+automatic local selection follows in v0.8.
+Explicit training options remain invalid for binary and regression workflows.
+See [the installed pairwise example](inst/examples/pairwise-inductive.R) for
+binary reference workflows, local plans, coupling, decoding and outer evaluation.
+The [Cross pair example](inst/examples/pairwise-cross.R) shows explicit unequal
+partitions, binary reconstruction, native/decoded details and outer fit costs.
+Both examples compare matching and full-model transfer on held-out data.
 
 The installed evaluation example uses ordinary repeated `fit_resamples()` and a
 prepared resolver, aligns constructor/control event levels, and retains every
@@ -249,6 +292,51 @@ and base-engine namespaces in fresh workers using `pkgs`. Repeatability requires
 the same RNG kind, versions, seeds, threads, strategy and reproducible engine.
 The engine never sees the outer partition: the example validates each outer
 analysis/assessment pair before fitting. Assessments may overlap across resamples.
+
+## Classification full-model transfer
+
+Set `prediction_model = "full"` when constructing a binary, shared OvO/OvR or regression Inductive or Cross
+`calibrated_workflow()`. The default `"matched"` retains the matching source
+models. Both modes use identical held-out calibration sources on the same plan.
+Full transfer additionally fits a fresh complete recipe/model on all local fit
+rows, including calibration rows, and discards the temporary source models.
+New observations use that model once per batch through all retained calibrators.
+
+```r
+source(system.file("examples", "full-model-workflow.R", package = "vennabers"))
+source(system.file("examples", "full-multiclass-workflow.R", package = "vennabers"))
+source(system.file("examples", "full-regression-workflow.R", package = "vennabers"))
+```
+
+Inductive costs two base fits, Cross K+1. `fit_resamples()` and `last_fit()` keep
+all learning inside their analysis data; no final fit includes test data.
+`full` is a fixed fit option, with no prediction-time mode switch or automatic
+selection. The installed `examples/full-model-workflow.R` compares both modes
+on identical plans. Details retain fold identity separately from model source;
+RDS retains the full recipe/model, calibration values and calibrators.
+Matching-model calibration/coverage guarantees do not automatically transfer,
+and full transfer need not improve quality. Frozen `calibrate_workflow()` still
+preserves the already trained procedure without fitting a new model.
+
+Shared multiclass full-model transfer is an R extension. One complete class
+matrix supplies every pair/class calibrator and every Cross fold; binary fold
+aggregation precedes OvO coupling or OvR normalization. Native and decoded
+details identify `model_training`, `prediction_model`, `model_source` and the
+original classes and calibration folds. Stored calibration provenance includes
+complete held-out class matrices, factor truths and local row identities.
+The multiclass example checks repeated outer assessments and `last_fit()`;
+yardstick Brier remains half the manual matrix score, also for two classes.
+
+Regression transfer uses the existing weighted IVAR points, including the exact
+zero-weight midpoint rule. CVAR averages complete fold points and each bound
+separately with equal weights. Details carry `prediction_model` and `model_source`;
+Cross descriptive aggregates also identify the mode and list contributing model
+IDs in `model_source`. Decoding preserves numeric values and the original outcome
+name. State retains held-out numeric predictions/truths and fold moderation.
+The installed regression example compares matched/full RMSE and MAE, reconstructs
+bounds and checks outer assessment and `last_fit()`. Python 1.5.4 offers regression
+full-model transfer through the exported lower `VennAbersCV` class; its regression
+facade does not expose that option. Transfer gives no new coverage or quality guarantee.
 
 ## Automatic regression workflow calibration
 
@@ -322,7 +410,7 @@ their common finite value. Empty and singleton prediction inputs preserve the
 three-column data frame; saved fits work in fresh R processes without training.
 
 This manual entry point is an R extension. The
-[reference record](inst/extdata/regression-reference.md) distinguishes valid
+[reference record](tests/extdata/regression-reference.md) distinguishes valid
 Python 1.5.4 regression components from lower-bound and zero-weight defects.
 The manual core does not train models or create splits. Regression score/plot
 helpers, exact minimax,
@@ -383,7 +471,7 @@ and a model fixed independently of its calibration observations.
 Aggregated bounds are descriptive fold summaries without an additional
 coverage or selector guarantee. They are not confidence or prediction intervals
 for individual outcomes, and no score improvement is promised. The
-[Cross reference record](inst/extdata/cross-regression-reference.md) documents
+[Cross reference record](tests/extdata/cross-regression-reference.md) documents
 offline Python 1.5.4 IVAR component evidence and independent aggregation;
 there is no corresponding public manual Python CVAR wrapper.
 
@@ -415,7 +503,7 @@ Logical, missing, nonfinite, fractional, and multiple precision values are
 rejected. R and NumPy can round differently at floating-point boundaries;
 native R behavior is intentional, with separate tests from Python parity.
 See the executable [binary options example](inst/examples/binary-options.R) and
-[reference record](inst/extdata/binary-options-reference.md).
+[reference record](tests/extdata/binary-options-reference.md).
 
 ## Cross Venn-Abers
 
@@ -626,7 +714,7 @@ independent coupling or normalization. **Manual Brier for both methods is a
 deliberate R extension**: the examined Python manual path does not forward a
 Brier selection. Zero-pair replacement, validation and native R rounding are
 explicit R rules. Regeneration is in `tools/generate-multiclass-fixtures.py`;
-`inst/extdata/ovo-environment.json` and `inst/extdata/ovr-environment.json` record
+`tests/extdata/ovo-environment.json` and `tests/extdata/ovr-environment.json` record
 provenance and hashes. Both methods share the `ovo-calibration.csv` and
 `ovo-input.csv` inputs. Ordinary tests need no Python.
 
@@ -701,7 +789,7 @@ extension, distinct from Python's trained pairwise model/fold plans.
 The package does not support package-managed predictive-model fitting, fold
 creation, learned preprocessing, tuning or resampling; repeated or overlapping
 partitions; one-fold public cross calibration;
-separate pairwise model training or pair-specific fold plans; observation weights; alternate event selection; automatic
+observation weights; alternate event selection; automatic
 coercion or missing-value handling; fold-size weighting, pooling or averaging
 log-loss fold point predictions; public aggregate classification cross bounds; formula/data-frame
 cross interfaces; tidymodels/yardstick integrations; or new metrics, smoothing,
@@ -727,46 +815,50 @@ snippets and every R script under `inst/examples/` against that installation.
 Errors, warnings and NOTEs fail the gate. Online CRAN incoming checks and
 clock probes are disabled so the prepared R environment can run offline.
 
-The active [workflow](.github/workflows/acceptance.yaml) requires R 4.6.1 and
-4.5.3 on Linux x86_64, Windows x86_64, macOS Intel and macOS ARM. Linux R-devel
-is an additional visible, non-blocking early warning. New releases require
-at least the previous R minor series; recheck the matrix and `DESCRIPTION`
-floor for each release. Older releases retain their original floor.
+GitHub Actions remains disabled by the documented user decision. The required
+local release matrix is current/previous R minor (4.6.1/4.5.3) on Linux x86_64,
+Windows x86_64, macOS Intel and ARM, plus Linux core without integration packages
+and previous-R minimum dependencies. Linux R-devel is additional early warning.
+The release R floor remains the previous minor series, currently R >= 4.5.0.
 
-Set `ACCEPTANCE_OUTPUT_DIR` to an empty directory to retain the source artifact,
-logs and environment/package versions. Set `ACCEPTANCE_ARTIFACT` to an existing
-source tarball to check that exact candidate instead of rebuilding. CI builds
-once, verifies SHA-256, and checks the same archive on every platform. The
-standalone examples ship in the package; find them after installation with
-`system.file("examples", package = "vennabers")`.
+Set `ACCEPTANCE_OUTPUT_DIR` to an empty directory to retain logs and environment
+versions. Set `ACCEPTANCE_ARTIFACT` to the identified source archive so every
+installation, check and example uses the same candidate. The installed examples
+are available at `system.file("examples", package = "vennabers")`.
 
-See the [v0.4 acceptance record](tools/acceptance-v04.md) for the capability
-map, migration notes, commands, results and the updated approval criterion.
-The [v0.3 record](tools/acceptance-v03.md) records maintainer approval and retains
-the historical evidence. Unexecuted platform and Linux benchmark checks are
-not blockers under the updated v0.4 criterion and are not claimed as passes.
+The [v0.7 local report](tools/acceptance-v07.md) records artifact identity, all 20
+fixed training paths, evidence and open gates. The prior v0.6 release approval,
+unexecuted platform checks and controlled Linux benchmarks remain prerequisites;
+older release waivers do not apply. Remote execution needs a separate decision.
 
-Benchmarks run separately on the documented Linux x86_64 reference machine:
+Benchmarks run separately from package checks on a Linux x86_64 reference machine:
 
 ```sh
-Rscript tools/performance.R vennabers_0.4.0.tar.gz vennabers_0.3.0.tar.gz benchmark-output
-Rscript tools/test-performance.R benchmark-output --v04
+Rscript tools/performance.R vennabers_0.7.0.tar.gz vennabers_0.6.0.tar.gz benchmark-output
+Rscript tools/test-performance.R benchmark-output --v07
 ```
 
-The runner prepares fixed inputs outside measurement, installs both artifacts,
-and runs cases serially in fresh R processes with one warmup and three measured
-runs. It records separate fit/predict times, process peak memory, RDS sizes,
-individual results, medians and predecessor comparisons. All twelve classification
-cases are compared with v0.3. IVAR and CVAR each add baselines for `m = 1` and
-`epsilon = 0.1`, with 10,000 calibration rows, 1,000 new rows and five CVAR folds.
-The runner checks moderation per fold and saves exact inputs and row assignments. Increased
-costs require investigation before approval. `--smoke` permits another platform
-for runner validation and explicitly does not produce release evidence.
+All 48 historical cases remain. The 20 fixed training paths cover binary,
+shared OvO/OvR, pairwise OvO and regression, each Inductive/Cross × matched/full;
+four additional pair cases have ten classes. New workflow cases use 2,000
+rows, ten numeric predictors, 500 new rows, 20% Inductive calibration,
+five Cross folds and three outer folds, with saved inputs and actual local plans.
+For v0.7, every warmup and each of three measurements uses a fresh R process,
+serially with one thread. Fit, Predict and full outer evaluation times, actual
+engine fit counts, retained model counts, peak process memory and RDS size are
+recorded. Fresh restores must predict identically. Common capabilities are
+remeasured on both artifacts; new ones receive baselines. Deteriorations require
+investigation. `--smoke` on another platform supplies no Linux performance clearance.
 
-The unchanged 100,000-calibration / 100,000-prediction IVAP case is retained.
-The comparative protocol replaces the historical 10-second ceiling. Historical
-measurements remain in the [v0.2 record](tools/acceptance-v02.md); they cannot
-substitute for remeasuring v0.3 on the same reference machine.
+Manual and frozen APIs remain available. `matched` and shared training stay the
+defaults; `full` retains held-out calibration values but predicts through a newly
+fitted complete model (one per pair with pairwise training). It costs 2 versus 1
+base fits for Inductive and K+1 versus K for Cross, multiplied by the number of
+pairs where applicable. Full prediction retains one model per shared path/pair;
+matched prediction retains every source model. Tuning follows in v0.8, newly
+trained postprocessing in v0.9; existing frozen postprocessing is preserved.
+No runtime/package installation, calibration/coverage guarantee for transfer,
+or general serialization guarantee is implied.
 
 ### Reversible names for calibrated workflows
 

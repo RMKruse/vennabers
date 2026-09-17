@@ -1,7 +1,8 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 read_fixture <- function(name, text_columns) {
-  path <- system.file("extdata", name, package = "vennabers", mustWork = TRUE)
+  path <- file.path("extdata", name)
   result <- read.csv(path, colClasses = "character")
   for (column in setdiff(names(result), text_columns)) result[[column]] <- as.numeric(result[[column]])
   result
@@ -39,7 +40,7 @@ for (i in seq_len(nrow(options))) {
   fit <- do.call(venn_abers_regression,
                  c(list(truth = cal$truth, prediction = cal$prediction),
                    setNames(list(option$requested), option$parameter)))
-  stopifnot(fit$m == option$m, fit$epsilon == option$epsilon,
+  assert_conditions(fit$m == option$m, fit$epsilon == option$epsilon,
             fit$a == option$a, fit$b == option$b,
             fit$observations == nrow(cal),
             identical(cal$row, as.numeric(seq_len(nrow(cal)))),

@@ -18,7 +18,9 @@ multinomial model. Fresh parallel workers must load \code{vennabers} and those
 engine namespaces, for example through \code{control_resamples(pkgs = ...)}.
 Reversible name encoding for binary, OvO/OvR and regression is available through \code{venn_abers_schema()}.
 Frozen classification/regression workflow adoption is available through \code{\link{calibrate_workflow}}.
-Ordered reference holdouts remain separate v0.6 work; pair training/full-model transfer in v0.7, tuning in v0.8 and
+Ordered reference holdouts and binary/shared multiclass full-model transfer are supported.
+Matched/full Inductive and Cross pair training are also supported in v0.7.
+Automatic local tuning follows in v0.8 and
 learned postprocessing in v0.9. Shared multiclass training does not establish
 complete Python training parity.
 }
@@ -26,7 +28,8 @@ complete Python training parity.
 calibrated_workflow(workflow, outcome, ..., predictors = NULL,
   method = "inductive", classification = "binary", event_level = "first",
   calibration_prop = 0.2, v = 5L, strata = NULL, splits = NULL, seed = NULL,
-  precision = NULL, loss = "log", m = NULL, epsilon = NULL, schema = NULL)
+  precision = NULL, loss = "log", m = NULL, epsilon = NULL, schema = NULL,
+  prediction_model = "matched", model_training = "shared")
 venn_abers_details(object, new_data, ..., loss = NULL)
 \method{predict}{_vennabers_fit}(object, new_data, type = NULL,
   opts = list(), ..., loss = NULL)
@@ -50,6 +53,20 @@ truth; numeric 0/1 outcomes remain regression.}
 outcome. NULL selects all other supplied columns. Their stored order is canonical;
 unused selected columns still have to be supplied for prediction.}
 \item{method}{Exactly \code{"inductive"} (default) or \code{"cross"}.}
+\item{prediction_model}{Exactly \code{"matched"} (default) or \code{"full"}.
+Available for binary, shared OvO/OvR, pairwise OvO classification and regression.
+This is a fixed fit option; predict cannot change it.
+Matched uses each calibration source model for new observations. Full applies
+the unchanged held-out calibrators to predictions from one additional workflow
+trained on the entire permitted local fit domain, including calibration rows.
+For pairwise training there is one such full workflow per local class pair.}
+\item{model_training}{Exactly \code{"shared"} (default) or \code{"pairwise"}.
+Explicit values are rejected for binary and regression workflows. A shared model
+produces one complete class matrix; OvO splits calibration into pairs without
+training pair models. Pairwise requires \code{classification="ovo"},
+and a workflow
+that can train on a two-level factor. Each pair has its own models, recipes and
+holdout or Cross partition. The later global level is its event; no extra shared/OvR model is fitted.}
 \item{classification}{Exactly \code{"binary"} (default), \code{"ovo"}, or
 \code{"ovr"}. OvO/OvR explicitly use the
 factor/matrix core, including with two classes. Mode comes from the base model.
@@ -74,7 +91,11 @@ for Inductive; a simple \code{rset} from \code{rsample::vfold_cv()} or
 \code{rsample::manual_rset()} for Cross; or a serializable function receiving only
 selected local raw predictors followed by outcome and returning such a plan. Explicit plans cannot be combined with
 explicit \code{calibration_prop}, \code{v} or \code{strata}, even their defaults.
-Use \code{\link{local_calibration_splits}} for prepared assignments.}
+Use \code{\link{local_calibration_splits}} for prepared assignments.
+Pairwise accepts a function of the current local pair data, or for direct fits a
+list named by exactly \code{pair_1}, \code{pair_2}, etc. A single global
+multiclass plan is not a pair plan. Automatic holdouts/partitions are generated after filtering.
+Explicit Cross plans may have different fold counts per pair.}
 \item{seed}{NULL uses the caller's RNG stream. A finite whole number in R's integer
 seed range sets a local seed for splitting and base fitting, restoring the caller's
 state and RNG kind afterwards, including on error. The scope includes the plan
@@ -117,6 +138,12 @@ probability table) and \code{details}: integer \code{row}, character \code{fold}
 \code{lower}, \code{upper}, \code{probability}. Cross details contain one row per
 new observation and fold; their probability is the fold point, while
 \code{prediction} contains the final aggregate.
+Trainable workflow details also contain character \code{prediction_model} and
+\code{model_source}. The source is the fold ID in matched mode, or \code{"Full1"}
+for every fold in full mode. These are model metadata, separate from original
+class identities and the \code{fold} identifying the held-out calibrator;
+\code{venn_abers_decode()} preserves them without decoding them as classes.
+Trainable OvO/OvR details include \code{model_training}.
 OvO/OvR details additionally contain character \code{method} and either
 \code{class_1}/\code{class_2} (OvO) or \code{class} (OvR). Each row identifies
 one new observation, fold and binary subproblem. \code{event_class} is the later class
@@ -127,7 +154,10 @@ Regression returns the native \code{.pred} table as \code{prediction}, and
 \code{details} with integer \code{row}, character \code{fold}, and double
 \code{prediction}, \code{lower}, \code{upper}. Cross additionally returns
 \code{aggregate} with \code{row}, \code{lower}, \code{upper}: descriptive
-separate equal-weight means of fold bounds. Zero/one rows retain these schemas.}
+separate equal-weight means of fold bounds. Trainable regression aggregates also
+contain character \code{prediction_model} and a \code{model_source} list column:
+each row lists all contributing source model IDs (only \code{"Full1"} in full mode).
+Zero/one rows retain these schemas. Frozen regression outputs retain their existing schema.}
 \details{
 All learned preprocessing belongs in the base workflow; the outer Variables
 preprocessor only carries raw data. Training and calibration positions must form a
@@ -163,18 +193,39 @@ as \code{a b} and \code{a.b} require a compatible base engine. Raw predictor
 then outcome), \code{class_levels}, \code{event_class}, \code{loss},
 \code{folds} (by fold ID, with integer \code{analysis}/\code{assessment} positions and
 \code{training_size}/\code{calibration_size}), \code{models} (full
-fitted base workflows named by the same IDs), \code{calibrator}, \code{versions}, and \code{rng_kind}.
+fitted base workflows named by the same IDs, or only \code{Full1} in full mode),
+\code{calibrator}, \code{calibration} (for binary: a list named by fold ID, each
+with original local integer \code{row}, logical event \code{truth} and unrounded
+double held-out \code{probability}; for multiclass: one list per fold with
+integer \code{row}, factor \code{truth} retaining all levels, and the complete
+unrounded named class matrix \code{probability}; for regression: a data frame per
+fold with integer \code{row}, numeric \code{truth} and held-out double
+\code{prediction}), \code{versions}, and \code{rng_kind}.
+Full mode fits the source recipes/models only on each analysis portion, then
+fits a fresh complete recipe/model on all local fit rows. No source recipe
+statistics are reused. Only after success are temporary source workflows
+discarded. Held-out values and the separate calibrators never change; there is
+no pooled OOF calibration or in-sample replacement. Training failure invalidates
+the whole fit; there is no fallback. A one-row full-model prediction validates
+its output contract during fit and is discarded without calibration.
+Print identifies the mode and fold-to-model
+mapping. Saved RDS objects retain the complete prediction procedure.
+The cost is one/two base fits for matched/full Inductive and K/K+1 for Cross.
+Full prediction calls its one model once per nonempty batch, reusing that output
+across calibrators within the call. There is no persistent prediction cache.
+The existing Log/Brier mergers and prediction-time loss override are unchanged.
 For regression, \code{parameters$requested$mode} is \code{"regression"};
 \code{effective$m} and \code{effective$epsilon} are numeric vectors named by
 fold ID. Each \code{folds[[id]]$moderation} stores \code{requested}, effective
 \code{m} and effective \code{epsilon=2*m/(k+1)}, alongside the fold sizes.
 Implicit classification options are absent from effective settings; class levels,
 event class and loss are NULL. The calibrator is the unchanged IVAR or CVAR core.
-IVAR keeps its full analysis-trained workflow and weighted points, including the
-midpoint when both weights vanish. CVAR keeps every matching workflow/recipe and
-calibrator and averages points, lower bounds and upper bounds separately with
-equal weights, regardless of fold size. No full-data transfer, rounding or
-probability constraint is applied to regression predictions.
+IVAR uses weighted points, including the midpoint when both weights vanish.
+CVAR averages complete fold points, lower bounds and upper bounds separately
+with equal weights, regardless of fold size; it never merges averaged bounds.
+Matched mode retains each source workflow/recipe. Full mode retains one fresh
+full workflow and applies its numeric prediction to every held-out calibrator.
+No rounding or probability constraint is applied to regression predictions.
 For OvO/OvR, the global \code{event_class} and effective \code{event_level} are
 NULL; events belong to subproblems in details. The calibrator stores the original
 classes and chosen multiclass method.
@@ -214,7 +265,7 @@ known ordinary/stratified memberships, data roles and assessment scores.
 Equal R/Python seeds alone do not establish equal splits or training; numerical
 comparisons require identical model outputs, assignments and options.
 
-Cross retains exactly one full base workflow per fold and all corresponding
+Matched Cross retains exactly one full base workflow per fold and all corresponding
 binary subproblem calibrators, with no
 additional full-data model. New data traverse every matching learned recipe/model
 path. A failed fold fails the entire fit. Log loss uses the core's stable logarithmic
@@ -278,7 +329,105 @@ are descriptive. Improved scores on every data set are not
 promised. The engine cannot validate an outer partition it never receives.
 Validate outer analysis/assessment disjointness before calling fit_resamples;
 assessment sets from different outer resamples may overlap.}
+\section{Pairwise model training}{
+Global factor levels fix the class order before decomposition. Each stable
+\code{pair_id} names its two classes through
+\code{pair_models[[pair_id]]$class_levels}; the second is always the event.
+Each complete binary workflow
+learns exclusively from its pair's training rows, including all recipe estimates.
+Only its held-out event probabilities fit the existing binary calibrator.
+For Cross, the existing binary core first aggregates within each pair using stable
+log-loss aggregation or equal-weight Brier points. Only then are pair points
+combined with the same reciprocal OvO merger as shared training; coupled
+multiclass fold predictions are never averaged.
+The global schema remains unchanged; only the unfitted recipe's outcome type is
+adapted to the two-level local domain, retaining steps, roles and blueprint options.
+
+\code{pair_models[[pair_id]]} retains \code{pair_id}, \code{class_levels},
+\code{event_class}, \code{rows} (positions in the current global fit domain),
+\code{folds} (positions in the local pair, plus sizes), \code{models},
+\code{calibrator}, and \code{calibration}. Folds, models and calibration records
+are named by local fold ID: \code{Inductive1} or the supplied Cross IDs.
+The Cross calibrator retains its ordered, named binary fold calibrators.
+Prediction re-derives the pair order from the global class levels and rejects
+components whose \code{pair_id}, \code{class_levels} or fold names disagree,
+as well as models whose fitted two-class outcome mold is not the pair's.
+These replace the shared model/fold/calibrator fields. Calibration records retain
+local row positions, binary truths and unrounded probabilities. Details add
+\code{pair_id}, \code{model_training="pairwise"},
+\code{prediction_model}, and \code{model_source} equal to the pair ID in matched mode.
+The pair ID together with \code{fold} identifies the source workflow
+and calibrator in matched mode. Full mode instead names each new model source
+\code{pair_N/Full1}, separately from the unchanged pair/fold calibrator. Decoding changes class identities while preserving pair/fold/source
+IDs. Zero-row outputs retain all columns without calling any base model.
+
+All pair plans and data bindings are validated before the first base fit.
+For Inductive, both classes must occur in each pair's training and calibration
+portions. Cross permits nonempty one-sided calibration folds when the training
+complement supports a trainable engine returning correct two-class probabilities.
+Within each pair, assessment folds partition every local row exactly once and
+training is the exact complement. Repeated/overlapping or incomplete plans,
+foreign data and missing/duplicate IDs fail before training. Automatic Cross uses
+the requested \code{v} without reduction; explicit valid partitions may have
+different fold counts across pairs. Equal fold IDs in different pairs have no
+shared meaning. Ordinary/stratified and non-shuffled reference partitions follow
+the same local IID split rules as shared training.
+Observations may recur across pairs. Explicit plans retain their local position
+order; an ordered pair holdout does not imply a global time cutoff. With a fixed
+\code{seed}, each pair resolver/automatic plan starts from that same seed
+in a restored local scope, so plans do not depend on preceding fits or call counters.
+Base fits then consume the enclosing fit's seeded stream in stable pair order.
+With NULL, splitting and fitting consume the caller's stream. Prepared assignments
+use \code{local_calibration_splits()} over every local pair, which rejects
+conflicting plans for identical data. Resampling callbacks see only the current
+outer analysis pair; development-wide plans cannot be replayed on different data.
+
+For K classes, P=K*(K-1)/2 pairs cost P base fits for Inductive and the sum of
+local fold counts for Cross (three classes with five folds cost 15 fits).
+Each nonempty prediction call uses each retained model exactly once. Recipes, calibrators and models remain stored; prediction never learns.
+With \code{prediction_model="full"}, all source workflows and calibrators are
+built first, then one extra full workflow learns its recipe/model on each complete
+local two-class domain. This order preserves source RNG draws and held-out values.
+After every full workflow succeeds, \code{models} retains only \code{Full1} per
+pair; all calibrators, held-out records and identities remain. No in-sample
+recalibration or OOF pooling occurs. Full Inductive costs 2P fits; full Cross costs
+the sum of local fold counts plus P (18 for three classes and five folds).
+Each nonempty prediction uses each pair full model once and shares its named event
+probability across that pair's calibrators before binary aggregation and global
+coupling. Outer assessment/test rows never enter these fits.
+Any failed component fails the whole fit. See installed
+\code{examples/pairwise-inductive.R} for separate binary references, explicit
+pair plans, independent coupling, decoding and complete outer evaluation.
+The installed \code{examples/pairwise-cross.R} adds explicit unequal Cross
+partitions, reconstruction, native/decoded diagnostics and outer fit costs.
+Both examples compare matched/full predictions, costs and held-out scores;
+matching-model guarantees do not automatically transfer and better quality is not promised.
+}
+\section{Printed costs}{The fitted engine prints source mappings, the number of base
+fits (including temporary source fits discarded in full mode), models used per
+nonempty prediction, and stored calibration rows containing held-out truth and
+model predictions. Pairwise calibration rows count membership in each pair.}
+\section{Full-model transfer}{For \code{prediction_model="full"}, the split isolates
+calibration observations from source learning only. The extra full model includes
+them. Existing matching-model calibration or coverage guarantees do not
+automatically transfer to this differently trained model; improved quality is
+not guaranteed. All settings are fixed, with no automatic search or mode choice.
+\code{fit_resamples()} rebuilds the complete procedure inside each outer analysis
+domain. \code{last_fit()} trains solely on its analysis domain, never analysis
+plus test. \code{calibrate_workflow()} remains a frozen-model path and does not
+accept this training option. Shared multiclass full-model transfer is an R
+extension, not Python pair-model training parity. It uses the same full class
+matrix for every subproblem and fold, with binary aggregation before multiclass
+combination. See the installed examples \code{full-model-workflow.R} and
+\code{full-multiclass-workflow.R} under \code{system.file("examples", package="vennabers")};
+the latter shows native/decoded diagnostics, repeated outer assessment,
+\code{last_fit()} and the unchanged yardstick Brier factor of two.
+\code{full-regression-workflow.R} demonstrates IVAR/CVAR transfer, RMSE/MAE,
+decoded numeric predictions and reconstruction of descriptive bounds. The Python
+1.5.4 full-model regression option belongs to the exported lower
+\code{VennAbersCV} class, not its regression facade.}
 \examples{
 source(system.file("examples", "calibrated-workflow.R", package = "vennabers"))
+source(system.file("examples", "full-model-workflow.R", package = "vennabers"))
 }
 \seealso{\code{\link{venn_abers}}, \code{\link{cross_venn_abers}}, \code{\link{venn_abers_schema}}}

@@ -1,7 +1,8 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
-calibration_path <- system.file("extdata", "randomized-calibration.csv", package = "vennabers")
-prediction_path <- system.file("extdata", "randomized-predictions.csv", package = "vennabers")
+calibration_path <- file.path("extdata", "randomized-calibration.csv")
+prediction_path <- file.path("extdata", "randomized-predictions.csv")
 stopifnot(nzchar(calibration_path), nzchar(prediction_path))
 
 calibration <- read.csv(calibration_path, comment.char = "#")
@@ -14,7 +15,7 @@ truth_class_counts <- vapply(
   0L
 )
 
-stopifnot(
+assert_conditions(
   length(case_ids) == 100L,
   min(sizes) == 1L,
   max(sizes) == 200L,
@@ -36,7 +37,7 @@ for (case_id in case_ids) {
   expected_output <- expected[c("lower", "upper", "regularized_probability")]
   names(expected_output)[3L] <- "probability"
 
-  stopifnot(
+  assert_conditions(
     identical(names(actual), c("lower", "upper", "probability")),
     nrow(actual) == 25L,
     all(vapply(actual, is.double, FALSE)),

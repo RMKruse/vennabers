@@ -1,3 +1,17 @@
+# vennabers 0.7.0
+
+- Add `prediction_model = "full"` (default: `"matched"`) to train one extra
+  recipe/model on all local fit rows, including calibration rows, while retaining
+  the original held-out calibrators. It is available for binary, shared or
+  pairwise OvO/OvR, and regression Inductive and Cross workflows.
+- `"full"` costs one extra fit per shared/binary/regression workflow (2 fits for
+  Inductive; K+1 for K-fold Cross), or one per OvO pair with
+  `model_training = "pairwise"`; source models are discarded after fitting.
+- Add `model_training = "pairwise"` for OvO (default: `"shared"`), training a
+  separate binary workflow and local calibration plan for each class pair.
+- Full-model transfer is fixed at fit time and does not automatically transfer
+  matching-model calibration or coverage guarantees, nor promise better quality.
+
 # vennabers 0.6.0
 
 - Prepare a local v0.6 candidate and cumulative benchmarks, including separate

@@ -1,4 +1,6 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
+source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
                requireNamespace, logical(1), quietly = TRUE))) {
   data <- data.frame(x = sin(1:80), truth = factor(rep(c("yes", "no", "no", "yes"), 20)))
@@ -63,16 +65,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
     if (object$output == "nonfinite") result[[1L]][1L] <- NA_real_
     result[2:1]
   }
-  parsnip::set_new_model("cross_reference")
-  parsnip::set_model_mode("cross_reference", "classification")
-  parsnip::set_model_engine("cross_reference", "classification", "reference")
-  parsnip::set_fit("cross_reference", "classification", "reference",
-    list(interface = "data.frame", protect = c("x", "y"), func = c(fun = "cross_fit"), defaults = list()))
-  parsnip::set_encoding("cross_reference", "classification", "reference",
-    list(predictor_indicators = "none", compute_intercept = FALSE, remove_intercept = FALSE, allow_sparse_x = FALSE))
-  parsnip::set_pred("cross_reference", "classification", "reference", "prob",
-    list(pre = NULL, post = NULL, func = c(fun = "cross_prob"),
-         args = list(object = quote(object$fit), new_data = quote(new_data))))
+  register_reference_engine("cross_reference", "classification", "cross_fit", "cross_prob", "prob")
   spec <- parsnip::new_model_spec("cross_reference", args = list(), eng_args = NULL,
                                  mode = "classification", method = NULL, engine = "reference")
   data <- data.frame(x = c(1000, NA, sin(3:40)), id = 1:40,
@@ -92,7 +85,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
     before <- counts$fit
     fitted <- generics::fit(model(splits = plan, precision = precision, event_level = level, loss = "brier"), data)
     state <- workflows::extract_fit_engine(fitted)
-    stopifnot(counts$fit == before + 3L, identical(names(state$models), plan$id),
+    assert_conditions(counts$fit == before + 3L, identical(names(state$models), plan$id),
               identical(names(state$calibrator$calibrators), plan$id),
               is.null(state$parameters$effective$v), is.null(state$parameters$effective$calibration_prop),
               identical(state$parameters$requested$precision, precision))
@@ -107,7 +100,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
       learned <- workflows::extract_recipe(state$models[[id]])
       x <- data$x[train]
       x[is.na(x)] <- median(x, na.rm = TRUE)
-      stopifnot(identical(engine$x$id, data$id[train]), identical(as.vector(engine$y), as.vector(data$truth[train])),
+      assert_conditions(identical(engine$x$id, data$id[train]), identical(as.vector(engine$y), as.vector(data$truth[train])),
                 abs(learned$steps[[1]]$medians[["x"]] - median(x)) <= 1e-10,
                 abs(learned$steps[[2]]$means[["x"]] - mean(x)) <= 1e-10,
                 abs(learned$steps[[2]]$sds[["x"]] - sd(x)) <= 1e-10,
@@ -122,7 +115,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
       expected <- predict(core, new_p, loss = loss, type = "details")
       actual <- venn_abers_details(fitted, data, loss = loss)
       p <- actual$prediction[[paste0(".pred_", state$event_class)]]
-      stopifnot(max(abs(p - expected$prediction$probability)) <= 1e-10,
+      assert_conditions(max(abs(p - expected$prediction$probability)) <= 1e-10,
                 identical(as.data.frame(actual$details[names(expected$folds)]), expected$folds),
                 identical(actual$prediction, predict(fitted, data, type = "prob", loss = loss)),
                 identical(names(actual$prediction), paste0(".pred_", levels(data$truth))),
@@ -145,9 +138,9 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
         details <- venn_abers_details(fitted, small, loss = loss)
         prob <- predict(fitted, small, type = "prob", loss = loss)
         cls <- predict(fitted, small, type = "class", loss = loss)
-        stopifnot(nrow(prob) == n, nrow(cls) == n, nrow(details$details) == 3L * n,
+        assert_conditions(nrow(prob) == n, nrow(cls) == n, nrow(details$details) == 3L * n,
                   identical(details$prediction, prob), identical(levels(cls$.pred_class), levels(data$truth)),
-                  identical(names(details$details), c("row", "fold", "event_class", "lower", "upper", "probability")),
+                  identical(names(details$details), c("row", "fold", "event_class", "lower", "upper", "probability", "prediction_model", "model_source")),
                   is.integer(details$details$row), is.character(details$details$fold),
                   is.character(details$details$event_class), all(vapply(prob, is.double, logical(1))))
         if (!n) stopifnot(counts$predict == before_predict)

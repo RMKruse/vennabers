@@ -15,8 +15,8 @@ if (all(vapply(c("parsnip", "workflows", "recipes", "tune", "yardstick", "future
                             recipes::step_normalize(recipes::all_numeric_predictors())) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
   outer <- withr::with_seed(123, rsample::vfold_cv(encoded, v = 2, repeats = 2))
-  for (method in c("inductive", "cross")) {
-    model <- calibrated_workflow(base, schema$encoded_outcome, schema = schema, method = method, seed = 42)
+  for (method in c("inductive", "cross")) for (prediction_model in c("matched", "full")) {
+    model <- calibrated_workflow(base, schema$encoded_outcome, schema = schema, method = method, seed = 42, prediction_model = prediction_model)
     fit <- generics::fit(model, encoded)
     expected <- lapply(c(0L, 1L, 3L), function(n) {
       new <- encoded[seq_len(n), 1, drop = FALSE]
@@ -30,6 +30,9 @@ if (all(vapply(c("parsnip", "workflows", "recipes", "tune", "yardstick", "future
       'library(vennabers); loadNamespace("workflows"); loadNamespace("stats")',
       paste0('s <- readRDS(', deparse(saved), ')'),
       'stopifnot(identical(workflows::extract_fit_engine(s$fit)$schema, s$schema))',
+      'trace("fit.workflow", where = asNamespace("workflows"), tracer = quote(stop("Unexpected learning")), print = FALSE)',
+      'trace("prep.recipe", where = asNamespace("recipes"), tracer = quote(stop("Unexpected recipe learning")), print = FALSE)',
+      'trace("venn_abers", where = asNamespace("vennabers"), tracer = quote(stop("Unexpected calibration learning")), print = FALSE)',
       'actual <- lapply(c(0L, 1L, 3L), function(n) {',
       '  new <- s$data[seq_len(n), 1, drop = FALSE]',
       '  list(probability = venn_abers_decode(predict(s$fit, new, type = "prob"), s$schema),',
@@ -37,6 +40,9 @@ if (all(vapply(c("parsnip", "workflows", "recipes", "tune", "yardstick", "future
       '       details = venn_abers_decode(venn_abers_details(s$fit, new), s$schema))',
       '})',
       'stopifnot(identical(actual, s$expected))',
+      'untrace("fit.workflow", where = asNamespace("workflows"))',
+      'untrace("prep.recipe", where = asNamespace("recipes"))',
+      'untrace("venn_abers", where = asNamespace("vennabers"))',
       'Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")',
       'control <- tune::control_resamples(save_pred = TRUE, extract = workflows::extract_fit_engine,',
       '  event_level = s$schema$event_level, parallel_over = "resamples", pkgs = c("vennabers", "stats"))',

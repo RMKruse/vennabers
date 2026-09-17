@@ -1,4 +1,6 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
+source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
                requireNamespace, logical(1), quietly = TRUE))) {
   error <- function(expr, pattern = "") {
@@ -21,15 +23,9 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
   encoded_numeric <- function(object, new_data) mean(object$y) + sd(object$y) * new_data[[1]]
   parsnip::set_new_model("encoded_reference")
   for (mode in c("classification", "regression")) {
-    parsnip::set_model_mode("encoded_reference", mode)
-    parsnip::set_model_engine("encoded_reference", mode, "reference")
-    parsnip::set_fit("encoded_reference", mode, "reference",
-      list(interface = "data.frame", protect = c("x", "y"), func = c(fun = "encoded_fit"), defaults = list()))
-    parsnip::set_encoding("encoded_reference", mode, "reference",
-      list(predictor_indicators = "none", compute_intercept = FALSE, remove_intercept = FALSE, allow_sparse_x = FALSE))
-    parsnip::set_pred("encoded_reference", mode, "reference", if (mode == "regression") "numeric" else "prob",
-      list(pre = NULL, post = NULL, func = c(fun = if (mode == "regression") "encoded_numeric" else "encoded_prob"),
-           args = list(object = quote(object$fit), new_data = quote(new_data))))
+    register_reference_engine("encoded_reference", mode, "encoded_fit",
+      if (mode == "regression") "encoded_numeric" else "encoded_prob",
+      if (mode == "regression") "numeric" else "prob", new_model = FALSE)
   }
   make_base <- function(data, outcome, mode) workflows::workflow() |>
     workflows::add_formula(reformulate(setdiff(names(data), outcome), outcome)) |>
@@ -37,7 +33,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
                                                 mode = mode, method = NULL, engine = "reference"))
   # Fixed before comparison: s=1 outcome unit, multiplied when units change.
   close <- function(actual, expected, scale = NULL) {
-    stopifnot(identical(dim(actual), dim(expected)), length(actual) == length(expected),
+    assert_conditions(identical(dim(actual), dim(expected)), length(actual) == length(expected),
               all(is.finite(actual)), all(is.finite(expected)),
               all(abs(actual - expected) <= if (is.null(scale)) 1e-10 else 1e-10 * scale + 1e-10 * abs(expected)))
   }
@@ -57,7 +53,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
       fit <- generics::fit(calibrated_workflow(base, outcome, schema = schema, method = method,
                                                seed = 42, precision = precision), data)
       state <- workflows::extract_fit_engine(fit)
-      stopifnot(fits == before + length(state$folds), identical(names(state$models), names(state$folds)),
+      assert_conditions(fits == before + length(state$folds), identical(names(state$models), names(state$folds)),
                 identical(state$class_levels, unname(schema$classes)), is.null(state$event_class),
                 !state$parameters$explicit[["classification"]], !state$parameters$explicit[["event_level"]])
       new <- data[c(1, 19, 87), setdiff(names(data), outcome)]
@@ -100,7 +96,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
           small <- new[seq_len(n), ]
           d <- venn_abers_decode(venn_abers_details(fit, small, loss = loss), schema)
           cl <- venn_abers_decode(predict(fit, small, type = "class", loss = loss), schema)$class
-          stopifnot(identical(dim(d$probability), c(n, k)), is.double(d$probability),
+          assert_conditions(identical(dim(d$probability), c(n, k)), is.double(d$probability),
                     identical(levels(cl), classes), length(cl) == n,
                     identical(colnames(d$probability), classes))
         }
@@ -199,7 +195,7 @@ if (exists("encoded_fit")) {
         } else close(as.matrix(decoded$details[c("prediction", "lower", "upper")]), as.matrix(points), scale)
         for (n in 0:1) {
           d <- venn_abers_decode(venn_abers_details(fit, new[seq_len(n), ]), schema)
-          stopifnot(is.double(d$prediction), length(d$prediction) == n,
+          assert_conditions(is.double(d$prediction), length(d$prediction) == n,
                     nrow(d$details) == n * length(state$folds), is.integer(d$details$row),
                     is.character(d$details$fold), all(vapply(d$details[3:5], is.double, logical(1))))
           if (method == "cross") stopifnot(nrow(d$aggregate) == n)

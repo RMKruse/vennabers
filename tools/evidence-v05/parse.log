@@ -1,1 +1,0 @@
-All R sources parse. No standalone typechecker is configured; R CMD check supplies static/usage checks.

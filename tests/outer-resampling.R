@@ -1,4 +1,6 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
+source(if (file.exists("tests/helpers.R")) "tests/helpers.R" else "helpers.R")
 if (all(vapply(c("tune", "yardstick", "rsample", "workflows", "recipes"),
                requireNamespace, logical(1), quietly = TRUE))) {
   # Run the installed example, including its public-collector completeness audit.
@@ -20,16 +22,7 @@ if (all(vapply(c("tune", "yardstick", "rsample", "workflows", "recipes"),
     p <- plogis(new_data$x)
     stats::setNames(data.frame(p, 1 - p), paste0(".pred_", object$levels))
   }
-  parsnip::set_new_model("va_audit")
-  parsnip::set_model_mode("va_audit", "classification")
-  parsnip::set_model_engine("va_audit", "classification", "audit")
-  parsnip::set_fit("va_audit", "classification", "audit",
-    list(interface = "data.frame", protect = c("x", "y"), func = c(fun = "audit_fit"), defaults = list()))
-  parsnip::set_encoding("va_audit", "classification", "audit",
-    list(predictor_indicators = "none", compute_intercept = FALSE, remove_intercept = FALSE, allow_sparse_x = FALSE))
-  parsnip::set_pred("va_audit", "classification", "audit", "prob",
-    list(pre = NULL, post = NULL, func = c(fun = "audit_prob"),
-         args = list(object = quote(object$fit), new_data = quote(new_data))))
+  register_reference_engine("va_audit", "classification", "audit_fit", "audit_prob", "prob", "audit")
   spec <- parsnip::new_model_spec("va_audit", args = list(), eng_args = NULL,
                                  mode = "classification", method = NULL, engine = "audit")
   d <- data.frame(x = sin(1:120), id = 1:120, truth = factor(rep(c("yes", "no", "no", "yes"), 30)))
@@ -124,7 +117,7 @@ if (all(vapply(c("tune", "yardstick", "rsample", "workflows", "recipes"),
     check(after, changed_outer)
     s1 <- tune::collect_extracts(before)$.extracts[[1]]
     s2 <- tune::collect_extracts(after)$.extracts[[1]]
-    stopifnot(identical(s1[setdiff(names(s1), "models")], s2[setdiff(names(s2), "models")]),
+    assert_conditions(identical(s1[setdiff(names(s1), "models")], s2[setdiff(names(s2), "models")]),
               identical(lapply(s1$models, workflows::extract_fit_engine), lapply(s2$models, workflows::extract_fit_engine)),
               identical(lapply(s1$models, function(w) workflows::extract_recipe(w)$steps),
                         lapply(s2$models, function(w) workflows::extract_recipe(w)$steps)),

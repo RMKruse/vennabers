@@ -2,13 +2,6 @@
 ^\.scratch$
 ^\.github$
 ^RELEASE-ROADMAP\.md$
-^tools/acceptance-v03\.md$
-^tools/evidence-v03$
-^tools/acceptance-v04\.md$
-^tools/evidence-v04$
-^tools/acceptance-v05\.md$
-^tools/evidence-v05$
 ^.*\.Rproj$
 ^\.Rproj\.user$
-^tools/acceptance-v06\.md$
-^tools/evidence-v06$
+^tools$

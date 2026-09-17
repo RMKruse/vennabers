@@ -3,11 +3,12 @@
 # tools/paper-group-time-scenarios.md in the source repository. These small
 # synthetic examples illustrate roles, not reproductions of paper benchmarks.
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 # Calibration gets ceiling(n * calibration_prop) rows; training gets the
 # preceding n - ceiling(n * calibration_prop). Never sort, shuffle or stratify.
 ordered_holdout <- function(data, calibration_prop = .25) {
-  stopifnot(is.numeric(calibration_prop), length(calibration_prop) == 1L,
+  assert_conditions(is.numeric(calibration_prop), length(calibration_prop) == 1L,
             is.finite(calibration_prop), calibration_prop > 0, calibration_prop < 1)
   n <- nrow(data)
   cut <- n - ceiling(n * calibration_prop)

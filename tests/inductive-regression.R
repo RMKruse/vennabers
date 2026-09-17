@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 close_regression <- function(actual, expected, scale = 1) {
   stopifnot(identical(dim(actual), dim(expected)),
@@ -19,7 +20,7 @@ expect_error <- function(expr, argument) {
   stopifnot(inherits(error, "error"), grepl(argument, conditionMessage(error), fixed = TRUE))
 }
 
-stopifnot(identical(fit$requested, list()), fit$m == 1, fit$epsilon == 1 / 3,
+assert_conditions(identical(fit$requested, list()), fit$m == 1, fit$epsilon == 1 / 3,
           fit$a == -10, fit$b == 20, fit$observations == 5)
 explicit <- venn_abers_regression(1:5, 1:5, m = 2)
 stopifnot(identical(explicit$requested, list(m = 2)), explicit$m == 2,

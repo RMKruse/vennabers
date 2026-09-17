@@ -1,4 +1,5 @@
 library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
 
 expect_error <- function(expr, argument) {
   error <- tryCatch({ force(expr); NULL }, error = identity)
@@ -99,21 +100,15 @@ for (loss in c("log", "brier")) {
     matrix_input <- cbind(A = x, B = rev(x))
     rownames(matrix_input) <- rep("same", n)
     details <- predict(cross_fit, matrix_input, loss = loss, type = "details")
-    stopifnot(
-      identical(names(details), c("prediction", "folds")),
-      identical(details$prediction, predict(cross_fit, matrix_input, loss = loss)),
-      identical(names(details$folds), c("row", "fold", "lower", "upper", "probability")),
-      identical(details$folds$row, rep(rows, 2)),
-      identical(details$folds$fold, rep(c("A", "B"), each = n)),
-      identical(predict(cross_fit, matrix_input[, 2:1, drop = FALSE], loss = loss, type = "details"), details),
-      identical(predict(cross_fit, matrix_input, loss = loss, type = "class"),
-                details$prediction$probability >= .5),
-      identical(predict(fit, x, loss = loss, type = "class"),
-                predict(fit, x, loss = loss)$probability >= .5),
-      identical(predict(fit, x, loss = loss, type = "response"), predict(fit, x, loss = loss)),
-      identical(predict(cross_fit, matrix_input, loss = loss, type = "response"), details$prediction),
-      all(vapply(details$folds[c("lower", "upper", "probability")], is.double, FALSE))
-    )
+    assert_conditions(identical(names(details), c("prediction", "folds")), identical(details$prediction,
+        predict(cross_fit, matrix_input, loss = loss)), identical(names(details$folds), c("row", "fold",
+        "lower", "upper", "probability")), identical(details$folds$row, rep(rows, 2)), identical(details$folds$fold,
+        rep(c("A", "B"), each = n)), identical(predict(cross_fit, matrix_input[, 2:1, drop = FALSE], loss = loss,
+        type = "details"), details), identical(predict(cross_fit, matrix_input, loss = loss, type = "class"),
+        details$prediction$probability >= 0.5), identical(predict(fit, x, loss = loss, type = "class"), predict(fit,
+        x, loss = loss)$probability >= 0.5), identical(predict(fit, x, loss = loss, type = "response"), predict(fit,
+        x, loss = loss)), identical(predict(cross_fit, matrix_input, loss = loss, type = "response"), details$prediction),
+        all(vapply(details$folds[c("lower", "upper", "probability")], is.double, FALSE)))
     for (row in rows) {
       single <- predict(cross_fit, matrix_input[row, , drop = FALSE], loss = loss, type = "details")
       parts <- details$folds[details$folds$row == row, ]
