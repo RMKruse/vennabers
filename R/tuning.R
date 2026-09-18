@@ -29,10 +29,11 @@
     if (length(calibration_ids)) stop("Calibration tune() placeholders require `tuning$calibration`.", call. = FALSE)
     return(NULL)
   }
-  if (mode != "classification" || identical(model_training, "pairwise")) {
-    stop("Grid tuning requires binary or shared multiclass classification; pairwise selection is separate.", call. = FALSE)
+  if (mode != "classification") {
+    stop("Grid tuning requires classification.", call. = FALSE)
   }
-  .tuning_names(tuning, c("strategy", "model", "calibration", "selection_prop", "selection_split"), "tuning")
+  .tuning_names(tuning, c("strategy", "model", "calibration", "selection_prop", "selection_split",
+                          "joint_resamples"), "tuning")
   .validate_choice(tuning$strategy, c("joint", "two_stage"), "tuning$strategy")
   if (anyNA(model_ids) || any(!nzchar(model_ids)) || anyDuplicated(model_ids) ||
       anyDuplicated(calibration_ids) || any(model_ids %in% calibration_ids)) {
@@ -46,6 +47,15 @@
   }
   if (!length(model_ids) && !length(calibration_ids)) {
     stop("`tuning` needs at least one model/recipe or calibration tune() placeholder.", call. = FALSE)
+  }
+  pair_joint <- identical(model_training, "pairwise") && identical(tuning$strategy, "joint") && length(model_ids)
+  if (!is.null(tuning$joint_resamples) &&
+      (!pair_joint || length(calibration_ids) ||
+       !(is.function(tuning$joint_resamples) || inherits(tuning$joint_resamples, "rset")))) {
+    stop("`tuning$joint_resamples` requires model-only pairwise joint tuning and a global rset or provider function.", call. = FALSE)
+  }
+  if (pair_joint && !length(calibration_ids) && is.null(tuning$joint_resamples)) {
+    stop("Pairwise joint model tuning without calibration options requires `tuning$joint_resamples` on global data.", call. = FALSE)
   }
   if (length(calibration_ids)) {
     if (is.null(tuning$selection_prop) == is.null(tuning$selection_split)) {
@@ -63,19 +73,33 @@
   } else if (!is.null(tuning$selection_prop) || !is.null(tuning$selection_split)) {
     stop("A selection S/F split requires automatic calibration selection.", call. = FALSE)
   }
-  if (length(model_ids)) tuning$model <- .validate_grid_search(tuning$model, model_ids, workflow, seed, "model")
+  if (length(model_ids)) tuning$model <- .validate_grid_search(tuning$model, model_ids, workflow, seed,
+    "model", require_resamples = !pair_joint)
   if (length(calibration_ids)) tuning$calibration <- .validate_grid_search(
     tuning$calibration, calibration_ids, workflow, seed, "calibration")
+  if (pair_joint && !is.null(tuning$model$resamples)) {
+    stop("Pairwise joint model grids use global calibration resamples or `joint_resamples`; omit `tuning$model$resamples`.", call. = FALSE)
+  }
+  if (pair_joint && length(calibration_ids) &&
+      !identical(tuning$model$primary_metric, tuning$calibration$primary_metric)) {
+    stop("Pairwise joint model and calibration grids need the same primary metric.", call. = FALSE)
+  }
+  if (pair_joint && length(calibration_ids) && !is.null(tuning$model$control) &&
+      !is.null(tuning$calibration$control) &&
+      !identical(tuning$model$control, tuning$calibration$control)) {
+    stop("Pairwise joint model and calibration grids need one consistent control.", call. = FALSE)
+  }
   tuning
 }
 
-.validate_grid_search <- function(search, ids, workflow, seed, label) {
+.validate_grid_search <- function(search, ids, workflow, seed, label, require_resamples = TRUE) {
   .tuning_names(search, c("method", "grid", "param_info", "resamples", "primary_metric",
                           "report_metrics", "control"), paste0("tuning$", label))
   .validate_choice(search$method, "grid", paste0("tuning$", label, "$method"))
   if (is.null(search$grid)) stop("`tuning$", label, "$grid` is required.", call. = FALSE)
-  if (is.null(search$resamples) ||
-      !(is.function(search$resamples) || inherits(search$resamples, "rset"))) {
+  if ((require_resamples && is.null(search$resamples)) ||
+      (!is.null(search$resamples) &&
+       !(is.function(search$resamples) || inherits(search$resamples, "rset")))) {
     stop("`tuning$", label, "$resamples` must be an rset or function of local data.", call. = FALSE)
   }
   if (!is.null(search$control) &&
@@ -234,27 +258,29 @@
   workflows::add_model(carrier, spec)
 }
 
-.grid_budget <- function(search, plans, candidate_workflow) {
+.grid_budget <- function(search, plans, candidate_workflow, classes) {
   candidate <- candidate_workflow(as.list(search$grid[1L, , drop = FALSE]))
   spec <- workflows::extract_spec_parsnip(candidate)
   paths <- 1
   model_candidates <- 0L
   model_resamples <- 0L
   inner_paths <- 1
+  pair_count <- 1L
   if (inherits(spec, "vennabers")) {
     settings <- rlang::eval_tidy(spec$eng_args$parameters)$requested
+    if (identical(settings$model_training, "pairwise")) pair_count <- choose(length(classes), 2L)
     folds <- if (is.function(settings$splits)) NA_integer_ else
       if (settings$method == "cross") settings$v else 1L
-    paths <- folds + as.integer(identical(settings$prediction_model, "full"))
-    model <- settings$tuning$model
+    paths <- pair_count * (folds + as.integer(identical(settings$prediction_model, "full")))
+    model <- if (is.null(settings$.pair_grid)) settings$tuning$model else NULL
     if (!is.null(model)) {
       model_candidates <- if (!is.null(model$grid_size)) model$grid_size else nrow(model$grid)
       model_resamples <- if (is.function(model$resamples)) NA_integer_ else nrow(model$resamples)
-      if (settings$tuning$strategy == "joint") inner_paths <- paths
+      if (settings$tuning$strategy == "joint") inner_paths <- folds + as.integer(identical(settings$prediction_model, "full"))
     }
   }
   unit <- paths * (1 + model_candidates * model_resamples * inner_paths)
-  list(candidates = nrow(search$grid), resamples = length(plans),
+  list(candidates = nrow(search$grid), resamples = length(plans), pair_count = pair_count,
        gross_base_fit_estimate = nrow(search$grid) * length(plans) * unit,
        paths = paths, model_candidates = model_candidates,
        model_resamples = model_resamples, inner_paths = inner_paths,
@@ -272,7 +298,7 @@
   }
   plan <- .tuning_resamples(search$resamples, data, label)
   plans <- plan$positions
-  budget <- .grid_budget(search, plans, candidate_workflow)
+  budget <- .grid_budget(search, plans, candidate_workflow, classes = levels(data[[outcome]]))
   initial_fits <- counter$n
   classes <- levels(data[[outcome]])
   probability_columns <- paste0(".pred_", classes)
@@ -376,6 +402,7 @@
                classification = settings$classification,
                loss = settings$loss, precision = settings$precision,
                prediction_model = settings$prediction_model, seed = settings$seed)
+  if (identical(settings$model_training, "pairwise")) args$model_training <- "pairwise"
   if (settings$classification == "binary") args$event_level <- settings$event_level
   if (!is.null(schema)) args$schema <- schema
   if (is.function(settings$splits)) args$splits <- settings$splits else if (settings$method == "cross")
@@ -391,7 +418,14 @@
   do.call(calibrated_workflow, args)
 }
 
-.choose_model <- function(workflow, data, domain, settings) {
+.choose_model <- function(workflow, data, domain, settings, path_id = NULL) {
+  if (!is.null(settings$.pair_grid)) {
+    scope <- if (identical(path_id, "Full1")) "full" else "source"
+    values <- settings$.pair_grid[[domain$pair_id]][[scope]]
+    return(list(workflow = tune::finalize_workflow(workflow, values),
+      diagnostics = list(chosen = settings$.pair_grid_id, selected = values,
+                         pair_id = domain$pair_id, fold_id = path_id)))
+  }
   search <- settings$tuning$model
   if (is.null(search)) return(list(workflow = workflow, diagnostics = NULL))
   outcome <- domain$outcome
@@ -420,15 +454,19 @@
   settings
 }
 
-.choose_calibration <- function(data, workflow, outcome, parameters) {
-  settings <- parameters$requested
-  config <- settings$tuning
+.selection_roles <- function(data, outcome, settings, config) {
   split <- if (!is.null(config$selection_prop)) {
     if (identical(settings$strata, FALSE)) rsample::initial_split(data, prop = 1 - config$selection_prop) else
       rlang::inject(rsample::initial_split(data, prop = 1 - config$selection_prop,
                                            strata = !!outcome, pool = 0))
   } else if (is.function(config$selection_split)) config$selection_split(data) else config$selection_split
-  roles <- .split_positions(split, data, "selection S/F")
+  .split_positions(split, data, "selection S/F")
+}
+
+.choose_calibration <- function(data, workflow, outcome, parameters) {
+  settings <- parameters$requested
+  config <- settings$tuning
+  roles <- .selection_roles(data, outcome, settings, config)
   selection <- data[roles$assessment, , drop = FALSE]
   search <- config$calibration
   result <- .grid_select(search, selection, outcome, settings$event_level, settings$classification,
@@ -447,6 +485,110 @@
   result$diagnostics$final_rows <- roles$analysis
   list(data = data[roles$analysis, , drop = FALSE], settings = settings,
        diagnostics = result$diagnostics)
+}
+
+.choose_pairwise_joint <- function(data, workflow, outcome, parameters) {
+  settings <- parameters$requested
+  config <- settings$tuning
+  roles <- NULL
+  selection <- data
+  if (!is.null(config$calibration)) {
+    roles <- .selection_roles(data, outcome, settings, config)
+    selection <- data[roles$assessment, , drop = FALSE]
+  }
+  pairs <- utils::combn(levels(data[[outcome]]), 2L, simplify = FALSE)
+  pair_ids <- paste0("pair_", seq_along(pairs))
+  model <- config$model
+  grids <- stats::setNames(lapply(seq_along(pairs), function(i) {
+    if (is.null(model$grid_size)) return(model$grid)
+    local <- selection[selection[[outcome]] %in% pairs[[i]], , drop = FALSE]
+    local[[outcome]] <- factor(local[[outcome]], levels = pairs[[i]])
+    params <- dials::finalize(model$param_info, local)
+    generated <- if (is.null(settings$seed)) dials::grid_space_filling(params, size = model$grid_size) else
+      withr::with_seed(settings$seed, dials::grid_space_filling(params, size = model$grid_size))
+    .checked_grid(generated, model$ids, "model")
+  }), pair_ids)
+  dimensions <- list()
+  for (id in pair_ids) {
+    dimensions[[paste0("..", id, "_source")]] <- seq_len(nrow(grids[[id]]))
+    if (identical(settings$prediction_model, "full"))
+      dimensions[[paste0("..", id, "_full")]] <- seq_len(nrow(grids[[id]]))
+  }
+  calibration <- config$calibration
+  if (!is.null(calibration)) {
+    if (!is.null(calibration$grid_size)) {
+      params <- dials::finalize(calibration$param_info, selection)
+      generated <- if (is.null(settings$seed)) dials::grid_space_filling(params, size = calibration$grid_size) else
+        withr::with_seed(settings$seed, dials::grid_space_filling(params, size = calibration$grid_size))
+      calibration$grid <- .checked_grid(generated, calibration$ids, "calibration")
+    }
+    dimensions[["..calibration"]] <- seq_len(nrow(calibration$grid))
+  }
+  if (!is.null(calibration) && any(names(calibration$grid) %in% c(names(dimensions), "..candidate_id"))) {
+    stop("Calibration IDs conflict with reserved pairwise joint grid columns.", call. = FALSE)
+  }
+  count <- prod(vapply(dimensions, length, 0L))
+  # ponytail: exhaustive joint search is capped; cache pair fits if larger grids are needed.
+  if (!is.finite(count) || count > 4096L) {
+    stop("Pairwise joint Cartesian grid exceeds 4096 combinations; reduce the grids.", call. = FALSE)
+  }
+  combinations <- expand.grid(dimensions, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+  combinations[["..candidate_id"]] <- sprintf("joint_%04d", seq_len(nrow(combinations)))
+  pair_values <- function(values) stats::setNames(lapply(pair_ids, function(id) {
+    source <- as.list(grids[[id]][values[[paste0("..", id, "_source")]], , drop = FALSE])
+    full <- if (identical(settings$prediction_model, "full"))
+      as.list(grids[[id]][values[[paste0("..", id, "_full")]], , drop = FALSE]) else source
+    list(source = source, full = full)
+  }), pair_ids)
+  search <- if (is.null(calibration)) model else calibration
+  if (!is.null(calibration)) {
+    search$control <- if (is.null(calibration$control)) model$control else calibration$control
+    search$report_metrics <- c(
+      if (length(calibration$report_metrics)) stats::setNames(calibration$report_metrics,
+        paste0("calibration_", names(calibration$report_metrics))) else list(),
+      if (length(model$report_metrics)) stats::setNames(model$report_metrics,
+        paste0("model_", names(model$report_metrics))) else list())
+  }
+  search$grid <- combinations
+  search$grid_size <- NULL
+  search$candidate_ids <- combinations[["..candidate_id"]]
+  search$resamples <- if (is.null(calibration)) config$joint_resamples else calibration$resamples
+  result <- .grid_select(search, selection, outcome, settings$event_level, settings$classification,
+    function(values) {
+      nested <- settings
+      if (!is.null(calibration)) nested <- .calibration_values(nested, calibration$ids,
+        as.list(calibration$grid[values[["..calibration"]], , drop = FALSE]))
+      nested$tuning$calibration <- NULL
+      nested$tuning$strategy <- "two_stage"
+      if (is.null(nested$tuning$model$resamples)) nested$tuning$model$resamples <-
+        function(d) stop("Fixed joint candidates do not request local model resamples.", call. = FALSE)
+      outer <- .candidate_outer(workflow, outcome, nested, parameters$schema)
+      spec <- workflows::extract_spec_parsnip(outer)
+      params <- rlang::eval_tidy(spec$eng_args$parameters)
+      params$requested$.pair_grid <- pair_values(values)
+      params$requested$.pair_grid_id <- values[["..candidate_id"]]
+      spec$eng_args$parameters <- rlang::new_quosure(params, env = emptyenv())
+      workflows::update_model(outer, spec)
+    }, "joint", settings$.fit_counter)
+  values <- result$values
+  if (!is.null(calibration)) {
+    settings <- .calibration_values(settings, calibration$ids,
+      as.list(calibration$grid[values[["..calibration"]], , drop = FALSE]))
+    settings$tuning$calibration <- NULL
+  }
+  settings$.pair_grid <- pair_values(values)
+  settings$.pair_grid_id <- result$diagnostics$chosen
+  result$diagnostics$selected <- list(pairs = settings$.pair_grid,
+    calibration = if (!is.null(calibration)) list(loss = settings$loss, precision = settings$precision) else NULL)
+  result$diagnostics$seed <- settings$seed
+  result$diagnostics$pair_ids <- pair_ids
+  if (!is.null(roles)) {
+    result$diagnostics$roles <- roles
+    result$diagnostics$selection_rows <- roles$assessment
+    result$diagnostics$final_rows <- roles$analysis
+  }
+  list(data = if (is.null(roles)) data else data[roles$analysis, , drop = FALSE],
+       settings = settings, diagnostics = result$diagnostics)
 }
 
 #' Inspect classification grid selection after fitting

@@ -20,7 +20,7 @@ Reversible name encoding for binary, OvO/OvR and regression is available through
 Frozen classification/regression workflow adoption is available through \code{\link{calibrate_workflow}}.
 Ordered reference holdouts and binary/shared multiclass full-model transfer are supported.
 Matched/full Inductive and Cross pair training are also supported in v0.7.
-Binary and shared OvO/OvR joint/two-stage grid selection is available in v0.8; other tuning follows later in v0.8 and
+Binary, shared OvO/OvR, and pairwise OvO joint/two-stage grid selection is available in v0.8; other tuning follows later in v0.8 and
 learned postprocessing in v0.9. Shared multiclass training does not establish
 complete Python training parity.
 }
@@ -38,13 +38,14 @@ venn_abers_details(object, new_data, ..., loss = NULL)
 \item{workflow}{An unfitted workflows object with a classification or regression model and
 recipe, formula, or variable selection. Prepped or partly trained recipes,
 unresolved tune placeholders without \code{tuning}, and additional postprocessors are rejected.}
-\item{tuning}{NULL keeps fixed settings. For binary or shared OvO/OvR classification, a named list
+\item{tuning}{NULL keeps fixed settings. For binary, shared OvO/OvR or pairwise OvO classification, a named list
 with \code{strategy = "joint"} or \code{"two_stage"} and \code{model} and/or
 \code{calibration} searches matching the present \code{tune()} placeholders.
 Each search has \code{method = "grid"}, a concrete grid data frame with columns
 named by placeholder IDs or a positive integer grid size with dials
-\code{param_info}, and \code{resamples = function(data) ...} (or a locally bound
-rsample rset). Optional \code{primary_metric} defaults to
+\code{param_info}. Local model searches and calibration searches require
+\code{resamples = function(data) ...} (or a bound rsample rset); pairwise
+\code{joint} model grids use the global plan described below. Optional \code{primary_metric} defaults to
 \code{yardstick::mn_log_loss}; \code{report_metrics} are independent yardstick
 metrics. Explicit \code{control} must be a \code{tune::control_grid()}
 with \code{save_pred=TRUE}. Inner parallelism is disabled, and a custom
@@ -55,7 +56,18 @@ exactly one of \code{selection_prop} (the proportion reserved for selection S)
 or \code{selection_split} (rsplit or function, with analysis=final fit F and
 assessment=selection S). S is never included in F. Automatic calibration
 selection requires \code{splits=NULL} or a local plan provider function.
-Pairwise OvO selection is separate and cannot use this shared search.
+In pairwise OvO \code{two_stage}, model grids and resamples run on each local class pair. Calibration
+selection scores the coupled complete Multiclass output on S; its final fit
+uses only F. Pair plans must be local provider functions when calibration is tuned.
+For pairwise \code{joint} model tuning, candidate choices form a Cartesian grid
+over class pairs (and separate full-model choices when requested). Each candidate
+is scored on complete coupled probabilities. With calibration options, the
+calibration search resamples provide the global assessment plan on S; model-only
+joint selection requires \code{joint_resamples}, a global rset or provider.
+Omit \code{model$resamples} in pairwise \code{joint}; it is used only by
+\code{two_stage} for local model selection.
+Global plans are never applied as pair plans. A joint grid above 4096
+combinations is rejected before fitting; reduce the grids.
 Loss candidates are \code{"log"}/\code{"brier"}; precision candidates are
 \code{"none"}, \code{"0"}, \code{"2"}, and \code{"-2"}. See
 \code{\link{venn_abers_tuning}} for selections and diagnostics.}

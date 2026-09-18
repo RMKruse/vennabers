@@ -5,7 +5,7 @@
 venn_abers_tuning(object)
 }
 \arguments{
-\item{object}{A fitted binary or shared multiclass \code{calibrated_workflow()} with grid tuning.}
+\item{object}{A fitted binary, shared multiclass, or pairwise OvO \code{calibrated_workflow()} with grid tuning.}
 }
 \description{
 Returns the stored configuration and selection diagnostics without refitting.

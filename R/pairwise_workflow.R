@@ -42,7 +42,7 @@
     pair <- entry$pair
     rows <- entry$rows
     local <- entry$local
-    list(data = local, workflow = entry$workflow, plan = entry$plan,
+    list(data = local, workflow = entry$workflow, plan = entry$plan, pair_id = id,
       outcome = state$outcome, strata = settings$strata, classes = pair, event = pair[2L], y = local[[state$outcome]],
       rows_word = "local pair rows", seed_wrap = TRUE,
       precheck = NULL,
@@ -71,6 +71,24 @@
   result <- .fit_domains(domains, task, settings)
   components <- stats::setNames(lapply(result$fitted, function(component) component), ids)
   state$pair_models <- components
+  if (!is.null(state$tuning)) {
+    state$tuning$models <- lapply(components, function(component) {
+      selections <- component$model_selection
+      for (fold in names(selections)) if (!is.null(selections[[fold]])) {
+        selections[[fold]]$pair_id <- component$pair_id
+        selections[[fold]]$fold_id <- fold
+      }
+      selections
+    })
+    state$tuning$sources <- lapply(components, `[[`, "sources")
+    state$tuning$fit_roles <- lapply(components, `[[`, "folds")
+  }
+  if (!is.null(settings$.fit_counter)) {
+    state$parameters$requested$.fit_counter <- NULL
+    state$tuning$cost <- list(observed_base_fits = settings$.fit_counter$n)
+  }
+  state$parameters$requested$.pair_grid <- NULL
+  state$parameters$requested$.pair_grid_id <- NULL
   state
 }
 

@@ -122,6 +122,10 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   }
   tuning <- .validate_tuning(tuning, workflow, mode, model_training,
                              loss, precision, seed)
+  if (pairwise && identical(tuning$strategy, "joint") && !is.null(tuning$model) &&
+      !is.null(splits) && !is.function(splits)) {
+    stop("Pairwise joint model selection requires local pair plan providers, not fixed plans.", call. = FALSE)
+  }
   if (!is.null(tuning$calibration) && !is.null(splits) && !is.function(splits)) {
     stop("Calibration grid selection requires a local `splits` provider function or NULL.", call. = FALSE)
   }
@@ -265,15 +269,18 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   if (!is.null(settings$seed)) withr::local_seed(settings$seed)
   original_tuning <- settings$tuning
   tuning_result <- NULL
-  if (!is.null(settings$tuning$calibration)) {
-    chosen <- .choose_calibration(raw, base_workflow, outcome, parameters)
+  joint_pairwise <- identical(settings$model_training, "pairwise") &&
+    identical(settings$tuning$strategy, "joint") && !is.null(settings$tuning$model)
+  if (!is.null(settings$tuning$calibration) || joint_pairwise) {
+    chosen <- if (joint_pairwise) .choose_pairwise_joint(raw, base_workflow, outcome, parameters) else
+      .choose_calibration(raw, base_workflow, outcome, parameters)
     raw <- chosen$data
     y <- raw[[outcome]]
     settings <- chosen$settings
     parameters$requested <- settings
-    tuning_result <- chosen$diagnostics
+    tuning_result <- if (!joint_pairwise || !is.null(original_tuning$calibration)) chosen$diagnostics else NULL
     if (any(tabulate(y, nbins = length(classes)) == 0L)) {
-      stop("Final fit F must contain both binary classes after the S/F split.", call. = FALSE)
+      stop("Final fit F must contain every class after the S/F split.", call. = FALSE)
     }
   }
   pre <- workflows::extract_preprocessor(base_workflow)
@@ -303,6 +310,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     rng_kind = rng_kind,
     tuning = if (!is.null(settings$tuning)) list(config = original_tuning,
       calibration = tuning_result, models = NULL, seed = settings$seed,
+      joint = if (joint_pairwise) chosen$diagnostics else NULL,
       classes = classes, schema = parameters$schema, method = settings$method,
       classification = settings$classification, model_training = settings$model_training,
       prediction_model = settings$prediction_model) else NULL),
@@ -446,7 +454,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   for (id in names(folds)) {
     analysis <- folds[[id]]$analysis
     assessment <- folds[[id]]$assessment
-    selected <- .choose_model(workflow, local[analysis, , drop = FALSE], domain, settings)
+    selected <- .choose_model(workflow, local[analysis, , drop = FALSE], domain, settings, id)
     model_selection[id] <- list(selected$diagnostics)
     models[[id]] <- tryCatch(.fit_base_model(selected$workflow, local[analysis, , drop = FALSE], settings),
       error = function(e) domain$fit_error(id, e))
@@ -468,7 +476,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
 
 .fit_component_full <- function(component, domain, task, settings) {
   local <- domain$data
-  selected <- .choose_model(domain$workflow, local, domain, settings)
+  selected <- .choose_model(domain$workflow, local, domain, settings, "Full1")
   model <- tryCatch(.fit_base_model(selected$workflow, local, settings), error = domain$full_error)
   # Check the prediction contract without using full-model values for calibration.
   task$pred(model, local[1L, , drop = FALSE], domain$pred_id("Full1"), domain$classes, domain$event)

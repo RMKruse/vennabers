@@ -97,17 +97,19 @@ testthat::test_that("shared multiclass model grids choose local Cross and full s
   }
 })
 
-testthat::test_that("pairwise candidates cannot enter shared multiclass search", {
+testthat::test_that("pairwise tuning remains explicit in multiclass search", {
   data <- iris
   names(data)[5L] <- "truth"
   base <- workflows::workflow() |>
     workflows::add_formula(truth ~ .) |>
     workflows::add_model(parsnip::multinom_reg(engine = "nnet"))
-  testthat::expect_error(calibrated_workflow(base, "truth", classification = "ovo",
+  pairwise <- calibrated_workflow(base, "truth", classification = "ovo",
     model_training = "pairwise", loss = tune::tune("va_loss"),
     tuning = list(strategy = "joint", selection_prop = .3,
       calibration = list(method = "grid", grid = data.frame(va_loss = "log"),
-        resamples = function(d) rsample::vfold_cv(d, v = 2)))), "pairwise selection")
+        resamples = function(d) rsample::vfold_cv(d, v = 2))))
+  requested <- rlang::eval_tidy(workflows::extract_spec_parsnip(pairwise)$eng_args$parameters)$requested
+  testthat::expect_identical(requested$model_training, "pairwise")
 })
 
 testthat::test_that("two and four class grids retain the multiclass core contract", {
