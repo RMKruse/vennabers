@@ -21,15 +21,16 @@
   }
 }
 
-.validate_tuning <- function(tuning, workflow, mode, classification, loss, precision, seed) {
+.validate_tuning <- function(tuning, workflow, mode, model_training,
+                             loss, precision, seed) {
   model_ids <- generics::tune_args(workflow)$id
   calibration_ids <- c(loss = .tune_id(loss), precision = .tune_id(precision))
   if (is.null(tuning)) {
     if (length(calibration_ids)) stop("Calibration tune() placeholders require `tuning$calibration`.", call. = FALSE)
     return(NULL)
   }
-  if (mode != "classification" || classification != "binary") {
-    stop("Grid tuning currently requires a binary classification workflow.", call. = FALSE)
+  if (mode != "classification" || identical(model_training, "pairwise")) {
+    stop("Grid tuning requires binary or shared multiclass classification; pairwise selection is separate.", call. = FALSE)
   }
   .tuning_names(tuning, c("strategy", "model", "calibration", "selection_prop", "selection_split"), "tuning")
   .validate_choice(tuning$strategy, c("joint", "two_stage"), "tuning$strategy")
@@ -159,7 +160,8 @@
   list(rset = plan, positions = stats::setNames(splits, ids))
 }
 
-.tuning_score <- function(metric, predictions, truth, outcome, classes, event_level) {
+.tuning_score <- function(metric, predictions, truth, outcome, classes, event_level,
+                          classification) {
   expected <- paste0(".pred_", classes)
   if (!is.data.frame(predictions) || nrow(predictions) != length(truth) ||
       !identical(sort(names(predictions)), sort(expected)) ||
@@ -173,15 +175,16 @@
   if (inherits(metric, "class_metric")) {
     event <- classes[if (event_level == "first") 1L else 2L]
     other <- setdiff(classes, event)
-    frame$.pred_class <- factor(ifelse(predictions[[paste0(".pred_", event)]] >= .5, event, other),
-                                levels = classes)
+    frame$.pred_class <- if (classification == "binary")
+      factor(ifelse(predictions[[paste0(".pred_", event)]] >= .5, event, other), levels = classes) else
+      factor(classes[max.col(as.matrix(predictions[expected]), ties.method = "first")], levels = classes)
     result <- rlang::inject(metric(frame, truth = !!rlang::sym(outcome),
                                    estimate = !!rlang::sym(".pred_class"), event_level = event_level))
   } else if (inherits(metric, "prob_metric")) {
     columns <- if (length(classes) == 2L) expected[if (event_level == "first") 1L else 2L] else expected
     result <- rlang::inject(metric(frame, truth = !!rlang::sym(outcome),
                                    !!!rlang::syms(columns), event_level = event_level))
-  } else stop("Only probability or class metrics are supported for binary tuning.", call. = FALSE)
+  } else stop("Only probability or class metrics are supported for classification tuning.", call. = FALSE)
   if (nrow(result) != 1L || !is.numeric(result$.estimate) ||
       length(result$.estimate) != 1L || !is.finite(result$.estimate)) {
     stop("The selection metric must return one finite estimate.", call. = FALSE)
@@ -190,7 +193,7 @@
 }
 
 .fit_grid_candidate <- function(x, y, outcome, candidate_id, candidate_workflow,
-                                candidates, event_level, counter) {
+                                candidates, event_level, classification, counter) {
   index <- match(candidate_id, candidates$id)
   if (is.na(index)) stop("Unknown grid candidate ID.", call. = FALSE)
   data <- as.data.frame(x)
@@ -205,12 +208,14 @@
     workflow <- workflows::update_model(workflow, spec)
   } else counter$n <- counter$n + 1L
   structure(list(fitted = generics::fit(workflow, data),
-                 class_levels = levels(y), event_level = event_level),
+                 class_levels = levels(y), event_level = event_level,
+                 classification = classification),
             class = "vennabers_grid_fit")
 }
 
 # The stand-in ID lets one native tune_grid() run the complete candidate grid.
-.grid_proxy_workflow <- function(data, outcome, event_level, candidates, candidate_workflow, counter) {
+.grid_proxy_workflow <- function(data, outcome, event_level, classification,
+                                 candidates, candidate_workflow, counter) {
   .register_grid_proxy()
   spec <- parsnip::new_model_spec("vennabers_grid", args = list(), eng_args = NULL,
                                   mode = "classification", method = NULL, engine = "proxy")
@@ -219,10 +224,11 @@
                               parameters = list(grid_proxy = TRUE,
                                 candidate_workflow = candidate_workflow,
                                 candidates = candidates, event_level = event_level,
+                                classification = classification,
                                 counter = counter))
   carrier <- rlang::inject(workflows::add_variables(
     workflows::workflow(),
-    outcomes = .integration_select_outcome(!!outcome, !!"binary", !!"classification"),
+    outcomes = .integration_select_outcome(!!outcome, !!classification, !!"classification"),
     predictors = tidyselect::everything(),
     blueprint = hardhat::default_xy_blueprint(intercept = FALSE, allow_novel_levels = TRUE)))
   workflows::add_model(carrier, spec)
@@ -255,7 +261,8 @@
        reused_base_fits = 0L)
 }
 
-.grid_select <- function(search, data, outcome, event_level, candidate_workflow, label, counter) {
+.grid_select <- function(search, data, outcome, event_level, classification,
+                         candidate_workflow, label, counter) {
   if (!is.null(search$grid_size)) {
     params <- dials::finalize(search$param_info, data)
     generated <- if (is.null(search$seed)) dials::grid_space_filling(params, size = search$grid_size) else
@@ -286,7 +293,8 @@
       list(decision = NULL)
   }
   result <- tryCatch(suppressMessages(suppressWarnings(tune::tune_grid(
-    .grid_proxy_workflow(data, outcome, event_level, candidates_with_values, candidate_workflow, counter),
+    .grid_proxy_workflow(data, outcome, event_level, classification,
+                         candidates_with_values, candidate_workflow, counter),
     resamples = plan$rset,
     grid = data.frame(candidate_id = candidates$id),
     param_info = dials::parameters(dials::new_qual_param(
@@ -319,10 +327,10 @@
         }
         probabilities <- predictions[match(split$assessment, rows), probability_columns, drop = FALSE]
         primary <- .tuning_score(search$primary_metric, probabilities,
-          data[[outcome]][split$assessment], outcome, classes, event_level)
+          data[[outcome]][split$assessment], outcome, classes, event_level, classification)
         extra <- lapply(search$report_metrics, function(metric) tryCatch(
           .tuning_score(metric, probabilities, data[[outcome]][split$assessment],
-                        outcome, classes, event_level), error = conditionMessage))
+                        outcome, classes, event_level, classification), error = conditionMessage))
         extract <- result$.extracts[[j]]
         extract <- extract[extract$candidate_id == candidates$id[i], , drop = FALSE]
         details <- if (nrow(extract)) extract$.extracts[[1L]] else NULL
@@ -348,6 +356,7 @@
                      which.max(candidates$estimate[eligible])]
   list(values = as.list(search$grid[best, , drop = FALSE]),
        diagnostics = list(chosen = candidates$id[best], candidates = candidates,
+         tie_break = "first candidate in grid order",
          scores = stats::setNames(scores, candidates$id),
          report_metrics = stats::setNames(reports, candidates$id),
          decisions = stats::setNames(decisions, candidates$id),
@@ -364,9 +373,10 @@
 
 .candidate_outer <- function(workflow, outcome, settings, schema = NULL) {
   args <- list(workflow = workflow, outcome = outcome, method = settings$method,
-               classification = "binary", event_level = settings$event_level,
+               classification = settings$classification,
                loss = settings$loss, precision = settings$precision,
                prediction_model = settings$prediction_model, seed = settings$seed)
+  if (settings$classification == "binary") args$event_level <- settings$event_level
   if (!is.null(schema)) args$schema <- schema
   if (is.function(settings$splits)) args$splits <- settings$splits else if (settings$method == "cross")
     args$v <- settings$v else args$calibration_prop <- settings$calibration_prop
@@ -385,7 +395,7 @@
   search <- settings$tuning$model
   if (is.null(search)) return(list(workflow = workflow, diagnostics = NULL))
   outcome <- domain$outcome
-  result <- .grid_select(search, data, outcome, settings$event_level,
+  result <- .grid_select(search, data, outcome, settings$event_level, settings$classification,
     function(values) {
       candidate <- tune::finalize_workflow(workflow, values)
       if (settings$tuning$strategy == "two_stage") candidate else {
@@ -421,7 +431,7 @@
   roles <- .split_positions(split, data, "selection S/F")
   selection <- data[roles$assessment, , drop = FALSE]
   search <- config$calibration
-  result <- .grid_select(search, selection, outcome, settings$event_level,
+  result <- .grid_select(search, selection, outcome, settings$event_level, settings$classification,
     function(values) {
       nested <- .calibration_values(settings, search$ids, values)
       nested$tuning$calibration <- NULL
@@ -439,7 +449,7 @@
        diagnostics = result$diagnostics)
 }
 
-#' Inspect binary grid selection after fitting
+#' Inspect classification grid selection after fitting
 #' @param object A fitted calibrated workflow.
 #' @return Search configuration, candidate scores, selected values, plans, and data roles.
 #' @export

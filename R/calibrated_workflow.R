@@ -120,7 +120,8 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
       stop("Explicit `splits` cannot be combined with `calibration_prop`, `v` or `strata`.", call. = FALSE)
     }
   }
-  tuning <- .validate_tuning(tuning, workflow, mode, classification, loss, precision, seed)
+  tuning <- .validate_tuning(tuning, workflow, mode, model_training,
+                             loss, precision, seed)
   if (!is.null(tuning$calibration) && !is.null(splits) && !is.function(splits)) {
     stop("Calibration grid selection requires a local `splits` provider function or NULL.", call. = FALSE)
   }
@@ -235,7 +236,8 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   if (isTRUE(parameters$grid_proxy)) {
     return(.fit_grid_candidate(x, y, outcome, base_workflow,
                                parameters$candidate_workflow, parameters$candidates,
-                               parameters$event_level, parameters$counter))
+                               parameters$event_level, parameters$classification,
+                               parameters$counter))
   }
   .integration_packages()
   settings <- parameters$requested
@@ -300,7 +302,10 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
         function(p) as.character(utils::packageVersion(p)), "")),
     rng_kind = rng_kind,
     tuning = if (!is.null(settings$tuning)) list(config = original_tuning,
-      calibration = tuning_result, models = NULL, seed = settings$seed) else NULL),
+      calibration = tuning_result, models = NULL, seed = settings$seed,
+      classes = classes, schema = parameters$schema, method = settings$method,
+      classification = settings$classification, model_training = settings$model_training,
+      prediction_model = settings$prediction_model) else NULL),
     class = "vennabers_fit")
   if (identical(settings$model_training, "pairwise")) {
     return(.fit_pairwise(base_workflow, raw, state))
@@ -359,7 +364,11 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
   state$sources <- component$sources
   state$calibrator <- component$calibrator
   state$calibration <- component$calibration
-  if (!is.null(state$tuning)) state$tuning$models <- component$model_selection
+  if (!is.null(state$tuning)) {
+    state$tuning$models <- component$model_selection
+    state$tuning$sources <- component$sources
+    state$tuning$fit_roles <- component$folds
+  }
   if (!is.null(settings$.fit_counter)) {
     state$parameters$requested$.fit_counter <- NULL
     if (!is.null(state$tuning)) state$tuning$cost <- list(observed_base_fits = settings$.fit_counter$n)
@@ -711,6 +720,10 @@ predict_vennabers_class <- function(object, new_data) {
   if (inherits(object, "vennabers_grid_fit")) {
     probabilities <- predict_vennabers_prob(object, new_data)
     classes <- object$class_levels
+    if (object$classification != "binary") {
+      return(factor(classes[max.col(as.matrix(probabilities[paste0(".pred_", classes)]),
+                                        ties.method = "first")], levels = classes))
+    }
     event <- classes[if (object$event_level == "first") 1L else 2L]
     return(factor(ifelse(probabilities[[paste0(".pred_", event)]] >= .5,
                          event, setdiff(classes, event)), levels = classes))

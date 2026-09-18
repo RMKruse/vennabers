@@ -1,20 +1,21 @@
 \name{venn_abers_tuning}
 \alias{venn_abers_tuning}
-\title{Inspect Binary Grid Selection}
+\title{Inspect Classification Grid Selection}
 \usage{
 venn_abers_tuning(object)
 }
 \arguments{
-\item{object}{A fitted binary \code{calibrated_workflow()} with grid tuning.}
+\item{object}{A fitted binary or shared multiclass \code{calibrated_workflow()} with grid tuning.}
 }
 \description{
 Returns the stored configuration and selection diagnostics without refitting.
 }
 \value{
-A list with \code{config}, \code{calibration}, \code{models}, and \code{seed}.
+A list with \code{config}, \code{calibration}, \code{models}, \code{seed},
+class/schema and method metadata, final fit roles and model source mappings.
 Each search records candidate IDs, eligibility and exclusion reasons, per-resample
 main and report scores, native \code{tune_grid()} results (including prediction
-rows and notes), the stable winner, selected values, local plan positions,
+rows and notes), the stable grid-order tie break, selected values, local plan positions,
 gross base-fit budget estimate, attempted evaluation count and observed base-fit
 attempts, including failures. The estimate is unavailable when a provider
 function determines a nested plan size at fit time; its count factors remain
