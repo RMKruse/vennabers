@@ -22,15 +22,13 @@
 }
 
 .validate_tuning <- function(tuning, workflow, mode, model_training,
-                             loss, precision, seed) {
+                             loss, precision, seed, m, epsilon) {
   model_ids <- generics::tune_args(workflow)$id
-  calibration_ids <- c(loss = .tune_id(loss), precision = .tune_id(precision))
+  calibration_ids <- if (mode == "regression") c(m = .tune_id(m), epsilon = .tune_id(epsilon)) else
+    c(loss = .tune_id(loss), precision = .tune_id(precision))
   if (is.null(tuning)) {
     if (length(calibration_ids)) stop("Calibration tune() placeholders require `tuning$calibration`.", call. = FALSE)
     return(NULL)
-  }
-  if (mode != "classification") {
-    stop("Grid tuning requires classification.", call. = FALSE)
   }
   .tuning_names(tuning, c("strategy", "model", "calibration", "selection_prop", "selection_split",
                           "joint_resamples"), "tuning")
@@ -43,7 +41,7 @@
     stop("`tuning$model` is required exactly when the base workflow has tune() placeholders.", call. = FALSE)
   }
   if (xor(length(calibration_ids) > 0L, !is.null(tuning$calibration))) {
-    stop("`tuning$calibration` is required exactly when loss or precision uses tune().", call. = FALSE)
+    stop("`tuning$calibration` is required exactly when a calibration option uses tune().", call. = FALSE)
   }
   if (!length(model_ids) && !length(calibration_ids)) {
     stop("`tuning` needs at least one model/recipe or calibration tune() placeholder.", call. = FALSE)
@@ -109,7 +107,8 @@
   if (!is.null(search$control$extract)) {
     stop("Custom `control_grid(extract = ...)` conflicts with selection diagnostics.", call. = FALSE)
   }
-  if (is.null(search$primary_metric)) search$primary_metric <- yardstick::mn_log_loss
+  if (is.null(search$primary_metric)) search$primary_metric <-
+    if (workflows::extract_spec_parsnip(workflow)$mode == "regression") yardstick::rmse else yardstick::mn_log_loss
   if (!inherits(search$primary_metric, "metric")) {
     stop("`tuning$", label, "$primary_metric` must be one yardstick metric.", call. = FALSE)
   }
@@ -156,6 +155,16 @@
     stop("`tuning$", label, "$grid` cannot contain missing values.", call. = FALSE)
   }
   if (label == "calibration") {
+    for (option in intersect(c("m", "epsilon"), names(ids))) {
+      value <- grid[[ids[[option]]]]
+      .validate_regression_vector(value, option)
+      if (option == "m" && any(value < 1 | value != floor(value))) {
+        stop("Calibration m grid requires positive whole numbers.", call. = FALSE)
+      }
+      if (option == "epsilon" && any(value <= 0 | value >= 1)) {
+        stop("Calibration epsilon grid requires values strictly between 0 and 1.", call. = FALSE)
+      }
+    }
     if ("loss" %in% names(ids)) {
       value <- as.character(grid[[ids[["loss"]]]])
       if (!all(value %in% c("log", "brier"))) stop("Calibration loss grid allows only log and brier.", call. = FALSE)
@@ -186,17 +195,22 @@
 
 .tuning_score <- function(metric, predictions, truth, outcome, classes, event_level,
                           classification) {
-  expected <- paste0(".pred_", classes)
+  regression <- is.null(classes)
+  expected <- if (regression) ".pred" else paste0(".pred_", classes)
   if (!is.data.frame(predictions) || nrow(predictions) != length(truth) ||
       !identical(sort(names(predictions)), sort(expected)) ||
       !all(vapply(predictions, function(x) is.numeric(x) && length(x) == length(truth) &&
-                    all(is.finite(x)) && all(x >= 0 & x <= 1), logical(1))) ||
-      any(abs(rowSums(predictions[expected]) - 1) > 1e-8)) {
-    stop("Candidate predictions must contain every assessment row and finite class probabilities.", call. = FALSE)
+                    all(is.finite(x)) && (regression || all(x >= 0 & x <= 1)), logical(1))) ||
+      (!regression && any(abs(rowSums(predictions[expected]) - 1) > 1e-8))) {
+    stop("Candidate predictions must contain every assessment row and finite ",
+         if (regression) "numeric predictions." else "class probabilities.", call. = FALSE)
   }
   frame <- data.frame(truth, predictions[expected], check.names = FALSE)
   names(frame)[1L] <- outcome
-  if (inherits(metric, "class_metric")) {
+  if (regression) {
+    if (!inherits(metric, "numeric_metric")) stop("Regression tuning requires a numeric metric.", call. = FALSE)
+    result <- rlang::inject(metric(frame, truth = !!rlang::sym(outcome), estimate = !!rlang::sym(".pred")))
+  } else if (inherits(metric, "class_metric")) {
     event <- classes[if (event_level == "first") 1L else 2L]
     other <- setdiff(classes, event)
     frame$.pred_class <- if (classification == "binary")
@@ -241,8 +255,9 @@
 .grid_proxy_workflow <- function(data, outcome, event_level, classification,
                                  candidates, candidate_workflow, counter) {
   .register_grid_proxy()
+  mode <- if (is.numeric(data[[outcome]])) "regression" else "classification"
   spec <- parsnip::new_model_spec("vennabers_grid", args = list(), eng_args = NULL,
-                                  mode = "classification", method = NULL, engine = "proxy")
+                                  mode = mode, method = NULL, engine = "proxy")
   spec <- parsnip::set_engine(spec, "proxy", base_workflow = tune::tune("candidate_id"),
                               outcome = outcome,
                               parameters = list(grid_proxy = TRUE,
@@ -252,7 +267,7 @@
                                 counter = counter))
   carrier <- rlang::inject(workflows::add_variables(
     workflows::workflow(),
-    outcomes = .integration_select_outcome(!!outcome, !!classification, !!"classification"),
+    outcomes = .integration_select_outcome(!!outcome, !!classification, !!mode),
     predictors = tidyselect::everything(),
     blueprint = hardhat::default_xy_blueprint(intercept = FALSE, allow_novel_levels = TRUE)))
   workflows::add_model(carrier, spec)
@@ -301,7 +316,7 @@
   budget <- .grid_budget(search, plans, candidate_workflow, classes = levels(data[[outcome]]))
   initial_fits <- counter$n
   classes <- levels(data[[outcome]])
-  probability_columns <- paste0(".pred_", classes)
+  prediction_columns <- if (is.null(classes)) ".pred" else paste0(".pred_", classes)
   candidates <- data.frame(id = search$candidate_ids, status = "excluded",
                            estimate = NA_real_, reason = NA_character_)
   scores <- reports <- decisions <- vector("list", nrow(search$grid))
@@ -330,6 +345,17 @@
     control = control))), error = identity)
   if (inherits(result, "error")) stop("Native ", label, " grid failed: ",
                                       conditionMessage(result), call. = FALSE)
+  for (option in intersect(c("m", "epsilon"), names(search$ids))) {
+    for (j in seq_len(nrow(result))) {
+      predictions <- result$.predictions[[j]]
+      if (is.data.frame(predictions)) {
+        column <- if (identical(outcome, option)) paste0("va_", option) else option
+        predictions[[column]] <- search$grid[[search$ids[[option]]]][
+          match(predictions$candidate_id, candidates$id)]
+        result$.predictions[[j]] <- predictions
+      }
+    }
+  }
   result_ids <- if ("id2" %in% names(result)) paste(result$id, result$id2, sep = "/") else result$id
   for (i in seq_len(nrow(search$grid))) {
     scores[[i]] <- stats::setNames(rep(NA_real_, length(plans)), names(plans))
@@ -351,11 +377,11 @@
             !identical(predictions[[outcome]], data[[outcome]][rows])) {
           stop("Native predictions omit, duplicate, or mismatch assessment rows.", call. = FALSE)
         }
-        probabilities <- predictions[match(split$assessment, rows), probability_columns, drop = FALSE]
-        primary <- .tuning_score(search$primary_metric, probabilities,
+        values <- predictions[match(split$assessment, rows), prediction_columns, drop = FALSE]
+        primary <- .tuning_score(search$primary_metric, values,
           data[[outcome]][split$assessment], outcome, classes, event_level, classification)
         extra <- lapply(search$report_metrics, function(metric) tryCatch(
-          .tuning_score(metric, probabilities, data[[outcome]][split$assessment],
+          .tuning_score(metric, values, data[[outcome]][split$assessment],
                         outcome, classes, event_level, classification), error = conditionMessage))
         extract <- result$.extracts[[j]]
         extract <- extract[extract$candidate_id == candidates$id[i], , drop = FALSE]
@@ -375,13 +401,14 @@
   }
   eligible <- which(candidates$status == "eligible")
   if (!length(eligible)) stop("No eligible ", label, " grid candidate: ",
-                              paste(stats::na.omit(candidates$reason), collapse = " | "), call. = FALSE)
+    paste(c(stats::na.omit(candidates$reason), unique(tune::collect_notes(result)$note)),
+      collapse = " | "), call. = FALSE)
   direction <- attr(search$primary_metric, "direction")
   if (!direction %in% c("minimize", "maximize")) stop("Selection metric needs a direction.", call. = FALSE)
   best <- eligible[if (direction == "minimize") which.min(candidates$estimate[eligible]) else
                      which.max(candidates$estimate[eligible])]
   list(values = as.list(search$grid[best, , drop = FALSE]),
-       diagnostics = list(chosen = candidates$id[best], candidates = candidates,
+       diagnostics = list(chosen = candidates$id[best], candidates = candidates, grid = search$grid,
          tie_break = "first candidate in grid order",
          scores = stats::setNames(scores, candidates$id),
          report_metrics = stats::setNames(reports, candidates$id),
@@ -399,11 +426,17 @@
 
 .candidate_outer <- function(workflow, outcome, settings, schema = NULL) {
   args <- list(workflow = workflow, outcome = outcome, method = settings$method,
-               classification = settings$classification,
-               loss = settings$loss, precision = settings$precision,
                prediction_model = settings$prediction_model, seed = settings$seed)
+  if (settings$mode == "regression") {
+    args$m <- settings$m
+    args$epsilon <- settings$epsilon
+  } else {
+    args$classification <- settings$classification
+    args$loss <- settings$loss
+    args$precision <- settings$precision
+    if (settings$classification == "binary") args$event_level <- settings$event_level
+  }
   if (identical(settings$model_training, "pairwise")) args$model_training <- "pairwise"
-  if (settings$classification == "binary") args$event_level <- settings$event_level
   if (!is.null(schema)) args$schema <- schema
   if (is.function(settings$splits)) args$splits <- settings$splits else if (settings$method == "cross")
     args$v <- settings$v else args$calibration_prop <- settings$calibration_prop
@@ -446,6 +479,7 @@
 }
 
 .calibration_values <- function(settings, ids, values) {
+  for (option in intersect(c("m", "epsilon"), names(ids))) settings[[option]] <- values[[ids[[option]]]]
   if ("loss" %in% names(ids)) settings$loss <- values[[ids[["loss"]]]]
   if ("precision" %in% names(ids)) {
     precision <- values[[ids[["precision"]]]]
@@ -456,7 +490,7 @@
 
 .selection_roles <- function(data, outcome, settings, config) {
   split <- if (!is.null(config$selection_prop)) {
-    if (identical(settings$strata, FALSE)) rsample::initial_split(data, prop = 1 - config$selection_prop) else
+    if (settings$mode == "regression" || identical(settings$strata, FALSE)) rsample::initial_split(data, prop = 1 - config$selection_prop) else
       rlang::inject(rsample::initial_split(data, prop = 1 - config$selection_prop,
                                            strata = !!outcome, pool = 0))
   } else if (is.function(config$selection_split)) config$selection_split(data) else config$selection_split
@@ -591,7 +625,7 @@
        settings = settings, diagnostics = result$diagnostics)
 }
 
-#' Inspect classification grid selection after fitting
+#' Inspect classification or regression grid selection after fitting
 #' @param object A fitted calibrated workflow.
 #' @return Search configuration, candidate scores, selected values, plans, and data roles.
 #' @export

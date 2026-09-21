@@ -52,20 +52,22 @@
     stop("A foreign parsnip registration already owns model 'vennabers_grid'.", call. = FALSE)
   }
   parsnip::set_new_model(model)
-  parsnip::set_model_mode(model, "classification")
-  parsnip::set_model_engine(model, "classification", "proxy")
-  parsnip::set_dependency(model, "proxy", pkg = "vennabers", mode = "classification")
-  parsnip::set_fit(model, "classification", "proxy",
-    list(interface = "data.frame", protect = c("x", "y"),
-         func = c(pkg = "vennabers", fun = "fit_vennabers"), defaults = list()))
-  parsnip::set_encoding(model, "classification", "proxy",
-    list(predictor_indicators = "none", compute_intercept = FALSE,
-         remove_intercept = FALSE, allow_sparse_x = FALSE))
-  for (type in c("prob", "class")) {
-    parsnip::set_pred(model, "classification", "proxy", type,
-      list(pre = NULL, post = NULL,
-           func = c(pkg = "vennabers", fun = paste0("predict_vennabers_", type)),
-           args = list(object = quote(object$fit), new_data = quote(new_data))))
+  for (mode in c("classification", "regression")) {
+    parsnip::set_model_mode(model, mode)
+    parsnip::set_model_engine(model, mode, "proxy")
+    parsnip::set_dependency(model, "proxy", pkg = "vennabers", mode = mode)
+    parsnip::set_fit(model, mode, "proxy",
+      list(interface = "data.frame", protect = c("x", "y"),
+           func = c(pkg = "vennabers", fun = "fit_vennabers"), defaults = list()))
+    parsnip::set_encoding(model, mode, "proxy",
+      list(predictor_indicators = "none", compute_intercept = FALSE,
+           remove_intercept = FALSE, allow_sparse_x = FALSE))
+    for (type in if (mode == "regression") "numeric" else c("prob", "class")) {
+      parsnip::set_pred(model, mode, "proxy", type,
+        list(pre = NULL, post = NULL,
+             func = c(pkg = "vennabers", fun = paste0("predict_vennabers_", type)),
+             args = list(object = quote(object$fit), new_data = quote(new_data))))
+    }
   }
   .registration$grid_fit <- parsnip::get_fit(model)
   invisible(NULL)

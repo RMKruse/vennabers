@@ -65,13 +65,13 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     stop("`m` and `epsilon` require a regression base workflow.", call. = FALSE)
   }
   if (!is.null(m) && !is.null(epsilon)) stop("Supply only one of `m` and `epsilon`.", call. = FALSE)
-  if (!is.null(m)) {
+  if (!is.null(m) && is.null(.tune_id(m))) {
     .validate_regression_vector(m, "m")
     if (length(m) != 1L || m != floor(m) || m < 1) {
       stop("`m` must be one positive whole number.", call. = FALSE)
     }
   }
-  if (!is.null(epsilon)) {
+  if (!is.null(epsilon) && is.null(.tune_id(epsilon))) {
     .validate_regression_vector(epsilon, "epsilon")
     if (length(epsilon) != 1L || epsilon <= 0 || epsilon >= 1) {
       stop("`epsilon` must be one finite numeric value strictly between 0 and 1.", call. = FALSE)
@@ -121,7 +121,7 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     }
   }
   tuning <- .validate_tuning(tuning, workflow, mode, model_training,
-                             loss, precision, seed)
+                             loss, precision, seed, m, epsilon)
   if (pairwise && identical(tuning$strategy, "joint") && !is.null(tuning$model) &&
       !is.null(splits) && !is.function(splits)) {
     stop("Pairwise joint model selection requires local pair plan providers, not fixed plans.", call. = FALSE)
@@ -279,7 +279,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
     settings <- chosen$settings
     parameters$requested <- settings
     tuning_result <- if (!joint_pairwise || !is.null(original_tuning$calibration)) chosen$diagnostics else NULL
-    if (any(tabulate(y, nbins = length(classes)) == 0L)) {
+    if (!regression && any(tabulate(y, nbins = length(classes)) == 0L)) {
       stop("Final fit F must contain every class after the S/F split.", call. = FALSE)
     }
   }
@@ -712,6 +712,9 @@ print.vennabers_fit <- function(x, ...) {
 
 #' @export
 predict_vennabers_numeric <- function(object, new_data) {
+  if (inherits(object, "vennabers_grid_fit")) {
+    return(stats::predict(object$fitted, new_data, type = "numeric")$.pred)
+  }
   .integration_prediction(object, new_data)$prediction$.pred
 }
 

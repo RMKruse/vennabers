@@ -82,6 +82,7 @@ options.
 - [Multiclass example](inst/examples/inductive-ovo.R) and [Cross multiclass example](inst/examples/cross-multiclass.R)
 - [Shared multiclass grid example](inst/examples/shared-multiclass-grid.R) for OvO/OvR and joint/two-stage selection
 - [Pairwise OvO grid example](inst/examples/pairwise-grid.R) for local pair grids and coupled selection
+- [Regression grid example](inst/examples/regression-grid.R) for IVAR/CVAR with joint or two-stage selection
 - [Regression example](inst/examples/inductive-regression.R) and [Cross regression example](inst/examples/cross-regression.R)
 - [Workflow example](inst/examples/calibrated-workflow.R) and [fitted workflow example](inst/examples/frozen-binary.R)
 - [Release notes](NEWS.md)
