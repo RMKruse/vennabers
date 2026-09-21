@@ -554,9 +554,9 @@
   classes <- levels(data[[outcome]])
   prediction_columns <- if (is.null(classes)) ".pred" else paste0(".pred_", classes)
   candidates$id <- sprintf("%s_%03d", label, seq_len(nrow(candidates)))
-  candidates$status <- "excluded"
-  candidates$estimate <- NA_real_
-  candidates$reason <- NA_character_
+  candidates$status <- rep("excluded", nrow(candidates))
+  candidates$estimate <- rep(NA_real_, nrow(candidates))
+  candidates$reason <- rep(NA_character_, nrow(candidates))
   scores <- reports <- decisions <- vector("list", nrow(candidates))
   result_ids <- if ("id2" %in% names(result)) paste(result$id, result$id2, sep = "/") else result$id
   for (i in seq_len(nrow(candidates))) {
@@ -570,9 +570,12 @@
       split <- plans[[j]]
       checked <- tryCatch({
         predictions <- result$.predictions[[j]]
+        if (!is.data.frame(predictions)) {
+          stop("Native predictions are missing for this resample.", call. = FALSE)
+        }
         predictions <- predictions[.same_candidate(predictions, candidate_values), , drop = FALSE]
         rows <- predictions$.row
-        if (!is.data.frame(predictions) || is.null(rows) || anyNA(rows) || anyDuplicated(rows) ||
+        if (is.null(rows) || anyNA(rows) || anyDuplicated(rows) ||
             !identical(sort(as.integer(rows)), sort(split$assessment)) ||
             !identical(predictions[[outcome]], data[[outcome]][rows])) {
           stop("Native predictions omit, duplicate, or mismatch assessment rows (",
@@ -628,6 +631,9 @@
   params <- dials::finalize(search$param_info, data)
   initial_grid <- withr::with_seed(control$seed, dials::grid_space_filling(params, size = search$initial))
   budget <- .grid_budget(list(grid = initial_grid), plans, candidate_workflow, classes = levels(data[[outcome]]))
+  budget$candidates <- nrow(initial_grid) + search$iter
+  budget$gross_base_fit_estimate <- budget$gross_base_fit_estimate *
+    budget$candidates / nrow(initial_grid)
   native_metrics <- if (inherits(search$primary_metric, "class_metric"))
     yardstick::metric_set(search$primary_metric, yardstick::brier_class) else yardstick::metric_set(search$primary_metric)
   grid_control <- tune::control_grid(save_pred = TRUE, allow_par = FALSE,
@@ -637,10 +643,14 @@
   if (inherits(initial, "error")) stop("Native ", label, " Bayes initialization failed: ", conditionMessage(initial), call. = FALSE)
   scored <- .score_bayes_candidates(search, initial, data, plans, outcome, event_level, classification,
     .bayes_candidates(initial, search$ids), label, counter, initial_fits, budget)
+  required <- nrow(params) + 1L
+  if (!nrow(scored$candidates)) {
+    stop("Bayes needs at least ", required, " complete initial ", label,
+         " candidates; found 0.", call. = FALSE)
+  }
   identified <- .stable_bayes_ids(scored, search$ids, label)
   scored <- identified$scored
   known_ids <- identified$known
-  required <- nrow(params) + 1L
   if (length(scored$eligible) < required) {
     stop("Bayes needs at least ", required, " complete initial ", label, " candidates; found ",
          length(scored$eligible), ".", call. = FALSE)
@@ -712,13 +722,15 @@
   pick <- if (direction == "minimize") which.min(scored$candidates$estimate[scored$eligible]) else
     which.max(scored$candidates$estimate[scored$eligible])
   best <- scored$eligible[pick]
+  attempts <- nrow(initial_grid) + length(steps) - 1L
+  scored$cost$candidate_evaluations <- attempts * length(plans)
   list(values = as.list(values[pick, , drop = FALSE]), diagnostics = c(list(chosen = scored$candidates$id[best],
     selected = as.list(values[pick, , drop = FALSE]), candidates = scored$candidates, grid = NULL,
     tie_break = "first candidate in attempt order", scores = scored$scores,
     report_metrics = scored$report_metrics, decisions = scored$decisions, native = valid,
     resamples = plans, primary_metric = search$primary_metric, direction = direction,
     seed = control$seed, bayes_seed = control$seed, steps = steps, stop_reason = reason,
-    attempts = length(steps), no_improve = stale), scored[c("budget", "cost")]))
+    attempts = attempts, no_improve = stale), scored[c("budget", "cost")]))
 }
 
 .candidate_outer <- function(workflow, outcome, settings, schema = NULL) {
