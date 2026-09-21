@@ -71,9 +71,9 @@
   } else if (!is.null(tuning$selection_prop) || !is.null(tuning$selection_split)) {
     stop("A selection S/F split requires automatic calibration selection.", call. = FALSE)
   }
-  if (length(model_ids)) tuning$model <- .validate_grid_search(tuning$model, model_ids, workflow, seed,
+  if (length(model_ids)) tuning$model <- .validate_search(tuning$model, model_ids, workflow, seed,
     "model", require_resamples = !pair_joint)
-  if (length(calibration_ids)) tuning$calibration <- .validate_grid_search(
+  if (length(calibration_ids)) tuning$calibration <- .validate_search(
     tuning$calibration, calibration_ids, workflow, seed, "calibration")
   if (pair_joint && !is.null(tuning$model$resamples)) {
     stop("Pairwise joint model grids use global calibration resamples or `joint_resamples`; omit `tuning$model$resamples`.", call. = FALSE)
@@ -88,6 +88,69 @@
     stop("Pairwise joint model and calibration grids need one consistent control.", call. = FALSE)
   }
   tuning
+}
+
+.validate_search <- function(search, ids, workflow, seed, label, require_resamples = TRUE) {
+  if (!is.list(search) || is.null(search$method)) {
+    stop("`tuning", "$", label, "$method` is required.", call. = FALSE)
+  }
+  if (identical(search$method, "grid")) {
+    return(.validate_grid_search(search, ids, workflow, seed, label, require_resamples))
+  }
+  .validate_bayes_search(search, ids, workflow, label, require_resamples)
+}
+
+.validate_bayes_search <- function(search, ids, workflow, label, require_resamples = TRUE) {
+  .tuning_names(search, c("method", "initial", "iter", "param_info", "resamples", "primary_metric",
+                          "report_metrics", "control"), paste0("tuning$", label))
+  .validate_choice(search$method, "bayes", paste0("tuning$", label, "$method"))
+  for (name in c("initial", "iter")) {
+    value <- search[[name]]
+    if (!is.numeric(value) || length(value) != 1L || !is.finite(value) ||
+        value < 1L || value != floor(value)) {
+      stop("`tuning$", label, "$", name, "` must be one positive whole number.", call. = FALSE)
+    }
+    search[[name]] <- as.integer(value)
+  }
+  if ((require_resamples && is.null(search$resamples)) ||
+      (!is.null(search$resamples) &&
+       !(is.function(search$resamples) || inherits(search$resamples, "rset")))) {
+    stop("`tuning$", label, "$resamples` must be an rset or function of local data.", call. = FALSE)
+  }
+  if (!inherits(search$param_info, "parameters") || !setequal(search$param_info$id, unname(ids))) {
+    stop("Bayes `tuning$", label, "$param_info` must describe exactly the tune() IDs.", call. = FALSE)
+  }
+  if (search$initial <= nrow(search$param_info)) {
+    stop("Bayes `tuning$", label, "$initial` must exceed the number of tuned parameters.", call. = FALSE)
+  }
+  if (is.null(search$control)) search$control <- tune::control_bayes()
+  control <- search$control
+  if (!inherits(control, "control_bayes") || !isTRUE(control$save_pred) ||
+      !identical(control$uncertain, Inf) || !is.numeric(control$seed) || length(control$seed) != 1L ||
+      !is.finite(control$seed) || control$seed < 0 || control$seed != floor(control$seed) ||
+      !is.numeric(control$no_improve) || length(control$no_improve) != 1L || control$no_improve < 1 ||
+      (!is.na(control$time_limit) && (!is.numeric(control$time_limit) || length(control$time_limit) != 1L ||
+                                      !is.finite(control$time_limit) || control$time_limit <= 0))) {
+    stop("Bayes control needs save_pred = TRUE, uncertain = Inf, a whole seed, positive no_improve, and a positive or NA time_limit.", call. = FALSE)
+  }
+  if (!is.null(control$extract)) stop("Custom `control_bayes(extract = ...)` conflicts with selection diagnostics.", call. = FALSE)
+  search$control$allow_par <- FALSE
+  if (is.null(search$primary_metric)) search$primary_metric <-
+    if (workflows::extract_spec_parsnip(workflow)$mode == "regression") yardstick::rmse else yardstick::mn_log_loss
+  if (!inherits(search$primary_metric, "metric")) {
+    stop("`tuning$", label, "$primary_metric` must be one yardstick metric.", call. = FALSE)
+  }
+  reports <- search$report_metrics
+  if (inherits(reports, "metric_set")) reports <- attr(reports, "metrics")
+  if (inherits(reports, "metric")) reports <- list(reports)
+  if (is.null(reports)) reports <- list()
+  if (!is.list(reports) || !all(vapply(reports, inherits, logical(1), "metric"))) {
+    stop("`tuning$", label, "$report_metrics` must contain yardstick metrics.", call. = FALSE)
+  }
+  if (length(reports) && is.null(names(reports))) names(reports) <- paste0("report_", seq_along(reports))
+  search$report_metrics <- reports
+  search$ids <- ids
+  search
 }
 
 .validate_grid_search <- function(search, ids, workflow, seed, label, require_resamples = TRUE) {
@@ -231,13 +294,16 @@
 }
 
 .fit_grid_candidate <- function(x, y, outcome, candidate_id, candidate_workflow,
-                                candidates, event_level, classification, counter) {
-  index <- match(candidate_id, candidates$id)
-  if (is.na(index)) stop("Unknown grid candidate ID.", call. = FALSE)
+                                candidates, event_level, classification, counter,
+                                candidate_values = NULL) {
+  if (is.null(candidate_values)) {
+    index <- match(candidate_id, candidates$id)
+    if (is.na(index)) stop("Unknown grid candidate ID.", call. = FALSE)
+    candidate_values <- as.list(candidates[index, setdiff(names(candidates), "id"), drop = FALSE])
+  }
   data <- as.data.frame(x)
   data[[outcome]] <- y
-  values <- as.list(candidates[index, setdiff(names(candidates), "id"), drop = FALSE])
-  workflow <- candidate_workflow(values)
+  workflow <- candidate_workflow(candidate_values)
   spec <- workflows::extract_spec_parsnip(workflow)
   if (inherits(spec, "vennabers")) {
     parameters <- rlang::eval_tidy(spec$eng_args$parameters)
@@ -249,6 +315,25 @@
                  class_levels = levels(y), event_level = event_level,
                  classification = classification),
             class = "vennabers_grid_fit")
+}
+
+.bayes_proxy_workflow <- function(data, outcome, event_level, classification,
+                                  candidate_workflow, counter, ids) {
+  .register_grid_proxy()
+  mode <- if (is.numeric(data[[outcome]])) "regression" else "classification"
+  spec <- parsnip::new_model_spec("vennabers_grid", args = list(), eng_args = NULL,
+                                  mode = mode, method = NULL, engine = "proxy")
+  spec <- parsnip::set_engine(spec, "proxy", base_workflow = "bayes", outcome = outcome,
+    parameters = list(grid_proxy = TRUE, candidate_workflow = candidate_workflow,
+      candidates = NULL, event_level = event_level, classification = classification,
+      counter = counter, bayes_proxy = TRUE))
+  for (id in unname(ids)) spec$eng_args[[id]] <- rlang::new_quosure(tune::tune(id), env = emptyenv())
+  carrier <- rlang::inject(workflows::add_variables(
+    workflows::workflow(),
+    outcomes = .integration_select_outcome(!!outcome, !!classification, !!mode),
+    predictors = tidyselect::everything(),
+    blueprint = hardhat::default_xy_blueprint(intercept = FALSE, allow_novel_levels = TRUE)))
+  workflows::add_model(carrier, spec)
 }
 
 # The stand-in ID lets one native tune_grid() run the complete candidate grid.
@@ -424,6 +509,218 @@
          seed = NULL))
 }
 
+.bayes_candidates <- function(result, ids) {
+  metrics <- tryCatch(tune::collect_metrics(result, summarize = FALSE), error = identity)
+  if (inherits(metrics, "error") || !nrow(metrics) || !all(unname(ids) %in% names(metrics))) {
+    return(data.frame())
+  }
+  unique(as.data.frame(metrics[unname(ids)], stringsAsFactors = FALSE))
+}
+
+.bayes_step_candidates <- function(result, ids) {
+  metrics <- tryCatch(tune::collect_metrics(result, summarize = FALSE), error = identity)
+  if (inherits(metrics, "error") || !nrow(metrics) || !all(unname(ids) %in% names(metrics))) return(data.frame())
+  if (".iter" %in% names(metrics)) metrics <- metrics[metrics$.iter == max(metrics$.iter), , drop = FALSE]
+  unique(as.data.frame(metrics[unname(ids)], stringsAsFactors = FALSE))
+}
+
+.bayes_step_errors <- function(result) {
+  rows <- if (".iter" %in% names(result)) which(result$.iter == max(result$.iter)) else seq_len(nrow(result))
+  notes <- unlist(lapply(result$.notes[rows], function(x) if (is.data.frame(x) && "note" %in% names(x)) x$note else character()),
+                  use.names = FALSE)
+  unique(stats::na.omit(notes[nzchar(notes)]))
+}
+
+.candidate_key <- function(values) {
+  apply(values, 1L, function(row) paste(names(values), as.character(row), sep = "=", collapse = "\r"))
+}
+
+.stable_bayes_ids <- function(scored, ids, label, known = character()) {
+  keys <- .candidate_key(scored$candidates[unname(ids)])
+  for (key in keys) if (!key %in% names(known)) known[key] <- sprintf("%s_%03d", label, length(known) + 1L)
+  current <- unname(known[keys])
+  scored$candidates$id <- current
+  names(scored$scores) <- names(scored$report_metrics) <- names(scored$decisions) <- current
+  list(scored = scored, known = known)
+}
+
+.same_candidate <- function(predictions, values) {
+  if (!is.data.frame(predictions) || !all(names(values) %in% names(predictions))) return(rep(FALSE, nrow(predictions)))
+  Reduce(`&`, Map(function(name) as.character(predictions[[name]]) == as.character(values[[name]]), names(values)))
+}
+
+.score_bayes_candidates <- function(search, result, data, plans, outcome, event_level, classification,
+                                    candidates, label, counter, initial_fits, budget) {
+  classes <- levels(data[[outcome]])
+  prediction_columns <- if (is.null(classes)) ".pred" else paste0(".pred_", classes)
+  candidates$id <- sprintf("%s_%03d", label, seq_len(nrow(candidates)))
+  candidates$status <- "excluded"
+  candidates$estimate <- NA_real_
+  candidates$reason <- NA_character_
+  scores <- reports <- decisions <- vector("list", nrow(candidates))
+  result_ids <- if ("id2" %in% names(result)) paste(result$id, result$id2, sep = "/") else result$id
+  for (i in seq_len(nrow(candidates))) {
+    scores[[i]] <- stats::setNames(rep(NA_real_, length(plans)), names(plans))
+    reports[[i]] <- decisions[[i]] <- vector("list", length(plans))
+    names(reports[[i]]) <- names(decisions[[i]]) <- names(plans)
+    errors <- if (!identical(result_ids, names(plans))) "Native resample IDs changed." else character()
+    candidate_values <- candidates[i, unname(search$ids), drop = FALSE]
+    for (j in seq_along(plans)) {
+      id <- names(plans)[j]
+      split <- plans[[j]]
+      checked <- tryCatch({
+        predictions <- result$.predictions[[j]]
+        predictions <- predictions[.same_candidate(predictions, candidate_values), , drop = FALSE]
+        rows <- predictions$.row
+        if (!is.data.frame(predictions) || is.null(rows) || anyNA(rows) || anyDuplicated(rows) ||
+            !identical(sort(as.integer(rows)), sort(split$assessment)) ||
+            !identical(predictions[[outcome]], data[[outcome]][rows])) {
+          stop("Native predictions omit, duplicate, or mismatch assessment rows (",
+               nrow(predictions), " predictions for ", length(split$assessment), " assessment rows).", call. = FALSE)
+        }
+        score_values <- predictions[match(split$assessment, rows), prediction_columns, drop = FALSE]
+        primary <- .tuning_score(search$primary_metric, score_values,
+          data[[outcome]][split$assessment], outcome, classes, event_level, classification)
+        extra <- lapply(search$report_metrics, function(metric) tryCatch(
+          .tuning_score(metric, score_values, data[[outcome]][split$assessment],
+                        outcome, classes, event_level, classification), error = conditionMessage))
+        extract <- result$.extracts[[j]]
+        extract <- extract[.same_candidate(extract, candidates[i, unname(search$ids), drop = FALSE]), , drop = FALSE]
+        details <- if (nrow(extract)) extract$.extracts[[1L]] else NULL
+        list(primary = primary, extra = extra, details = details)
+      }, error = identity)
+      if (inherits(checked, "error")) errors <- c(errors, paste0(id, ": ", conditionMessage(checked))) else {
+        scores[[i]][[id]] <- checked$primary
+        reports[[i]][[id]] <- checked$extra
+        decisions[[i]][id] <- list(checked$details$decision)
+      }
+    }
+    if (length(errors)) candidates$reason[i] <- paste(errors, collapse = " | ") else {
+      candidates$status[i] <- "eligible"
+      candidates$estimate[i] <- mean(scores[[i]])
+    }
+  }
+  eligible <- which(candidates$status == "eligible")
+  list(candidates = candidates, eligible = eligible, scores = stats::setNames(scores, candidates$id),
+       report_metrics = stats::setNames(reports, candidates$id),
+       decisions = stats::setNames(decisions, candidates$id),
+       cost = list(candidate_evaluations = nrow(candidates) * length(plans),
+                   eligible_candidates = length(eligible), excluded_candidates = nrow(candidates) - length(eligible),
+                   observed_base_fits = counter$n - initial_fits), budget = budget)
+}
+
+.bayes_select <- function(search, data, outcome, event_level, classification,
+                          candidate_workflow, label, counter) {
+  plan <- .tuning_resamples(search$resamples, data, label)
+  plans <- plan$positions
+  initial_fits <- counter$n
+  started <- proc.time()[3L]
+  control <- search$control
+  control$time_limit <- NA_real_
+  control$event_level <- event_level
+  control$extract <- function(w) {
+    proxy <- workflows::extract_fit_engine(w)
+    state <- workflows::extract_fit_engine(proxy$fitted)
+    if (inherits(state, "vennabers_fit")) list(decision = state$tuning$models) else list(decision = NULL)
+  }
+  proxy <- .bayes_proxy_workflow(data, outcome, event_level, classification,
+                                 candidate_workflow, counter, search$ids)
+  params <- dials::finalize(search$param_info, data)
+  initial_grid <- withr::with_seed(control$seed, dials::grid_space_filling(params, size = search$initial))
+  budget <- .grid_budget(list(grid = initial_grid), plans, candidate_workflow, classes = levels(data[[outcome]]))
+  native_metrics <- if (inherits(search$primary_metric, "class_metric"))
+    yardstick::metric_set(search$primary_metric, yardstick::brier_class) else yardstick::metric_set(search$primary_metric)
+  grid_control <- tune::control_grid(save_pred = TRUE, allow_par = FALSE,
+    event_level = event_level, extract = control$extract, parallel_over = NULL)
+  initial <- tryCatch(suppressMessages(suppressWarnings(tune::tune_grid(proxy, resamples = plan$rset,
+    grid = initial_grid, param_info = params, metrics = native_metrics, control = grid_control))), error = identity)
+  if (inherits(initial, "error")) stop("Native ", label, " Bayes initialization failed: ", conditionMessage(initial), call. = FALSE)
+  scored <- .score_bayes_candidates(search, initial, data, plans, outcome, event_level, classification,
+    .bayes_candidates(initial, search$ids), label, counter, initial_fits, budget)
+  identified <- .stable_bayes_ids(scored, search$ids, label)
+  scored <- identified$scored
+  known_ids <- identified$known
+  required <- nrow(params) + 1L
+  if (length(scored$eligible) < required) {
+    stop("Bayes needs at least ", required, " complete initial ", label, " candidates; found ",
+         length(scored$eligible), ".", call. = FALSE)
+  }
+  valid <- tune::filter_parameters(initial,
+    parameters = scored$candidates[scored$eligible, unname(search$ids), drop = FALSE])
+  steps <- list(initial = scored$candidates)
+  best <- if (attr(search$primary_metric, "direction") == "minimize") min(scored$candidates$estimate[scored$eligible]) else
+    max(scored$candidates$estimate[scored$eligible])
+  stale <- 0L
+  reason <- "budget"
+  for (step in seq_len(search$iter)) {
+    if (!is.na(search$control$time_limit) && proc.time()[3L] - started >= search$control$time_limit) {
+      reason <- "time_limit"
+      break
+    }
+    step_control <- control
+    step_control$seed <- control$seed + step
+    next_result <- tryCatch(suppressMessages(suppressWarnings(tune::tune_bayes(proxy, resamples = plan$rset,
+      initial = valid, iter = 1L, param_info = params, metrics = native_metrics, control = step_control))), error = identity)
+    if (inherits(next_result, "error")) {
+      stale <- stale + 1L
+      steps[[paste0("step_", step)]] <- list(error = conditionMessage(next_result))
+    } else {
+      proposed <- .bayes_step_candidates(next_result, search$ids)
+      known <- .candidate_key(scored$candidates[scored$eligible, unname(search$ids), drop = FALSE])
+      errors <- .bayes_step_errors(next_result)
+      if (!nrow(proposed) && length(errors)) {
+        stale <- stale + 1L
+        steps[[paste0("step_", step)]] <- list(error = paste(errors, collapse = " | "))
+        if (stale >= search$control$no_improve) {
+          reason <- "no_improve"
+          break
+        }
+        next
+      } else if (!nrow(proposed) || all(.candidate_key(proposed) %in% known)) {
+        stale <- stale + 1L
+        steps[[paste0("step_", step)]] <- list(repeated = proposed)
+        reason <- "repeated_candidate"
+        break
+      }
+      scored <- .score_bayes_candidates(search, next_result, data, plans, outcome, event_level, classification,
+        .bayes_candidates(next_result, search$ids), label, counter, initial_fits, budget)
+      identified <- .stable_bayes_ids(scored, search$ids, label, known_ids)
+      scored <- identified$scored
+      known_ids <- identified$known
+      if (!length(scored$eligible)) {
+        stale <- stale + 1L
+        steps[[paste0("step_", step)]] <- scored$candidates
+      } else {
+        valid <- tune::filter_parameters(next_result,
+          parameters = scored$candidates[scored$eligible, unname(search$ids), drop = FALSE])
+        direction <- attr(search$primary_metric, "direction")
+        candidate_best <- if (direction == "minimize") min(scored$candidates$estimate[scored$eligible]) else
+          max(scored$candidates$estimate[scored$eligible])
+        improved <- if (direction == "minimize") candidate_best < best else candidate_best > best
+        stale <- if (improved) 0L else stale + 1L
+        best <- if (improved) candidate_best else best
+        steps[[paste0("step_", step)]] <- scored$candidates
+      }
+    }
+    if (stale >= search$control$no_improve) {
+      reason <- "no_improve"
+      break
+    }
+  }
+  values <- scored$candidates[scored$eligible, unname(search$ids), drop = FALSE]
+  direction <- attr(search$primary_metric, "direction")
+  pick <- if (direction == "minimize") which.min(scored$candidates$estimate[scored$eligible]) else
+    which.max(scored$candidates$estimate[scored$eligible])
+  best <- scored$eligible[pick]
+  list(values = as.list(values[pick, , drop = FALSE]), diagnostics = c(list(chosen = scored$candidates$id[best],
+    selected = as.list(values[pick, , drop = FALSE]), candidates = scored$candidates, grid = NULL,
+    tie_break = "first candidate in attempt order", scores = scored$scores,
+    report_metrics = scored$report_metrics, decisions = scored$decisions, native = valid,
+    resamples = plans, primary_metric = search$primary_metric, direction = direction,
+    seed = control$seed, bayes_seed = control$seed, steps = steps, stop_reason = reason,
+    attempts = length(steps), no_improve = stale), scored[c("budget", "cost")]))
+}
+
 .candidate_outer <- function(workflow, outcome, settings, schema = NULL) {
   args <- list(workflow = workflow, outcome = outcome, method = settings$method,
                prediction_model = settings$prediction_model, seed = settings$seed)
@@ -444,7 +741,7 @@
   if (!is.null(settings$tuning$model)) {
     model <- settings$tuning$model
     if (!is.null(model$grid_size)) model$grid <- model$grid_size
-    model <- model[intersect(names(model), c("method", "grid", "param_info", "resamples",
+    model <- model[intersect(names(model), c("method", "grid", "initial", "iter", "param_info", "resamples",
                                              "primary_metric", "report_metrics", "control"))]
     args$tuning <- list(strategy = settings$tuning$strategy, model = model)
   }
@@ -462,7 +759,8 @@
   search <- settings$tuning$model
   if (is.null(search)) return(list(workflow = workflow, diagnostics = NULL))
   outcome <- domain$outcome
-  result <- .grid_select(search, data, outcome, settings$event_level, settings$classification,
+  select <- if (identical(search$method, "bayes")) .bayes_select else .grid_select
+  result <- select(search, data, outcome, settings$event_level, settings$classification,
     function(values) {
       candidate <- tune::finalize_workflow(workflow, values)
       if (settings$tuning$strategy == "two_stage") candidate else {
@@ -503,7 +801,8 @@
   roles <- .selection_roles(data, outcome, settings, config)
   selection <- data[roles$assessment, , drop = FALSE]
   search <- config$calibration
-  result <- .grid_select(search, selection, outcome, settings$event_level, settings$classification,
+  select <- if (identical(search$method, "bayes")) .bayes_select else .grid_select
+  result <- select(search, selection, outcome, settings$event_level, settings$classification,
     function(values) {
       nested <- .calibration_values(settings, search$ids, values)
       nested$tuning$calibration <- NULL

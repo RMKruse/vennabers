@@ -236,12 +236,14 @@ predict.vennabers_workflow <- function(object, new_data, ...) {
 
 # Public only as a parsnip engine entry point; use calibrated_workflow().
 #' @export
-fit_vennabers <- function(x, y, base_workflow, outcome, parameters) {
+fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   if (isTRUE(parameters$grid_proxy)) {
+    values <- list(...)
     return(.fit_grid_candidate(x, y, outcome, base_workflow,
                                parameters$candidate_workflow, parameters$candidates,
                                parameters$event_level, parameters$classification,
-                               parameters$counter))
+                               parameters$counter,
+                               candidate_values = if (isTRUE(parameters$bayes_proxy)) values else NULL))
   }
   .integration_packages()
   settings <- parameters$requested

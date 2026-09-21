@@ -41,14 +41,18 @@ unresolved tune placeholders without \code{tuning}, and additional postprocessor
 \item{tuning}{NULL keeps fixed settings. For binary, shared OvO/OvR or pairwise OvO classification and regression, a named list
 with \code{strategy = "joint"} or \code{"two_stage"} and \code{model} and/or
 \code{calibration} searches matching the present \code{tune()} placeholders.
-Each search has \code{method = "grid"}, a concrete grid data frame with columns
+Each search has \code{method = "grid"} or \code{"bayes"}. Grid uses a concrete grid data frame with columns
 named by placeholder IDs or a positive integer grid size with dials
-\code{param_info}. Local model searches and calibration searches require
+\code{param_info}. Bayes uses positive whole \code{initial} and \code{iter} budgets plus
+\code{param_info}; \code{initial} must exceed the number of tuned parameters. Its
+\code{control_bayes()} must save predictions, use \code{uncertain = Inf}, and supplies
+the seed, \code{no_improve}, and optional time limit. Local model searches and calibration searches require
 \code{resamples = function(data) ...} (or a bound rsample rset); pairwise
 \code{joint} model grids use the global plan described below. Optional \code{primary_metric} defaults to
 \code{yardstick::mn_log_loss} for classification or \code{yardstick::rmse} for regression; \code{report_metrics} are independent yardstick
-metrics. Explicit \code{control} must be a \code{tune::control_grid()}
-with \code{save_pred=TRUE}. Inner parallelism is disabled, and a custom
+metrics. Explicit \code{control} must be the matching \code{tune::control_grid()} or \code{tune::control_bayes()}
+with \code{save_pred=TRUE}. Bayes calls the public \code{tune::tune_bayes()} one
+iteration at a time, filtering incomplete candidates before the next call. Inner parallelism is disabled, and a custom
 \code{extract} callback is unavailable because selection uses extraction for
 diagnostics.
 Model/recipe and calibration IDs must be unique. Calibration search requires
