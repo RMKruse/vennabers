@@ -89,6 +89,7 @@
   }
   state$parameters$requested$.pair_grid <- NULL
   state$parameters$requested$.pair_grid_id <- NULL
+  state$parameters$requested$.pair_joint_inner <- NULL
   state
 }
 

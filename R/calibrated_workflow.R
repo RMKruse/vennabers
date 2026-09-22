@@ -272,10 +272,13 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   original_tuning <- settings$tuning
   tuning_result <- NULL
   joint_pairwise <- identical(settings$model_training, "pairwise") &&
-    identical(settings$tuning$strategy, "joint") && !is.null(settings$tuning$model)
+    identical(settings$tuning$strategy, "joint") && !is.null(settings$tuning$model) &&
+    !isTRUE(settings$.pair_joint_inner)
+  grid_joint <- joint_pairwise && .pairwise_grid_joint(settings$tuning, TRUE)
   if (!is.null(settings$tuning$calibration) || joint_pairwise) {
-    chosen <- if (joint_pairwise) .choose_pairwise_joint(raw, base_workflow, outcome, parameters) else
-      .choose_calibration(raw, base_workflow, outcome, parameters)
+    chosen <- if (grid_joint) .choose_pairwise_joint(raw, base_workflow, outcome, parameters) else
+      if (!is.null(settings$tuning$calibration)) .choose_calibration(raw, base_workflow, outcome, parameters) else
+        .assess_pairwise_bayes_joint(raw, base_workflow, outcome, parameters)
     raw <- chosen$data
     y <- raw[[outcome]]
     settings <- chosen$settings

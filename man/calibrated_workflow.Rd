@@ -20,7 +20,7 @@ Reversible name encoding for binary, OvO/OvR and regression is available through
 Frozen classification/regression workflow adoption is available through \code{\link{calibrate_workflow}}.
 Ordered reference holdouts and binary/shared multiclass full-model transfer are supported.
 Matched/full Inductive and Cross pair training are also supported in v0.7.
-Binary, shared OvO/OvR, pairwise OvO, and regression joint/two-stage grid selection is available in v0.8; Bayes tuning follows later in v0.8 and
+Binary, shared OvO/OvR, pairwise OvO, and regression joint/two-stage grid and Bayes selection is available in v0.8;
 learned postprocessing in v0.9. Shared multiclass training does not establish
 complete Python training parity.
 }
@@ -60,17 +60,18 @@ exactly one of \code{selection_prop} (the proportion reserved for selection S)
 or \code{selection_split} (rsplit or function, with analysis=final fit F and
 assessment=selection S). S is never included in F. Automatic calibration
 selection requires \code{splits=NULL} or a local plan provider function.
-In pairwise OvO \code{two_stage}, model grids and resamples run on each local class pair. Calibration
+In pairwise OvO \code{two_stage}, model searches and resamples run on each local class pair. Calibration
 selection scores the coupled complete Multiclass output on S; its final fit
 uses only F. Pair plans must be local provider functions when calibration is tuned.
-For pairwise \code{joint} model tuning, candidate choices form a Cartesian grid
-over class pairs (and separate full-model choices when requested). Each candidate
-is scored on complete coupled probabilities. With calibration options, the
-calibration search resamples provide the global assessment plan on S; model-only
-joint selection requires \code{joint_resamples}, a global rset or provider.
-Omit \code{model$resamples} in pairwise \code{joint}; it is used only by
-\code{two_stage} for local model selection.
-Global plans are never applied as pair plans. A joint grid above 4096
+For pairwise \code{joint} Grid model tuning, candidate choices form a Cartesian grid
+over class pairs (and separate full-model choices when requested). Bayes model
+searches instead advance independently on each local pair and source/full domain;
+they require local \code{model$resamples}. Global calibration candidates use
+complete coupled predictions. Model-only joint Bayes evaluates the complete
+locally selected procedure on \code{joint_resamples}; model-only joint Grid
+uses that plan to select its Cartesian candidates. Omit \code{model$resamples}
+only for the Cartesian Grid route. Global plans are never used as pair plans.
+A joint grid above 4096
 combinations is rejected before fitting; reduce the grids.
 Loss candidates are \code{"log"}/\code{"brier"}; precision candidates are
 \code{"none"}, \code{"0"}, \code{"2"}, and \code{"-2"}. Regression searches exactly one of

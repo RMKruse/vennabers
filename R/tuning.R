@@ -21,6 +21,15 @@
   }
 }
 
+.local_pair_joint_token <- new.env(parent = emptyenv())
+
+.pairwise_grid_joint <- function(tuning, pairwise) {
+  isTRUE(pairwise) && identical(tuning$strategy, "joint") &&
+    !is.null(tuning$model) && identical(tuning$model$method, "grid") &&
+    (is.null(tuning$calibration) || identical(tuning$calibration$method, "grid")) &&
+    !identical(attr(tuning, "vennabers_local_pair_joint"), .local_pair_joint_token)
+}
+
 .validate_tuning <- function(tuning, workflow, mode, model_training,
                              loss, precision, seed, m, epsilon) {
   model_ids <- generics::tune_args(workflow)$id
@@ -47,12 +56,14 @@
     stop("`tuning` needs at least one model/recipe or calibration tune() placeholder.", call. = FALSE)
   }
   pair_joint <- identical(model_training, "pairwise") && identical(tuning$strategy, "joint") && length(model_ids)
+  pair_grid_joint <- .pairwise_grid_joint(tuning, identical(model_training, "pairwise"))
   if (!is.null(tuning$joint_resamples) &&
       (!pair_joint || length(calibration_ids) ||
        !(is.function(tuning$joint_resamples) || inherits(tuning$joint_resamples, "rset")))) {
     stop("`tuning$joint_resamples` requires model-only pairwise joint tuning and a global rset or provider function.", call. = FALSE)
   }
-  if (pair_joint && !length(calibration_ids) && is.null(tuning$joint_resamples)) {
+  if (pair_joint && !length(calibration_ids) && is.null(tuning$joint_resamples) &&
+      !identical(attr(tuning, "vennabers_local_pair_joint"), .local_pair_joint_token)) {
     stop("Pairwise joint model tuning without calibration options requires `tuning$joint_resamples` on global data.", call. = FALSE)
   }
   if (length(calibration_ids)) {
@@ -72,17 +83,17 @@
     stop("A selection S/F split requires automatic calibration selection.", call. = FALSE)
   }
   if (length(model_ids)) tuning$model <- .validate_search(tuning$model, model_ids, workflow, seed,
-    "model", require_resamples = !pair_joint)
+    "model", require_resamples = !pair_grid_joint)
   if (length(calibration_ids)) tuning$calibration <- .validate_search(
     tuning$calibration, calibration_ids, workflow, seed, "calibration")
-  if (pair_joint && !is.null(tuning$model$resamples)) {
+  if (pair_grid_joint && !is.null(tuning$model$resamples)) {
     stop("Pairwise joint model grids use global calibration resamples or `joint_resamples`; omit `tuning$model$resamples`.", call. = FALSE)
   }
-  if (pair_joint && length(calibration_ids) &&
+  if (pair_grid_joint && length(calibration_ids) &&
       !identical(tuning$model$primary_metric, tuning$calibration$primary_metric)) {
     stop("Pairwise joint model and calibration grids need the same primary metric.", call. = FALSE)
   }
-  if (pair_joint && length(calibration_ids) && !is.null(tuning$model$control) &&
+  if (pair_grid_joint && length(calibration_ids) && !is.null(tuning$model$control) &&
       !is.null(tuning$calibration$control) &&
       !identical(tuning$model$control, tuning$calibration$control)) {
     stop("Pairwise joint model and calibration grids need one consistent control.", call. = FALSE)
@@ -374,7 +385,8 @@
     paths <- pair_count * (folds + as.integer(identical(settings$prediction_model, "full")))
     model <- if (is.null(settings$.pair_grid)) settings$tuning$model else NULL
     if (!is.null(model)) {
-      model_candidates <- if (!is.null(model$grid_size)) model$grid_size else nrow(model$grid)
+      model_candidates <- if (identical(model$method, "bayes")) model$initial + model$iter else
+        if (!is.null(model$grid_size)) model$grid_size else nrow(model$grid)
       model_resamples <- if (is.function(model$resamples)) NA_integer_ else nrow(model$resamples)
       if (settings$tuning$strategy == "joint") inner_paths <- folds + as.integer(identical(settings$prediction_model, "full"))
     }
@@ -642,7 +654,7 @@
     grid = initial_grid, param_info = params, metrics = native_metrics, control = grid_control))), error = identity)
   if (inherits(initial, "error")) stop("Native ", label, " Bayes initialization failed: ", conditionMessage(initial), call. = FALSE)
   scored <- .score_bayes_candidates(search, initial, data, plans, outcome, event_level, classification,
-    .bayes_candidates(initial, search$ids), label, counter, initial_fits, budget)
+    as.data.frame(initial_grid), label, counter, initial_fits, budget)
   required <- nrow(params) + 1L
   if (!nrow(scored$candidates)) {
     stop("Bayes needs at least ", required, " complete initial ", label,
@@ -756,8 +768,38 @@
     model <- model[intersect(names(model), c("method", "grid", "initial", "iter", "param_info", "resamples",
                                              "primary_metric", "report_metrics", "control"))]
     args$tuning <- list(strategy = settings$tuning$strategy, model = model)
+    local_pair_joint <- identical(settings$model_training, "pairwise") &&
+      identical(settings$tuning$strategy, "joint") &&
+      (identical(model$method, "bayes") || !is.null(model$resamples))
+    if (local_pair_joint) attr(args$tuning, "vennabers_local_pair_joint") <- .local_pair_joint_token
   }
-  do.call(calibrated_workflow, args)
+  outer <- do.call(calibrated_workflow, args)
+  if (isTRUE(settings$.pair_joint_inner) ||
+      (!is.null(settings$tuning$model) && isTRUE(local_pair_joint))) {
+    spec <- workflows::extract_spec_parsnip(outer)
+    params <- rlang::eval_tidy(spec$eng_args$parameters)
+    params$requested$.pair_joint_inner <- TRUE
+    spec$eng_args$parameters <- rlang::new_quosure(params, env = emptyenv())
+    outer <- workflows::update_model(outer, spec)
+  }
+  outer
+}
+
+.assess_pairwise_bayes_joint <- function(data, workflow, outcome, parameters) {
+  settings <- parameters$requested
+  search <- list(grid = data.frame(pairwise = 1L), candidate_ids = "joint_0001",
+    ids = c(pairwise = "pairwise"), resamples = settings$tuning$joint_resamples,
+    primary_metric = settings$tuning$model$primary_metric,
+    report_metrics = settings$tuning$model$report_metrics)
+  result <- .grid_select(search, data, outcome, settings$event_level, settings$classification,
+    function(values) {
+      nested <- settings
+      nested$.pair_joint_inner <- TRUE
+      .candidate_outer(workflow, outcome, nested, parameters$schema)
+    }, "joint", settings$.fit_counter)
+  result$diagnostics$pair_ids <- paste0("pair_", seq_len(choose(nlevels(data[[outcome]]), 2L)))
+  result$diagnostics$seed <- settings$seed
+  list(data = data, settings = settings, diagnostics = result$diagnostics)
 }
 
 .choose_model <- function(workflow, data, domain, settings, path_id = NULL) {
