@@ -18,7 +18,7 @@ main and report scores, native \code{tune_grid()} or \code{tune_bayes()} results
 rows and notes), the stable grid-order tie break, selected values, local plan positions,
 gross base-fit budget estimate, attempted evaluation count and observed base-fit
 attempts, including failures. Bayes diagnostics additionally retain each public one-step
-continuation, its stop reason, and the global no-improvement count. The estimate is unavailable when a provider
+continuation, its stop reason, elapsed time, and the global no-improvement count. The estimate is unavailable when a provider
 function determines a nested plan size at fit time; its count factors remain
 visible. Calibration selection also records the
 disjoint selection (S) and final fit (F) row positions. In full-model mode,

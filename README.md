@@ -84,6 +84,7 @@ options.
 - [Pairwise OvO grid example](inst/examples/pairwise-grid.R) for local pair grids and coupled selection
 - [Pairwise OvO Bayes example](inst/examples/pairwise-bayes.R) for local pair searches and coupled selection
 - [Regression grid example](inst/examples/regression-grid.R) for IVAR/CVAR with joint or two-stage selection
+- [Regression Bayes example](inst/examples/regression-bayes.R) for IVAR/CVAR with joint or two-stage selection
 - [Regression example](inst/examples/inductive-regression.R) and [Cross regression example](inst/examples/cross-regression.R)
 - [Workflow example](inst/examples/calibrated-workflow.R) and [fitted workflow example](inst/examples/frozen-binary.R)
 - [Release notes](NEWS.md)

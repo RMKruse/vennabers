@@ -662,13 +662,22 @@
   }
   identified <- .stable_bayes_ids(scored, search$ids, label)
   scored <- identified$scored
+  history <- scored
   known_ids <- identified$known
   if (length(scored$eligible) < required) {
     stop("Bayes needs at least ", required, " complete initial ", label, " candidates; found ",
          length(scored$eligible), ".", call. = FALSE)
   }
+  metric_names <- unique(tune::collect_metrics(initial)$.metric)
+  metric_name <- if (inherits(search$primary_metric, "class_metric"))
+    setdiff(metric_names, "brier_class")[[1L]] else metric_names[[1L]]
+  metric_functions <- list(search$primary_metric)
+  names(metric_functions) <- metric_name
+  if (inherits(search$primary_metric, "class_metric")) metric_functions$brier_class <- yardstick::brier_class
+  native_metrics <- do.call(yardstick::metric_set, metric_functions)
   valid <- tune::filter_parameters(initial,
     parameters = scored$candidates[scored$eligible, unname(search$ids), drop = FALSE])
+  valid_values <- scored$candidates[scored$eligible, unname(search$ids), drop = FALSE]
   steps <- list(initial = scored$candidates)
   best <- if (attr(search$primary_metric, "direction") == "minimize") min(scored$candidates$estimate[scored$eligible]) else
     max(scored$candidates$estimate[scored$eligible])
@@ -688,7 +697,7 @@
       steps[[paste0("step_", step)]] <- list(error = conditionMessage(next_result))
     } else {
       proposed <- .bayes_step_candidates(next_result, search$ids)
-      known <- .candidate_key(scored$candidates[scored$eligible, unname(search$ids), drop = FALSE])
+      known <- names(known_ids)
       errors <- .bayes_step_errors(next_result)
       if (!nrow(proposed) && length(errors)) {
         stale <- stale + 1L
@@ -704,17 +713,23 @@
         reason <- "repeated_candidate"
         break
       }
-      scored <- .score_bayes_candidates(search, next_result, data, plans, outcome, event_level, classification,
-        .bayes_candidates(next_result, search$ids), label, counter, initial_fits, budget)
+      rows <- which(next_result$.iter == max(next_result$.iter))
+      scored <- .score_bayes_candidates(search, next_result[rows, , drop = FALSE], data, plans,
+        outcome, event_level, classification, proposed, label, counter, initial_fits, budget)
       identified <- .stable_bayes_ids(scored, search$ids, label, known_ids)
       scored <- identified$scored
       known_ids <- identified$known
+      history$candidates <- rbind(history$candidates, scored$candidates)
+      history$scores <- c(history$scores, scored$scores)
+      history$report_metrics <- c(history$report_metrics, scored$report_metrics)
+      history$decisions <- c(history$decisions, scored$decisions)
       if (!length(scored$eligible)) {
         stale <- stale + 1L
         steps[[paste0("step_", step)]] <- scored$candidates
       } else {
-        valid <- tune::filter_parameters(next_result,
-          parameters = scored$candidates[scored$eligible, unname(search$ids), drop = FALSE])
+        valid_values <- rbind(valid_values,
+          scored$candidates[scored$eligible, unname(search$ids), drop = FALSE])
+        valid <- tune::filter_parameters(next_result, parameters = valid_values)
         direction <- attr(search$primary_metric, "direction")
         candidate_best <- if (direction == "minimize") min(scored$candidates$estimate[scored$eligible]) else
           max(scored$candidates$estimate[scored$eligible])
@@ -729,20 +744,32 @@
       break
     }
   }
-  values <- scored$candidates[scored$eligible, unname(search$ids), drop = FALSE]
+  eligible <- which(history$candidates$status == "eligible")
+  values <- history$candidates[eligible, unname(search$ids), drop = FALSE]
   direction <- attr(search$primary_metric, "direction")
-  pick <- if (direction == "minimize") which.min(scored$candidates$estimate[scored$eligible]) else
-    which.max(scored$candidates$estimate[scored$eligible])
-  best <- scored$eligible[pick]
+  pick <- if (direction == "minimize") which.min(history$candidates$estimate[eligible]) else
+    which.max(history$candidates$estimate[eligible])
+  best <- eligible[pick]
   attempts <- nrow(initial_grid) + length(steps) - 1L
-  scored$cost$candidate_evaluations <- attempts * length(plans)
-  list(values = as.list(values[pick, , drop = FALSE]), diagnostics = c(list(chosen = scored$candidates$id[best],
-    selected = as.list(values[pick, , drop = FALSE]), candidates = scored$candidates, grid = NULL,
-    tie_break = "first candidate in attempt order", scores = scored$scores,
-    report_metrics = scored$report_metrics, decisions = scored$decisions, native = valid,
+  history$cost$candidate_evaluations <- attempts * length(plans)
+  history$cost$eligible_candidates <- length(eligible)
+  history$cost$excluded_candidates <- nrow(history$candidates) - length(eligible)
+  history$cost$observed_base_fits <- counter$n - initial_fits
+  for (option in intersect(c("m", "epsilon"), names(search$ids))) {
+    column <- if (identical(outcome, option)) paste0("va_", option) else option
+    valid$.predictions <- lapply(valid$.predictions, function(predictions) {
+      predictions[[column]] <- predictions[[search$ids[[option]]]]
+      predictions
+    })
+  }
+  list(values = as.list(values[pick, , drop = FALSE]), diagnostics = c(list(chosen = history$candidates$id[best],
+    selected = as.list(values[pick, , drop = FALSE]), candidates = history$candidates, grid = NULL,
+    tie_break = "first candidate in attempt order", scores = history$scores,
+    report_metrics = history$report_metrics, decisions = history$decisions, native = valid,
     resamples = plans, primary_metric = search$primary_metric, direction = direction,
     seed = control$seed, bayes_seed = control$seed, steps = steps, stop_reason = reason,
-    attempts = attempts, no_improve = stale), scored[c("budget", "cost")]))
+    attempts = attempts, no_improve = stale, elapsed_seconds = proc.time()[3L] - started),
+    history[c("budget", "cost")]))
 }
 
 .candidate_outer <- function(workflow, outcome, settings, schema = NULL) {
