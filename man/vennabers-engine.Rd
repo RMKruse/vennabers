@@ -7,7 +7,7 @@
 \description{Exported entry points for the optional parsnip registration. Users
 should construct and predict with \code{\link{calibrated_workflow}} instead.}
 \usage{
-fit_vennabers(x, y, base_workflow, outcome, parameters)
+fit_vennabers(x, y, base_workflow, outcome, parameters, ...)
 predict_vennabers_prob(object, new_data)
 predict_vennabers_class(object, new_data)
 predict_vennabers_numeric(object, new_data)
@@ -17,6 +17,7 @@ predict_vennabers_numeric(object, new_data)
 \item{base_workflow}{An unfitted configured base workflow.}
 \item{outcome}{Original outcome name.}
 \item{parameters}{Constructor-validated requested options and explicit flags.}
+\item{...}{Candidate values supplied by the internal Bayes tuning proxy.}
 \item{object}{The fitted \code{vennabers_fit} engine state.}
 \item{new_data}{Forged raw predictors.}
 }

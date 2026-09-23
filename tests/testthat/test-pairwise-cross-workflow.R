@@ -292,9 +292,10 @@ if (exists("pair_fit") && all(vapply(c("tune", "yardstick"), requireNamespace, l
         nrow(tune::collect_notes(mutated)) == 0L)
       p <- tune::collect_predictions(final)
       m <- tune::collect_metrics(final)
+      estimate <- if (resampling) "mean" else ".estimate"
       assert_conditions(identical(p$.row, as.integer(split, data = "assessment")), !anyDuplicated(p$.row),
         all(p$.config == "pre0_mod0_post0"), identical(p$truth, data$truth[p$.row]),
-        nrow(m) == 2L, all(is.finite(m$.estimate)))
+        nrow(m) == 2L, estimate %in% names(m), all(is.finite(m[[estimate]])))
       one <- if (resampling) tune::collect_extracts(final)$.extracts[[1L]] else tune::extract_workflow(final)
       two <- if (resampling) tune::collect_extracts(mutated)$.extracts[[1L]] else tune::extract_workflow(mutated)
       a <- workflows::extract_fit_engine(one)$pair_models
@@ -328,7 +329,7 @@ if (exists("pair_fit") && all(vapply(c("tune", "yardstick"), requireNamespace, l
       stopifnot(nrow(tune::collect_notes(bad)) > 0L)
       error(check(bad, outer, classification = "ovo"))
       bad <- suppressWarnings(tune::last_fit(bad_model, outer$splits[[1L]], metrics = scoring))
-      stopifnot(nrow(tune::collect_notes(bad)) > 0L, is.null(bad$.workflow[[1L]]))
+      stopifnot(nrow(tune::collect_notes(bad)) > 0L, is.null(bad[[".workflow"]]))
       # Development-wide pair lists cannot bind to smaller outer domains.
       bad_model <- calibrated_workflow(base, "truth", classification = "ovo", method = "cross",
         model_training = "pairwise", splits = plans)

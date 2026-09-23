@@ -1,3 +1,15 @@
+# v0.8 development candidate (acceptance open)
+
+- Add local Grid and Bayes selection with joint and two-stage strategies for
+  binary, shared OvO/OvR, pairwise OvO and regression workflows, with matched
+  or full prediction models. Model/recipe and calibration options can be
+  selected; fixed values remain fixed.
+- Keep automatic calibration-option selection on a separate S portion and
+  retain candidate eligibility, local plans, budgets, errors and final search
+  state through `venn_abers_tuning()` and RDS restoration.
+- No release is approved yet. Local checks, missing support runners, the v0.7
+  gate and the benchmark protocol are recorded in `tools/acceptance-v08.md`.
+
 # vennabers 0.7.0
 
 - Add `prediction_model = "full"` (default: `"matched"`) to train one extra

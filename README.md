@@ -81,6 +81,7 @@ options.
 - [Binary Cross example](inst/examples/cross-venn-abers.R)
 - [Multiclass example](inst/examples/inductive-ovo.R) and [Cross multiclass example](inst/examples/cross-multiclass.R)
 - [Shared multiclass grid example](inst/examples/shared-multiclass-grid.R) for OvO/OvR and joint/two-stage selection
+- [Shared multiclass Bayes example](inst/examples/shared-multiclass-bayes.R) for complete OvO/OvR matrix selection
 - [Pairwise OvO grid example](inst/examples/pairwise-grid.R) for local pair grids and coupled selection
 - [Pairwise OvO Bayes example](inst/examples/pairwise-bayes.R) for local pair searches and coupled selection
 - [Regression grid example](inst/examples/regression-grid.R) for IVAR/CVAR with joint or two-stage selection
@@ -88,7 +89,6 @@ options.
 - [Regression example](inst/examples/inductive-regression.R) and [Cross regression example](inst/examples/cross-regression.R)
 - [Workflow example](inst/examples/calibrated-workflow.R) and [fitted workflow example](inst/examples/frozen-binary.R)
 - [Release notes](NEWS.md)
+- [v0.8 local acceptance record](tools/acceptance-v08.md) for the support matrix and open release gates
 
-Run `help(package = "vennabers")` for the complete function reference. For bugs,
-open a [GitHub issue](https://github.com/RMKruse/venn-abers/issues) with a minimal
-reproducible example.
+Run `help(package = "vennabers")` for the complete function reference.
