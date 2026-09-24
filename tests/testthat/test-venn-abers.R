@@ -8,6 +8,7 @@ stopifnot(identical(
          "cross_venn_abers", "brier_score", "log_loss", "calibration_plot",
          "venn_abers_schema", "venn_abers_encode", "venn_abers_decode",
          "calibrated_workflow", "calibrate_workflow", "local_calibration_splits", "venn_abers_details", "venn_abers_tuning", "fit_vennabers",
+         "fit_vennabers_proxy",
          "predict_vennabers_prob", "predict_vennabers_class", "predict_vennabers_numeric"))
 ))
 

@@ -2,7 +2,7 @@
 # rows, recipe-retargeted workflow and binary calibrator; shared phases do the
 # fitting and prediction, so this file only retargets recipes, builds pair
 # domains and couples pair points into class probabilities.
-.fit_pairwise <- function(base_workflow, data, state) {
+.fit_pairwise <- function(base_workflow, data, state, tuning_plan) {
   settings <- state$parameters$requested
   cross <- settings$method == "cross"
   pairs <- utils::combn(state$class_levels, 2L, simplify = FALSE)
@@ -68,7 +68,7 @@
   })
   task <- .component_task("binary", settings, list())
   # Finish every source fit first so full-model RNG draws cannot change calibration.
-  result <- .fit_domains(domains, task, settings)
+  result <- .fit_domains(domains, task, settings, tuning_plan)
   components <- stats::setNames(lapply(result$fitted, function(component) component), ids)
   state$pair_models <- components
   if (!is.null(state$tuning)) {
@@ -83,13 +83,7 @@
     state$tuning$sources <- lapply(components, `[[`, "sources")
     state$tuning$fit_roles <- lapply(components, `[[`, "folds")
   }
-  if (!is.null(settings$.fit_counter)) {
-    state$parameters$requested$.fit_counter <- NULL
-    state$tuning$cost <- list(observed_base_fits = settings$.fit_counter$n)
-  }
-  state$parameters$requested$.pair_grid <- NULL
-  state$parameters$requested$.pair_grid_id <- NULL
-  state$parameters$requested$.pair_joint_inner <- NULL
+  if (!is.null(state$tuning)) state$tuning$cost <- list(observed_base_fits = tuning_plan$counter$n)
   state
 }
 

@@ -58,7 +58,7 @@
     parsnip::set_dependency(model, "proxy", pkg = "vennabers", mode = mode)
     parsnip::set_fit(model, mode, "proxy",
       list(interface = "data.frame", protect = c("x", "y"),
-           func = c(pkg = "vennabers", fun = "fit_vennabers"), defaults = list()))
+           func = c(pkg = "vennabers", fun = "fit_vennabers_proxy"), defaults = list()))
     parsnip::set_encoding(model, mode, "proxy",
       list(predictor_indicators = "none", compute_intercept = FALSE,
            remove_intercept = FALSE, allow_sparse_x = FALSE))

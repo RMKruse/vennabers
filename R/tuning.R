@@ -7,8 +7,8 @@
   x[[2L]]
 }
 
-.fit_base_model <- function(workflow, data, settings) {
-  if (!is.null(settings$.fit_counter)) settings$.fit_counter$n <- settings$.fit_counter$n + 1L
+.fit_base_model <- function(workflow, data, counter) {
+  if (!is.null(counter)) counter$n <- counter$n + 1L
   generics::fit(workflow, data)
 }
 
@@ -21,13 +21,10 @@
   }
 }
 
-.local_pair_joint_token <- new.env(parent = emptyenv())
-
 .pairwise_grid_joint <- function(tuning, pairwise) {
   isTRUE(pairwise) && identical(tuning$strategy, "joint") &&
     !is.null(tuning$model) && identical(tuning$model$method, "grid") &&
-    (is.null(tuning$calibration) || identical(tuning$calibration$method, "grid")) &&
-    !identical(attr(tuning, "vennabers_local_pair_joint"), .local_pair_joint_token)
+    (is.null(tuning$calibration) || identical(tuning$calibration$method, "grid"))
 }
 
 .validate_tuning <- function(tuning, workflow, mode, model_training,
@@ -62,8 +59,7 @@
        !(is.function(tuning$joint_resamples) || inherits(tuning$joint_resamples, "rset")))) {
     stop("`tuning$joint_resamples` requires model-only pairwise joint tuning and a global rset or provider function.", call. = FALSE)
   }
-  if (pair_joint && !length(calibration_ids) && is.null(tuning$joint_resamples) &&
-      !identical(attr(tuning, "vennabers_local_pair_joint"), .local_pair_joint_token)) {
+  if (pair_joint && !length(calibration_ids) && is.null(tuning$joint_resamples)) {
     stop("Pairwise joint model tuning without calibration options requires `tuning$joint_resamples` on global data.", call. = FALSE)
   }
   if (length(calibration_ids)) {
@@ -304,40 +300,44 @@
   result$.estimate[[1L]]
 }
 
-.fit_grid_candidate <- function(x, y, outcome, candidate_id, candidate_workflow,
-                                candidates, event_level, classification, counter,
-                                candidate_values = NULL) {
-  if (is.null(candidate_values)) {
-    index <- match(candidate_id, candidates$id)
-    if (is.na(index)) stop("Unknown grid candidate ID.", call. = FALSE)
-    candidate_values <- as.list(candidates[index, setdiff(names(candidates), "id"), drop = FALSE])
+# Public only as the parsnip proxy engine entry point.
+#' @export
+fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
+  candidate_values <- list(...)
+  if (!is.null(parameters$candidates)) {
+    index <- match(candidate_values$candidate_id, parameters$candidates$id)
+    if (length(index) != 1L || is.na(index)) stop("Unknown grid candidate ID.", call. = FALSE)
+    candidate_values <- as.list(parameters$candidates[index,
+      setdiff(names(parameters$candidates), "id"), drop = FALSE])
   }
-  data <- as.data.frame(x)
-  data[[outcome]] <- y
-  workflow <- candidate_workflow(candidate_values)
-  spec <- workflows::extract_spec_parsnip(workflow)
-  if (inherits(spec, "vennabers")) {
-    parameters <- rlang::eval_tidy(spec$eng_args$parameters)
-    parameters$requested$.fit_counter <- counter
-    spec$eng_args$parameters <- rlang::new_quosure(parameters, env = emptyenv())
-    workflow <- workflows::update_model(workflow, spec)
-  } else counter$n <- counter$n + 1L
-  structure(list(fitted = generics::fit(workflow, data),
-                 class_levels = levels(y), event_level = event_level,
-                 classification = classification),
-            class = "vennabers_grid_fit")
+  if (is.data.frame(y) && ncol(y) == 1L) y <- y[[1L]]
+  candidate <- parameters$candidate_plan(candidate_values)
+  if (is.null(candidate$parameters)) {
+    data <- as.data.frame(x)
+    data[[outcome]] <- y
+    fitted <- .fit_base_model(candidate$workflow, data, parameters$counter)
+  } else {
+    data <- .calibrated_fit_data(x, y, candidate$workflow, outcome, candidate$parameters)
+    seed <- candidate$parameters$requested$seed
+    if (!is.null(seed)) withr::local_seed(seed)
+    fitted <- .fit_calibrated_components(candidate$workflow, data, outcome,
+      candidate$parameters, candidate$tuning_plan)
+  }
+  structure(list(fitted = fitted, class_levels = levels(y),
+    event_level = parameters$event_level, classification = parameters$classification),
+    class = "vennabers_grid_fit")
 }
 
 .bayes_proxy_workflow <- function(data, outcome, event_level, classification,
-                                  candidate_workflow, counter, ids) {
+                                  candidate_plan, counter, ids) {
   .register_grid_proxy()
   mode <- if (is.numeric(data[[outcome]])) "regression" else "classification"
   spec <- parsnip::new_model_spec("vennabers_grid", args = list(), eng_args = NULL,
                                   mode = mode, method = NULL, engine = "proxy")
-  spec <- parsnip::set_engine(spec, "proxy", base_workflow = "bayes", outcome = outcome,
-    parameters = list(grid_proxy = TRUE, candidate_workflow = candidate_workflow,
+  spec <- parsnip::set_engine(spec, "proxy", outcome = outcome,
+    parameters = list(candidate_plan = candidate_plan,
       candidates = NULL, event_level = event_level, classification = classification,
-      counter = counter, bayes_proxy = TRUE))
+      counter = counter))
   for (id in unname(ids)) spec$eng_args[[id]] <- rlang::new_quosure(tune::tune(id), env = emptyenv())
   carrier <- rlang::inject(workflows::add_variables(
     workflows::workflow(),
@@ -349,15 +349,14 @@
 
 # The stand-in ID lets one native tune_grid() run the complete candidate grid.
 .grid_proxy_workflow <- function(data, outcome, event_level, classification,
-                                 candidates, candidate_workflow, counter) {
+                                 candidates, candidate_plan, counter) {
   .register_grid_proxy()
   mode <- if (is.numeric(data[[outcome]])) "regression" else "classification"
   spec <- parsnip::new_model_spec("vennabers_grid", args = list(), eng_args = NULL,
                                   mode = mode, method = NULL, engine = "proxy")
-  spec <- parsnip::set_engine(spec, "proxy", base_workflow = tune::tune("candidate_id"),
+  spec <- parsnip::set_engine(spec, "proxy", candidate_id = tune::tune("candidate_id"),
                               outcome = outcome,
-                              parameters = list(grid_proxy = TRUE,
-                                candidate_workflow = candidate_workflow,
+                              parameters = list(candidate_plan = candidate_plan,
                                 candidates = candidates, event_level = event_level,
                                 classification = classification,
                                 counter = counter))
@@ -369,26 +368,25 @@
   workflows::add_model(carrier, spec)
 }
 
-.grid_budget <- function(search, plans, candidate_workflow, classes) {
-  candidate <- candidate_workflow(as.list(search$grid[1L, , drop = FALSE]))
-  spec <- workflows::extract_spec_parsnip(candidate)
+.grid_budget <- function(search, plans, candidate_plan, classes) {
+  candidate <- candidate_plan(as.list(search$grid[1L, , drop = FALSE]))
   paths <- 1
   model_candidates <- 0L
   model_resamples <- 0L
   inner_paths <- 1
   pair_count <- 1L
-  if (inherits(spec, "vennabers")) {
-    settings <- rlang::eval_tidy(spec$eng_args$parameters)$requested
+  if (!is.null(candidate$parameters)) {
+    settings <- candidate$parameters$requested
     if (identical(settings$model_training, "pairwise")) pair_count <- choose(length(classes), 2L)
     folds <- if (is.function(settings$splits)) NA_integer_ else
       if (settings$method == "cross") settings$v else 1L
     paths <- pair_count * (folds + as.integer(identical(settings$prediction_model, "full")))
-    model <- if (is.null(settings$.pair_grid)) settings$tuning$model else NULL
+    model <- candidate$tuning_plan$model
     if (!is.null(model)) {
       model_candidates <- if (identical(model$method, "bayes")) model$initial + model$iter else
         if (!is.null(model$grid_size)) model$grid_size else nrow(model$grid)
       model_resamples <- if (is.function(model$resamples)) NA_integer_ else nrow(model$resamples)
-      if (settings$tuning$strategy == "joint") inner_paths <- folds + as.integer(identical(settings$prediction_model, "full"))
+      if (candidate$tuning_plan$strategy == "joint") inner_paths <- folds + as.integer(identical(settings$prediction_model, "full"))
     }
   }
   unit <- paths * (1 + model_candidates * model_resamples * inner_paths)
@@ -400,7 +398,7 @@
 }
 
 .grid_select <- function(search, data, outcome, event_level, classification,
-                         candidate_workflow, label, counter) {
+                         candidate_plan, label, counter) {
   if (!is.null(search$grid_size)) {
     params <- dials::finalize(search$param_info, data)
     generated <- if (is.null(search$seed)) dials::grid_space_filling(params, size = search$grid_size) else
@@ -410,7 +408,7 @@
   }
   plan <- .tuning_resamples(search$resamples, data, label)
   plans <- plan$positions
-  budget <- .grid_budget(search, plans, candidate_workflow, classes = levels(data[[outcome]]))
+  budget <- .grid_budget(search, plans, candidate_plan, classes = levels(data[[outcome]]))
   initial_fits <- counter$n
   classes <- levels(data[[outcome]])
   prediction_columns <- if (is.null(classes)) ".pred" else paste0(".pred_", classes)
@@ -426,13 +424,13 @@
   control$event_level <- event_level
   control$extract <- function(w) {
     proxy <- workflows::extract_fit_engine(w)
-    state <- workflows::extract_fit_engine(proxy$fitted)
+    state <- proxy$fitted
     if (inherits(state, "vennabers_fit")) list(decision = state$tuning$models) else
       list(decision = NULL)
   }
   result <- tryCatch(suppressMessages(suppressWarnings(tune::tune_grid(
     .grid_proxy_workflow(data, outcome, event_level, classification,
-                         candidates_with_values, candidate_workflow, counter),
+                         candidates_with_values, candidate_plan, counter),
     resamples = plan$rset,
     grid = data.frame(candidate_id = candidates$id),
     param_info = dials::parameters(dials::new_qual_param(
@@ -625,7 +623,7 @@
 }
 
 .bayes_select <- function(search, data, outcome, event_level, classification,
-                          candidate_workflow, label, counter) {
+                          candidate_plan, label, counter) {
   plan <- .tuning_resamples(search$resamples, data, label)
   plans <- plan$positions
   initial_fits <- counter$n
@@ -635,14 +633,14 @@
   control$event_level <- event_level
   control$extract <- function(w) {
     proxy <- workflows::extract_fit_engine(w)
-    state <- workflows::extract_fit_engine(proxy$fitted)
+    state <- proxy$fitted
     if (inherits(state, "vennabers_fit")) list(decision = state$tuning$models) else list(decision = NULL)
   }
   proxy <- .bayes_proxy_workflow(data, outcome, event_level, classification,
-                                 candidate_workflow, counter, search$ids)
+                                 candidate_plan, counter, search$ids)
   params <- dials::finalize(search$param_info, data)
   initial_grid <- withr::with_seed(control$seed, dials::grid_space_filling(params, size = search$initial))
-  budget <- .grid_budget(list(grid = initial_grid), plans, candidate_workflow, classes = levels(data[[outcome]]))
+  budget <- .grid_budget(list(grid = initial_grid), plans, candidate_plan, classes = levels(data[[outcome]]))
   budget$candidates <- nrow(initial_grid) + search$iter
   budget$gross_base_fit_estimate <- budget$gross_base_fit_estimate *
     budget$candidates / nrow(initial_grid)
@@ -772,47 +770,23 @@
     history[c("budget", "cost")]))
 }
 
-.candidate_outer <- function(workflow, outcome, settings, schema = NULL) {
-  args <- list(workflow = workflow, outcome = outcome, method = settings$method,
-               prediction_model = settings$prediction_model, seed = settings$seed)
-  if (settings$mode == "regression") {
-    args$m <- settings$m
-    args$epsilon <- settings$epsilon
-  } else {
-    args$classification <- settings$classification
-    args$loss <- settings$loss
-    args$precision <- settings$precision
-    if (settings$classification == "binary") args$event_level <- settings$event_level
-  }
-  if (identical(settings$model_training, "pairwise")) args$model_training <- "pairwise"
-  if (!is.null(schema)) args$schema <- schema
-  if (is.function(settings$splits)) args$splits <- settings$splits else if (settings$method == "cross")
-    args$v <- settings$v else args$calibration_prop <- settings$calibration_prop
-  if (identical(settings$strata, FALSE) && is.null(args$splits)) args$strata <- FALSE
-  if (!is.null(settings$tuning$model)) {
-    model <- settings$tuning$model
-    if (!is.null(model$grid_size)) model$grid <- model$grid_size
-    model <- model[intersect(names(model), c("method", "grid", "initial", "iter", "param_info", "resamples",
-                                             "primary_metric", "report_metrics", "control"))]
-    args$tuning <- list(strategy = settings$tuning$strategy, model = model)
-    local_pair_joint <- identical(settings$model_training, "pairwise") &&
-      identical(settings$tuning$strategy, "joint") &&
-      (identical(model$method, "bayes") || !is.null(model$resamples))
-    if (local_pair_joint) attr(args$tuning, "vennabers_local_pair_joint") <- .local_pair_joint_token
-  }
-  outer <- do.call(calibrated_workflow, args)
-  if (isTRUE(settings$.pair_joint_inner) ||
-      (!is.null(settings$tuning$model) && isTRUE(local_pair_joint))) {
-    spec <- workflows::extract_spec_parsnip(outer)
-    params <- rlang::eval_tidy(spec$eng_args$parameters)
-    params$requested$.pair_joint_inner <- TRUE
-    spec$eng_args$parameters <- rlang::new_quosure(params, env = emptyenv())
-    outer <- workflows::update_model(outer, spec)
-  }
-  outer
+# A resolved plan contains only the model search (if any), fixed pair choices,
+# diagnostics and the shared fit counter. Nested candidates never repeat global
+# calibration or pairwise joint selection.
+.model_tuning_plan <- function(settings, counter, pairs = NULL, pair_grid_id = NULL) {
+  list(model = if (is.null(pairs)) settings$tuning$model else NULL, strategy = settings$tuning$strategy,
+    pairs = pairs, pair_grid_id = pair_grid_id, counter = counter,
+    config = settings$tuning)
 }
 
-.assess_pairwise_bayes_joint <- function(data, workflow, outcome, parameters) {
+.calibrated_candidate <- function(workflow, settings, schema, counter,
+                                   pairs = NULL, pair_grid_id = NULL) {
+  if (!is.function(settings$splits)) settings$splits <- NULL
+  list(workflow = workflow, parameters = list(requested = settings, schema = schema),
+    tuning_plan = .model_tuning_plan(settings, counter, pairs, pair_grid_id))
+}
+
+.assess_pairwise_bayes_joint <- function(data, workflow, outcome, parameters, counter) {
   settings <- parameters$requested
   search <- list(grid = data.frame(pairwise = 1L), candidate_ids = "joint_0001",
     ids = c(pairwise = "pairwise"), resamples = settings$tuning$joint_resamples,
@@ -820,37 +794,34 @@
     report_metrics = settings$tuning$model$report_metrics)
   result <- .grid_select(search, data, outcome, settings$event_level, settings$classification,
     function(values) {
-      nested <- settings
-      nested$.pair_joint_inner <- TRUE
-      .candidate_outer(workflow, outcome, nested, parameters$schema)
-    }, "joint", settings$.fit_counter)
+      .calibrated_candidate(workflow, settings, parameters$schema, counter)
+    }, "joint", counter)
   result$diagnostics$pair_ids <- paste0("pair_", seq_len(choose(nlevels(data[[outcome]]), 2L)))
   result$diagnostics$seed <- settings$seed
   list(data = data, settings = settings, diagnostics = result$diagnostics)
 }
 
-.choose_model <- function(workflow, data, domain, settings, path_id = NULL) {
-  if (!is.null(settings$.pair_grid)) {
+.choose_model <- function(workflow, data, domain, settings, tuning_plan, path_id = NULL) {
+  if (!is.null(tuning_plan$pairs)) {
     scope <- if (identical(path_id, "Full1")) "full" else "source"
-    values <- settings$.pair_grid[[domain$pair_id]][[scope]]
+    values <- tuning_plan$pairs[[domain$pair_id]][[scope]]
     return(list(workflow = tune::finalize_workflow(workflow, values),
-      diagnostics = list(chosen = settings$.pair_grid_id, selected = values,
+      diagnostics = list(chosen = tuning_plan$pair_grid_id, selected = values,
                          pair_id = domain$pair_id, fold_id = path_id)))
   }
-  search <- settings$tuning$model
+  search <- tuning_plan$model
   if (is.null(search)) return(list(workflow = workflow, diagnostics = NULL))
   outcome <- domain$outcome
   select <- if (identical(search$method, "bayes")) .bayes_select else .grid_select
   result <- select(search, data, outcome, settings$event_level, settings$classification,
     function(values) {
       candidate <- tune::finalize_workflow(workflow, values)
-      if (settings$tuning$strategy == "two_stage") candidate else {
+      if (tuning_plan$strategy == "two_stage") list(workflow = candidate) else {
         nested <- settings
         nested$tuning <- NULL
-        if (!is.function(nested$splits)) nested$splits <- NULL
-        .candidate_outer(candidate, outcome, nested, domain$schema)
+        .calibrated_candidate(candidate, nested, domain$schema, tuning_plan$counter)
       }
-    }, "model", settings$.fit_counter)
+    }, "model", tuning_plan$counter)
   result$diagnostics$selected <- result$values
   result$diagnostics$seed <- settings$seed
   list(workflow = tune::finalize_workflow(workflow, result$values),
@@ -876,7 +847,7 @@
   .split_positions(split, data, "selection S/F")
 }
 
-.choose_calibration <- function(data, workflow, outcome, parameters) {
+.choose_calibration <- function(data, workflow, outcome, parameters, counter) {
   settings <- parameters$requested
   config <- settings$tuning
   roles <- .selection_roles(data, outcome, settings, config)
@@ -887,9 +858,8 @@
     function(values) {
       nested <- .calibration_values(settings, search$ids, values)
       nested$tuning$calibration <- NULL
-      if (!is.function(nested$splits)) nested$splits <- NULL
-      .candidate_outer(workflow, outcome, nested, parameters$schema)
-    }, "calibration", settings$.fit_counter)
+      .calibrated_candidate(workflow, nested, parameters$schema, counter)
+    }, "calibration", counter)
   settings <- .calibration_values(settings, search$ids, result$values)
   settings$tuning$calibration <- NULL
   result$diagnostics$selected <- result$values
@@ -901,7 +871,7 @@
        diagnostics = result$diagnostics)
 }
 
-.choose_pairwise_joint <- function(data, workflow, outcome, parameters) {
+.choose_pairwise_joint <- function(data, workflow, outcome, parameters, counter) {
   settings <- parameters$requested
   config <- settings$tuning
   roles <- NULL
@@ -973,26 +943,17 @@
       if (!is.null(calibration)) nested <- .calibration_values(nested, calibration$ids,
         as.list(calibration$grid[values[["..calibration"]], , drop = FALSE]))
       nested$tuning$calibration <- NULL
-      nested$tuning$strategy <- "two_stage"
-      if (is.null(nested$tuning$model$resamples)) nested$tuning$model$resamples <-
-        function(d) stop("Fixed joint candidates do not request local model resamples.", call. = FALSE)
-      outer <- .candidate_outer(workflow, outcome, nested, parameters$schema)
-      spec <- workflows::extract_spec_parsnip(outer)
-      params <- rlang::eval_tidy(spec$eng_args$parameters)
-      params$requested$.pair_grid <- pair_values(values)
-      params$requested$.pair_grid_id <- values[["..candidate_id"]]
-      spec$eng_args$parameters <- rlang::new_quosure(params, env = emptyenv())
-      workflows::update_model(outer, spec)
-    }, "joint", settings$.fit_counter)
+      .calibrated_candidate(workflow, nested, parameters$schema, counter,
+        pairs = pair_values(values), pair_grid_id = values[["..candidate_id"]])
+    }, "joint", counter)
   values <- result$values
   if (!is.null(calibration)) {
     settings <- .calibration_values(settings, calibration$ids,
       as.list(calibration$grid[values[["..calibration"]], , drop = FALSE]))
     settings$tuning$calibration <- NULL
   }
-  settings$.pair_grid <- pair_values(values)
-  settings$.pair_grid_id <- result$diagnostics$chosen
-  result$diagnostics$selected <- list(pairs = settings$.pair_grid,
+  selected_pairs <- pair_values(values)
+  result$diagnostics$selected <- list(pairs = selected_pairs,
     calibration = if (!is.null(calibration)) list(loss = settings$loss, precision = settings$precision) else NULL)
   result$diagnostics$seed <- settings$seed
   result$diagnostics$pair_ids <- pair_ids
@@ -1002,7 +963,8 @@
     result$diagnostics$final_rows <- roles$analysis
   }
   list(data = if (is.null(roles)) data else data[roles$analysis, , drop = FALSE],
-       settings = settings, diagnostics = result$diagnostics)
+       settings = settings, pairs = selected_pairs, pair_grid_id = result$diagnostics$chosen,
+       diagnostics = result$diagnostics)
 }
 
 #' Inspect classification or regression grid selection after fitting

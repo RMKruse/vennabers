@@ -1,5 +1,6 @@
 \name{vennabers-engine}
 \alias{fit_vennabers}
+\alias{fit_vennabers_proxy}
 \alias{predict_vennabers_prob}
 \alias{predict_vennabers_class}
 \alias{predict_vennabers_numeric}
@@ -8,6 +9,7 @@
 should construct and predict with \code{\link{calibrated_workflow}} instead.}
 \usage{
 fit_vennabers(x, y, base_workflow, outcome, parameters, ...)
+fit_vennabers_proxy(x, y, outcome, parameters, ...)
 predict_vennabers_prob(object, new_data)
 predict_vennabers_class(object, new_data)
 predict_vennabers_numeric(object, new_data)
@@ -16,11 +18,11 @@ predict_vennabers_numeric(object, new_data)
 \item{x, y}{Raw predictor data frame and factor classification or finite numeric regression truth from parsnip.}
 \item{base_workflow}{An unfitted configured base workflow.}
 \item{outcome}{Original outcome name.}
-\item{parameters}{Constructor-validated requested options and explicit flags.}
-\item{...}{Candidate values supplied by the internal Bayes tuning proxy.}
+\item{parameters}{Constructor-validated requested options and explicit flags, or internal proxy candidate plans.}
+\item{...}{Must be empty for \code{fit_vennabers}; an internal grid candidate ID or Bayes candidate values for \code{fit_vennabers_proxy}.}
 \item{object}{The fitted \code{vennabers_fit} engine state.}
 \item{new_data}{Forged raw predictors.}
 }
-\value{The fit entry point returns a \code{vennabers_fit}. Prediction entry points
+\value{The public fit entry point returns a \code{vennabers_fit}; the proxy returns a \code{vennabers_grid_fit}. Prediction entry points
 return a named probability tibble, factor of original classes, or double regression points.}
 \keyword{internal}
