@@ -2,9 +2,10 @@
 
 **Decision: open.** This is a reproducible local check of the current v0.8
 implementation, not a release approval. The v0.7 aggregate gate has no
-`tools/acceptance-v07.md` in this checkout; ticket 06 is still marked open; and
-the required runner and benchmark evidence below has not been produced. No
-GitHub or other remote write was made.
+`tools/acceptance-v07.md` in this checkout; ticket 06 is still marked open;
+the complete local matrix and final controlled cost acceptance are missing. The maintainer
+confirmed on 2026-09-24 that development checks run on macOS only and the
+cross-OS matrix waits until v1.0. No GitHub or other remote write was made.
 
 ## Candidate identity and local environment
 
@@ -19,7 +20,7 @@ GitHub or other remote write was made.
   SHA-256 `fba738a263334996f01b793df4ca6afb1a7b4dbc760a495e4955a9a9edcbf6dd`.
 - Package metadata still says `0.7.0`; this source tree includes v0.8 tuning
   work but has not been approved or versioned as a v0.8 release.
-- Local host: Apple M5 Pro, macOS Tahoe 26.6.2 ARM64, R 4.6.1. This is one current-R
+- Local host: Apple M5 Pro, 24 GiB RAM, macOS Tahoe 26.6.2 ARM64, R 4.6.1. This is one current-R
   development environment, not a substitute for a release runner.
 - Installed direct integration versions: parsnip 1.6.0, workflows 1.3.0,
   hardhat 1.4.3, rsample 1.3.2, recipes 1.4.0, rlang 1.3.0,
@@ -36,7 +37,7 @@ each with Grid and Bayes. Family suites below exercise these dimensions, but
 no 80-cell run has been recorded; the table maps implementation and existing
 test evidence, not an assertion that every cell has passed independently.
 
-| # | Model family | VA | Prediction source | Grid (`joint`/`two_stage`) evidence | Bayes (`joint`/`two_stage`) evidence |
+| # | Model family | VA | Prediction source | Related Grid suite | Related Bayes suite |
 | ---: | --- | --- | --- | --- | --- |
 | 1 | binary | Inductive | matched | `test-binary-grid.R` | `test-binary-bayes.R` |
 | 2 | binary | Inductive | full | `test-binary-grid.R` | `test-binary-bayes.R` |
@@ -66,7 +67,9 @@ calibration options; explicit local plans, Cross fold plans and outer plans
 are tested in the family suites. `venn_abers_tuning()` retains the chosen
 candidate, eligible/excluded rows, local plans, scores, native predictions,
 fit roles, seeds, budget, attempts, elapsed time, errors and stop reason.
-These fields need an explicit final audit for every matrix cell.
+These fields need an explicit final audit for every matrix cell. A suite name
+in the table does **not** mean both strategies were tested for that row; for
+example, `test-binary-bayes.R` exercises two-stage Inductive matched only.
 
 ## Executed checks and test mapping
 
@@ -91,64 +94,125 @@ These fields need an explicit final audit for every matrix cell.
 | Repeated Bayes proposal; no valid initial points | `test-regression-bayes.R` records repeated proposals and invalid initial points; `test-multiclass-bayes.R` rejects missing complete initial matrices. | Complete cross-family error matrix. |
 | No silent fallback | `test-binary-grid.R`, `test-regression-grid.R`, `test-regression-bayes.R` require the selected final fit failure to surface. | Verify all families and both search methods. |
 
-Normal package use and the checked R test/example sources require no Python or
-network access after package setup. Python appears only in stored reference
-fixture provenance. The separate missing/old dependency profile has not been
-accepted.
+Static inspection of package R code and checked test/example sources found no
+Python or network call needed after package setup. Python appears only in
+stored reference fixture provenance. The separate missing/old dependency
+profile has not been accepted.
 
-## Required support runners
+## Development support and deferred runners
 
 | Platform | R 4.6 current | R 4.5 previous |
 | --- | --- | --- |
-| Linux x86_64 | Not run | Not run |
-| Windows x86_64 | Not run | Not run |
-| macOS Intel | Not run | Not run |
-| macOS ARM | Local R 4.6.1 source check: 0 ERROR, 0 WARNING, 2 justified NOTEs; not a CI runner | Not run |
+| Linux x86_64 | Deferred to v1.0 | Deferred to v1.0 |
+| Windows x86_64 | Deferred to v1.0 | Deferred to v1.0 |
+| macOS Intel | Deferred to v1.0 | Deferred to v1.0 |
+| macOS ARM | Local R 4.6.1 source check: 0 ERROR, 0 WARNING, 2 justified NOTEs | R 4.5 not installed locally; deferred |
 
-The separate Linux core-only (without tidymodels), previous-minor minimum
-dependency, and Linux R-devel runs are also not run. Record actual R patch,
-OS image, architecture, dependency versions, built-artifact SHA-256, test,
-example, and `R CMD check --as-cran` results for each run. No GitHub Actions
-run or remote artifact is part of this record. The historical workflow was
-renamed to `.github/workflows/acceptance.yaml.disabled`, so this checkout has
-no active Actions workflow.
+The earlier roadmap requires eight OS/R combinations, Linux core-only,
+minimum-dependency and R-devel runs. The maintainer moved that broader support
+exercise to v1.0; none is claimed here. Record actual R patch, OS image,
+architecture, dependency versions, built-artifact SHA-256, test, example and
+`R CMD check --as-cran` results when those runs occur. No GitHub Actions run or
+remote artifact is part of this record. The historical workflow was renamed
+to `.github/workflows/acceptance.yaml.disabled`, so this checkout has no active
+Actions workflow.
 
-## Benchmark protocol and status
+## Local development cost measurements
 
-Use one documented Linux x86_64 machine and serial processes with one
-engine/BLAS thread. Fix the random seed, CPU/RAM/OS/R/dependency versions,
-datasets, options, expected fit counts and RDS settings before measuring.
-Use 2,000 development rows, 500 prediction rows and ten numeric predictors;
-compare binary matched, three-class pairwise OvO full, and regression full.
-Each uses Cross VA with five folds, two local selection resamples, a separate
-20% option-selection S when automatic options are selected, Grid with four
-candidates, and Bayes with four valid initial candidates plus at most four
-further proposals. Use bounded-depth `rpart` so model parameters actually
-change. Run one warm-up and three measured repetitions per case and release.
+The local script [`tools/benchmark-v08.R`](benchmark-v08.R) (SHA-256
+`cf6801929f56b460083702d4c9794d86c7deae0aca2270e88812c6a95bd3c64a`)
+generated 2,000 development rows, 500 prediction rows and ten numeric
+predictors with seed 804. Three-class labels include independent noise so
+logistic fits are not perfectly separated. Each case uses five Cross VA folds;
+the tuned cases use two local selection resamples, S=20%, four Grid candidates
+or four Bayes initial candidates and at most four further proposals. The model
+parameter is bounded `rpart` tree depth. The fixed paths use logistic or
+linear models. A separate three-fold outer evaluation uses the same configured
+workflow. Each artifact ran in a fresh serial R process with one warm-up and
+three measured repetitions. Times below exclude data generation and
+installation. RDS uses `saveRDS(..., version=3)`; peak RSS comes from macOS
+`/usr/bin/time -l` and covers the whole process, not an isolated fit.
 
-Measure fit, predict, and complete three-fold outer evaluation separately; report median
-and spread, fit count, retained model count, serialized fit bytes and process
-peak memory. Exclude data generation and installation; include product input
-validation. Remeasure v0.7 on the same Linux machine with the same compatible
-inputs in a fresh R process before comparing ratios. Report local exploratory
-and external runner results separately. **No v0.8 or same-machine v0.7
-benchmark measurement is available yet; no performance ratio is asserted.**
+The historical local `vennabers_0.7.0.tar.gz` has SHA-256
+`f9c0dd191670c0e8c19331f6d75dfb015be29bcc7305cec202aae590e065a16a`;
+the current candidate artifact hash is above. Both were installed into
+separate local libraries. They share the package version string `0.7.0` but
+contain different code. Fixed paths use identical generated data and options.
+Tuned paths are new in the candidate and have no v0.7 counterpart. Times are
+seconds, shown as median [minimum, maximum] across three measured runs;
+sizes are MiB.
+
+| Artifact and case | Fit s | Predict s | Three-fold outer s | RDS MiB | Peak RSS MiB |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| v0.7 binary fixed | 0.048 [0.046, 0.049] | 0.007 [0.006, 0.008] | 0.214 [0.182, 0.217] | 4.17 | 384.8 |
+| Candidate binary fixed | 0.044 [0.044, 0.058] | 0.006 [0.006, 0.010] | 0.179 [0.178, 0.196] | 4.17 | 386.6 |
+| Candidate binary Grid | 10.337 [10.309, 10.481] | 0.006 [0.005, 0.006] | 31.021 [30.146, 31.925] | 4.28 | 377.0 |
+| Candidate binary Bayes | 12.828 [12.712, 13.233] | 0.006 [0.006, 0.006] | 38.131 [37.944, 38.191] | 4.29 | 567.1 |
+| v0.7 pairwise OvO fixed | 0.123 [0.115, 0.129] | 0.007 [0.006, 0.009] | 0.392 [0.382, 0.469] | 2.24 | 426.3 |
+| Candidate pairwise OvO fixed | 0.113 [0.108, 0.121] | 0.006 [0.006, 0.007] | 0.363 [0.362, 0.425] | 2.24 | 425.7 |
+| Candidate pairwise OvO Bayes | 45.814 [43.097, 45.892] | 0.006 [0.005, 0.007] | 129.521 [128.678, 133.227] | 10.57 | 573.5 |
+| v0.7 regression fixed | 0.041 [0.041, 0.041] | 0.024 [0.024, 0.024] | 0.258 [0.257, 0.261] | 1.07 | 360.7 |
+| Candidate regression fixed | 0.042 [0.041, 0.049] | 0.024 [0.024, 0.026] | 0.295 [0.289, 0.336] | 1.07 | 363.7 |
+| Candidate regression Grid | 11.593 [11.338, 11.919] | 0.024 [0.023, 0.025] | 34.489 [34.222, 35.170] | 3.94 | 381.9 |
+| Candidate regression Bayes | 27.157 [27.089, 27.645] | 0.023 [0.023, 0.024] | 81.321 [80.496, 82.279] | 6.00 | 858.7 |
+
+The candidate pairwise Grid full-size run failed during nested outer
+evaluation (`.scratch/acceptance-v08/v08-pairwise-grid.time`): all outer
+models reported no eligible calibration candidate because a three-class
+selection metric received one probability column. Its standalone warm-up fit
+had completed. On a smaller reproduction, manual fits of all three outer
+analysis splits passed and the inner Grid result saved all three probability
+columns; the mismatch arose during nested native metric evaluation. A local
+metric-selection experiment did not repair the outer metric. This is an
+acceptance failure, not a measured cost. Pairwise Bayes passed both a smaller
+pilot and the full-size measured run.
+The RDS result files and `/usr/bin/time` logs are in the ignored local
+`.scratch/acceptance-v08/` directory.
+
+These are development measurements: BLAS/engine thread limits were not set
+explicitly, fit counters and retained model counts have not been audited, and
+the pairwise Grid case did not complete. The controlled single-thread local
+benchmark remains open. Linux x86_64 reference comparison is deferred to
+v1.0 by the maintainer's 2026-09-24 decision; Mac and Linux times will not be
+treated as directly comparable.
 
 ## Reproduction and open gates
 
 ```sh
-Rscript -e 'devtools::test(stop_on_failure=TRUE)'
 mkdir -p .scratch/acceptance-v08
+cd .scratch/acceptance-v08
+# Setup only: install the DESCRIPTION Suggests into a compatible local library.
+# This host already had all but probably; its checked version was 1.2.0.
+Rscript -e 'dir.create("lib", showWarnings = FALSE); install.packages("probably", lib = "lib", repos = "https://cloud.r-project.org")'
+cd ../..
+Rscript -e 'devtools::test(stop_on_failure=TRUE)'
 cd .scratch/acceptance-v08
 R CMD build ../..
 shasum -a 256 vennabers_0.7.0.tar.gz
 R_LIBS="$PWD/lib" R CMD check --as-cran vennabers_0.7.0.tar.gz
 ```
 
+For the Mac cost run, install the historical and candidate tarballs into
+separate libraries, then run the tracked script in a fresh process per case:
+
+```sh
+mkdir -p .scratch/acceptance-v08/core-lib .scratch/acceptance-v08/bench-current-lib
+R CMD INSTALL -l .scratch/acceptance-v08/core-lib vennabers_0.7.0.tar.gz
+R CMD INSTALL -l .scratch/acceptance-v08/bench-current-lib .scratch/acceptance-v08/vennabers_0.7.0.tar.gz
+R_LIBS="$PWD/.scratch/acceptance-v08/bench-current-lib" /usr/bin/time -l \
+  Rscript tools/benchmark-v08.R pairwise grid .scratch/acceptance-v08/v08-pairwise-grid.rds
+```
+
+`tools/benchmark-v08.R` accepts `binary`, `pairwise` or `regression` as its
+first argument and `fixed`, `grid` or `bayes` as its second. The same `fixed`
+command with `R_LIBS` pointing to `core-lib` measures the historical artifact.
+The source artifact named in the first install command is the historical
+root tarball, not the candidate under `.scratch/acceptance-v08/`.
+
 The local `lib` used above contains the optional packages installed during
 setup. Use a fresh, documented library per support runner.
 
-The source artifact must be tested as an installed package on the runner
-matrix. A test suite on this Mac cannot close the absent v0.7 gate, the open
-ticket 06, the 80-cell audit, missing dependency profiles, or Linux benchmark
-comparison. Keep the release blocked until those results are attached here.
+The source artifact has been checked as an installed package on this Mac.
+The absent v0.7 gate, open ticket 06, 80-cell audit and controlled local cost acceptance
+remain open for v0.8 development. The broader OS/R and Linux comparison gates
+are deferred to v1.0 by the maintainer's decision; they are not claimed here.
