@@ -156,22 +156,58 @@ sizes are MiB.
 | Candidate regression Grid | 11.593 [11.338, 11.919] | 0.024 [0.023, 0.025] | 34.489 [34.222, 35.170] | 3.94 | 381.9 |
 | Candidate regression Bayes | 27.157 [27.089, 27.645] | 0.023 [0.023, 0.024] | 81.321 [80.496, 82.279] | 6.00 | 858.7 |
 
-The candidate pairwise Grid full-size run failed during nested outer
+The original candidate pairwise Grid full-size run failed during nested outer
 evaluation (`.scratch/acceptance-v08/v08-pairwise-grid.time`): all outer
 models reported no eligible calibration candidate because a three-class
 selection metric received one probability column. Its standalone warm-up fit
 had completed. On a smaller reproduction, manual fits of all three outer
 analysis splits passed and the inner Grid result saved all three probability
 columns; the mismatch arose during nested native metric evaluation. A local
-metric-selection experiment did not repair the outer metric. This is an
+metric-selection experiment did not repair the outer metric. This was an
 acceptance failure, not a measured cost. Pairwise Bayes passed both a smaller
 pilot and the full-size measured run.
-The RDS result files and `/usr/bin/time` logs are in the ignored local
-`.scratch/acceptance-v08/` directory.
+The original RDS result files and `/usr/bin/time` logs are in the ignored
+local `.scratch/acceptance-v08/` directory.
+
+### Pairwise Grid fix — 2026-09-25
+
+The failure above came from yardstick's column-selection cache in tune's
+shared progress environment: nested binary model searches cached one
+probability column and the three-class calibration metric reused it. Both
+Grid and Bayes search now scope that cache locally and restore the enclosing
+search's selections on return, including errors.
+
+`tests/testthat/test-pairwise-grid-outer.R` reproduces the nested two-stage
+Cross/full path on three-class iris data. It sets `TESTTHAT=false` locally
+because tune otherwise disables the cache during tests. Before the fix, both
+outer folds rejected every calibration candidate with the recorded column
+mismatch. After the fix, the test checks candidate eligibility, complete
+outer predictions, native inner scores and outer log loss.
+The full source suite (`devtools::test(stop_on_failure=TRUE)`) passed 838
+assertions, including all 16 new regression assertions, with zero failures,
+warnings or skips; log: `.scratch/pairwise-grid-fix/test-suite.log`.
+
+The fixed working tree was installed into a separate local library and the
+original full-size script passed its warm-up and one repeat: 2,000 development
+rows, 500 prediction rows, five Cross folds and three outer folds, with no
+logged errors or warnings. Reproduction:
+
+```sh
+mkdir -p .scratch/pairwise-grid-fix/library
+R CMD INSTALL -l .scratch/pairwise-grid-fix/library .
+R_LIBS="$PWD/.scratch/pairwise-grid-fix/library" BENCH_REPS=1 /usr/bin/time -l \
+  Rscript tools/benchmark-v08.R pairwise grid .scratch/pairwise-grid-fix/full-size.rds
+Rscript -e 'devtools::test(filter="^pairwise-grid-outer$", stop_on_failure=TRUE)'
+```
+
+Local evidence is `.scratch/pairwise-grid-fix/full-size.rds` and
+`.scratch/pairwise-grid-fix/full-size.log`. This verifies the acceptance bug
+fix; it is not a replacement timing benchmark (one repeat, concurrent test
+suite, no explicit thread limits).
 
 These are development measurements: BLAS/engine thread limits were not set
 explicitly, fit counters and retained model counts have not been audited, and
-the pairwise Grid case did not complete. The controlled single-thread local
+the original pairwise Grid cost run did not complete. The controlled single-thread local
 benchmark remains open. Linux x86_64 reference comparison is deferred to
 v1.0 by the maintainer's 2026-09-24 decision; Mac and Linux times will not be
 treated as directly comparable.

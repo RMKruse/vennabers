@@ -111,6 +111,10 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
 
 .grid_select <- function(search, data, outcome, event_level, classification,
                          candidate_plan, label, counter) {
+  # yardstick caches column selections in tune's shared progress environment.
+  # Nested binary searches must not reuse or overwrite multiclass selections.
+  rlang::local_bindings(known_selections = NULL,
+    .env = utils::getFromNamespace("tune_env", "tune"))
   if (!is.null(search$grid_size)) {
     params <- dials::finalize(search$param_info, data)
     generated <- if (is.null(search$seed)) dials::grid_space_filling(params, size = search$grid_size) else
@@ -221,6 +225,9 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
 
 .bayes_select <- function(search, data, outcome, event_level, classification,
                           candidate_plan, label, counter) {
+  # Keep the same metric-cache boundary as Grid, including Bayes initialization.
+  rlang::local_bindings(known_selections = NULL,
+    .env = utils::getFromNamespace("tune_env", "tune"))
   plan <- .tuning_resamples(search$resamples, data, label)
   plans <- plan$positions
   initial_fits <- counter$n
