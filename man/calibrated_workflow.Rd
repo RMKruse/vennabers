@@ -29,7 +29,8 @@ calibrated_workflow(workflow, outcome, ..., predictors = NULL,
   method = "inductive", classification = "binary", event_level = "first",
   calibration_prop = 0.2, v = 5L, strata = NULL, splits = NULL, seed = NULL,
   precision = NULL, loss = "log", m = NULL, epsilon = NULL, schema = NULL,
-  prediction_model = "matched", model_training = "shared", tuning = NULL)
+  prediction_model = "matched", model_training = "shared", tuning = NULL,
+  postprocessing = NULL)
 venn_abers_details(object, new_data, ..., loss = NULL)
 \method{predict}{_vennabers_fit}(object, new_data, type = NULL,
   opts = list(), ..., loss = NULL)
@@ -37,7 +38,17 @@ venn_abers_details(object, new_data, ..., loss = NULL)
 \arguments{
 \item{workflow}{An unfitted workflows object with a classification or regression model and
 recipe, formula, or variable selection. Prepped or partly trained recipes,
-unresolved tune placeholders without \code{tuning}, and additional postprocessors are rejected.}
+unresolved tune placeholders without \code{tuning}, and postprocessors without an
+explicit matching \code{postprocessing} request are rejected.}
+\item{postprocessing}{NULL preserves the existing unprocessed training path and
+does not remove a supplied postprocessor. Otherwise a named list with explicit
+\code{method = "tailor_logistic"}, \code{strategy = "holdout"}, and either
+\code{prop} (the P fraction, strictly between zero and one) or \code{splits}
+(a local rsplit or serializable function of local Q data). Analysis is B;
+assessment is P. A supplied plan cannot be combined with prop or v. Unknown,
+duplicate, irrelevant and conflicting fields are errors. Currently only binary
+Inductive/Cross VA with matched models and fixed parameters is implemented;
+other methods, ensembles, full models and tuning combinations fail explicitly.}
 \item{tuning}{NULL keeps fixed settings. For binary, shared OvO/OvR or pairwise OvO classification and regression, a named list
 with \code{strategy = "joint"} or \code{"two_stage"} and \code{model} and/or
 \code{calibration} searches matching the present \code{tune()} placeholders.
@@ -448,6 +459,43 @@ The installed \code{examples/pairwise-cross.R} adds explicit unequal Cross
 partitions, reconstruction, native/decoded diagnostics and outer fit costs.
 Both examples compare matched/full predictions, costs and held-out scores;
 matching-model guarantees do not automatically transfer and better quality is not promised.
+}
+\section{Binary Tailor holdouts}{
+Each VA source training portion Q is partitioned into disjoint B and P. The
+recipe and engine learn only on B. The complete public workflow is fitted with
+\code{data = B, data_calibration = P}, using
+\code{tailor::adjust_probability_calibration(method = "logistic", smooth = FALSE)}.
+One exactly matching untrained Tailor adjustment may already be configured;
+it is adopted once. Foreign, trained or multiple adjustments are rejected.
+The full stored workflow predicts held-out VA data C and new predictors.
+The VA core, event alignment, loss and rounding rules are unchanged.
+
+Both B and P must contain both model classes. P needs at least three rows and
+a full-rank two-coefficient design, with more rows than design rank. Rank and
+convergence are checked on the actual learned logistic model after the necessary
+B predictions. Failed fits, absent learned state and method switches to none
+are errors. Warnings from successful fits are retained with source/fold context.
+One-class C remains valid. Use \code{venn_abers_schema()} for nonsyntactic outcome
+or class names that the underlying Tailor/probably formula interface cannot use.
+
+All B/P plans are validated before any source is trained. Static plans must
+match local selected columns in order, values, types, levels and row order.
+Automatic splits use the local outcome with \code{pool = 0}, without retries
+or size adjustments; ordered valid explicit holdouts are allowed. The enclosing
+seed scope covers VA splitting, B/P splitting and fitting in stored fold order;
+NULL consumes the caller's stream and an explicit seed restores it.
+
+\code{extract_fit_engine(fitted)$postprocessing} and the \code{postprocessing}
+element of \code{venn_abers_details()} store actual Q/B/P/C row memberships,
+Q-local analysis/assessment positions, sizes, class/event and schema bindings,
+RNG settings, coefficients, rank, warnings and observed fit counts. Prediction
+details add the inner fold, method, input and B/P sizes. Package versions are
+stored in the fitted engine's \code{versions}. Each nonempty prediction calls
+each complete retained workflow once; empty batches call none. Predict needs
+no truth or plan resolution and never learns. RDS retains the full trained state.
+Tailor and probably are optional and required only for this path.
+See installed \code{examples/tailor-holdout.R} for native fit, complete repeated
+outer resampling, last_fit, diagnostics and checks of held-out data roles.
 }
 \section{Printed costs}{The fitted engine prints source mappings, the number of base
 fits (including temporary source fits discarded in full mode), models used per

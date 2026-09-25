@@ -1,3 +1,14 @@
+# v0.9 development (partial implementation; acceptance open)
+
+- Add binary Tailor logistic holdouts through `postprocessing` for matched
+  Inductive/Cross VA with fixed parameters. Recipes and engines learn on B,
+  Tailor learns on disjoint P, and held-out C trains the unchanged VA core.
+- Validate all local B/P plans before learning and reject unsupported methods,
+  incompatible steps, deficient designs and unsuccessful learned states.
+  Preserve complete source workflows, plans and fit diagnostics through RDS.
+- Add an installed example covering complete native resampling and last_fit.
+  Remaining v0.9 methods, ensembles, full models and tuning are not implemented.
+
 # v0.8 development candidate (acceptance open)
 
 - Add local Grid and Bayes selection with joint and two-stage strategies for

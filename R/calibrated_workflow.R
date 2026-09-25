@@ -7,7 +7,7 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                                 strata = NULL, splits = NULL, seed = NULL, precision = NULL,
                                 loss = "log", m = NULL, epsilon = NULL, schema = NULL,
                                 prediction_model = "matched", model_training = "shared",
-                                tuning = NULL) {
+                                tuning = NULL, postprocessing = NULL) {
   .integration_dots(...)
   # Arguments before ... also need exact names (R otherwise partially matches).
   supplied <- names(sys.call())[-1L]
@@ -47,7 +47,16 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     stop("`model_training = 'pairwise'` requires classification = 'ovo'.", call. = FALSE)
   }
   .integration_packages()
-  mode <- .validate_base_workflow(workflow, outcome, classification, allow_tune = !is.null(tuning))
+  postprocessing <- .validate_postprocessing(postprocessing)
+  mode <- .validate_base_workflow(workflow, outcome, classification, allow_tune = !is.null(tuning),
+                                  postprocessing = postprocessing)
+  if (!is.null(postprocessing)) {
+    if (mode != "classification" || classification != "binary" ||
+        prediction_model != "matched" || !is.null(tuning)) {
+      stop("Postprocessing currently supports only binary matched models with fixed parameters; this combination is not implemented.", call. = FALSE)
+    }
+    workflow <- .postprocessing_workflow(workflow)
+  }
   if (!is.null(schema)) {
     if (!identical(mode, schema$mode)) stop("Base workflow mode must agree with `schema`.", call. = FALSE)
     pre <- workflows::extract_preprocessor(workflow)
@@ -135,13 +144,14 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                     strata = strata, splits = splits, seed = seed, precision = precision, loss = loss,
                     m = m, epsilon = epsilon, prediction_model = prediction_model,
                     model_training = if (!regression && classification != "binary") model_training else NULL,
-                    tuning = tuning)
+                    tuning = tuning, postprocessing = postprocessing)
   explicit <- c(predictors = !missing(predictors), method = !missing(method),
                 classification = explicit_classification, event_level = explicit_event,
                 calibration_prop = !missing(calibration_prop), v = !missing(v), strata = !missing(strata),
                 splits = !missing(splits), seed = !missing(seed), precision = !missing(precision), loss = !missing(loss),
                 m = !missing(m), epsilon = !missing(epsilon), prediction_model = !missing(prediction_model),
-                model_training = !missing(model_training), tuning = explicit_tuning)
+                model_training = !missing(model_training), tuning = explicit_tuning,
+                postprocessing = !missing(postprocessing))
   spec <- parsnip::new_model_spec("vennabers", args = list(), eng_args = NULL,
                                 mode = mode, method = NULL, engine = method)
   spec <- parsnip::set_engine(spec, method, base_workflow = workflow,
@@ -184,12 +194,15 @@ predict.vennabers_workflow <- function(object, new_data, ...) {
                      ": names must be unique, nonmissing and nonempty; rename explicitly.", call. = FALSE)
 }
 
-.validate_base_workflow <- function(workflow, outcome, classification, allow_tune = FALSE) {
+.validate_base_workflow <- function(workflow, outcome, classification, allow_tune = FALSE, postprocessing = NULL) {
   if (!inherits(workflow, "workflow")) stop("`workflow` must be an unfitted workflow.", call. = FALSE)
   fitted <- tryCatch(workflows::extract_fit_parsnip(workflow), error = function(e) NULL)
   if (!is.null(fitted)) stop("`workflow` is already fitted.", call. = FALSE)
   post <- tryCatch(workflows::extract_postprocessor(workflow), error = function(e) NULL)
-  if (!is.null(post)) stop("Additional workflow postprocessors are not supported.", call. = FALSE)
+  if (!is.null(post)) {
+    if (is.null(postprocessing)) stop("Additional workflow postprocessors require an explicit matching `postprocessing` request.", call. = FALSE)
+    .postprocessing_workflow(workflow)
+  }
   spec <- workflows::extract_spec_parsnip(workflow)
   if (!spec$mode %in% c("classification", "regression")) {
     stop("The base workflow model mode must be classification or regression.", call. = FALSE)
@@ -272,7 +285,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   settings <- parameters$requested
   regression <- settings$mode == "regression"
   .validate_base_workflow(base_workflow, outcome, settings$classification,
-                          allow_tune = !is.null(settings$tuning$model))
+                          allow_tune = !is.null(settings$tuning$model), postprocessing = settings$postprocessing)
   .integration_names(names(x), "input column")
   if (is.data.frame(y) && ncol(y) == 1L) y <- y[[1L]]
   classes <- .integration_truth(y, outcome, settings$classification, settings$mode)
@@ -386,6 +399,11 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   state$sources <- component$sources
   state$calibrator <- component$calibrator
   state$calibration <- component$calibration
+  if (!is.null(settings$postprocessing)) {
+    state$postprocessing <- component$postprocessing
+    state$versions <- c(state$versions, vapply(setdiff(c("tailor", "probably"), names(state$versions)),
+      function(p) as.character(utils::packageVersion(p)), ""))
+  }
   if (!is.null(state$tuning)) {
     state$tuning$models <- component$model_selection
     state$tuning$sources <- component$sources
@@ -402,6 +420,9 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
 # ordering and RNG scoping match the former per-path implementations.
 .fit_domains <- function(domains, task, settings, tuning_plan) {
   plans <- lapply(domains, function(domain) .plan_component(domain, settings))
+  if (!is.null(settings$postprocessing)) {
+    plans <- lapply(seq_along(domains), function(i) .plan_postprocessing(plans[[i]], domains[[i]], settings))
+  }
   fitted <- lapply(seq_along(domains), function(i) .fit_component_sources(plans[[i]], domains[[i]], task, settings, tuning_plan))
   if (identical(settings$prediction_model, "full")) {
     fitted <- lapply(seq_along(domains), function(i) .fit_component_full(fitted[[i]], domains[[i]], task, settings, tuning_plan))
@@ -460,15 +481,24 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   y <- domain$y
   models <- calibration_predictions <- truths <- fold_ids <- vector("list", length(folds))
   model_selection <- vector("list", length(folds))
+  postprocessing <- if (!is.null(settings$postprocessing)) vector("list", length(folds))
   names(models) <- names(folds)
   names(model_selection) <- names(folds)
+  if (!is.null(postprocessing)) names(postprocessing) <- names(folds)
   for (id in names(folds)) {
     analysis <- folds[[id]]$analysis
     assessment <- folds[[id]]$assessment
-    selected <- .choose_model(workflow, local[analysis, , drop = FALSE], domain, settings, tuning_plan, id)
+    training <- if (is.null(settings$postprocessing)) analysis else folds[[id]]$postprocessing$B
+    selected <- .choose_model(workflow, local[training, , drop = FALSE], domain, settings, tuning_plan, id)
     model_selection[id] <- list(selected$diagnostics)
-    models[[id]] <- tryCatch(.fit_base_model(selected$workflow, local[analysis, , drop = FALSE], tuning_plan$counter),
-      error = function(e) domain$fit_error(id, e))
+    if (is.null(settings$postprocessing)) {
+      models[[id]] <- tryCatch(.fit_base_model(selected$workflow, local[training, , drop = FALSE], tuning_plan$counter),
+        error = function(e) domain$fit_error(id, e))
+    } else {
+      fitted <- .fit_postprocessing(selected$workflow, local, folds[[id]], domain, settings, id)
+      models[[id]] <- fitted$model
+      postprocessing[[id]] <- fitted$diagnostics
+    }
     k <- match(id, names(folds))
     calibration_predictions[[k]] <- task$pred(models[[id]], local[assessment, , drop = FALSE], domain$pred_id(id), classes, event)
     truths[[k]] <- task$truth(y, assessment, classes, event)
@@ -482,7 +512,8 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   # matched, the shared Full1 refit when full.
   c(domain$fields(), list(folds = folds, models = models, model_selection = model_selection,
     sources = stats::setNames(names(folds), names(folds)),
-    calibrator = calibrator, calibration = calibration))
+    calibrator = calibrator, calibration = calibration),
+    if (!is.null(postprocessing)) list(postprocessing = postprocessing))
 }
 
 .fit_component_full <- function(component, domain, task, settings, tuning_plan) {
@@ -566,11 +597,20 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
                 error = function(e) stop(id, " base workflow probability prediction for original classes ",
                   paste(sQuote(classes), collapse = ", "), " and input columns ",
                   paste(sQuote(names(data)), collapse = ", "), ": ", conditionMessage(e), call. = FALSE))
+  .validate_base_probabilities(p, nrow(data), classes, id)
+  if (!is.null(event)) return(as.double(p[[paste0(".pred_", event)]]))
+  p <- as.matrix(p[paste0(".pred_", classes)])
+  colnames(p) <- classes
+  # The matrix core normalizes once; repeating it can perturb tied scores.
+  p
+}
+
+.validate_base_probabilities <- function(p, n, classes, id) {
   .integration_names(names(p), paste(id, "base probability column"))
   expected <- paste0(".pred_", classes)
-  if (is.data.frame(p) && nrow(p) != nrow(data)) {
+  if (is.data.frame(p) && nrow(p) != n) {
     stop(id, " base workflow probability prediction returned ", nrow(p),
-         " rows for ", nrow(data), " input rows.", call. = FALSE)
+         " rows for ", n, " input rows.", call. = FALSE)
   }
   if (!is.data.frame(p) || !setequal(names(p), expected) ||
       !all(vapply(p, .valid_probability, logical(1))) ||
@@ -579,11 +619,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
          paste(sQuote(classes), collapse = ", "), " in columns ",
          paste(sQuote(expected), collapse = ", "), ".", call. = FALSE)
   }
-  if (!is.null(event)) return(as.double(p[[paste0(".pred_", event)]]))
-  p <- as.matrix(p[expected])
-  colnames(p) <- classes
-  # The matrix core normalizes once; repeating it can perturb tied scores.
-  p
+  invisible(NULL)
 }
 
 .base_numeric <- function(model, data, id) {
@@ -804,6 +840,15 @@ venn_abers_details <- function(object, new_data, ..., loss = NULL) {
   predictors <- if (frozen) .frozen_data(state, new_data) else
     hardhat::forge(new_data, blueprint = workflows::extract_mold(object)$blueprint)$predictors
   result <- .integration_prediction(state, predictors, include_details = TRUE)
+  if (!is.null(state$postprocessing)) {
+    result$postprocessing <- state$postprocessing
+    ids <- result$details$model_source
+    result$details$inner_fold <- rep("Holdout1", length(ids))
+    result$details$postprocessing_method <- rep("tailor_logistic", length(ids))
+    result$details$postprocessing_input <- rep("probability", length(ids))
+    result$details$B_size <- vapply(ids, function(id) state$postprocessing[[id]]$B_size, 1L)
+    result$details$P_size <- vapply(ids, function(id) state$postprocessing[[id]]$P_size, 1L)
+  }
   result$prediction <- .bind_schema(result$prediction, state$schema)
   .bind_schema(result, state$schema)
 }

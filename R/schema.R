@@ -146,6 +146,7 @@ venn_abers_decode <- function(x, schema) {
   regression <- schema$mode == "regression"
   if (is.list(x) && !is.data.frame(x) &&
       (identical(names(x), c("prediction", "details")) ||
+       identical(names(x), c("prediction", "details", "postprocessing")) ||
        regression && identical(names(x), c("prediction", "details", "aggregate")))) {
     result <- venn_abers_decode(x$prediction, schema)
     details <- x$details
@@ -160,6 +161,19 @@ venn_abers_decode <- function(x, schema) {
     for (cl in classes) details[[cl]] <- as.character(.schema_decode_class(details[[cl]], schema, cl))
     attr(details, "vennabers_schema") <- NULL
     result$details <- details
+    if (!is.null(x$postprocessing)) {
+      result$postprocessing <- lapply(x$postprocessing, function(p) {
+        p$classes <- as.character(.schema_decode_class(p$classes, schema, "postprocessing classes"))
+        p$event_class <- as.character(.schema_decode_class(p$event_class, schema, "postprocessing event"))
+        p$columns <- schema$original_columns[match(p$columns, schema$columns)]
+        names(p$column_types) <- p$columns
+        p$column_types[[schema$outcome]]$levels <- schema$class_levels
+        coefficient_classes <- match(names(p$coefficients), paste0(".pred_", schema$classes))
+        mapped <- !is.na(coefficient_classes)
+        names(p$coefficients)[mapped] <- paste0(".pred_", schema$class_levels[coefficient_classes[mapped]])
+        p
+      })
+    }
     if ("aggregate" %in% names(x)) {
       .schema_data_names(x$aggregate)
       .schema_binding(x$aggregate, schema)

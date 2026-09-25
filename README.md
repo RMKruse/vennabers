@@ -76,9 +76,17 @@ Use `method = "cross"` for fold-based workflow calibration. See
 `?calibrated_workflow` and `?calibrate_workflow` for split, model and prediction
 options.
 
+Binary matched workflows can learn Tailor logistic postprocessing on a separate
+holdout before VA calibration. Pass
+`postprocessing = list(method = "tailor_logistic", strategy = "holdout", prop = .3)`;
+`prop` is the fraction reserved for the postprocessor. Recipe/model training,
+postprocessing, and VA calibration use separate B/P/C portions. This path needs
+the optional `tailor` and `probably` packages and fixed model parameters.
+
 ## Learn more
 
 - [Binary Cross example](inst/examples/cross-venn-abers.R)
+- [Binary Tailor holdout example](inst/examples/tailor-holdout.R) with diagnostics, resampling and last_fit
 - [Multiclass example](inst/examples/inductive-ovo.R) and [Cross multiclass example](inst/examples/cross-multiclass.R)
 - [Shared multiclass grid example](inst/examples/shared-multiclass-grid.R) for OvO/OvR and joint/two-stage selection
 - [Shared multiclass Bayes example](inst/examples/shared-multiclass-bayes.R) for complete OvO/OvR matrix selection
