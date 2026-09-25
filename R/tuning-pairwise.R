@@ -62,7 +62,7 @@
     stop("Calibration IDs conflict with reserved pairwise joint grid columns.", call. = FALSE)
   }
   count <- prod(vapply(dimensions, length, 0L))
-  # ponytail: exhaustive joint search is capped; cache pair fits if larger grids are needed.
+  # Coupling and scoring still enumerate the Cartesian grid, even with cached fits.
   if (!is.finite(count) || count > 4096L) {
     stop("Pairwise joint Cartesian grid exceeds 4096 combinations; reduce the grids.", call. = FALSE)
   }
@@ -87,15 +87,24 @@
   search$grid_size <- NULL
   search$candidate_ids <- combinations[["..candidate_id"]]
   search$resamples <- if (is.null(calibration)) config$joint_resamples else calibration$resamples
+  cache <- new.env(parent = emptyenv())
+  cache$seed <- if (is.null(settings$seed)) sample.int(.Machine$integer.max, 1L) else settings$seed
+  cache$reused <- 0L
+  # Native results retain the candidate closure; release temporary models on exit.
+  on.exit({ cache$data <- cache$entries <- cache$plans <- NULL }, add = TRUE)
   result <- .grid_select(search, selection, outcome, settings$event_level, settings$classification,
     function(values) {
       nested <- settings
       if (!is.null(calibration)) nested <- .calibration_values(nested, calibration$ids,
         as.list(calibration$grid[values[["..calibration"]], , drop = FALSE]))
       nested$tuning$calibration <- NULL
-      .calibrated_candidate(workflow, nested, parameters$schema, counter,
+      candidate <- .calibrated_candidate(workflow, nested, parameters$schema, counter,
         pairs = pair_values(values), pair_grid_id = values[["..candidate_id"]])
+      candidate$tuning_plan$pair_cache <- cache
+      candidate$tuning_plan$pair_indices <- values
+      candidate
     }, "joint", counter)
+  result$diagnostics$budget$reused_base_fits <- cache$reused
   values <- result$values
   if (!is.null(calibration)) {
     settings <- .calibration_values(settings, calibration$ids,
@@ -115,4 +124,63 @@
   list(data = if (is.null(roles)) data else data[roles$analysis, , drop = FALSE],
        settings = settings, pairs = selected_pairs, pair_grid_id = result$diagnostics$chosen,
        diagnostics = result$diagnostics)
+}
+
+# The native grid runs serially by resample. Retain only the active data's pair
+# fits and raw predictions; calibration and coupling remain candidate-specific.
+.fit_pairwise_grid_domains <- function(data, domains, task, settings, tuning_plan) {
+  cache <- tuning_plan$pair_cache
+  if (!identical(cache$data, data)) {
+    cache$entries <- new.env(parent = emptyenv())
+    cache$plans <- withr::with_seed(cache$seed,
+      lapply(domains, function(domain) .plan_component(domain, settings)))
+    cache$data <- data
+  }
+  get_fit <- function(domain, role, fit) {
+    index <- tuning_plan$pair_indices[[paste0("..", domain$pair_id, "_", role)]]
+    key <- paste(domain$pair_id, role, index, sep = "/")
+    entry <- cache$entries[[key]]
+    if (is.null(entry)) {
+      before <- tuning_plan$counter$n
+      # Each pair/role has its own RNG scope, independent of other grid choices.
+      value <- tryCatch(withr::with_seed(cache$seed, fit), error = identity)
+      if (!inherits(value, "error")) value$prediction_cache <- new.env(parent = emptyenv())
+      entry <- list(value = value, fits = tuning_plan$counter$n - before)
+      cache$entries[[key]] <- entry
+    } else cache$reused <- cache$reused + entry$fits
+    if (inherits(entry$value, "error")) stop(entry$value)
+    entry$value
+  }
+  source_settings <- settings
+  source_settings$precision <- NULL
+  fitted <- lapply(seq_along(domains), function(i) {
+    domain <- domains[[i]]
+    folds <- cache$plans[[i]]
+    component <- get_fit(domain, "source",
+      .fit_component_sources(folds, domain, task, source_settings, tuning_plan))
+    calibration <- component$calibration
+    component$calibrator <- task$calibrate(lapply(calibration, `[[`, "truth"),
+      lapply(calibration, `[[`, "probability"),
+      lapply(names(folds), function(id) rep(id, length(folds[[id]]$assessment))),
+      folds, settings)
+    component
+  })
+  if (identical(settings$prediction_model, "full")) {
+    fitted <- lapply(seq_along(domains), function(i) {
+      component <- fitted[[i]]
+      full <- get_fit(domains[[i]], "full",
+        .fit_component_full(component, domains[[i]], task, settings, tuning_plan))
+      component$models <- full$models
+      component$sources <- full$sources
+      component$model_selection["Full1"] <- full$model_selection["Full1"]
+      component$prediction_cache <- full$prediction_cache
+      component
+    })
+  }
+  fitted <- lapply(fitted, function(component) {
+    for (id in names(component$model_selection))
+      component$model_selection[[id]]$chosen <- tuning_plan$pair_grid_id
+    component
+  })
+  list(plans = cache$plans, fitted = fitted)
 }

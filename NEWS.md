@@ -7,6 +7,9 @@
 - Keep automatic calibration-option selection on a separate S portion and
   retain candidate eligibility, local plans, budgets, errors and final search
   state through `venn_abers_tuning()` and RDS restoration.
+- Reuse pair-specific source/full fits and predictions across joint Grid
+  combinations. Pair fits use independent RNG scopes so reuse does not depend
+  on candidate order; diagnostics report actual and reused fits.
 - No release is approved yet. Local checks, missing support runners, the v0.7
   gate and the benchmark protocol are recorded in `tools/acceptance-v08.md`.
 

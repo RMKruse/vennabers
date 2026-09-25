@@ -68,7 +68,8 @@
   })
   task <- .component_task("binary", settings, list())
   # Finish every source fit first so full-model RNG draws cannot change calibration.
-  result <- .fit_domains(domains, task, settings, tuning_plan)
+  result <- if (is.null(tuning_plan$pair_cache)) .fit_domains(domains, task, settings, tuning_plan) else
+    .fit_pairwise_grid_domains(data, domains, task, settings, tuning_plan)
   components <- stats::setNames(lapply(result$fitted, function(component) component), ids)
   state$pair_models <- components
   if (!is.null(state$tuning)) {
@@ -123,15 +124,21 @@
                  anyDuplicated(fold_ids) || !identical(names(component$calibrator$calibrators), fold_ids)))) {
     stop(id, " model/pair/fold identity does not match the fitted mapping.", call. = FALSE)
   }
-  p <- .source_predictions(component$models, component$sources, new_data,
-    function(model, model_id) {
-      # The mold's fitted outcome domain binds every retained model to its pair.
-      if (!identical(levels(workflows::extract_mold(model)$outcomes[[1L]]), pair)) {
-        stop(id, " ", model_id, " model/pair identity does not match the fitted mapping.", call. = FALSE)
-      }
-      .base_probability(model, new_data, component$class_levels, component$event_class, paste(id, model_id))
-    },
-    numeric)
+  cache <- component$prediction_cache
+  p <- if (!is.null(cache) && identical(cache$data, new_data)) cache$predictions else
+    .source_predictions(component$models, component$sources, new_data,
+      function(model, model_id) {
+        # The mold's fitted outcome domain binds every retained model to its pair.
+        if (!identical(levels(workflows::extract_mold(model)$outcomes[[1L]]), pair)) {
+          stop(id, " ", model_id, " model/pair identity does not match the fitted mapping.", call. = FALSE)
+        }
+        .base_probability(model, new_data, component$class_levels, component$event_class, paste(id, model_id))
+      },
+      numeric)
+  if (!is.null(cache)) {
+    cache$data <- new_data
+    cache$predictions <- p
+  }
   binary <- .calibrate_binary_points(component$calibrator, p, cross, object$loss, n, include_details)
   point <- binary$probability
   details <- NULL
