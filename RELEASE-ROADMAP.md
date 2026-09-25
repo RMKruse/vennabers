@@ -76,6 +76,12 @@ Ab v0.3 gelten acht verpflichtende Kombinationen. „Aktuell“ und „vorherig�
 | macOS Intel | Verpflichtend | Verpflichtend |
 | macOS ARM | Verpflichtend | Verpflichtend |
 
+**Entwicklungsabweichung vom 24. September 2026:** Der Maintainer prüft vor
+v1.0 nur unter macOS. Die hier geplante plattformübergreifende Matrix wird
+erst bei v1.0 ausgeführt; frühere Entwicklungsstände dürfen deshalb keinen
+bestandenen Acht-Plattformen-Nachweis behaupten. GitHub Actions bleiben bis
+dahin deaktiviert.
+
 Jede Kombination prüft das gebaute Package mit `R CMD check --as-cran`, Referenztests und ausführbaren Beispielen. Die acht regulären Kombinationen verwenden aktuelle veröffentlichte Abhängigkeiten. Ab v0.5 werden die im jeweiligen Release enthaltenen Integrationsabläufe geprüft. Installation, Beispiele und Produkttests verwenden das gebaute/installierte Artefakt.
 
 Es gibt keine Fehler oder Warnungen auf der verpflichtenden Matrix. Verbleibende NOTEs werden einzeln begründet. R-devel unter Linux dient zusätzlich als Frühwarnprüfung: Befunde werden geprüft und dokumentiert, blockieren ein Release aber nicht automatisch. Ab v0.5 prüft ein weiterer Linux-Lauf Installation und Nutzung des manuellen Kerns ohne tidymodels.
@@ -149,6 +155,11 @@ Quellen: [Release-Reife und verbindliche Milestone-Zuschnitte festlegen — Perf
 **Messumfang:** Fit und Predict werden getrennt gemessen. Vollständige äußere Bewertung und Tuning erhalten zusätzlich eine Gesamtlaufzeit einschließlich aller zugehörigen inneren Fits. Die v0.6-Kodierungs-/Dekodierungsoperationen werden separat ausgewiesen. Ein- und Ausgabevalidierung des Produktaufrufs bleiben im Messfenster; Datengenerierung, Paketinstallation und das vorherige Training eingefrorener Workflows nicht. Fit-Zähler und Anzahl der für Predict erhaltenen Modelle beziehungsweise Postprocessor ergänzen die Messwerte der v0.7–v0.9-Fälle.
 
 **Umgebung und Wiederholungen:** Eine dokumentierte Linux-x86_64-Referenzmaschine führt die Messreihe seriell aus, mit dokumentierten CPU-/RAM-/OS-Angaben, festem R-/Abhängigkeitssatz und einem Thread für kontrollierbare Engine-/BLAS-Pools. Der Vorgänger wird auf derselben Maschine und mit derselben kompatiblen Konfiguration erneut gemessen. Vor Messung des jeweils anderen Releases wird ein frischer R-Prozess gestartet. Ein Aufwärmlauf und drei Messläufe werden je Fall und Release durchgeführt; temporäre Fits werden zwischen Messläufen freigegeben. Der Spitzenspeicher ist die separat protokollierte Prozess-Speicherspitze der Fallmessung, keine Behauptung isolierter R-Objektbelegung.
+
+Für die Entwicklung bis v1.0 werden entsprechende lokale Messungen auf macOS
+gekennzeichnet. Der Linux-x86_64-Referenzvergleich wird mit der
+plattformübergreifenden Abnahme bei v1.0 nachgeholt; Mac- und Linux-Zeiten
+werden nicht als direkt vergleichbar ausgegeben.
 
 **Speicherung:** Für gespeicherte kalibrierte Modellobjekte wird zusätzlich die Größe eines mit identischen RDS-Einstellungen geschriebenen Objekts erfasst. Die frische Wiederherstellung und Vorhersagegleichheit bleiben Teil der funktionalen Abnahme. Die Dateigröße ist kein Ersatz für die Speicherspitze beim Fit.
 

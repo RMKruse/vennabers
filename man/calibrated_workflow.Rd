@@ -20,7 +20,7 @@ Reversible name encoding for binary, OvO/OvR and regression is available through
 Frozen classification/regression workflow adoption is available through \code{\link{calibrate_workflow}}.
 Ordered reference holdouts and binary/shared multiclass full-model transfer are supported.
 Matched/full Inductive and Cross pair training are also supported in v0.7.
-Automatic local tuning follows in v0.8 and
+Binary, shared OvO/OvR, pairwise OvO, and regression joint/two-stage grid and Bayes selection is available in v0.8;
 learned postprocessing in v0.9. Shared multiclass training does not establish
 complete Python training parity.
 }
@@ -29,7 +29,7 @@ calibrated_workflow(workflow, outcome, ..., predictors = NULL,
   method = "inductive", classification = "binary", event_level = "first",
   calibration_prop = 0.2, v = 5L, strata = NULL, splits = NULL, seed = NULL,
   precision = NULL, loss = "log", m = NULL, epsilon = NULL, schema = NULL,
-  prediction_model = "matched", model_training = "shared")
+  prediction_model = "matched", model_training = "shared", tuning = NULL)
 venn_abers_details(object, new_data, ..., loss = NULL)
 \method{predict}{_vennabers_fit}(object, new_data, type = NULL,
   opts = list(), ..., loss = NULL)
@@ -37,7 +37,53 @@ venn_abers_details(object, new_data, ..., loss = NULL)
 \arguments{
 \item{workflow}{An unfitted workflows object with a classification or regression model and
 recipe, formula, or variable selection. Prepped or partly trained recipes,
-unresolved tune placeholders, and additional postprocessors are rejected.}
+unresolved tune placeholders without \code{tuning}, and additional postprocessors are rejected.}
+\item{tuning}{NULL keeps fixed settings. For binary, shared OvO/OvR or pairwise OvO classification and regression, a named list
+with \code{strategy = "joint"} or \code{"two_stage"} and \code{model} and/or
+\code{calibration} searches matching the present \code{tune()} placeholders.
+Each search has \code{method = "grid"} or \code{"bayes"}. Grid uses a concrete grid data frame with columns
+named by placeholder IDs or a positive integer grid size with dials
+\code{param_info}. Bayes uses positive whole \code{initial} and \code{iter} budgets plus
+\code{param_info}; \code{initial} must exceed the number of tuned parameters. Its
+\code{control_bayes()} must save predictions, use \code{uncertain = Inf}, and supplies
+the seed, \code{no_improve}, and optional time limit. Local model searches and calibration searches require
+\code{resamples = function(data) ...} (or a bound rsample rset); pairwise
+\code{joint} model grids use the global plan described below. Optional \code{primary_metric} defaults to
+\code{yardstick::mn_log_loss} for classification or \code{yardstick::rmse} for regression; \code{report_metrics} are independent yardstick
+metrics. Explicit \code{control} must be the matching \code{tune::control_grid()} or \code{tune::control_bayes()}
+with \code{save_pred=TRUE}. Bayes calls the public \code{tune::tune_bayes()} one
+iteration at a time, filtering incomplete candidates before the next call. Inner parallelism is disabled, and a custom
+\code{extract} callback is unavailable because selection uses extraction for
+diagnostics.
+Model/recipe and calibration IDs must be unique. Calibration search requires
+exactly one of \code{selection_prop} (the proportion reserved for selection S)
+or \code{selection_split} (rsplit or function, with analysis=final fit F and
+assessment=selection S). S is never included in F. Automatic calibration
+selection requires \code{splits=NULL} or a local plan provider function.
+In pairwise OvO \code{two_stage}, model searches and resamples run on each local class pair. Calibration
+selection scores the coupled complete Multiclass output on S; its final fit
+uses only F. Pair plans must be local provider functions when calibration is tuned.
+For pairwise \code{joint} Grid model tuning, candidate choices form a Cartesian grid
+over class pairs (and separate full-model choices when requested). Bayes model
+searches instead advance independently on each local pair and source/full domain;
+they require local \code{model$resamples}. Global calibration candidates use
+complete coupled predictions. Model-only joint Bayes evaluates the complete
+locally selected procedure on \code{joint_resamples}; model-only joint Grid
+uses that plan to select its Cartesian candidates. Omit \code{model$resamples}
+only for the Cartesian Grid route. Global plans are never used as pair plans.
+A joint grid above 4096
+combinations is rejected before fitting; reduce the grids.
+Loss candidates are \code{"log"}/\code{"brier"}; precision candidates are
+\code{"none"}, \code{"0"}, \code{"2"}, and \code{"-2"}. Regression searches exactly one of
+\code{m = tune::tune("moderation")} or \code{epsilon = tune::tune("moderation")};
+classification options are rejected. Every inner calibration fold must satisfy
+\code{1 <= m <= floor((k-1)/2)}, with \code{m = floor(epsilon*(k+1)/2)}
+when epsilon is supplied. Invalid local candidates are excluded without clipping.
+Joint model selection scores complete IVAR/CVAR predictions; two-stage selection
+scores the uncalibrated numeric predictions first. Fixed model/recipe or
+moderation options stay fixed. Each Cross source and Full1 searches only its
+own training domain; Full1 never averages fold choices. See
+\code{\link{venn_abers_tuning}} for selections and diagnostics.}
 \item{schema}{NULL retains the direct naming contract. A schema from
 \code{venn_abers_schema()} fixes the encoded input names, mode, class order and binary event.
 Omitted classification/event options inherit the schema; contradictory explicit
@@ -319,8 +365,8 @@ calibration observations. An unfitted workflow does not prove that earlier tunin
 feature choices, or external transformations excluded these observations. Keep
 assessment observations separate from all training, selection and calibration.
 Calibration is not an independent evaluation. Cross model parameters must be
-fixed using independent data or suitable selection nested inside the allowed
-training portions; this constructor does not perform that selection.
+fixed using independent data or selected through the configured local
+\code{tuning} searches inside the allowed training portions.
 The statistical setting assumes IID observations and a predictive procedure fixed
 independently of its calibration data. The bounds are Venn-Abers probability
 intervals, not confidence intervals. Regression bounds concern regularized
@@ -411,7 +457,8 @@ model predictions. Pairwise calibration rows count membership in each pair.}
 calibration observations from source learning only. The extra full model includes
 them. Existing matching-model calibration or coverage guarantees do not
 automatically transfer to this differently trained model; improved quality is
-not guaranteed. All settings are fixed, with no automatic search or mode choice.
+not guaranteed. Binary, shared multiclass and regression grids give Full1 its own local model/recipe search;
+the training method and prediction-model mode remain fixed per run.
 \code{fit_resamples()} rebuilds the complete procedure inside each outer analysis
 domain. \code{last_fit()} trains solely on its analysis domain, never analysis
 plus test. \code{calibrate_workflow()} remains a frozen-model path and does not
