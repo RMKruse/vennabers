@@ -1,5 +1,8 @@
 # v0.9 development (partial implementation; acceptance open)
 
+- Add shared OvO/OvR Tailor holdouts: explicit logistic for two classes and
+  multinomial for three or more, with full-rank and convergence checks. Preserve
+  multiclass decoding, single-row predictions and complete native evaluation.
 - Add binary Tailor logistic holdouts through `postprocessing` for matched
   Inductive/Cross VA with fixed parameters. Recipes and engines learn on B,
   Tailor learns on disjoint P, and held-out C trains the unchanged VA core.

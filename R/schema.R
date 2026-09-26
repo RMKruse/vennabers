@@ -164,13 +164,18 @@ venn_abers_decode <- function(x, schema) {
     if (!is.null(x$postprocessing)) {
       result$postprocessing <- lapply(x$postprocessing, function(p) {
         p$classes <- as.character(.schema_decode_class(p$classes, schema, "postprocessing classes"))
-        p$event_class <- as.character(.schema_decode_class(p$event_class, schema, "postprocessing event"))
+        if (!is.null(p$event_class)) p$event_class <- as.character(.schema_decode_class(p$event_class, schema, "postprocessing event"))
         p$columns <- schema$original_columns[match(p$columns, schema$columns)]
         names(p$column_types) <- p$columns
         p$column_types[[schema$outcome]]$levels <- schema$class_levels
-        coefficient_classes <- match(names(p$coefficients), paste0(".pred_", schema$classes))
+        coefficient_names <- if (is.matrix(p$coefficients)) colnames(p$coefficients) else names(p$coefficients)
+        coefficient_classes <- match(coefficient_names, paste0(".pred_", schema$classes))
         mapped <- !is.na(coefficient_classes)
-        names(p$coefficients)[mapped] <- paste0(".pred_", schema$class_levels[coefficient_classes[mapped]])
+        coefficient_names[mapped] <- paste0(".pred_", schema$class_levels[coefficient_classes[mapped]])
+        if (is.matrix(p$coefficients)) {
+          colnames(p$coefficients) <- coefficient_names
+          rownames(p$coefficients) <- as.character(.schema_decode_class(rownames(p$coefficients), schema, "postprocessing coefficients"))
+        } else names(p$coefficients) <- coefficient_names
         p
       })
     }

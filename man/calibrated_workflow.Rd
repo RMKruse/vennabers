@@ -42,12 +42,13 @@ unresolved tune placeholders without \code{tuning}, and postprocessors without a
 explicit matching \code{postprocessing} request are rejected.}
 \item{postprocessing}{NULL preserves the existing unprocessed training path and
 does not remove a supplied postprocessor. Otherwise a named list with explicit
-\code{method = "tailor_logistic"}, \code{strategy = "holdout"}, and either
+\code{method = "tailor_logistic"} or \code{"tailor_multinomial"},
+\code{strategy = "holdout"}, and either
 \code{prop} (the P fraction, strictly between zero and one) or \code{splits}
 (a local rsplit or serializable function of local Q data). Analysis is B;
 assessment is P. A supplied plan cannot be combined with prop or v. Unknown,
-duplicate, irrelevant and conflicting fields are errors. Currently only binary
-Inductive/Cross VA with matched models and fixed parameters is implemented;
+duplicate, irrelevant and conflicting fields are errors. Currently binary and shared OvO/OvR
+Inductive/Cross VA with matched models and fixed parameters are implemented;
 other methods, ensembles, full models and tuning combinations fail explicitly.}
 \item{tuning}{NULL keeps fixed settings. For binary, shared OvO/OvR or pairwise OvO classification and regression, a named list
 with \code{strategy = "joint"} or \code{"two_stage"} and \code{model} and/or
@@ -460,22 +461,28 @@ partitions, reconstruction, native/decoded diagnostics and outer fit costs.
 Both examples compare matched/full predictions, costs and held-out scores;
 matching-model guarantees do not automatically transfer and better quality is not promised.
 }
-\section{Binary Tailor holdouts}{
+\section{Classification Tailor holdouts}{
 Each VA source training portion Q is partitioned into disjoint B and P. The
 recipe and engine learn only on B. The complete public workflow is fitted with
 \code{data = B, data_calibration = P}, using
-\code{tailor::adjust_probability_calibration(method = "logistic", smooth = FALSE)}.
+\code{tailor::adjust_probability_calibration(method = "logistic", smooth = FALSE)}
+for two classes, or \code{method = "multinomial", smooth = FALSE} for three or
+more classes. The requested method must match the class count; no automatic
+exchange is performed. Shared two-class OvO/OvR retains multiclass class and
+tie rules, not the binary event contract.
 One exactly matching untrained Tailor adjustment may already be configured;
 it is adopted once. Foreign, trained or multiple adjustments are rejected.
 The full stored workflow predicts held-out VA data C and new predictors.
 The VA core, event alignment, loss and rounding rules are unchanged.
 
-Both B and P must contain both model classes. P needs at least three rows and
-a full-rank two-coefficient design, with more rows than design rank. Rank and
-convergence are checked on the actual learned logistic model after the necessary
-B predictions. Failed fits, absent learned state and method switches to none
+Both B and P must contain all K model classes. P needs at least K+1 rows and
+a full-rank design: the logistic intercept and one probability for two classes,
+or the multinomial intercept and K-1 probabilities for K classes. Rank and
+convergence are checked on the actual learned model after the necessary B
+predictions. Failed fits, absent learned state and method switches to none
 are errors. Warnings from successful fits are retained with source/fold context.
-One-class C remains valid. Use \code{venn_abers_schema()} for nonsyntactic outcome
+The existing VA rules for missing C classes remain unchanged (including valid
+one-class Cross subproblems); B/P requirements do not apply to C. Use \code{venn_abers_schema()} for nonsyntactic outcome
 or class names that the underlying Tailor/probably formula interface cannot use.
 
 All B/P plans are validated before any source is trained. Static plans must
@@ -496,6 +503,10 @@ no truth or plan resolution and never learns. RDS retains the full trained state
 Tailor and probably are optional and required only for this path.
 See installed \code{examples/tailor-holdout.R} for native fit, complete repeated
 outer resampling, last_fit, diagnostics and checks of held-out data roles.
+\code{examples/tailor-multiclass-holdout.R} adds shared two-, three- and four-class
+OvO/OvR, encoded names and the yardstick Brier factor of one half. Single-row
+multinomial predictions retain matrix dimensions through a stored S3 adapter
+for nnet, preserving the full Workflow/Tailor/probably prediction path.
 }
 \section{Printed costs}{The fitted engine prints source mappings, the number of base
 fits (including temporary source fits discarded in full mode), models used per

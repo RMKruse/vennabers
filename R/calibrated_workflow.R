@@ -51,11 +51,11 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   mode <- .validate_base_workflow(workflow, outcome, classification, allow_tune = !is.null(tuning),
                                   postprocessing = postprocessing)
   if (!is.null(postprocessing)) {
-    if (mode != "classification" || classification != "binary" ||
+    if (mode != "classification" || pairwise ||
         prediction_model != "matched" || !is.null(tuning)) {
-      stop("Postprocessing currently supports only binary matched models with fixed parameters; this combination is not implemented.", call. = FALSE)
+      stop("Postprocessing currently supports only shared classification matched models with fixed parameters; this combination is not implemented.", call. = FALSE)
     }
-    workflow <- .postprocessing_workflow(workflow)
+    workflow <- .postprocessing_workflow(workflow, postprocessing)
   }
   if (!is.null(schema)) {
     if (!identical(mode, schema$mode)) stop("Base workflow mode must agree with `schema`.", call. = FALSE)
@@ -201,7 +201,7 @@ predict.vennabers_workflow <- function(object, new_data, ...) {
   post <- tryCatch(workflows::extract_postprocessor(workflow), error = function(e) NULL)
   if (!is.null(post)) {
     if (is.null(postprocessing)) stop("Additional workflow postprocessors require an explicit matching `postprocessing` request.", call. = FALSE)
-    .postprocessing_workflow(workflow)
+    .postprocessing_workflow(workflow, postprocessing)
   }
   spec <- workflows::extract_spec_parsnip(workflow)
   if (!spec$mode %in% c("classification", "regression")) {
@@ -844,7 +844,7 @@ venn_abers_details <- function(object, new_data, ..., loss = NULL) {
     result$postprocessing <- state$postprocessing
     ids <- result$details$model_source
     result$details$inner_fold <- rep("Holdout1", length(ids))
-    result$details$postprocessing_method <- rep("tailor_logistic", length(ids))
+    result$details$postprocessing_method <- rep(state$parameters$requested$postprocessing$method, length(ids))
     result$details$postprocessing_input <- rep("probability", length(ids))
     result$details$B_size <- vapply(ids, function(id) state$postprocessing[[id]]$B_size, 1L)
     result$details$P_size <- vapply(ids, function(id) state$postprocessing[[id]]$P_size, 1L)
