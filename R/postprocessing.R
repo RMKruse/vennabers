@@ -26,10 +26,10 @@
       stop("`postprocessing$v` must be one whole number of at least two.", call. = FALSE)
     }
   }
-  if (!post$method %in% c("tailor_logistic", "tailor_multinomial", "tailor_linear") || post$strategy != "holdout") {
-    stop("Only tailor_logistic, tailor_multinomial or tailor_linear with holdout postprocessing is implemented.", call. = FALSE)
+  if (!post$method %in% c("tailor_logistic", "tailor_multinomial", "tailor_linear", "sigmoid") || post$strategy != "holdout") {
+    stop("Only tailor_logistic, tailor_multinomial, tailor_linear or sigmoid with holdout postprocessing is implemented.", call. = FALSE)
   }
-  for (package in c("tailor", "probably")) {
+  for (package in if (post$method == "sigmoid") character() else c("tailor", "probably")) {
     minimum <- if (package == "tailor") "0.1.0" else "1.1.0"
     if (!requireNamespace(package, quietly = TRUE) || utils::packageVersion(package) < minimum) {
       stop("Postprocessing requires optional package ", sQuote(package), " >= ", minimum, ".", call. = FALSE)
@@ -39,6 +39,10 @@
 }
 
 .postprocessing_workflow <- function(workflow, postprocessing) {
+  if (postprocessing$method == "sigmoid") {
+    .validate_sigmoid_workflow(workflow, postprocessing$sigmoid_input)
+    return(workflow)
+  }
   method <- sub("^tailor_", "", postprocessing$method)
   numeric <- method == "linear"
   canonical <- if (numeric) tailor::tailor() |> tailor::adjust_numeric_calibration(method = method, smooth = FALSE) else
@@ -124,7 +128,7 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
   numeric <- is.null(domain$classes)
   k <- if (numeric) 2L else length(domain$classes)
   expected <- if (numeric) "tailor_linear" else if (k == 2L) "tailor_logistic" else "tailor_multinomial"
-  if (post$method != expected) {
+  if (post$method != expected && !(post$method == "sigmoid" && !numeric && k == 2L && settings$classification == "binary")) {
     stop(post$method, " B/P plan: ", if (numeric) "Regression requires" else paste(k, "model classes require"),
       " explicitly selecting ", expected, ".", call. = FALSE)
   }
@@ -149,7 +153,11 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
           stop(label, " (", length(rows), " rows) must contain all model classes: ", paste(domain$classes, collapse = ", "), ".", call. = FALSE)
         }
       }
-      if (length(positions$assessment) <= k) stop("P has ", length(positions$assessment), " rows; requires at least ", k + 1L, " (more than design rank ", k, ").", call. = FALSE)
+      minimum <- if (post$method == "sigmoid") 1L else k
+      if (length(positions$assessment) <= minimum) {
+        stop("P has ", length(positions$assessment), " rows; requires at least ", minimum + 1L,
+          if (post$method != "sigmoid") paste0(" (more than design rank ", k, ")"), ".", call. = FALSE)
+      }
       list(Q = Q, B = Q[positions$analysis], P = Q[positions$assessment],
         analysis = positions$analysis, assessment = positions$assessment)
     }, error = function(e) stop(id, " / Holdout1 ", post$method, " B/P plan: ", conditionMessage(e), call. = FALSE))
@@ -163,29 +171,35 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
   context <- paste0(id, " / Holdout1 ", settings$postprocessing$method, " (B=", length(plan$B), ", P=", length(plan$P), ")")
   warnings <- character()
   result <- tryCatch(withCallingHandlers({
-    model <- generics::fit(workflow, data[plan$B, , drop = FALSE], data_calibration = data[plan$P, , drop = FALSE])
-    step <- workflows::extract_tailor(model)$adjustments[[1L]]
-    fit <- step$results$fit
-    if (!isTRUE(step$trained) || !identical(step$arguments$method, method) ||
-        !inherits(fit, paste0("cal_estimate_", method)) || length(fit$estimates) != 1L) {
-      stop("P has no learned ", method, " state; failed fits and switches to none are not allowed.", call. = FALSE)
-    }
-    estimate <- fit$estimates[[1L]]$estimate
-    rank <- if (method == "linear") 2L else length(domain$classes)
-    if (!inherits(estimate, if (method == "multinomial") "multinom" else "glm") ||
-        !identical(estimate$rank, rank) || length(plan$P) <= rank) {
-      stop("P requires full design rank ", rank, " and more rows than rank.", call. = FALSE)
-    }
-    converged <- if (method == "multinomial") isTRUE(estimate$convergence == 0L) else isTRUE(estimate$converged)
-    if (!converged || !all(is.finite(stats::coef(estimate)))) {
-      stop("P ", method, " fit did not converge to finite coefficients.", call. = FALSE)
+    if (method == "sigmoid") {
+      result <- .fit_sigmoid_workflow(workflow, data, plan, domain, settings$postprocessing$sigmoid_input, context)
+      model <- result$model$workflow
+    } else {
+      model <- generics::fit(workflow, data[plan$B, , drop = FALSE], data_calibration = data[plan$P, , drop = FALSE])
+      step <- workflows::extract_tailor(model)$adjustments[[1L]]
+      fit <- step$results$fit
+      if (!isTRUE(step$trained) || !identical(step$arguments$method, method) ||
+          !inherits(fit, paste0("cal_estimate_", method)) || length(fit$estimates) != 1L) {
+        stop("P has no learned ", method, " state; failed fits and switches to none are not allowed.", call. = FALSE)
+      }
+      estimate <- fit$estimates[[1L]]$estimate
+      rank <- if (method == "linear") 2L else length(domain$classes)
+      if (!inherits(estimate, if (method == "multinomial") "multinom" else "glm") ||
+          !identical(estimate$rank, rank) || length(plan$P) <= rank) {
+        stop("P requires full design rank ", rank, " and more rows than rank.", call. = FALSE)
+      }
+      converged <- if (method == "multinomial") isTRUE(estimate$convergence == 0L) else isTRUE(estimate$converged)
+      if (!converged || !all(is.finite(stats::coef(estimate)))) {
+        stop("P ", method, " fit did not converge to finite coefficients.", call. = FALSE)
+      }
+      result <- list(model = model, rank = estimate$rank, coefficients = stats::coef(estimate))
     }
     engine <- workflows::extract_fit_engine(model)
     if (is.list(engine) && (identical(engine$converged, FALSE) ||
         inherits(engine, "nnet") && !isTRUE(engine$convergence == 0))) {
       stop("B engine did not converge.", call. = FALSE)
     }
-    list(model = model, rank = estimate$rank, coefficients = stats::coef(estimate))
+    result
   }, warning = function(w) {
     message <- paste0(context, ": ", conditionMessage(w))
     warnings <<- c(warnings, message)
@@ -194,10 +208,11 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
   }), error = function(e) stop(context, ": ", conditionMessage(e), call. = FALSE))
   list(model = result$model, diagnostics = c(plan, list(format_version = 1L,
     method = settings$postprocessing$method, strategy = "holdout",
-    input = if (method == "linear") "numeric" else "probability", inner_fold = "Holdout1",
+    input = if (method == "sigmoid") settings$postprocessing$sigmoid_input else if (method == "linear") "numeric" else "probability", inner_fold = "Holdout1",
     VA_fold = id, C = fold$assessment, B_size = length(plan$B), P_size = length(plan$P),
     classes = domain$classes, event_class = domain$event, schema = domain$schema,
     columns = names(data), column_types = lapply(data, function(x) list(class = class(x), typeof = typeof(x), levels = levels(x))),
     seed = settings$seed, rng_kind = RNGkind(), rank = result$rank, coefficients = result$coefficients,
+    scale = result$scale, sigmoid_class = if (method == "sigmoid") domain$classes[2L],
     converged = TRUE, warnings = warnings, observed_base_fits = 1L, observed_postprocessor_fits = 1L)))
 }

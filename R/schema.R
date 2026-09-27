@@ -166,6 +166,7 @@ venn_abers_decode <- function(x, schema) {
       result$postprocessing <- lapply(x$postprocessing, function(p) {
         if (!regression) p$classes <- as.character(.schema_decode_class(p$classes, schema, "postprocessing classes"))
         if (!is.null(p$event_class)) p$event_class <- as.character(.schema_decode_class(p$event_class, schema, "postprocessing event"))
+        if (!is.null(p$sigmoid_class)) p$sigmoid_class <- as.character(.schema_decode_class(p$sigmoid_class, schema, "sigmoid class"))
         p$columns <- schema$original_columns[match(p$columns, schema$columns)]
         names(p$column_types) <- p$columns
         if (!regression) p$column_types[[schema$outcome]]$levels <- schema$class_levels

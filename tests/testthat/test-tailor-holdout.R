@@ -234,7 +234,7 @@ testthat::test_that("postprocessing rejects invalid requests and all local plans
     bad <- post; bad["prop"] <- list(size)
     testthat::expect_error(calibrated_workflow(base, "truth", postprocessing = bad), "prop")
   }
-  for (bad in list(list(method = "sigmoid", strategy = "holdout", prop = .2, sigmoid_input = "probability"),
+  for (bad in list(list(method = "isotonic_numeric", strategy = "holdout", prop = .2),
                   list(method = "tailor_logistic", strategy = "ensemble", v = 3))) {
     testthat::expect_error(calibrated_workflow(base, "truth", postprocessing = bad), "implemented")
   }

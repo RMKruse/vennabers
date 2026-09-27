@@ -76,6 +76,13 @@ Use `method = "cross"` for fold-based workflow calibration. See
 `?calibrated_workflow` and `?calibrate_workflow` for split, model and prediction
 options.
 
+Binary matched workflows also support
+`postprocessing = list(method = "sigmoid", strategy = "holdout", prop = .3,
+sigmoid_input = "probability")`. Select `"glm_link"` explicitly for binomial
+GLM logit inputs through the complete workflow and recipe. Sigmoid requires
+both classes in B and P, at least two P rows, and no existing postprocessor.
+It uses sklearn-compatible smoothed targets without a Python runtime dependency.
+
 Binary and shared OvO/OvR matched workflows can learn Tailor postprocessing on a separate
 holdout before VA calibration. Pass
 `postprocessing = list(method = "tailor_logistic", strategy = "holdout", prop = .3)`;
@@ -91,6 +98,7 @@ complete adjusted workflow predictions, using the requested `m` or `epsilon`.
 ## Learn more
 
 - [Binary Cross example](inst/examples/cross-venn-abers.R)
+- [Binary Sigmoid holdout example](inst/examples/sigmoid-holdout.R) with probability and GLM-link inputs
 - [Regression Tailor holdout example](inst/examples/tailor-regression-holdout.R) with IVAR/CVAR and native evaluation
 - [Shared multiclass Tailor holdout example](inst/examples/tailor-multiclass-holdout.R) with encoded names and native evaluation
 - [Binary Tailor holdout example](inst/examples/tailor-holdout.R) with diagnostics, resampling and last_fit

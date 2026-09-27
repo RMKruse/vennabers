@@ -1,5 +1,9 @@
 # v0.9 development (partial implementation; acceptance open)
 
+- Add binary Sigmoid holdouts with explicit probability or public GLM-logit
+  inputs, sklearn-compatible smoothed targets, complete saved prediction
+  state, diagnostics and native evaluation. No Python runtime is required.
+
 - Add matched fixed-parameter IVAR/CVAR Tailor-linear holdouts through
   `postprocessing`, with unstratified B/P plans, finite-input, rank and
   convergence checks, numeric diagnostics and unchanged regression cores.

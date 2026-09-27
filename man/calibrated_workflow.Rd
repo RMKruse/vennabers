@@ -42,7 +42,7 @@ unresolved tune placeholders without \code{tuning}, and postprocessors without a
 explicit matching \code{postprocessing} request are rejected.}
 \item{postprocessing}{NULL preserves the existing unprocessed training path and
 does not remove a supplied postprocessor. Otherwise a named list with explicit
-\code{method = "tailor_logistic"}, \code{"tailor_multinomial"}, or \code{"tailor_linear"},
+\code{method = "tailor_logistic"}, \code{"tailor_multinomial"}, \code{"tailor_linear"}, or \code{"sigmoid"},
 \code{strategy = "holdout"}, and either
 \code{prop} (the P fraction, strictly between zero and one) or \code{splits}
 (a local rsplit or serializable function of local Q data). Analysis is B;
@@ -550,3 +550,37 @@ source(system.file("examples", "calibrated-workflow.R", package = "vennabers"))
 source(system.file("examples", "full-model-workflow.R", package = "vennabers"))
 }
 \seealso{\code{\link{venn_abers}}, \code{\link{cross_venn_abers}}, \code{\link{venn_abers_schema}}}
+
+\section{Binary Sigmoid holdouts}{
+For binary matched Inductive/Cross workflows with fixed parameters, set
+\code{postprocessing = list(method = "sigmoid", strategy = "holdout", prop = .3,
+  sigmoid_input = "probability")} or explicitly select \code{sigmoid_input = "glm_link"}.
+The base workflow must have no postprocessor. Recipe and engine learn only on B;
+Sigmoid learns only on P; the unchanged VA core learns on held-out C. Both B and
+P must contain both factor levels, and P needs at least two rows. Constant P
+inputs are valid; coefficients are not identifiable in that case.
+
+\code{probability} uses the final named probability of the second stored factor
+level from the complete public base workflow. \code{glm_link} requires a
+\code{logistic_reg(engine = "glm")} binomial model with logit link and calls
+\code{predict(workflow, new_data, type = "raw", opts = list(type = "link"))},
+including recipe processing. It never reconstructs links from probabilities.
+Both VA event choices are supported by named probability selection after Sigmoid.
+
+The mapping minimizes unregularized logistic loss with targets
+\eqn{(N_1+1)/(N_1+2)} for the second class and \eqn{1/(N_0+2)} for the first.
+It follows scikit-learn's Platt calibration. Stored \code{coefficients} are
+\code{a, b} on the stored input \code{scale}: the second-class output is
+\code{plogis(-(a * (x / scale) + b))}. The scale is the maximum absolute P
+input when at least 30, otherwise one. Constant inputs use a zero slope.
+Nonfinite or incomplete inputs, unsuccessful optimization, and incomplete
+probability outputs fail with method, role and local fold context.
+
+The fitted state retains the complete base workflow, mapping and package
+versions. Details expose B/P/C memberships, \code{input}, \code{sigmoid_class},
+scale, coefficients, convergence, warnings and fit counts. Empty batches retain their schema without engine calls.
+No Tailor, probably or Python installation is required for Sigmoid. Python is
+used only by the separate checked-in reference generator; regular tests read
+its fixed CSV outputs. See \code{system.file("examples", "sigmoid-holdout.R",
+package = "vennabers")} for both inputs and native outer evaluation.
+}
