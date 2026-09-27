@@ -26,8 +26,8 @@
       stop("`postprocessing$v` must be one whole number of at least two.", call. = FALSE)
     }
   }
-  if (!post$method %in% c("tailor_logistic", "tailor_multinomial") || post$strategy != "holdout") {
-    stop("Only tailor_logistic or tailor_multinomial with holdout postprocessing is implemented.", call. = FALSE)
+  if (!post$method %in% c("tailor_logistic", "tailor_multinomial", "tailor_linear") || post$strategy != "holdout") {
+    stop("Only tailor_logistic, tailor_multinomial or tailor_linear with holdout postprocessing is implemented.", call. = FALSE)
   }
   for (package in c("tailor", "probably")) {
     minimum <- if (package == "tailor") "0.1.0" else "1.1.0"
@@ -40,7 +40,10 @@
 
 .postprocessing_workflow <- function(workflow, postprocessing) {
   method <- sub("^tailor_", "", postprocessing$method)
-  canonical <- tailor::tailor() |> tailor::adjust_probability_calibration(method = method, smooth = FALSE)
+  numeric <- method == "linear"
+  canonical <- if (numeric) tailor::tailor() |> tailor::adjust_numeric_calibration(method = method, smooth = FALSE) else
+    tailor::tailor() |> tailor::adjust_probability_calibration(method = method, smooth = FALSE)
+  adapter <- if (numeric) "vennabers_numeric_calibration" else "vennabers_probability_calibration"
   post <- tryCatch(workflows::extract_postprocessor(workflow), error = function(e) NULL)
   if (is.null(post)) {
     workflow <- workflows::add_tailor(workflow, canonical)
@@ -52,7 +55,7 @@
     stop("Postprocessing requires exactly one untrained canonical Tailor ", method, " step with smooth=FALSE.", call. = FALSE)
   }
   step <- post$adjustments[[1L]]
-  class(step) <- setdiff(class(step), "vennabers_probability_calibration")
+  class(step) <- setdiff(class(step), adapter)
   expected <- canonical$adjustments[[1L]]
   if (!setequal(names(step$arguments), names(expected$arguments))) {
     stop("Postprocessing Tailor arguments must be exactly method='", method, "', smooth=FALSE.", call. = FALSE)
@@ -61,12 +64,15 @@
   if (!identical(step, expected)) stop("Postprocessing Tailor step must match the untrained canonical ", method, " step.", call. = FALSE)
   # A validation-only dispatch layer preserves the canonical adjustment and
   # its public fit/predict path, without another step or another prediction.
-  class(step) <- c("vennabers_probability_calibration", class(step))
+  class(step) <- c(adapter, class(step))
   post$adjustments[[1L]] <- step
   workflows::update_tailor(workflow, post)
 }
 
 .validate_tailor_input <- function(data, tailor) {
+  if (tailor$type == "regression") {
+    return(.validate_regression_vector(data[[tailor$columns$estimate]], "Tailor numeric input"))
+  }
   classes <- levels(tailor$ptype[[tailor$columns$outcome]])
   .validate_base_probabilities(data[tailor$columns$probabilities], nrow(data), classes, "Tailor input")
 }
@@ -101,12 +107,26 @@ predict.vennabers_probability_calibration <- function(object, new_data, tailor, 
   NextMethod()
 }
 
+#' @exportS3Method generics::fit
+fit.vennabers_numeric_calibration <- function(object, data, tailor = NULL, ...) {
+  .validate_tailor_input(data, tailor)
+  NextMethod()
+}
+
+#' @export
+predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...) {
+  .validate_tailor_input(new_data, tailor)
+  NextMethod()
+}
+
 .plan_postprocessing <- function(folds, domain, settings) {
   post <- settings$postprocessing
-  k <- length(domain$classes)
-  expected <- if (k == 2L) "tailor_logistic" else "tailor_multinomial"
+  numeric <- is.null(domain$classes)
+  k <- if (numeric) 2L else length(domain$classes)
+  expected <- if (numeric) "tailor_linear" else if (k == 2L) "tailor_logistic" else "tailor_multinomial"
   if (post$method != expected) {
-    stop(post$method, " B/P plan: ", k, " model classes require explicitly selecting ", expected, ".", call. = FALSE)
+    stop(post$method, " B/P plan: ", if (numeric) "Regression requires" else paste(k, "model classes require"),
+      " explicitly selecting ", expected, ".", call. = FALSE)
   }
   for (id in names(folds)) {
     folds[[id]]$postprocessing <- tryCatch({
@@ -115,14 +135,14 @@ predict.vennabers_probability_calibration <- function(object, new_data, tailor, 
       plan <- post$splits
       if (is.function(plan)) plan <- plan(local)
       if (!"splits" %in% names(post)) {
-        outcome <- domain$outcome
+        outcome <- if (numeric) NULL else domain$outcome
         plan <- rlang::inject(rsample::initial_split(local, prop = 1 - post$prop, strata = !!outcome, pool = 0))
       }
       if (inherits(plan, "rsplit") && !identical(names(plan$data), names(local))) {
         stop("Split data binding columns and their order must match local Q.", call. = FALSE)
       }
       positions <- .inductive_split(plan, local)
-      for (role in c("analysis", "assessment")) {
+      if (!numeric) for (role in c("analysis", "assessment")) {
         rows <- positions[[role]]
         label <- if (role == "analysis") "B" else "P"
         if (any(tabulate(local[[domain$outcome]][rows], nbins = length(domain$classes)) == 0L)) {
@@ -151,12 +171,12 @@ predict.vennabers_probability_calibration <- function(object, new_data, tailor, 
       stop("P has no learned ", method, " state; failed fits and switches to none are not allowed.", call. = FALSE)
     }
     estimate <- fit$estimates[[1L]]$estimate
-    rank <- length(domain$classes)
-    if (!inherits(estimate, if (method == "logistic") "glm" else "multinom") ||
+    rank <- if (method == "linear") 2L else length(domain$classes)
+    if (!inherits(estimate, if (method == "multinomial") "multinom" else "glm") ||
         !identical(estimate$rank, rank) || length(plan$P) <= rank) {
       stop("P requires full design rank ", rank, " and more rows than rank.", call. = FALSE)
     }
-    converged <- if (method == "logistic") isTRUE(estimate$converged) else isTRUE(estimate$convergence == 0L)
+    converged <- if (method == "multinomial") isTRUE(estimate$convergence == 0L) else isTRUE(estimate$converged)
     if (!converged || !all(is.finite(stats::coef(estimate)))) {
       stop("P ", method, " fit did not converge to finite coefficients.", call. = FALSE)
     }
@@ -173,7 +193,8 @@ predict.vennabers_probability_calibration <- function(object, new_data, tailor, 
     invokeRestart("muffleWarning")
   }), error = function(e) stop(context, ": ", conditionMessage(e), call. = FALSE))
   list(model = result$model, diagnostics = c(plan, list(format_version = 1L,
-    method = settings$postprocessing$method, strategy = "holdout", input = "probability", inner_fold = "Holdout1",
+    method = settings$postprocessing$method, strategy = "holdout",
+    input = if (method == "linear") "numeric" else "probability", inner_fold = "Holdout1",
     VA_fold = id, C = fold$assessment, B_size = length(plan$B), P_size = length(plan$P),
     classes = domain$classes, event_class = domain$event, schema = domain$schema,
     columns = names(data), column_types = lapply(data, function(x) list(class = class(x), typeof = typeof(x), levels = levels(x))),

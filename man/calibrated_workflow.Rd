@@ -42,13 +42,13 @@ unresolved tune placeholders without \code{tuning}, and postprocessors without a
 explicit matching \code{postprocessing} request are rejected.}
 \item{postprocessing}{NULL preserves the existing unprocessed training path and
 does not remove a supplied postprocessor. Otherwise a named list with explicit
-\code{method = "tailor_logistic"} or \code{"tailor_multinomial"},
+\code{method = "tailor_logistic"}, \code{"tailor_multinomial"}, or \code{"tailor_linear"},
 \code{strategy = "holdout"}, and either
 \code{prop} (the P fraction, strictly between zero and one) or \code{splits}
 (a local rsplit or serializable function of local Q data). Analysis is B;
 assessment is P. A supplied plan cannot be combined with prop or v. Unknown,
 duplicate, irrelevant and conflicting fields are errors. Currently binary and shared OvO/OvR
-Inductive/Cross VA with matched models and fixed parameters are implemented;
+Inductive/Cross VA and regression IVAR/CVAR with matched models and fixed parameters are implemented;
 other methods, ensembles, full models and tuning combinations fail explicitly.}
 \item{tuning}{NULL keeps fixed settings. For binary, shared OvO/OvR or pairwise OvO classification and regression, a named list
 with \code{strategy = "joint"} or \code{"two_stage"} and \code{model} and/or
@@ -461,7 +461,7 @@ partitions, reconstruction, native/decoded diagnostics and outer fit costs.
 Both examples compare matched/full predictions, costs and held-out scores;
 matching-model guarantees do not automatically transfer and better quality is not promised.
 }
-\section{Classification Tailor holdouts}{
+\section{Tailor holdouts}{
 Each VA source training portion Q is partitioned into disjoint B and P. The
 recipe and engine learn only on B. The complete public workflow is fitted with
 \code{data = B, data_calibration = P}, using
@@ -485,9 +485,22 @@ The existing VA rules for missing C classes remain unchanged (including valid
 one-class Cross subproblems); B/P requirements do not apply to C. Use \code{venn_abers_schema()} for nonsyntactic outcome
 or class names that the underlying Tailor/probably formula interface cannot use.
 
+Regression requires \code{method = "tailor_linear"} explicitly and uses
+\code{tailor::adjust_numeric_calibration(method = "linear", smooth = FALSE)}
+through the public workflow calibration path. Recipe/engine learning uses B;
+the intercept and slope are learned only on P. Numeric 0/1 targets remain
+regression. Automatic B/P splits are unstratified. P needs at least three rows,
+finite predictions and truth, full actual design rank two, finite coefficients
+and convergence; constant predictions, absent fits and switches to none fail.
+The complete workflow's numeric output enters the unchanged IVAR/CVAR core
+with the requested valid \code{m} or \code{epsilon}. CVAR averages fold points
+and both bounds separately. No confidence or prediction intervals are added.
+See installed \code{examples/tailor-regression-holdout.R} for both paths,
+encoded names, complete native evaluation and data-role checks.
+
 All B/P plans are validated before any source is trained. Static plans must
 match local selected columns in order, values, types, levels and row order.
-Automatic splits use the local outcome with \code{pool = 0}, without retries
+Automatic classification splits use the local outcome with \code{pool = 0}, without retries
 or size adjustments; ordered valid explicit holdouts are allowed. The enclosing
 seed scope covers VA splitting, B/P splitting and fitting in stored fold order;
 NULL consumes the caller's stream and an explicit seed restores it.

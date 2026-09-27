@@ -83,10 +83,15 @@ Use `tailor_multinomial` instead for shared models with three or more classes;
 two-class OvO/OvR requires `tailor_logistic`. `prop` is the fraction reserved for the postprocessor. Recipe/model training,
 postprocessing, and VA calibration use separate B/P/C portions. This path needs
 the optional `tailor` and `probably` packages and fixed model parameters.
+Regression workflows use `method = "tailor_linear"` with `smooth=FALSE`; P needs
+at least three rows and a full-rank intercept/prediction design. Automatic
+regression splits are unstratified. The unchanged IVAR/CVAR kernels consume the
+complete adjusted workflow predictions, using the requested `m` or `epsilon`.
 
 ## Learn more
 
 - [Binary Cross example](inst/examples/cross-venn-abers.R)
+- [Regression Tailor holdout example](inst/examples/tailor-regression-holdout.R) with IVAR/CVAR and native evaluation
 - [Shared multiclass Tailor holdout example](inst/examples/tailor-multiclass-holdout.R) with encoded names and native evaluation
 - [Binary Tailor holdout example](inst/examples/tailor-holdout.R) with diagnostics, resampling and last_fit
 - [Multiclass example](inst/examples/inductive-ovo.R) and [Cross multiclass example](inst/examples/cross-multiclass.R)

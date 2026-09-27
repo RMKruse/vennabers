@@ -51,9 +51,8 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   mode <- .validate_base_workflow(workflow, outcome, classification, allow_tune = !is.null(tuning),
                                   postprocessing = postprocessing)
   if (!is.null(postprocessing)) {
-    if (mode != "classification" || pairwise ||
-        prediction_model != "matched" || !is.null(tuning)) {
-      stop("Postprocessing currently supports only shared classification matched models with fixed parameters; this combination is not implemented.", call. = FALSE)
+    if (pairwise || prediction_model != "matched" || !is.null(tuning)) {
+      stop("Postprocessing currently supports only shared matched models with fixed parameters; this combination is not implemented.", call. = FALSE)
     }
     workflow <- .postprocessing_workflow(workflow, postprocessing)
   }
@@ -845,7 +844,7 @@ venn_abers_details <- function(object, new_data, ..., loss = NULL) {
     ids <- result$details$model_source
     result$details$inner_fold <- rep("Holdout1", length(ids))
     result$details$postprocessing_method <- rep(state$parameters$requested$postprocessing$method, length(ids))
-    result$details$postprocessing_input <- rep("probability", length(ids))
+    result$details$postprocessing_input <- vapply(ids, function(id) state$postprocessing[[id]]$input, "")
     result$details$B_size <- vapply(ids, function(id) state$postprocessing[[id]]$B_size, 1L)
     result$details$P_size <- vapply(ids, function(id) state$postprocessing[[id]]$P_size, 1L)
   }

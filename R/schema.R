@@ -147,7 +147,8 @@ venn_abers_decode <- function(x, schema) {
   if (is.list(x) && !is.data.frame(x) &&
       (identical(names(x), c("prediction", "details")) ||
        identical(names(x), c("prediction", "details", "postprocessing")) ||
-       regression && identical(names(x), c("prediction", "details", "aggregate")))) {
+       regression && (identical(names(x), c("prediction", "details", "aggregate")) ||
+                      identical(names(x), c("prediction", "details", "aggregate", "postprocessing"))))) {
     result <- venn_abers_decode(x$prediction, schema)
     details <- x$details
     .schema_data_names(details)
@@ -163,11 +164,11 @@ venn_abers_decode <- function(x, schema) {
     result$details <- details
     if (!is.null(x$postprocessing)) {
       result$postprocessing <- lapply(x$postprocessing, function(p) {
-        p$classes <- as.character(.schema_decode_class(p$classes, schema, "postprocessing classes"))
+        if (!regression) p$classes <- as.character(.schema_decode_class(p$classes, schema, "postprocessing classes"))
         if (!is.null(p$event_class)) p$event_class <- as.character(.schema_decode_class(p$event_class, schema, "postprocessing event"))
         p$columns <- schema$original_columns[match(p$columns, schema$columns)]
         names(p$column_types) <- p$columns
-        p$column_types[[schema$outcome]]$levels <- schema$class_levels
+        if (!regression) p$column_types[[schema$outcome]]$levels <- schema$class_levels
         coefficient_names <- if (is.matrix(p$coefficients)) colnames(p$coefficients) else names(p$coefficients)
         coefficient_classes <- match(coefficient_names, paste0(".pred_", schema$classes))
         mapped <- !is.na(coefficient_classes)

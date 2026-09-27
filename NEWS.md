@@ -1,5 +1,11 @@
 # v0.9 development (partial implementation; acceptance open)
 
+- Add matched fixed-parameter IVAR/CVAR Tailor-linear holdouts through
+  `postprocessing`, with unstratified B/P plans, finite-input, rank and
+  convergence checks, numeric diagnostics and unchanged regression cores.
+  Include public Tailor parity across scales, data-role checks, native
+  evaluation, fresh-process RDS checks and an installed regression example.
+
 - Add shared OvO/OvR Tailor holdouts: explicit logistic for two classes and
   multinomial for three or more, with full-rank and convergence checks. Preserve
   multiclass decoding, single-row predictions and complete native evaluation.
