@@ -488,7 +488,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   for (id in names(folds)) {
     analysis <- folds[[id]]$analysis
     assessment <- folds[[id]]$assessment
-    training <- if (is.null(settings$postprocessing)) analysis else folds[[id]]$postprocessing$B
+    training <- if (is.null(settings$postprocessing) || settings$postprocessing$strategy == "ensemble") analysis else folds[[id]]$postprocessing$B
     selected <- .choose_model(workflow, local[training, , drop = FALSE], domain, settings, tuning_plan, id)
     model_selection[id] <- list(selected$diagnostics)
     if (is.null(settings$postprocessing)) {
@@ -704,8 +704,13 @@ print.vennabers_fit <- function(x, ...) {
         if (settings$prediction_model == "full") "(full-model transfer)" else "", "\n")
   }
   components <- if (identical(settings$model_training, "pairwise")) x$pair_models else list(x)
-  source_fits <- sum(vapply(components, function(part) length(part$folds), 1L))
-  retained <- sum(vapply(components, function(part) length(part$models), 1L))
+  source_fits <- sum(vapply(components, function(part) {
+    if (is.null(part$postprocessing)) length(part$folds) else
+      sum(vapply(part$postprocessing, `[[`, 1L, "observed_base_fits"))
+  }, 1L))
+  retained <- sum(vapply(components, function(part) sum(vapply(part$models, function(model) {
+    if (inherits(model, "vennabers_ensemble")) length(model$models) else 1L
+  }, 1L)), 1L))
   calibration_rows <- sum(vapply(components, function(part) {
     sum(vapply(part$calibration, function(values) length(values$row), 1L))
   }, 0))
@@ -843,11 +848,18 @@ venn_abers_details <- function(object, new_data, ..., loss = NULL) {
   if (!is.null(state$postprocessing)) {
     result$postprocessing <- state$postprocessing
     ids <- result$details$model_source
-    result$details$inner_fold <- rep("Holdout1", length(ids))
     result$details$postprocessing_method <- rep(state$parameters$requested$postprocessing$method, length(ids))
     result$details$postprocessing_input <- vapply(ids, function(id) state$postprocessing[[id]]$input, "")
-    result$details$B_size <- vapply(ids, function(id) state$postprocessing[[id]]$B_size, 1L)
-    result$details$P_size <- vapply(ids, function(id) state$postprocessing[[id]]$P_size, 1L)
+    if (state$parameters$requested$postprocessing$strategy == "ensemble") {
+      result$details$inner_fold <- lapply(ids, function(id) names(state$postprocessing[[id]]$inner_folds))
+      for (size in c("B_size", "P_size")) result$details[[size]] <- lapply(ids, function(id) {
+        vapply(state$postprocessing[[id]]$inner_folds, `[[`, 1L, size)
+      })
+    } else {
+      result$details$inner_fold <- rep("Holdout1", length(ids))
+      result$details$B_size <- vapply(ids, function(id) state$postprocessing[[id]]$B_size, 1L)
+      result$details$P_size <- vapply(ids, function(id) state$postprocessing[[id]]$P_size, 1L)
+    }
   }
   result$prediction <- .bind_schema(result$prediction, state$schema)
   .bind_schema(result, state$schema)

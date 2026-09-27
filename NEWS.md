@@ -1,5 +1,10 @@
 # v0.9 development (partial implementation; acceptance open)
 
+- Add binary inner ensembles for matched Inductive/Cross VA with Tailor
+  logistic or either Sigmoid input. Validate local P partitions, retain all
+  complete B/P pairs, and average their aligned probabilities equally before
+  VA. Preserve pair diagnostics, fit counts, schema and fresh RDS prediction.
+
 - Add matched IVAR/CVAR numeric isotonic holdouts using unweighted P fits,
   frequency-aware ties, linear interpolation and constant edge extension.
   Save the complete B workflow and isotonic support for prediction; cover
@@ -25,7 +30,8 @@
   incompatible steps, deficient designs and unsuccessful learned states.
   Preserve complete source workflows, plans and fit diagnostics through RDS.
 - Add an installed example covering complete native resampling and last_fit.
-  Remaining v0.9 methods, ensembles, full models and tuning are not implemented.
+  Multiclass/regression ensembles, pairwise postprocessing, full postprocessing
+  models and postprocessing tuning remain unimplemented.
 
 # v0.8 development candidate (acceptance open)
 

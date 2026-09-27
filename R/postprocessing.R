@@ -26,8 +26,8 @@
       stop("`postprocessing$v` must be one whole number of at least two.", call. = FALSE)
     }
   }
-  if (!post$method %in% c("tailor_logistic", "tailor_multinomial", "tailor_linear", "sigmoid", "isotonic_numeric") || post$strategy != "holdout") {
-    stop("Only tailor_logistic, tailor_multinomial, tailor_linear, sigmoid or isotonic_numeric with holdout postprocessing is implemented.", call. = FALSE)
+  if (post$strategy == "ensemble" && !post$method %in% c("tailor_logistic", "sigmoid")) {
+    stop("Ensemble postprocessing currently supports only binary tailor_logistic or sigmoid.", call. = FALSE)
   }
   for (package in if (post$method %in% c("sigmoid", "isotonic_numeric")) character() else c("tailor", "probably")) {
     minimum <- if (package == "tailor") "0.1.0" else "1.1.0"
@@ -139,7 +139,12 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
     stop(post$method, " B/P plan: ", if (numeric) "Regression requires" else paste(k, "model classes require"),
       " explicitly selecting ", if (numeric) "tailor_linear or isotonic_numeric" else expected, ".", call. = FALSE)
   }
+  ensemble <- post$strategy == "ensemble"
+  if (ensemble && (numeric || settings$classification != "binary")) {
+    stop("Ensemble postprocessing currently requires binary classification.", call. = FALSE)
+  }
   for (id in names(folds)) {
+    inner_id <- if (ensemble) "ensemble" else "Holdout1"
     folds[[id]]$postprocessing <- tryCatch({
       Q <- folds[[id]]$analysis
       local <- domain$data[Q, , drop = FALSE]
@@ -147,35 +152,60 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
       if (is.function(plan)) plan <- plan(local)
       if (!"splits" %in% names(post)) {
         outcome <- if (numeric) NULL else domain$outcome
-        plan <- rlang::inject(rsample::initial_split(local, prop = 1 - post$prop, strata = !!outcome, pool = 0))
+        if (ensemble && post$v > nrow(local)) stop("v cannot exceed local Q rows; folds are not reduced.", call. = FALSE)
+        plan <- if (ensemble) rlang::inject(rsample::vfold_cv(local, v = post$v, strata = !!outcome, pool = 0)) else
+          rlang::inject(rsample::initial_split(local, prop = 1 - post$prop, strata = !!outcome, pool = 0))
       }
-      if (inherits(plan, "rsplit") && !identical(names(plan$data), names(local))) {
+      bindings <- if (inherits(plan, "rset")) plan$splits else list(plan)
+      for (split in bindings) if (inherits(split, "rsplit") && !identical(names(split$data), names(local))) {
         stop("Split data binding columns and their order must match local Q.", call. = FALSE)
       }
-      positions <- .inductive_split(plan, local)
-      if (!numeric) for (role in c("analysis", "assessment")) {
-        rows <- positions[[role]]
-        label <- if (role == "analysis") "B" else "P"
-        if (any(tabulate(local[[domain$outcome]][rows], nbins = length(domain$classes)) == 0L)) {
-          stop(label, " (", length(rows), " rows) must contain all model classes: ", paste(domain$classes, collapse = ", "), ".", call. = FALSE)
+      positions <- if (ensemble) .cross_splits(plan, local) else list(Holdout1 = .inductive_split(plan, local))
+      pairs <- positions
+      for (inner_id in names(positions)) {
+        pair <- positions[[inner_id]]
+        if (!numeric) for (role in c("analysis", "assessment")) {
+          rows <- pair[[role]]
+          label <- if (role == "analysis") "B" else "P"
+          if (any(tabulate(local[[domain$outcome]][rows], nbins = length(domain$classes)) == 0L)) {
+            stop(label, " (", length(rows), " rows) must contain all model classes: ", paste(domain$classes, collapse = ", "), ".", call. = FALSE)
+          }
         }
+        minimum <- if (post$method %in% c("sigmoid", "isotonic_numeric")) 1L else k
+        if (length(pair$assessment) <= minimum) {
+          stop("P has ", length(pair$assessment), " rows; requires at least ", minimum + 1L,
+            if (!post$method %in% c("sigmoid", "isotonic_numeric")) paste0(" (more than design rank ", k, ")"), ".", call. = FALSE)
+        }
+        pairs[[inner_id]] <- list(Q = Q, B = Q[pair$analysis], P = Q[pair$assessment],
+          analysis = pair$analysis, assessment = pair$assessment)
       }
-      minimum <- if (post$method %in% c("sigmoid", "isotonic_numeric")) 1L else k
-      if (length(positions$assessment) <= minimum) {
-        stop("P has ", length(positions$assessment), " rows; requires at least ", minimum + 1L,
-          if (!post$method %in% c("sigmoid", "isotonic_numeric")) paste0(" (more than design rank ", k, ")"), ".", call. = FALSE)
-      }
-      list(Q = Q, B = Q[positions$analysis], P = Q[positions$assessment],
-        analysis = positions$analysis, assessment = positions$assessment)
-    }, error = function(e) stop(id, " / Holdout1 ", post$method, " B/P plan: ", conditionMessage(e), call. = FALSE))
+      if (ensemble) pairs else pairs[[1L]]
+    }, error = function(e) stop(id, " / ", inner_id, " ", post$method, " B/P plan: ", conditionMessage(e), call. = FALSE))
   }
   folds
 }
 
-.fit_postprocessing <- function(workflow, data, fold, domain, settings, id) {
+.fit_postprocessing <- function(workflow, data, fold, domain, settings, id, inner_id = "Holdout1") {
+  if (settings$postprocessing$strategy == "ensemble") {
+    pairs <- lapply(names(fold$postprocessing), function(j) {
+      local_fold <- fold
+      local_fold$postprocessing <- fold$postprocessing[[j]]
+      holdout <- settings
+      holdout$postprocessing$strategy <- "holdout"
+      .fit_postprocessing(workflow, data, local_fold, domain, holdout, id, j)
+    })
+    names(pairs) <- names(fold$postprocessing)
+    diagnostics <- lapply(pairs, `[[`, "diagnostics")
+    model <- structure(list(models = lapply(pairs, `[[`, "model"), classes = domain$classes,
+      inner_folds = names(pairs), method = settings$postprocessing$method, context = paste(id, settings$postprocessing$method)), class = "vennabers_ensemble")
+    return(list(model = model, diagnostics = list(format_version = 1L,
+      method = settings$postprocessing$method, strategy = "ensemble", input = diagnostics[[1L]]$input,
+      Q = fold$analysis, C = fold$assessment, VA_fold = id, inner_folds = diagnostics,
+      observed_base_fits = length(pairs), observed_postprocessor_fits = length(pairs))))
+  }
   plan <- fold$postprocessing
   method <- sub("^tailor_", "", settings$postprocessing$method)
-  context <- paste0(id, " / Holdout1 ", settings$postprocessing$method, " (B=", length(plan$B), ", P=", length(plan$P), ")")
+  context <- paste0(id, " / ", inner_id, " ", settings$postprocessing$method, " (B=", length(plan$B), ", P=", length(plan$P), ")")
   warnings <- character()
   result <- tryCatch(withCallingHandlers({
     if (method == "isotonic_numeric") {
@@ -225,7 +255,7 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
   }), error = function(e) stop(context, ": ", conditionMessage(e), call. = FALSE))
   list(model = result$model, diagnostics = c(plan, list(format_version = 1L,
     method = settings$postprocessing$method, strategy = "holdout",
-    input = if (method == "sigmoid") settings$postprocessing$sigmoid_input else if (method %in% c("linear", "isotonic_numeric")) "numeric" else "probability", inner_fold = "Holdout1",
+    input = if (method == "sigmoid") settings$postprocessing$sigmoid_input else if (method %in% c("linear", "isotonic_numeric")) "numeric" else "probability", inner_fold = inner_id,
     VA_fold = id, C = fold$assessment, B_size = length(plan$B), P_size = length(plan$P),
     classes = domain$classes, event_class = domain$event, schema = domain$schema,
     columns = names(data), column_types = lapply(data, function(x) list(class = class(x), typeof = typeof(x), levels = levels(x))),
@@ -243,4 +273,26 @@ predict.vennabers_isotonic_workflow <- function(object, newdata, type = "numeric
   adjusted <- if (length(knots$x) == 1L) rep(knots$y, length(prediction)) else
     stats::approx(knots$x, knots$y, xout = prediction, rule = 2)$y
   tibble::tibble(.pred = adjusted)
+}
+
+#' @export
+predict.vennabers_ensemble <- function(object, newdata, type = "prob", ...) {
+  .integration_dots(...)
+  .validate_choice(type, "prob", "type")
+  if (!identical(names(object$models), object$inner_folds) || length(object$models) < 2L ||
+      any(vapply(object$models, is.null, logical(1)))) {
+    stop(object$context, " incomplete inner ensemble.", call. = FALSE)
+  }
+  if (!nrow(newdata)) return(tibble::as_tibble(stats::setNames(
+    rep(list(numeric()), length(object$classes)), paste0(".pred_", object$classes))))
+  # RDS restores S3 objects without necessarily loading their optional methods.
+  if (object$method == "tailor_logistic" && !requireNamespace("tailor", quietly = TRUE)) {
+    stop(object$context, " prediction requires optional package 'tailor'.", call. = FALSE)
+  }
+  probabilities <- lapply(object$inner_folds, function(j) {
+    .base_probability(object$models[[j]], newdata, object$classes, NULL, paste(object$context, "/", j))
+  })
+  averaged <- Reduce(`+`, probabilities) / length(probabilities)
+  colnames(averaged) <- paste0(".pred_", object$classes)
+  tibble::as_tibble(averaged)
 }

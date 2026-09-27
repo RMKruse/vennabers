@@ -163,7 +163,11 @@ venn_abers_decode <- function(x, schema) {
     attr(details, "vennabers_schema") <- NULL
     result$details <- details
     if (!is.null(x$postprocessing)) {
-      result$postprocessing <- lapply(x$postprocessing, function(p) {
+      decode_postprocessing <- function(p) {
+        if (!is.null(p$inner_folds)) {
+          p$inner_folds <- lapply(p$inner_folds, decode_postprocessing)
+          return(p)
+        }
         if (!regression) p$classes <- as.character(.schema_decode_class(p$classes, schema, "postprocessing classes"))
         if (!is.null(p$event_class)) p$event_class <- as.character(.schema_decode_class(p$event_class, schema, "postprocessing event"))
         if (!is.null(p$sigmoid_class)) p$sigmoid_class <- as.character(.schema_decode_class(p$sigmoid_class, schema, "sigmoid class"))
@@ -181,7 +185,8 @@ venn_abers_decode <- function(x, schema) {
           } else names(p$coefficients) <- coefficient_names
         }
         p
-      })
+      }
+      result$postprocessing <- lapply(x$postprocessing, decode_postprocessing)
     }
     if ("aggregate" %in% names(x)) {
       .schema_data_names(x$aggregate)

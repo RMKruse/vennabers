@@ -234,8 +234,6 @@ testthat::test_that("postprocessing rejects invalid requests and all local plans
     bad <- post; bad["prop"] <- list(size)
     testthat::expect_error(calibrated_workflow(base, "truth", postprocessing = bad), "prop")
   }
-  testthat::expect_error(calibrated_workflow(base, "truth",
-    postprocessing = list(method = "tailor_logistic", strategy = "ensemble", v = 3)), "implemented")
   testthat::expect_error(calibrated_workflow(base, "truth", prediction_model = "full", postprocessing = post), "not implemented")
   testthat::expect_error(calibrated_workflow(base, "truth", classification = "ovo", model_training = "pairwise", postprocessing = post), "not implemented")
   testthat::expect_error(calibrated_workflow(base, "truth", tuning = list(), postprocessing = post), "not implemented")
