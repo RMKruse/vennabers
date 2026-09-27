@@ -42,7 +42,7 @@ unresolved tune placeholders without \code{tuning}, and postprocessors without a
 explicit matching \code{postprocessing} request are rejected.}
 \item{postprocessing}{NULL preserves the existing unprocessed training path and
 does not remove a supplied postprocessor. Otherwise a named list with explicit
-\code{method = "tailor_logistic"}, \code{"tailor_multinomial"}, \code{"tailor_linear"}, or \code{"sigmoid"},
+\code{method = "tailor_logistic"}, \code{"tailor_multinomial"}, \code{"tailor_linear"}, \code{"sigmoid"}, or \code{"isotonic_numeric"},
 \code{strategy = "holdout"}, and either
 \code{prop} (the P fraction, strictly between zero and one) or \code{splits}
 (a local rsplit or serializable function of local Q data). Analysis is B;
@@ -498,6 +498,16 @@ and both bounds separately. No confidence or prediction intervals are added.
 See installed \code{examples/tailor-regression-holdout.R} for both paths,
 encoded names, complete native evaluation and data-role checks.
 
+\code{method = "isotonic_numeric"} accepts a regression base workflow without
+a postprocessor. The recipe and engine learn on B, and unweighted increasing
+least-squares isotonic regression learns on finite P predictions and truths.
+At least two P rows are needed; tied predictions retain their frequencies.
+Fitted support values are linearly interpolated, extended constantly beyond
+the support, and are not restricted to [0,1]. A single support predicts the
+mean P truth everywhere. No full-rank or Ridge condition applies. The complete
+saved B workflow and isotonic fit enter the same IVAR/CVAR cores. See installed
+\code{examples/isotonic-regression-holdout.R} for both native evaluation paths.
+
 All B/P plans are validated before any source is trained. Static plans must
 match local selected columns in order, values, types, levels and row order.
 Automatic classification splits use the local outcome with \code{pool = 0}, without retries
@@ -508,7 +518,7 @@ NULL consumes the caller's stream and an explicit seed restores it.
 \code{extract_fit_engine(fitted)$postprocessing} and the \code{postprocessing}
 element of \code{venn_abers_details()} store actual Q/B/P/C row memberships,
 Q-local analysis/assessment positions, sizes, class/event and schema bindings,
-RNG settings, coefficients, rank, warnings and observed fit counts. Prediction
+RNG settings, method-specific fit state, warnings and observed fit counts. Prediction
 details add the inner fold, method, input and B/P sizes. Package versions are
 stored in the fitted engine's \code{versions}. Each nonempty prediction calls
 each complete retained workflow once; empty batches call none. Predict needs

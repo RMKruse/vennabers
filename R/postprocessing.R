@@ -26,10 +26,10 @@
       stop("`postprocessing$v` must be one whole number of at least two.", call. = FALSE)
     }
   }
-  if (!post$method %in% c("tailor_logistic", "tailor_multinomial", "tailor_linear", "sigmoid") || post$strategy != "holdout") {
-    stop("Only tailor_logistic, tailor_multinomial, tailor_linear or sigmoid with holdout postprocessing is implemented.", call. = FALSE)
+  if (!post$method %in% c("tailor_logistic", "tailor_multinomial", "tailor_linear", "sigmoid", "isotonic_numeric") || post$strategy != "holdout") {
+    stop("Only tailor_logistic, tailor_multinomial, tailor_linear, sigmoid or isotonic_numeric with holdout postprocessing is implemented.", call. = FALSE)
   }
-  for (package in if (post$method == "sigmoid") character() else c("tailor", "probably")) {
+  for (package in if (post$method %in% c("sigmoid", "isotonic_numeric")) character() else c("tailor", "probably")) {
     minimum <- if (package == "tailor") "0.1.0" else "1.1.0"
     if (!requireNamespace(package, quietly = TRUE) || utils::packageVersion(package) < minimum) {
       stop("Postprocessing requires optional package ", sQuote(package), " >= ", minimum, ".", call. = FALSE)
@@ -39,6 +39,12 @@
 }
 
 .postprocessing_workflow <- function(workflow, postprocessing) {
+  if (postprocessing$method == "isotonic_numeric") {
+    if (!is.null(tryCatch(workflows::extract_postprocessor(workflow), error = function(e) NULL))) {
+      stop("isotonic_numeric requires a base workflow without a postprocessor.", call. = FALSE)
+    }
+    return(workflow)
+  }
   if (postprocessing$method == "sigmoid") {
     .validate_sigmoid_workflow(workflow, postprocessing$sigmoid_input)
     return(workflow)
@@ -128,9 +134,10 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
   numeric <- is.null(domain$classes)
   k <- if (numeric) 2L else length(domain$classes)
   expected <- if (numeric) "tailor_linear" else if (k == 2L) "tailor_logistic" else "tailor_multinomial"
-  if (post$method != expected && !(post$method == "sigmoid" && !numeric && k == 2L && settings$classification == "binary")) {
+  if (post$method != expected && !(post$method == "isotonic_numeric" && numeric) &&
+      !(post$method == "sigmoid" && !numeric && k == 2L && settings$classification == "binary")) {
     stop(post$method, " B/P plan: ", if (numeric) "Regression requires" else paste(k, "model classes require"),
-      " explicitly selecting ", expected, ".", call. = FALSE)
+      " explicitly selecting ", if (numeric) "tailor_linear or isotonic_numeric" else expected, ".", call. = FALSE)
   }
   for (id in names(folds)) {
     folds[[id]]$postprocessing <- tryCatch({
@@ -153,10 +160,10 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
           stop(label, " (", length(rows), " rows) must contain all model classes: ", paste(domain$classes, collapse = ", "), ".", call. = FALSE)
         }
       }
-      minimum <- if (post$method == "sigmoid") 1L else k
+      minimum <- if (post$method %in% c("sigmoid", "isotonic_numeric")) 1L else k
       if (length(positions$assessment) <= minimum) {
         stop("P has ", length(positions$assessment), " rows; requires at least ", minimum + 1L,
-          if (post$method != "sigmoid") paste0(" (more than design rank ", k, ")"), ".", call. = FALSE)
+          if (!post$method %in% c("sigmoid", "isotonic_numeric")) paste0(" (more than design rank ", k, ")"), ".", call. = FALSE)
       }
       list(Q = Q, B = Q[positions$analysis], P = Q[positions$assessment],
         analysis = positions$analysis, assessment = positions$assessment)
@@ -171,7 +178,17 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
   context <- paste0(id, " / Holdout1 ", settings$postprocessing$method, " (B=", length(plan$B), ", P=", length(plan$P), ")")
   warnings <- character()
   result <- tryCatch(withCallingHandlers({
-    if (method == "sigmoid") {
+    if (method == "isotonic_numeric") {
+      base <- generics::fit(workflow, data[plan$B, , drop = FALSE])
+      prediction <- .base_numeric(base, data[plan$P, , drop = FALSE], context)
+      truth <- data[[domain$outcome]][plan$P]
+      iso <- stats::isoreg(prediction, truth)
+      sorted_rows <- order(prediction)
+      distinct_support <- !duplicated(prediction[sorted_rows])
+      knots <- list(x = prediction[sorted_rows][distinct_support], y = iso$yf[distinct_support])
+      model <- structure(list(workflow = base, isotonic = knots), class = "vennabers_isotonic_workflow")
+      result <- list(model = model)
+    } else if (method == "sigmoid") {
       result <- .fit_sigmoid_workflow(workflow, data, plan, domain, settings$postprocessing$sigmoid_input, context)
       model <- result$model$workflow
     } else {
@@ -194,7 +211,7 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
       }
       result <- list(model = model, rank = estimate$rank, coefficients = stats::coef(estimate))
     }
-    engine <- workflows::extract_fit_engine(model)
+    engine <- workflows::extract_fit_engine(if (method == "isotonic_numeric") model$workflow else model)
     if (is.list(engine) && (identical(engine$converged, FALSE) ||
         inherits(engine, "nnet") && !isTRUE(engine$convergence == 0))) {
       stop("B engine did not converge.", call. = FALSE)
@@ -208,11 +225,22 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
   }), error = function(e) stop(context, ": ", conditionMessage(e), call. = FALSE))
   list(model = result$model, diagnostics = c(plan, list(format_version = 1L,
     method = settings$postprocessing$method, strategy = "holdout",
-    input = if (method == "sigmoid") settings$postprocessing$sigmoid_input else if (method == "linear") "numeric" else "probability", inner_fold = "Holdout1",
+    input = if (method == "sigmoid") settings$postprocessing$sigmoid_input else if (method %in% c("linear", "isotonic_numeric")) "numeric" else "probability", inner_fold = "Holdout1",
     VA_fold = id, C = fold$assessment, B_size = length(plan$B), P_size = length(plan$P),
     classes = domain$classes, event_class = domain$event, schema = domain$schema,
     columns = names(data), column_types = lapply(data, function(x) list(class = class(x), typeof = typeof(x), levels = levels(x))),
     seed = settings$seed, rng_kind = RNGkind(), rank = result$rank, coefficients = result$coefficients,
     scale = result$scale, sigmoid_class = if (method == "sigmoid") domain$classes[2L],
     converged = TRUE, warnings = warnings, observed_base_fits = 1L, observed_postprocessor_fits = 1L)))
+}
+
+#' @export
+predict.vennabers_isotonic_workflow <- function(object, newdata, type = "numeric", ...) {
+  .validate_choice(type, "numeric", "type")
+  if (!nrow(newdata)) return(tibble::tibble(.pred = numeric()))
+  prediction <- .base_numeric(object$workflow, newdata, "isotonic_numeric")
+  knots <- object$isotonic
+  adjusted <- if (length(knots$x) == 1L) rep(knots$y, length(prediction)) else
+    stats::approx(knots$x, knots$y, xout = prediction, rule = 2)$y
+  tibble::tibble(.pred = adjusted)
 }

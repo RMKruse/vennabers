@@ -400,7 +400,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   state$calibration <- component$calibration
   if (!is.null(settings$postprocessing)) {
     state$postprocessing <- component$postprocessing
-    packages <- if (settings$postprocessing$method == "sigmoid") character() else c("tailor", "probably")
+    packages <- if (settings$postprocessing$method %in% c("sigmoid", "isotonic_numeric")) character() else c("tailor", "probably")
     state$versions <- c(state$versions, vapply(setdiff(packages, names(state$versions)),
       function(p) as.character(utils::packageVersion(p)), ""))
   }

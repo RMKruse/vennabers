@@ -1,5 +1,10 @@
 # v0.9 development (partial implementation; acceptance open)
 
+- Add matched IVAR/CVAR numeric isotonic holdouts using unweighted P fits,
+  frequency-aware ties, linear interpolation and constant edge extension.
+  Save the complete B workflow and isotonic support for prediction; cover
+  native evaluation, schema decoding and fresh-process restoration.
+
 - Add binary Sigmoid holdouts with explicit probability or public GLM-logit
   inputs, sklearn-compatible smoothed targets, complete saved prediction
   state, diagnostics and native evaluation. No Python runtime is required.

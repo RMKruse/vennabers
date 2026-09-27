@@ -94,12 +94,18 @@ Regression workflows use `method = "tailor_linear"` with `smooth=FALSE`; P needs
 at least three rows and a full-rank intercept/prediction design. Automatic
 regression splits are unstratified. The unchanged IVAR/CVAR kernels consume the
 complete adjusted workflow predictions, using the requested `m` or `epsilon`.
+For numeric reference isotonic calibration, use `method = "isotonic_numeric"`
+with a base workflow without a postprocessor. P needs at least two finite rows;
+ties retain their frequencies, predictions interpolate between fitted supports,
+and extrapolation uses the nearest fitted value. No `tailor` or `probably`
+installation is needed for this method.
 
 ## Learn more
 
 - [Binary Cross example](inst/examples/cross-venn-abers.R)
 - [Binary Sigmoid holdout example](inst/examples/sigmoid-holdout.R) with probability and GLM-link inputs
 - [Regression Tailor holdout example](inst/examples/tailor-regression-holdout.R) with IVAR/CVAR and native evaluation
+- [Regression isotonic holdout example](inst/examples/isotonic-regression-holdout.R) with IVAR/CVAR and native evaluation
 - [Shared multiclass Tailor holdout example](inst/examples/tailor-multiclass-holdout.R) with encoded names and native evaluation
 - [Binary Tailor holdout example](inst/examples/tailor-holdout.R) with diagnostics, resampling and last_fit
 - [Multiclass example](inst/examples/inductive-ovo.R) and [Cross multiclass example](inst/examples/cross-multiclass.R)
