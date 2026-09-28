@@ -1,5 +1,10 @@
 # v0.9 development (partial implementation; acceptance open)
 
+- Add shared OvO/OvR inner ensembles for matched Inductive/Cross VA: explicit
+  Tailor logistic for two classes and multinomial for three or more. Average
+  complete class vectors before VA; retain local pair diagnostics, schema and
+  fit counts through native evaluation and fresh RDS prediction.
+
 - Add binary inner ensembles for matched Inductive/Cross VA with Tailor
   logistic or either Sigmoid input. Validate local P partitions, retain all
   complete B/P pairs, and average their aligned probabilities equally before
@@ -30,7 +35,7 @@
   incompatible steps, deficient designs and unsuccessful learned states.
   Preserve complete source workflows, plans and fit diagnostics through RDS.
 - Add an installed example covering complete native resampling and last_fit.
-  Multiclass/regression ensembles, pairwise postprocessing, full postprocessing
+  Regression ensembles, pairwise postprocessing, full postprocessing
   models and postprocessing tuning remain unimplemented.
 
 # v0.8 development candidate (acceptance open)

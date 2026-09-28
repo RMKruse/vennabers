@@ -90,6 +90,11 @@ Use `tailor_multinomial` instead for shared models with three or more classes;
 two-class OvO/OvR requires `tailor_logistic`. `prop` is the fraction reserved for the postprocessor. Recipe/model training,
 postprocessing, and VA calibration use separate B/P/C portions. This path needs
 the optional `tailor` and `probably` packages and fixed model parameters.
+For binary and shared OvO/OvR classification, choose `strategy = "ensemble", v = 3`
+instead of `strategy = "holdout", prop = .3` to retain three complete B/P pairs.
+The P folds partition the local Q; finished class vectors are averaged with equal
+pair weights before Inductive/Cross VA. Shared two-class models still require
+`tailor_logistic`, and three or more classes require `tailor_multinomial`.
 Regression workflows use `method = "tailor_linear"` with `smooth=FALSE`; P needs
 at least three rows and a full-rank intercept/prediction design. Automatic
 regression splits are unstratified. The unchanged IVAR/CVAR kernels consume the
@@ -106,6 +111,7 @@ installation is needed for this method.
 - [Binary Sigmoid holdout example](inst/examples/sigmoid-holdout.R) with probability and GLM-link inputs
 - [Regression Tailor holdout example](inst/examples/tailor-regression-holdout.R) with IVAR/CVAR and native evaluation
 - [Regression isotonic holdout example](inst/examples/isotonic-regression-holdout.R) with IVAR/CVAR and native evaluation
+- [Shared multiclass ensemble example](inst/examples/multiclass-ensemble.R) with retained pairs, encoded names and native evaluation
 - [Shared multiclass Tailor holdout example](inst/examples/tailor-multiclass-holdout.R) with encoded names and native evaluation
 - [Binary Tailor holdout example](inst/examples/tailor-holdout.R) with diagnostics, resampling and last_fit
 - [Multiclass example](inst/examples/inductive-ovo.R) and [Cross multiclass example](inst/examples/cross-multiclass.R)

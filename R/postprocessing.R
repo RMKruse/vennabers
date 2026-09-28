@@ -26,8 +26,8 @@
       stop("`postprocessing$v` must be one whole number of at least two.", call. = FALSE)
     }
   }
-  if (post$strategy == "ensemble" && !post$method %in% c("tailor_logistic", "sigmoid")) {
-    stop("Ensemble postprocessing currently supports only binary tailor_logistic or sigmoid.", call. = FALSE)
+  if (post$strategy == "ensemble" && !post$method %in% c("tailor_logistic", "tailor_multinomial", "sigmoid")) {
+    stop("Ensemble postprocessing currently supports only classification methods.", call. = FALSE)
   }
   for (package in if (post$method %in% c("sigmoid", "isotonic_numeric")) character() else c("tailor", "probably")) {
     minimum <- if (package == "tailor") "0.1.0" else "1.1.0"
@@ -140,9 +140,6 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
       " explicitly selecting ", if (numeric) "tailor_linear or isotonic_numeric" else expected, ".", call. = FALSE)
   }
   ensemble <- post$strategy == "ensemble"
-  if (ensemble && (numeric || settings$classification != "binary")) {
-    stop("Ensemble postprocessing currently requires binary classification.", call. = FALSE)
-  }
   for (id in names(folds)) {
     inner_id <- if (ensemble) "ensemble" else "Holdout1"
     folds[[id]]$postprocessing <- tryCatch({
@@ -286,7 +283,7 @@ predict.vennabers_ensemble <- function(object, newdata, type = "prob", ...) {
   if (!nrow(newdata)) return(tibble::as_tibble(stats::setNames(
     rep(list(numeric()), length(object$classes)), paste0(".pred_", object$classes))))
   # RDS restores S3 objects without necessarily loading their optional methods.
-  if (object$method == "tailor_logistic" && !requireNamespace("tailor", quietly = TRUE)) {
+  if (object$method %in% c("tailor_logistic", "tailor_multinomial") && !requireNamespace("tailor", quietly = TRUE)) {
     stop(object$context, " prediction requires optional package 'tailor'.", call. = FALSE)
   }
   probabilities <- lapply(object$inner_folds, function(j) {

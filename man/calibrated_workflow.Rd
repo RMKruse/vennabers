@@ -49,7 +49,8 @@ does not remove a supplied postprocessor. Otherwise a named list with explicit
 assessment is P. A supplied plan cannot be combined with prop or v. Unknown,
 duplicate, irrelevant and conflicting fields are errors. Currently binary and shared OvO/OvR
 Inductive/Cross VA and regression IVAR/CVAR with matched models and fixed parameters are implemented;
-Binary \code{tailor_logistic} and \code{sigmoid} also support
+Binary \code{tailor_logistic}/\code{sigmoid} and shared OvO/OvR
+\code{tailor_logistic} (two classes)/\code{tailor_multinomial} (three or more) support
 \code{strategy = "ensemble"}, with an explicit integer \code{v >= 2} or
 \code{splits} (a local unrepeated rset or serializable function of Q).
 Ensembles reject prop; explicit splits reject v. Other ensemble methods,
@@ -519,12 +520,14 @@ or size adjustments; ordered valid explicit holdouts are allowed. The enclosing
 seed scope covers VA splitting, B/P splitting and fitting in stored fold order;
 NULL consumes the caller's stream and an explicit seed restores it.
 
-For binary ensembles, P folds partition Q exactly once and each B is its
+For classification ensembles, P folds partition Q exactly once and each B is its
 own P complement. B/P disjointness is local to a pair: a P row can belong to
 another pair's B. Gaps, overlap, bootstrap duplicates, repeated folds and
 incorrect local data bindings fail before learning. Each pair uses the same
 complete holdout fitting rules. Aligned final probability vectors are averaged
 with equal pair weights before VA, without inner VA calibrators or size weights.
+Shared OvO/OvR averages complete class vectors in stored class order before
+binary VA aggregation and subsequent OvO coupling or OvR normalization.
 All plans are resolved first, followed by fits in stored VA/inner-fold order in
 one RNG stream; the seed is never restarted for each pair. Local plan functions
 must be pure functions of their supplied data, not call counters or global row
@@ -545,7 +548,8 @@ one VA result row and the ordered identities/sizes of every contributing pair.
 An Inductive ensemble fits J engines and J postprocessors; a K-fold Cross
 ensemble with J pairs per fold fits K*J of each. Missing or failed pairs abort
 the whole composition with fold context. See installed
-\code{examples/binary-ensemble.R} for complete native evaluation.
+\code{examples/binary-ensemble.R} and \code{examples/multiclass-ensemble.R}
+for complete native evaluation.
 Tailor and probably are optional and required only for this path.
 See installed \code{examples/tailor-holdout.R} for native fit, complete repeated
 outer resampling, last_fit, diagnostics and checks of held-out data roles.
