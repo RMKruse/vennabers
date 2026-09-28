@@ -26,9 +26,6 @@
       stop("`postprocessing$v` must be one whole number of at least two.", call. = FALSE)
     }
   }
-  if (post$strategy == "ensemble" && !post$method %in% c("tailor_logistic", "tailor_multinomial", "sigmoid")) {
-    stop("Ensemble postprocessing currently supports only classification methods.", call. = FALSE)
-  }
   for (package in if (post$method %in% c("sigmoid", "isotonic_numeric")) character() else c("tailor", "probably")) {
     minimum <- if (package == "tailor") "0.1.0" else "1.1.0"
     if (!requireNamespace(package, quietly = TRUE) || utils::packageVersion(package) < minimum) {
@@ -273,18 +270,27 @@ predict.vennabers_isotonic_workflow <- function(object, newdata, type = "numeric
 }
 
 #' @export
-predict.vennabers_ensemble <- function(object, newdata, type = "prob", ...) {
+predict.vennabers_ensemble <- function(object, newdata, type = if (is.null(object$classes)) "numeric" else "prob", ...) {
   .integration_dots(...)
-  .validate_choice(type, "prob", "type")
+  regression <- is.null(object$classes)
+  .validate_choice(type, if (regression) "numeric" else "prob", "type")
   if (!identical(names(object$models), object$inner_folds) || length(object$models) < 2L ||
       any(vapply(object$models, is.null, logical(1)))) {
     stop(object$context, " incomplete inner ensemble.", call. = FALSE)
   }
+  if (!nrow(newdata) && regression) return(tibble::tibble(.pred = numeric()))
   if (!nrow(newdata)) return(tibble::as_tibble(stats::setNames(
     rep(list(numeric()), length(object$classes)), paste0(".pred_", object$classes))))
   # RDS restores S3 objects without necessarily loading their optional methods.
-  if (object$method %in% c("tailor_logistic", "tailor_multinomial") && !requireNamespace("tailor", quietly = TRUE)) {
+  if (object$method %in% c("tailor_logistic", "tailor_multinomial", "tailor_linear") && !requireNamespace("tailor", quietly = TRUE)) {
     stop(object$context, " prediction requires optional package 'tailor'.", call. = FALSE)
+  }
+  if (regression) {
+    predictions <- lapply(object$inner_folds, function(j) {
+      .base_numeric(object$models[[j]], newdata, paste(object$context, "/", j))
+    })
+    values <- do.call(cbind, predictions)
+    return(tibble::tibble(.pred = vapply(seq_len(nrow(newdata)), function(i) .regression_mean(values[i, ]), 0)))
   }
   probabilities <- lapply(object$inner_folds, function(j) {
     .base_probability(object$models[[j]], newdata, object$classes, NULL, paste(object$context, "/", j))

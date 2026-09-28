@@ -1,5 +1,10 @@
 # v0.9 development (partial implementation; acceptance open)
 
+- Add matched IVAR/CVAR inner ensembles with Tailor-linear or numeric
+  reference isotonic postprocessing. Average complete pair predictions before
+  VA, retaining method-specific validation, local diagnostics and all pairs.
+  Cover numeric references, data roles, native evaluation and fresh RDS prediction.
+
 - Add shared OvO/OvR inner ensembles for matched Inductive/Cross VA: explicit
   Tailor logistic for two classes and multinomial for three or more. Average
   complete class vectors before VA; retain local pair diagnostics, schema and
@@ -35,7 +40,7 @@
   incompatible steps, deficient designs and unsuccessful learned states.
   Preserve complete source workflows, plans and fit diagnostics through RDS.
 - Add an installed example covering complete native resampling and last_fit.
-  Regression ensembles, pairwise postprocessing, full postprocessing
+  Pairwise postprocessing, full postprocessing
   models and postprocessing tuning remain unimplemented.
 
 # v0.8 development candidate (acceptance open)

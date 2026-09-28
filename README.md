@@ -104,6 +104,10 @@ with a base workflow without a postprocessor. P needs at least two finite rows;
 ties retain their frequencies, predictions interpolate between fitted supports,
 and extrapolation uses the nearest fitted value. No `tailor` or `probably`
 installation is needed for this method.
+Both numeric methods also accept `strategy = "ensemble", v = 3`: each pair
+keeps its complete B workflow and P postprocessor, and their finished numeric
+predictions are averaged equally before IVAR/CVAR. CVAR bounds remain descriptive
+VA bounds, not confidence or prediction intervals.
 
 ## Learn more
 
@@ -111,6 +115,7 @@ installation is needed for this method.
 - [Binary Sigmoid holdout example](inst/examples/sigmoid-holdout.R) with probability and GLM-link inputs
 - [Regression Tailor holdout example](inst/examples/tailor-regression-holdout.R) with IVAR/CVAR and native evaluation
 - [Regression isotonic holdout example](inst/examples/isotonic-regression-holdout.R) with IVAR/CVAR and native evaluation
+- [Regression ensemble example](inst/examples/regression-ensemble.R) with both numeric methods, native evaluation and held-out data checks
 - [Shared multiclass ensemble example](inst/examples/multiclass-ensemble.R) with retained pairs, encoded names and native evaluation
 - [Shared multiclass Tailor holdout example](inst/examples/tailor-multiclass-holdout.R) with encoded names and native evaluation
 - [Binary Tailor holdout example](inst/examples/tailor-holdout.R) with diagnostics, resampling and last_fit

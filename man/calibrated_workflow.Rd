@@ -50,11 +50,12 @@ assessment is P. A supplied plan cannot be combined with prop or v. Unknown,
 duplicate, irrelevant and conflicting fields are errors. Currently binary and shared OvO/OvR
 Inductive/Cross VA and regression IVAR/CVAR with matched models and fixed parameters are implemented;
 Binary \code{tailor_logistic}/\code{sigmoid} and shared OvO/OvR
-\code{tailor_logistic} (two classes)/\code{tailor_multinomial} (three or more) support
+\code{tailor_logistic} (two classes)/\code{tailor_multinomial} (three or more), and
+regression \code{tailor_linear}/\code{isotonic_numeric} support
 \code{strategy = "ensemble"}, with an explicit integer \code{v >= 2} or
 \code{splits} (a local unrepeated rset or serializable function of Q).
-Ensembles reject prop; explicit splits reject v. Other ensemble methods,
-full models and tuning combinations fail explicitly.}
+Ensembles reject prop; explicit splits reject v. Pairwise postprocessing,
+full postprocessing models and tuning combinations fail explicitly.}
 \item{tuning}{NULL keeps fixed settings. For binary, shared OvO/OvR or pairwise OvO classification and regression, a named list
 with \code{strategy = "joint"} or \code{"two_stage"} and \code{model} and/or
 \code{calibration} searches matching the present \code{tune()} placeholders.
@@ -490,7 +491,7 @@ The existing VA rules for missing C classes remain unchanged (including valid
 one-class Cross subproblems); B/P requirements do not apply to C. Use \code{venn_abers_schema()} for nonsyntactic outcome
 or class names that the underlying Tailor/probably formula interface cannot use.
 
-Regression requires \code{method = "tailor_linear"} explicitly and uses
+Linear regression postprocessing requires \code{method = "tailor_linear"} explicitly and uses
 \code{tailor::adjust_numeric_calibration(method = "linear", smooth = FALSE)}
 through the public workflow calibration path. Recipe/engine learning uses B;
 the intercept and slope are learned only on P. Numeric 0/1 targets remain
@@ -520,7 +521,7 @@ or size adjustments; ordered valid explicit holdouts are allowed. The enclosing
 seed scope covers VA splitting, B/P splitting and fitting in stored fold order;
 NULL consumes the caller's stream and an explicit seed restores it.
 
-For classification ensembles, P folds partition Q exactly once and each B is its
+For inner ensembles, P folds partition Q exactly once and each B is its
 own P complement. B/P disjointness is local to a pair: a P row can belong to
 another pair's B. Gaps, overlap, bootstrap duplicates, repeated folds and
 incorrect local data bindings fail before learning. Each pair uses the same
@@ -528,6 +529,13 @@ complete holdout fitting rules. Aligned final probability vectors are averaged
 with equal pair weights before VA, without inner VA calibrators or size weights.
 Shared OvO/OvR averages complete class vectors in stored class order before
 binary VA aggregation and subsequent OvO coupling or OvR normalization.
+Regression averages finished numeric predictions from the retained complete
+model/postprocessor pairs before IVAR/CVAR. It does not average coefficients,
+isotonic supports or separately VA-calibrated inner results. Each pair retains
+its method's P-size and rank rules, including valid constant isotonic inputs.
+CVAR's outer fold bounds remain descriptive VA bounds, not confidence or
+prediction intervals. See installed \code{examples/regression-ensemble.R}
+for both numeric methods, native evaluation, schema and held-out data checks.
 All plans are resolved first, followed by fits in stored VA/inner-fold order in
 one RNG stream; the seed is never restarted for each pair. Local plan functions
 must be pure functions of their supplied data, not call counters or global row
