@@ -136,6 +136,41 @@ Stepwise Bayes selection uses the same local searches; only complete valid
 candidates feed the next GP, and failed or repeated proposals spend budget.
 See the [installed postprocessing Bayes example](inst/examples/postprocessing-bayes.R).
 
+## Supported postprocessing compositions
+
+Each row runs with holdout or inner ensemble, Inductive or Cross VA, and
+matched or full prediction models: eight fixed compositions per row, 80 in
+total. Every composition also accepts joint or two-stage Grid/Bayes selection
+of engine/recipe settings inside each B.
+
+| Path | Methods | Compositions |
+| --- | --- | ---: |
+| Binary | Sigmoid (probability or GLM-link input), Tailor logistic | 16 |
+| Pairwise OvO | Sigmoid (either input), Tailor logistic | 16 |
+| Shared OvO, three or more classes | Tailor multinomial | 8 |
+| Shared OvR, three or more classes | Tailor multinomial | 8 |
+| Shared OvO, two classes | Tailor logistic | 8 |
+| Shared OvR, two classes | Tailor logistic | 8 |
+| Regression (IVAR/CVAR) | Reference isotonic, Tailor linear | 16 |
+
+B learns recipe and engine, P learns the postprocessor, and held-out C trains
+the unchanged VA core. Full compositions train an additional B/P holdout or
+ensemble on the permitted final data F. Without tuning, J inner pairs cost J
+(Inductive matched), 2J (Inductive full), KJ (Cross matched with K folds) or
+(K+1)J (Cross full) engine and postprocessor fits per domain and retain J, J,
+KJ or J pairs; class pairs add up. For example, three class pairs, five Cross
+folds and a three-pair ensemble in full mode train 54 engines and 54
+postprocessors and keep nine pairs.
+
+Sigmoid follows the sklearn target smoothing without a Python runtime. Tailor
+methods use the public workflow path with `smooth = FALSE`; reference isotonic
+needs neither `tailor` nor `probably`. These are R extensions of the Python
+reference, which has no tidymodels postprocessing. Out of scope: out-of-fold
+postprocessing followed by a complete engine refit, arbitrary foreign engines
+or Tailor step sequences, further methods and new constructors. Frozen
+workflows (`calibrate_workflow()`) keep their existing contract. Full-model
+transfer does not inherit split-calibration guarantees.
+
 ## Learn more
 
 - [Binary Cross example](inst/examples/cross-venn-abers.R)
@@ -158,6 +193,5 @@ See the [installed postprocessing Bayes example](inst/examples/postprocessing-ba
 - [Regression example](inst/examples/inductive-regression.R) and [Cross regression example](inst/examples/cross-regression.R)
 - [Workflow example](inst/examples/calibrated-workflow.R) and [fitted workflow example](inst/examples/frozen-binary.R)
 - [Release notes](NEWS.md)
-- [v0.8 local acceptance record](tools/acceptance-v08.md) for the support matrix and open release gates
 
 Run `help(package = "vennabers")` for the complete function reference.

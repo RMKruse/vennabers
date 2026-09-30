@@ -41,7 +41,10 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     base <- workflows::workflow() |> workflows::add_recipe(
       recipes::recipe(reformulate(predictors, outcome), d) |>
         recipes::step_normalize(recipes::all_numeric_predictors())) |> workflows::add_model(engine)
-    outer <- withr::with_seed(41, rsample::vfold_cv(d, v = 2))
+    # Repeated outer folds: identities are checked on (id, id2, .row, .config).
+    # Seeds 43-45 leave a pairwise Tailor P of about 25 rows separable; its
+    # nonconvergence is refused (no switch to none), so this example uses 42.
+    outer <- withr::with_seed(42, rsample::vfold_cv(d, v = 2, repeats = 2))
     split <- rsample::make_splits(list(analysis = 1:384, assessment = 385:480), d)
     metrics <- if (regression) yardstick::metric_set(yardstick::rmse, yardstick::mae) else
       yardstick::metric_set(yardstick::brier_class, yardstick::mn_log_loss)
@@ -58,7 +61,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
       result <- tune::fit_resamples(model, outer, metrics = metrics,
         control = tune::control_resamples(save_pred = TRUE, extract = workflows::extract_fit_engine, allow_par = FALSE))
       checker$check_encoded_evaluation(result, outer, schema)
-      states <- tune::collect_extracts(result)$.extracts
+      states <- checker$check_outer_identities(result, outer, metrics = 2L)$extracts
       for (h in seq_along(states)) {
         components <- if (pairwise) states[[h]]$pair_models else list(states[[h]])
         F_rows <- as.integer(outer$splits[[h]], "analysis"); A_rows <- as.integer(outer$splits[[h]], "assessment")

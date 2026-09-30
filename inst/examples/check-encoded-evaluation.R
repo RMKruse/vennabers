@@ -1,5 +1,33 @@
-# Run against an installed package. This audit is for one fixed configuration.
+# Run against an installed package. Two audits of one fixed outer workflow:
+# check_outer_identities() for exact outer coverage, check_encoded_evaluation()
+# for decoded names and reconstructed metrics.
 source(system.file("examples", "assertions.R", package = "vennabers"))
+# Exact outer coverage: no notes, every assessment row once per resample
+# (including repeat IDs such as id2) with the single fixed .config, `metrics`
+# finite unsummarized estimates per resample, and the required saved extracts
+# returned in the row order of `outer`.
+check_outer_identities <- function(result, outer, metrics) {
+  ids <- setdiff(names(outer), "splits")
+  notes <- tune::collect_notes(result)
+  native <- as.data.frame(tune::collect_predictions(result, summarize = FALSE))
+  scores <- as.data.frame(tune::collect_metrics(result, summarize = FALSE))
+  expected <- do.call(rbind, lapply(seq_len(nrow(outer)), function(i) {
+    rows <- as.integer(outer$splits[[i]], data = "assessment")
+    cbind(as.data.frame(outer[rep(i, length(rows)), ids, drop = FALSE]), .row = rows, .config = "pre0_mod0_post0")
+  }))
+  key <- function(table, columns) do.call(paste, c(unname(as.list(table[columns])), sep = "\r"))
+  have_ids <- all(ids %in% names(native)) && all(ids %in% names(scores))
+  assert_conditions(nrow(notes) == 0L, have_ids, nrow(native) == nrow(expected),
+    !anyDuplicated(key(native, names(expected))),
+    setequal(key(native, names(expected)), key(expected, names(expected))),
+    nrow(scores) == metrics * nrow(outer), !anyDuplicated(key(scores, c(ids, ".metric"))),
+    setequal(key(scores, ids), key(outer, ids)), all(is.finite(scores$.estimate)),
+    all(scores$.config == "pre0_mod0_post0"))
+  collected <- as.data.frame(tune::collect_extracts(result))
+  position <- match(key(outer, ids), key(collected, ids))
+  assert_conditions(nrow(collected) == nrow(outer), !anyNA(position))
+  invisible(list(predictions = native, metrics = scores, extracts = collected$.extracts[position]))
+}
 check_encoded_evaluation <- function(result, outer, schema) {
   notes <- tune::collect_notes(result)
   native <- tune::collect_predictions(result, summarize = FALSE)

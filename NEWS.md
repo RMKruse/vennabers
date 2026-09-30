@@ -1,4 +1,25 @@
-# v0.9 development (partial implementation; acceptance open)
+# vennabers 0.9.0 (local macOS acceptance candidate)
+
+- Scope: 80 fixed postprocessing compositions (method x holdout/inner ensemble
+  x Inductive/Cross x matched/full) for binary and pairwise OvO (Sigmoid,
+  Tailor logistic), shared OvO/OvR (Tailor multinomial from three classes,
+  Tailor logistic for two) and regression (reference isotonic, Tailor linear),
+  each with joint or two-stage Grid/Bayes selection inside B. B learns recipe
+  and engine, P the postprocessor, C the unchanged VA calibrator, and F is the
+  final fit data of a full composition. `?calibrated_workflow` lists costs,
+  retained pairs and limits.
+- Not included: out-of-fold postprocessing with a complete engine refit,
+  arbitrary foreign engines or Tailor step sequences, further methods and new
+  constructors.
+  Frozen workflows keep their contract.
+- The 80-combination and tuned postprocessing examples now use repeated outer
+  folds and check exact `(id, id2, .row, .config)` coverage, notes and saved
+  extracts through the installed `check_outer_identities()` helper.
+- Older entries name `tools/acceptance-v0*.md` records that are no longer in
+  the source checkout. They are historical references, not available evidence.
+- Acceptance is local to macOS. GitHub Actions stay disabled; the eight
+  R/platform combinations, Linux core-only, minimum-dependency and R-devel runs
+  and the Linux reference benchmark are deferred to v1.0 and not claimed here.
 
 - Allow stepwise Bayes selection with every postprocessing composition, using
   the same B-local searches as Grid. Only complete valid candidates feed the

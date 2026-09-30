@@ -9,6 +9,8 @@ packages <- c("vennabers", "parsnip", "withr", "workflows", "recipes", "rsample"
 cases <- list()
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
   library(vennabers)
+  checker <- new.env()
+  sys.source(system.file("examples", "check-encoded-evaluation.R", package = "vennabers"), checker)
   stratified <- function(d) rsample::vfold_cv(d, v = 2, strata = truth, pool = 0)
   plain <- function(d) rsample::vfold_cv(d, v = 2)
   grid <- function(n) list(method = "grid", grid = data.frame(degree = seq_len(n)))
@@ -71,13 +73,11 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     spec <- specs[[name]]$spec
     regression <- is.numeric(d$truth)
     metrics <- if (regression) yardstick::metric_set(yardstick::rmse) else yardstick::metric_set(yardstick::mn_log_loss)
-    outer <- withr::with_seed(11, rsample::vfold_cv(d, v = 2))
+    # Repeated outer folds: exact (id, id2, .row, .config) coverage, no notes.
+    outer <- withr::with_seed(11, rsample::vfold_cv(d, v = 2, repeats = 2))
     result <- tune::fit_resamples(spec, outer, metrics = metrics,
       control = tune::control_resamples(save_pred = TRUE, extract = workflows::extract_fit_engine, allow_par = FALSE))
-    native <- tune::collect_predictions(result)
-    assert_conditions(nrow(tune::collect_notes(result)) == 0L, identical(sort(native$.row), seq_len(nrow(d))),
-      all(is.finite(tune::collect_metrics(result)$mean)))
-    states <- tune::collect_extracts(result)$.extracts
+    states <- checker$check_outer_identities(result, outer, metrics = 1L)$extracts
     for (h in seq_along(states)) {
       state <- states[[h]]
       F_rows <- as.integer(outer$splits[[h]], "analysis"); A_rows <- as.integer(outer$splits[[h]], "assessment")

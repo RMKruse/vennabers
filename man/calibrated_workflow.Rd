@@ -23,6 +23,22 @@ Matched/full Inductive and Cross pair training are also supported in v0.7.
 Binary, shared OvO/OvR, pairwise OvO, and regression joint/two-stage grid and Bayes selection is available in v0.8;
 learned postprocessing in v0.9. Shared multiclass training does not establish
 complete Python training parity.
+
+The v0.9 postprocessing scope is a finite matrix of 80 fixed compositions:
+method x holdout/inner ensemble x Inductive/Cross x matched/full over binary
+(Sigmoid, Tailor logistic), pairwise OvO (Sigmoid, Tailor logistic), shared
+OvO/OvR with three or more classes (Tailor multinomial), shared two-class
+OvO/OvR (Tailor logistic) and regression (reference isotonic, Tailor linear).
+Every composition also accepts joint or two-stage Grid/Bayes selection of
+engine/recipe settings inside each B. B trains recipe and engine, P the
+postprocessor, C the unchanged VA calibrator; F is the permitted final fit
+data of a full composition. Without tuning, J inner pairs cost J (Inductive
+matched), 2J (Inductive full), KJ (Cross matched with K folds) or (K+1)J (Cross full)
+engine and postprocessor fits per domain, retaining J, J, KJ or J pairs;
+class pairs add up. Out of scope: out-of-fold postprocessing followed by a
+complete engine refit, arbitrary foreign engines or Tailor step sequences,
+further postprocessing methods, and new public constructors. Frozen workflows
+(\code{\link{calibrate_workflow}}) keep their existing contract.
 }
 \usage{
 calibrated_workflow(workflow, outcome, ..., predictors = NULL,
