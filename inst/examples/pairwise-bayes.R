@@ -1,8 +1,12 @@
 # Run after installation: Rscript inst/examples/pairwise-bayes.R
 library(vennabers)
 
-data <- iris[c("Sepal.Length", "Species")]
-names(data)[2L] <- "truth"
+# Three overlapping classes: unlike iris, no class pair is separable in its
+# small local splits, so the base GLMs converge.
+data <- withr::with_seed(5, {
+  truth <- factor(rep(c("setosa", "versicolor", "virginica"), 50))
+  data.frame(Sepal.Length = stats::rnorm(150, c(5.4, 5.9, 6.4)[truth], .7), truth = truth)
+})
 base <- workflows::workflow() |>
   workflows::add_recipe(recipes::recipe(truth ~ Sepal.Length, data) |>
     recipes::step_poly(Sepal.Length, degree = tune::tune("degree"))) |>
