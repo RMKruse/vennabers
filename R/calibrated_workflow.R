@@ -50,12 +50,7 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   postprocessing <- .validate_postprocessing(postprocessing)
   mode <- .validate_base_workflow(workflow, outcome, classification, allow_tune = !is.null(tuning),
                                   postprocessing = postprocessing)
-  if (!is.null(postprocessing)) {
-    if (!is.null(tuning)) {
-      stop("Postprocessing currently supports only fixed parameters; tuning is not implemented.", call. = FALSE)
-    }
-    workflow <- .postprocessing_workflow(workflow, postprocessing)
-  }
+  if (!is.null(postprocessing)) workflow <- .postprocessing_workflow(workflow, postprocessing)
   if (!is.null(schema)) {
     if (!identical(mode, schema$mode)) stop("Base workflow mode must agree with `schema`.", call. = FALSE)
     pre <- workflows::extract_preprocessor(workflow)
@@ -129,13 +124,18 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     }
   }
   tuning <- .validate_tuning(tuning, workflow, mode, model_training,
-                             loss, precision, seed, m, epsilon)
+                             loss, precision, seed, m, epsilon, postprocessing)
   if (pairwise && identical(tuning$strategy, "joint") && !is.null(tuning$model) &&
       !is.null(splits) && !is.function(splits)) {
     stop("Pairwise joint model selection requires local pair plan providers, not fixed plans.", call. = FALSE)
   }
   if (!is.null(tuning$calibration) && !is.null(splits) && !is.function(splits)) {
     stop("Calibration grid selection requires a local `splits` provider function or NULL.", call. = FALSE)
+  }
+  # Candidate compositions run on resample data, where a static B/P plan cannot bind.
+  if (!is.null(postprocessing$splits) && !is.function(postprocessing$splits) &&
+      (!is.null(tuning$calibration) || (identical(tuning$strategy, "joint") && !is.null(tuning$model)))) {
+    stop("Joint or calibration selection with postprocessing requires a `postprocessing$splits` provider function or prop/v.", call. = FALSE)
   }
   .register_vennabers()
   requested <- list(mode = mode, predictors = predictors, method = method, classification = classification,
@@ -261,11 +261,11 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   plan <- .model_tuning_plan(settings, counter)
   joint_pairwise <- identical(settings$model_training, "pairwise") &&
     identical(settings$tuning$strategy, "joint") && !is.null(settings$tuning$model)
-  grid_joint <- joint_pairwise && .pairwise_grid_joint(settings$tuning, TRUE)
+  grid_joint <- joint_pairwise && .pairwise_grid_joint(settings$tuning, TRUE, settings$postprocessing)
   if (!is.null(settings$tuning$calibration) || joint_pairwise) {
     chosen <- if (grid_joint) .choose_pairwise_joint(raw, base_workflow, outcome, parameters, counter) else
       if (!is.null(settings$tuning$calibration)) .choose_calibration(raw, base_workflow, outcome, parameters, counter) else
-        .assess_pairwise_bayes_joint(raw, base_workflow, outcome, parameters, counter)
+        .assess_pairwise_joint(raw, base_workflow, outcome, parameters, counter)
     raw <- chosen$data
     parameters$requested <- chosen$settings
     plan <- .model_tuning_plan(chosen$settings, counter, chosen$pairs, chosen$pair_grid_id)
@@ -490,16 +490,17 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   for (id in names(folds)) {
     analysis <- folds[[id]]$analysis
     assessment <- folds[[id]]$assessment
-    training <- if (is.null(settings$postprocessing) || settings$postprocessing$strategy == "ensemble") analysis else folds[[id]]$postprocessing$B
-    selected <- .choose_model(workflow, local[training, , drop = FALSE], domain, settings, tuning_plan, id)
-    model_selection[id] <- list(selected$diagnostics)
     if (is.null(settings$postprocessing)) {
-      models[[id]] <- tryCatch(.fit_base_model(selected$workflow, local[training, , drop = FALSE], tuning_plan$counter),
+      selected <- .choose_model(workflow, local[analysis, , drop = FALSE], domain, settings, tuning_plan, id)
+      model_selection[id] <- list(selected$diagnostics)
+      models[[id]] <- tryCatch(.fit_base_model(selected$workflow, local[analysis, , drop = FALSE], tuning_plan$counter),
         error = function(e) domain$fit_error(id, e))
     } else {
-      fitted <- .fit_postprocessing(selected$workflow, local, folds[[id]], domain, settings, id)
+      # Each inner B selects its own settings; P and C never enter the search.
+      fitted <- .fit_postprocessing(workflow, local, folds[[id]], domain, settings, id, tuning_plan = tuning_plan)
       models[[id]] <- fitted$model
       postprocessing[[id]] <- fitted$diagnostics
+      model_selection[id] <- list(fitted$selection)
     }
     k <- match(id, names(folds))
     calibration_predictions[[k]] <- task$pred(models[[id]], local[assessment, , drop = FALSE], domain$pred_id(id), classes, event)
@@ -522,21 +523,23 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   local <- domain$data
   # Explicit VA fold names must not be overwritten by the final diagnostics.
   id <- utils::tail(make.unique(c(names(component$postprocessing), "Full1")), 1L)
-  selected <- .choose_model(domain$workflow, local, domain, settings, tuning_plan, id)
   if (is.null(settings$postprocessing)) {
+    selected <- .choose_model(domain$workflow, local, domain, settings, tuning_plan, id)
     model <- tryCatch(.fit_base_model(selected$workflow, local, tuning_plan$counter), error = domain$full_error)
+    selection <- selected$diagnostics
   } else {
     # Resolve F only after all held-out sources: its RNG draws cannot alter C.
     plan <- .plan_postprocessing(stats::setNames(list(list(analysis = seq_len(nrow(local)), assessment = integer())), id), domain, settings)
-    fitted <- .fit_postprocessing(selected$workflow, local, plan[[id]], domain, settings, id)
+    fitted <- .fit_postprocessing(domain$workflow, local, plan[[id]], domain, settings, id, tuning_plan = tuning_plan)
     model <- fitted$model
+    selection <- fitted$selection
     component$postprocessing[[id]] <- fitted$diagnostics
   }
   # Check the prediction contract without using full-model values for calibration.
   task$pred(model, local[1L, , drop = FALSE], domain$pred_id(id), domain$classes, domain$event)
   # Discard temporary source workflows only after the complete fit succeeds.
   component$models <- stats::setNames(list(model), id)
-  component$model_selection[id] <- list(selected$diagnostics)
+  component$model_selection[id] <- list(selection)
   component$sources[] <- id
   component
 }

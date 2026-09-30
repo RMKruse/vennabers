@@ -22,7 +22,7 @@
 }
 
 .validate_tuning <- function(tuning, workflow, mode, model_training,
-                             loss, precision, seed, m, epsilon) {
+                             loss, precision, seed, m, epsilon, postprocessing = NULL) {
   model_ids <- generics::tune_args(workflow)$id
   calibration_ids <- if (mode == "regression") c(m = .tune_id(m), epsilon = .tune_id(epsilon)) else
     c(loss = .tune_id(loss), precision = .tune_id(precision))
@@ -47,7 +47,7 @@
     stop("`tuning` needs at least one model/recipe or calibration tune() placeholder.", call. = FALSE)
   }
   pair_joint <- identical(model_training, "pairwise") && identical(tuning$strategy, "joint") && length(model_ids)
-  pair_grid_joint <- .pairwise_grid_joint(tuning, identical(model_training, "pairwise"))
+  pair_grid_joint <- .pairwise_grid_joint(tuning, identical(model_training, "pairwise"), postprocessing)
   if (!is.null(tuning$joint_resamples) &&
       (!pair_joint || length(calibration_ids) ||
        !(is.function(tuning$joint_resamples) || inherits(tuning$joint_resamples, "rset")))) {
@@ -276,7 +276,8 @@
   result <- select(search, data, outcome, settings$event_level, settings$classification,
     function(values) {
       candidate <- tune::finalize_workflow(workflow, values)
-      if (tuning_plan$strategy == "two_stage") list(workflow = candidate) else {
+      # The first two-stage step scores raw engine/recipe output: no Tailor, no VA.
+      if (tuning_plan$strategy == "two_stage") list(workflow = .without_postprocessor(candidate)) else {
         nested <- settings
         nested$tuning <- NULL
         .calibrated_candidate(candidate, nested, domain$schema, tuning_plan$counter)
@@ -286,6 +287,11 @@
   result$diagnostics$seed <- settings$seed
   list(workflow = tune::finalize_workflow(workflow, result$values),
        diagnostics = result$diagnostics)
+}
+
+.without_postprocessor <- function(workflow) {
+  if (is.null(tryCatch(workflows::extract_postprocessor(workflow), error = function(e) NULL))) return(workflow)
+  workflows::remove_tailor(workflow)
 }
 
 .calibration_values <- function(settings, ids, values) {

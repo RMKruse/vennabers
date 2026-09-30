@@ -77,8 +77,13 @@
     state$tuning$models <- lapply(components, function(component) {
       selections <- component$model_selection
       for (fold in names(selections)) if (!is.null(selections[[fold]])) {
-        selections[[fold]]$pair_id <- component$pair_id
-        selections[[fold]]$fold_id <- fold
+        if (is.null(settings$postprocessing)) {
+          selections[[fold]]$pair_id <- component$pair_id
+          selections[[fold]]$fold_id <- fold
+        } else for (inner in names(selections[[fold]])) {
+          # Inner B searches already carry their fold ID.
+          selections[[fold]][[inner]]$pair_id <- component$pair_id
+        }
       }
       selections
     })

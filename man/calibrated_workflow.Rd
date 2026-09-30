@@ -48,14 +48,15 @@ does not remove a supplied postprocessor. Otherwise a named list with explicit
 (a local rsplit or serializable function of local Q data). Analysis is B;
 assessment is P. A supplied plan cannot be combined with prop or v. Unknown,
 duplicate, irrelevant and conflicting fields are errors. Currently binary, shared OvO/OvR and pairwise OvO
-Inductive/Cross VA and regression IVAR/CVAR with matched or full models and fixed parameters are implemented;
+Inductive/Cross VA and regression IVAR/CVAR with matched or full models are implemented,
+with fixed engine/recipe settings or local selection (see Tuned postprocessing);
 Binary and pairwise OvO \code{tailor_logistic}/\code{sigmoid}, shared OvO/OvR
 \code{tailor_logistic} (two classes)/\code{tailor_multinomial} (three or more), and
 regression \code{tailor_linear}/\code{isotonic_numeric} support
 \code{strategy = "ensemble"}, with an explicit integer \code{v >= 2} or
 \code{splits} (a local unrepeated rset or serializable function of Q).
 Ensembles reject prop; explicit splits reject v.
-Postprocessing tuning combinations fail explicitly.}
+Method, Sigmoid input, strategy, prop/v and prepared plans stay fixed per run.}
 \item{tuning}{NULL keeps fixed settings. For binary, shared OvO/OvR or pairwise OvO classification and regression, a named list
 with \code{strategy = "joint"} or \code{"two_stage"} and \code{model} and/or
 \code{calibration} searches matching the present \code{tune()} placeholders.
@@ -90,7 +91,10 @@ locally selected procedure on \code{joint_resamples}; model-only joint Grid
 uses that plan to select its Cartesian candidates. Omit \code{model$resamples}
 only for the Cartesian Grid route. Global plans are never used as pair plans.
 A joint grid above 4096
-combinations is rejected before fitting; reduce the grids.
+combinations is rejected before fitting; reduce the grids. With
+\code{postprocessing}, pairwise \code{joint} Grid follows the Bayes route: each
+local pair B searches itself and requires \code{model$resamples}; there is no
+Cartesian grid.
 Loss candidates are \code{"log"}/\code{"brier"}; precision candidates are
 \code{"none"}, \code{"0"}, \code{"2"}, and \code{"-2"}. Regression searches exactly one of
 \code{m = tune::tune("moderation")} or \code{epsilon = tune::tune("moderation")};
@@ -592,6 +596,34 @@ OvO/OvR, encoded names and the yardstick Brier factor of one half. Single-row
 multinomial predictions retain matrix dimensions through a stored S3 adapter
 for nnet, preserving the full Workflow/Tailor/probably prediction path.
 }
+\section{Tuned postprocessing}{
+With \code{postprocessing}, every engine/recipe search runs inside its own B:
+each VA source Q, each inner ensemble pair and each B of a full F composition,
+per class pair for pairwise OvO. The search resamples, and for \code{joint} the
+VA and B/P splits of every candidate composition, are formed within that B.
+Only then are the chosen settings fitted on B and the postprocessor on its P;
+P, C, outer assessment A and a reserved selection share S never enter a search,
+so mutating P leaves its search, recipe and engine unchanged. Inner pairs,
+VA folds and F may choose different settings; none are averaged or copied.
+
+\code{joint} scores complete calibrated compositions with fixed candidate
+settings (no nested search). The first \code{two_stage} step scores the raw
+engine/recipe without postprocessor or VA; calibration options are then chosen
+on S as before, and S never returns to final B/P fits. A candidate is eligible
+only with valid finite main scores on every expected resample, inner pair and row;
+a failed final composition fit aborts without a fallback candidate.
+
+A static \code{postprocessing$splits} plan cannot bind to candidate data, so
+joint model selection and calibration selection require a plan function or
+prop/v. \code{venn_abers_tuning(object)$models[[fold]]} (and, for pairwise,
+\code{$models[[pair]][[fold]]}) is a list of local searches named by inner fold
+(\code{Holdout1} or the ensemble fold IDs); each records \code{fold_id},
+\code{inner_fold}, its B positions and the usual search diagnostics. Each
+postprocessing record also stores its \code{selected} values. Budgets multiply
+by the inner pair count J when it is known in advance; \code{cost$observed_base_fits}
+counts every search and final B fit. See installed \code{examples/postprocessing-grid.R}.
+}
+
 \section{Printed costs}{The fitted engine prints source mappings, the number of base
 fits (including temporary source fits discarded in full mode), models used per
 nonempty prediction, and stored calibration rows containing held-out truth and

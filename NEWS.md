@@ -1,5 +1,10 @@
 # v0.9 development (partial implementation; acceptance open)
 
+- Allow joint and two-stage Grid selection with every postprocessing method,
+  holdout/ensemble, VA, pairwise and full path. Each B searches locally
+  (each VA source, inner pair and full composition); P, C, A and S stay out.
+  Two-stage scores the raw engine first; pairwise joint Grid then selects per
+  local B instead of a Cartesian pair grid. Diagnostics name every inner search.
 - Add full-model transfer for every fixed holdout/ensemble postprocessing path.
   Preserve held C values and VA calibrators, fit an additional complete B/P
   composition per allowed domain, and retain only its prediction workflows.

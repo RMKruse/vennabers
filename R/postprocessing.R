@@ -180,21 +180,23 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
   folds
 }
 
-.fit_postprocessing <- function(workflow, data, fold, domain, settings, id, inner_id = "Holdout1") {
+.fit_postprocessing <- function(workflow, data, fold, domain, settings, id, inner_id = "Holdout1",
+                                tuning_plan = NULL) {
   identity <- if (!is.null(domain$pair_id)) list(pair_id = domain$pair_id, pair_rows = domain$pair_rows) else list()
-  if (settings$postprocessing$strategy == "ensemble") {
+  # An ensemble plan is a list of inner pairs; settings stay unchanged so that
+  # nested joint candidates keep the configured strategy.
+  if (settings$postprocessing$strategy == "ensemble" && is.null(fold$postprocessing$B)) {
     pairs <- lapply(names(fold$postprocessing), function(j) {
       local_fold <- fold
       local_fold$postprocessing <- fold$postprocessing[[j]]
-      holdout <- settings
-      holdout$postprocessing$strategy <- "holdout"
-      .fit_postprocessing(workflow, data, local_fold, domain, holdout, id, j)
+      .fit_postprocessing(workflow, data, local_fold, domain, settings, id, j, tuning_plan = tuning_plan)
     })
     names(pairs) <- names(fold$postprocessing)
     diagnostics <- lapply(pairs, `[[`, "diagnostics")
     model <- structure(list(models = lapply(pairs, `[[`, "model"), classes = domain$classes,
       inner_folds = names(pairs), method = settings$postprocessing$method, context = paste(domain$pred_id(id), settings$postprocessing$method)), class = "vennabers_ensemble")
-    return(list(model = model, diagnostics = c(identity, list(format_version = 1L,
+    selection <- do.call(c, unname(lapply(pairs, `[[`, "selection")))
+    return(list(model = model, selection = selection, diagnostics = c(identity, list(format_version = 1L,
       method = settings$postprocessing$method, strategy = "ensemble", input = diagnostics[[1L]]$input,
       Q = fold$analysis, C = fold$assessment, VA_fold = id, inner_folds = diagnostics,
       observed_base_fits = length(pairs), observed_postprocessor_fits = length(pairs)))))
@@ -203,7 +205,20 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
   method <- sub("^tailor_", "", settings$postprocessing$method)
   context <- paste0(domain$pred_id(id), " / ", inner_id, " ", settings$postprocessing$method, " (B=", length(plan$B), ", P=", length(plan$P), ")")
   warnings <- character()
+  selection <- NULL
   result <- tryCatch(withCallingHandlers({
+    # Local search sees only B; the engine/recipe choice is fixed before P is used.
+    # One draw per B gives each search its own stream: data-dependent draws of
+    # another B's search (which may contain this P) cannot shift this one.
+    search_seed <- if (!is.null(tuning_plan$model)) sample.int(.Machine$integer.max, 1L)
+    choose <- function() .choose_model(workflow, data[plan$B, , drop = FALSE], domain, settings, tuning_plan, id)
+    selected <- if (is.null(search_seed)) choose() else withr::with_seed(search_seed, choose())
+    workflow <- selected$workflow
+    if (!is.null(selected$diagnostics)) {
+      selection <- stats::setNames(list(c(selected$diagnostics,
+        list(fold_id = id, inner_fold = inner_id, B = plan$B, search_seed = search_seed))), inner_id)
+    }
+    if (!is.null(tuning_plan$counter)) tuning_plan$counter$n <- tuning_plan$counter$n + 1L
     if (method == "isotonic_numeric") {
       base <- generics::fit(workflow, data[plan$B, , drop = FALSE])
       prediction <- .base_numeric(base, data[plan$P, , drop = FALSE], context)
@@ -249,7 +264,7 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
     warning(message, call. = FALSE)
     invokeRestart("muffleWarning")
   }), error = function(e) stop(context, ": ", conditionMessage(e), call. = FALSE))
-  list(model = result$model, diagnostics = c(plan, identity, list(format_version = 1L,
+  list(model = result$model, selection = selection, diagnostics = c(plan, identity, list(format_version = 1L,
     method = settings$postprocessing$method, strategy = "holdout",
     input = if (method == "sigmoid") settings$postprocessing$sigmoid_input else if (method %in% c("linear", "isotonic_numeric")) "numeric" else "probability", inner_fold = inner_id,
     VA_fold = id, C = fold$assessment, B_size = length(plan$B), P_size = length(plan$P),
@@ -257,7 +272,8 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
     columns = names(data), column_types = lapply(data, function(x) list(class = class(x), typeof = typeof(x), levels = levels(x))),
     seed = settings$seed, rng_kind = RNGkind(), rank = result$rank, coefficients = result$coefficients,
     scale = result$scale, sigmoid_class = if (method == "sigmoid") domain$classes[2L],
-    converged = TRUE, warnings = warnings, observed_base_fits = 1L, observed_postprocessor_fits = 1L)))
+    converged = TRUE, warnings = warnings, selected = selection[[1L]]$selected,
+    observed_base_fits = 1L, observed_postprocessor_fits = 1L)))
 }
 
 #' @export

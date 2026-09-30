@@ -22,7 +22,9 @@ continuation, its stop reason, elapsed time, and the global no-improvement count
 function determines a nested plan size at fit time; its count factors remain
 visible. Calibration selection also records the
 disjoint selection (S) and final fit (F) row positions. In full-model mode,
-\code{models$Full1} is its separate local search.
+\code{models$Full1} is its separate local search. With postprocessing, each
+\code{models} entry is a list of local B searches named by inner fold, with
+\code{fold_id}, \code{inner_fold}, B positions and \code{search_seed} (one draw per B from the fit stream, so each search has its own RNG stream); budgets report \code{inner_pairs}.
 For regression calibration searches, saved native predictions also carry the
 requested \code{m} or \code{epsilon} value (\code{va_m} or \code{va_epsilon}
 when the outcome itself is named \code{m} or \code{epsilon}). Actual candidate

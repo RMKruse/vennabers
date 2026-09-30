@@ -125,6 +125,14 @@ split-calibration guarantees automatically. The
 [installed full-postprocessing example](inst/examples/full-postprocessing.R)
 covers all 80 fixed combinations through native evaluation and `last_fit`.
 
+Postprocessing also accepts `tuning` with joint or two-stage Grid selection of
+engine/recipe settings. Each B (every VA source, inner ensemble pair and full
+composition) runs its own local search; P, C, outer assessment and a reserved
+selection share never enter it. Joint scores complete compositions with fixed
+candidate settings, and the first two-stage step scores the raw engine without
+postprocessor or VA. See the
+[installed postprocessing grid example](inst/examples/postprocessing-grid.R).
+
 ## Learn more
 
 - [Binary Cross example](inst/examples/cross-venn-abers.R)
@@ -141,6 +149,7 @@ covers all 80 fixed combinations through native evaluation and `last_fit`.
 - [Pairwise OvO grid example](inst/examples/pairwise-grid.R) for local pair grids and coupled selection
 - [Pairwise OvO Bayes example](inst/examples/pairwise-bayes.R) for local pair searches and coupled selection
 - [Regression grid example](inst/examples/regression-grid.R) for IVAR/CVAR with joint or two-stage selection
+- [Postprocessing grid example](inst/examples/postprocessing-grid.R) for local B searches with classification and regression postprocessing
 - [Regression Bayes example](inst/examples/regression-bayes.R) for IVAR/CVAR with joint or two-stage selection
 - [Regression example](inst/examples/inductive-regression.R) and [Cross regression example](inst/examples/cross-regression.R)
 - [Workflow example](inst/examples/calibrated-workflow.R) and [fitted workflow example](inst/examples/frozen-binary.R)

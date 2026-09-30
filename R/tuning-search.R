@@ -86,25 +86,31 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
   model_candidates <- 0L
   model_resamples <- 0L
   inner_paths <- 1
+  inner <- 1L
   pair_count <- 1L
   if (!is.null(candidate$parameters)) {
     settings <- candidate$parameters$requested
     if (identical(settings$model_training, "pairwise")) pair_count <- choose(length(classes), 2L)
     folds <- if (is.function(settings$splits)) NA_integer_ else
       if (settings$method == "cross") settings$v else 1L
-    paths <- pair_count * (folds + as.integer(identical(settings$prediction_model, "full")))
+    # Each VA/full path holds J inner B/P pairs, and each B runs its own search.
+    post <- settings$postprocessing
+    if (!is.null(post) && post$strategy == "ensemble") inner <- if (is.null(post$splits)) as.integer(post$v) else NA_integer_
+    sources <- folds + as.integer(identical(settings$prediction_model, "full"))
+    paths <- pair_count * sources * inner
     model <- candidate$tuning_plan$model
     if (!is.null(model)) {
       model_candidates <- if (identical(model$method, "bayes")) model$initial + model$iter else
         if (!is.null(model$grid_size)) model$grid_size else nrow(model$grid)
       model_resamples <- if (is.function(model$resamples)) NA_integer_ else nrow(model$resamples)
-      if (candidate$tuning_plan$strategy == "joint") inner_paths <- folds + as.integer(identical(settings$prediction_model, "full"))
+      if (candidate$tuning_plan$strategy == "joint") inner_paths <- sources * inner
     }
   }
   unit <- paths * (1 + model_candidates * model_resamples * inner_paths)
   list(candidates = nrow(search$grid), resamples = length(plans), pair_count = pair_count,
        gross_base_fit_estimate = nrow(search$grid) * length(plans) * unit,
-       paths = paths, model_candidates = model_candidates,
+       paths = paths, inner_pairs = inner,
+       model_candidates = model_candidates,
        model_resamples = model_resamples, inner_paths = inner_paths,
        reused_base_fits = 0L)
 }
