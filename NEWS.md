@@ -1,5 +1,11 @@
 # v0.9 development (partial implementation; acceptance open)
 
+- Add full-model transfer for every fixed holdout/ensemble postprocessing path.
+  Preserve held C values and VA calibrators, fit an additional complete B/P
+  composition per allowed domain, and retain only its prediction workflows.
+  Diagnostics include the final plans and actual costs; predictions reuse each
+  full composition across VA folds. Cover all 80 fixed combinations with native
+  outer evaluation, last_fit and fresh RDS prediction.
 - Add pairwise OvO holdout and ensemble postprocessing with Tailor logistic
   or either Sigmoid input before matched Inductive/Cross VA. Preserve local
   pair/fold plans, class identities, RNG order and complete prediction paths.
@@ -45,7 +51,7 @@
   incompatible steps, deficient designs and unsuccessful learned states.
   Preserve complete source workflows, plans and fit diagnostics through RDS.
 - Add an installed example covering complete native resampling and last_fit.
-  Full postprocessing models and postprocessing tuning remain unimplemented.
+  Postprocessing tuning remains unimplemented.
 
 # v0.8 development candidate (acceptance open)
 

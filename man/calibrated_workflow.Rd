@@ -48,14 +48,14 @@ does not remove a supplied postprocessor. Otherwise a named list with explicit
 (a local rsplit or serializable function of local Q data). Analysis is B;
 assessment is P. A supplied plan cannot be combined with prop or v. Unknown,
 duplicate, irrelevant and conflicting fields are errors. Currently binary, shared OvO/OvR and pairwise OvO
-Inductive/Cross VA and regression IVAR/CVAR with matched models and fixed parameters are implemented;
+Inductive/Cross VA and regression IVAR/CVAR with matched or full models and fixed parameters are implemented;
 Binary and pairwise OvO \code{tailor_logistic}/\code{sigmoid}, shared OvO/OvR
 \code{tailor_logistic} (two classes)/\code{tailor_multinomial} (three or more), and
 regression \code{tailor_linear}/\code{isotonic_numeric} support
 \code{strategy = "ensemble"}, with an explicit integer \code{v >= 2} or
 \code{splits} (a local unrepeated rset or serializable function of Q).
 Ensembles reject prop; explicit splits reject v.
-Full postprocessing models and tuning combinations fail explicitly.}
+Postprocessing tuning combinations fail explicitly.}
 \item{tuning}{NULL keeps fixed settings. For binary, shared OvO/OvR or pairwise OvO classification and regression, a named list
 with \code{strategy = "joint"} or \code{"two_stage"} and \code{model} and/or
 \code{calibration} searches matching the present \code{tune()} placeholders.
@@ -123,7 +123,9 @@ This is a fixed fit option; predict cannot change it.
 Matched uses each calibration source model for new observations. Full applies
 the unchanged held-out calibrators to predictions from one additional workflow
 trained on the entire permitted local fit domain, including calibration rows.
-For pairwise training there is one such full workflow per local class pair.}
+For pairwise training there is one such full workflow per local class pair.
+With postprocessing, full means an additional complete B/P holdout or ensemble
+on that domain, with its own inner splits; each engine still learns only on B.}
 \item{model_training}{Exactly \code{"shared"} (default) or \code{"pairwise"}.
 Explicit values are rejected for binary and regression workflows. A shared model
 produces one complete class matrix; OvO splits calibration into pairs without
@@ -514,7 +516,7 @@ mean P truth everywhere. No full-rank or Ridge condition applies. The complete
 saved B workflow and isotonic fit enter the same IVAR/CVAR cores. See installed
 \code{examples/isotonic-regression-holdout.R} for both native evaluation paths.
 
-All B/P plans are validated before any source is trained. Static plans must
+All source B/P plans are validated before any source is trained. Static plans must
 match local selected columns in order, values, types, levels and row order.
 Automatic classification splits use the local outcome with \code{pool = 0}, without retries
 or size adjustments; ordered valid explicit holdouts are allowed. The enclosing
@@ -594,6 +596,44 @@ for nnet, preserving the full Workflow/Tailor/probably prediction path.
 fits (including temporary source fits discarded in full mode), models used per
 nonempty prediction, and stored calibration rows containing held-out truth and
 model predictions. Pairwise calibration rows count membership in each pair.}
+\section{Full postprocessing compositions}{
+All fixed-parameter holdout and inner-ensemble methods also accept
+\code{prediction_model = "full"}. First every original Q composition predicts
+its held-out C and builds its VA calibrator. Only then does each permitted F
+domain resolve its own B/P plan and fit an additional complete composition.
+This ordering preserves the source RNG stream, C values and calibrators between
+matched and full fits with the same seed. F excludes outer assessment A and
+any reserved selection S; for pairwise OvO it contains only the local class pair.
+C can influence this extra composition, never its own original Q composition.
+Full refers to the whole composition: no inner engine is trained on all F rows.
+
+After successful fitting and prediction validation, only the F composition
+remains in \code{models$Full1}. Source workflows are discarded, while their
+held C values, VA calibrators, plans and postprocessing diagnostics remain.
+The additional \code{postprocessing$Full1} record uses \code{Q} for the F row
+membership, has empty \code{C}, and records its own B/P memberships and fit counts.
+Pairwise details expose it as \code{pair_N/Full1}. Prediction-row inner-fold names
+and sizes describe the retained F composition; source diagnostic records remain
+available without claiming new predictions from discarded workflows.
+If a caller's VA fold already uses \code{Full1}, the final ID gets the next free
+numeric suffix (\code{Full1.1}, etc.); \code{sources} records the actual ID.
+
+For constant inner count J (J=1 for holdout), full Inductive performs 2J engine
+and postprocessor fits; full Cross with K VA folds performs (K+1)J. Only J pairs
+are retained per domain. Different local counts are summed, including F's own J.
+Three class pairs with K=5 and J=3 perform 54 engine and 54 postprocessor fits,
+retaining nine pairs. Each nonempty batch predicts those retained pairs once,
+then reuses the composed F prediction for every original VA calibrator. Empty
+batches call no engine. A failed final plan, fit or prediction aborts the result;
+there is no fallback, retention switch or prediction-time model-mode switch.
+
+RDS retains complete F workflows and all diagnostics. Prediction needs neither
+truth, plan functions nor additional learning. See installed
+\code{examples/full-postprocessing.R} for all 80 fixed matched/full combinations,
+including shared two-class OvO/OvR, native outer evaluation and last_fit.
+The transfer limitations below apply to these complete compositions as well.
+}
+
 \section{Full-model transfer}{For \code{prediction_model="full"}, the split isolates
 calibration observations from source learning only. The extra full model includes
 them. Existing matching-model calibration or coverage guarantees do not
@@ -621,7 +661,7 @@ source(system.file("examples", "full-model-workflow.R", package = "vennabers"))
 \seealso{\code{\link{venn_abers}}, \code{\link{cross_venn_abers}}, \code{\link{venn_abers_schema}}}
 
 \section{Binary Sigmoid holdouts}{
-For binary matched Inductive/Cross workflows with fixed parameters, set
+For binary matched or full Inductive/Cross workflows with fixed parameters, set
 \code{postprocessing = list(method = "sigmoid", strategy = "holdout", prop = .3,
   sigmoid_input = "probability")} or explicitly select \code{sigmoid_input = "glm_link"}.
 The base workflow must have no postprocessor. Recipe and engine learn only on B;

@@ -76,14 +76,14 @@ Use `method = "cross"` for fold-based workflow calibration. See
 `?calibrated_workflow` and `?calibrate_workflow` for split, model and prediction
 options.
 
-Binary matched workflows also support
+Binary workflows also support
 `postprocessing = list(method = "sigmoid", strategy = "holdout", prop = .3,
 sigmoid_input = "probability")`. Select `"glm_link"` explicitly for binomial
 GLM logit inputs through the complete workflow and recipe. Sigmoid requires
 both classes in B and P, at least two P rows, and no existing postprocessor.
 It uses sklearn-compatible smoothed targets without a Python runtime dependency.
 
-Binary and shared OvO/OvR matched workflows can learn Tailor postprocessing on a separate
+Binary and shared OvO/OvR workflows can learn Tailor postprocessing on a separate
 holdout before VA calibration. Pass
 `postprocessing = list(method = "tailor_logistic", strategy = "holdout", prop = .3)`;
 Use `tailor_multinomial` instead for shared models with three or more classes;
@@ -114,6 +114,16 @@ Both numeric methods also accept `strategy = "ensemble", v = 3`: each pair
 keeps its complete B workflow and P postprocessor, and their finished numeric
 predictions are averaged equally before IVAR/CVAR. CVAR bounds remain descriptive
 VA bounds, not confidence or prediction intervals.
+
+Set `prediction_model = "full"` with any fixed postprocessing method to train
+one additional complete holdout or ensemble on the permitted fit data, with its
+own B/P splits. Held C predictions and VA calibrators stay unchanged; only the
+additional full composition is retained for prediction. Each inner engine still
+learns only on B. Full Inductive costs 2J pairs; Cross costs (K+1)J, retaining J
+per domain (sum differing local counts). Full-model transfer does not inherit
+split-calibration guarantees automatically. The
+[installed full-postprocessing example](inst/examples/full-postprocessing.R)
+covers all 80 fixed combinations through native evaluation and `last_fit`.
 
 ## Learn more
 

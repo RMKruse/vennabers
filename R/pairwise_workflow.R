@@ -155,7 +155,7 @@
       class_1 = rep(pair[1L], k), class_2 = rep(pair[2L], k),
       part[c("lower", "upper", "probability")], model_training = rep("pairwise", k),
       prediction_model = rep(object$parameters$requested$prediction_model, k),
-      model_source = rep(if (identical(shared, "Full1")) paste0(id, "/Full1") else id, k))
+      model_source = rep(if (identical(object$parameters$requested$prediction_model, "full")) paste(id, shared, sep = "/") else id, k))
   }
   list(points = point, details = details)
 }

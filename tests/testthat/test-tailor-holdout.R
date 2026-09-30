@@ -234,7 +234,6 @@ testthat::test_that("postprocessing rejects invalid requests and all local plans
     bad <- post; bad["prop"] <- list(size)
     testthat::expect_error(calibrated_workflow(base, "truth", postprocessing = bad), "prop")
   }
-  testthat::expect_error(calibrated_workflow(base, "truth", prediction_model = "full", postprocessing = post), "not implemented")
   testthat::expect_error(calibrated_workflow(base, "truth", tuning = list(), postprocessing = post), "not implemented")
   # A boundary guard ensures schema/plan rejection precedes any recipe or engine fit.
   original_fit <- getS3method("fit", "workflow", envir = asNamespace("generics"))

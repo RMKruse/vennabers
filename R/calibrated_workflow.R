@@ -51,8 +51,8 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   mode <- .validate_base_workflow(workflow, outcome, classification, allow_tune = !is.null(tuning),
                                   postprocessing = postprocessing)
   if (!is.null(postprocessing)) {
-    if (prediction_model != "matched" || !is.null(tuning)) {
-      stop("Postprocessing currently supports only matched models with fixed parameters; this combination is not implemented.", call. = FALSE)
+    if (!is.null(tuning)) {
+      stop("Postprocessing currently supports only fixed parameters; tuning is not implemented.", call. = FALSE)
     }
     workflow <- .postprocessing_workflow(workflow, postprocessing)
   }
@@ -520,14 +520,24 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
 
 .fit_component_full <- function(component, domain, task, settings, tuning_plan) {
   local <- domain$data
-  selected <- .choose_model(domain$workflow, local, domain, settings, tuning_plan, "Full1")
-  model <- tryCatch(.fit_base_model(selected$workflow, local, tuning_plan$counter), error = domain$full_error)
+  # Explicit VA fold names must not be overwritten by the final diagnostics.
+  id <- utils::tail(make.unique(c(names(component$postprocessing), "Full1")), 1L)
+  selected <- .choose_model(domain$workflow, local, domain, settings, tuning_plan, id)
+  if (is.null(settings$postprocessing)) {
+    model <- tryCatch(.fit_base_model(selected$workflow, local, tuning_plan$counter), error = domain$full_error)
+  } else {
+    # Resolve F only after all held-out sources: its RNG draws cannot alter C.
+    plan <- .plan_postprocessing(stats::setNames(list(list(analysis = seq_len(nrow(local)), assessment = integer())), id), domain, settings)
+    fitted <- .fit_postprocessing(selected$workflow, local, plan[[id]], domain, settings, id)
+    model <- fitted$model
+    component$postprocessing[[id]] <- fitted$diagnostics
+  }
   # Check the prediction contract without using full-model values for calibration.
-  task$pred(model, local[1L, , drop = FALSE], domain$pred_id("Full1"), domain$classes, domain$event)
+  task$pred(model, local[1L, , drop = FALSE], domain$pred_id(id), domain$classes, domain$event)
   # Discard temporary source workflows only after the complete fit succeeds.
-  component$models <- list(Full1 = model)
-  component$model_selection["Full1"] <- list(selected$diagnostics)
-  component$sources[] <- "Full1"
+  component$models <- stats::setNames(list(model), id)
+  component$model_selection[id] <- list(selected$diagnostics)
+  component$sources[] <- id
   component
 }
 
@@ -712,7 +722,7 @@ print.vennabers_fit <- function(x, ...) {
   }
   components <- if (identical(settings$model_training, "pairwise")) x$pair_models else list(x)
   source_fits <- sum(vapply(components, function(part) {
-    if (is.null(part$postprocessing)) length(part$folds) else
+    if (is.null(part$postprocessing)) length(part$folds) + as.integer(identical(settings$prediction_model, "full")) else
       sum(vapply(part$postprocessing, `[[`, 1L, "observed_base_fits"))
   }, 1L))
   retained <- sum(vapply(components, function(part) sum(vapply(part$models, function(model) {
@@ -721,7 +731,7 @@ print.vennabers_fit <- function(x, ...) {
   calibration_rows <- sum(vapply(components, function(part) {
     sum(vapply(part$calibration, function(values) length(values$row), 1L))
   }, 0))
-  cat("Base fits:", source_fits + if (identical(settings$prediction_model, "full")) length(components) else 0L, "\n")
+  cat("Base fits:", source_fits, "\n")
   cat("Models per nonempty prediction:", retained, "\n")
   cat("Stored calibration rows:", calibration_rows, "(held-out truth and model predictions)\n")
   if (identical(settings$model_training, "pairwise")) {
@@ -859,7 +869,8 @@ venn_abers_details <- function(object, new_data, ..., loss = NULL) {
   }))) else state$postprocessing
   if (!is.null(postprocessing)) {
     result$postprocessing <- postprocessing
-    ids <- if (pairwise) paste(result$details$pair_id, result$details$fold, sep = "/") else result$details$model_source
+    ids <- if (pairwise && state$parameters$requested$prediction_model != "full")
+      paste(result$details$pair_id, result$details$fold, sep = "/") else result$details$model_source
     result$details$postprocessing_method <- rep(state$parameters$requested$postprocessing$method, length(ids))
     result$details$postprocessing_input <- vapply(ids, function(id) postprocessing[[id]]$input, "")
     if (state$parameters$requested$postprocessing$strategy == "ensemble") {
