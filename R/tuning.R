@@ -273,16 +273,20 @@
   if (is.null(search)) return(list(workflow = workflow, diagnostics = NULL))
   outcome <- domain$outcome
   select <- if (identical(search$method, "bayes")) .bayes_select else .grid_select
-  result <- select(search, data, outcome, settings$event_level, settings$classification,
+  candidate <- if (tuning_plan$strategy == "two_stage") {
+    # The first two-stage step scores raw engine/recipe output: no Tailor, no VA.
+    # Stripped once per search: finding an absent postprocessor costs a caught error.
+    unprocessed <- .without_postprocessor(workflow)
+    function(values) list(workflow = tune::finalize_workflow(unprocessed, values))
+  } else {
     function(values) {
-      candidate <- tune::finalize_workflow(workflow, values)
-      # The first two-stage step scores raw engine/recipe output: no Tailor, no VA.
-      if (tuning_plan$strategy == "two_stage") list(workflow = .without_postprocessor(candidate)) else {
-        nested <- settings
-        nested$tuning <- NULL
-        .calibrated_candidate(candidate, nested, domain$schema, tuning_plan$counter)
-      }
-    }, "model", tuning_plan$counter)
+      nested <- settings
+      nested$tuning <- NULL
+      .calibrated_candidate(tune::finalize_workflow(workflow, values), nested, domain$schema, tuning_plan$counter)
+    }
+  }
+  result <- select(search, data, outcome, settings$event_level, settings$classification,
+                   candidate, "model", tuning_plan$counter)
   result$diagnostics$selected <- result$values
   result$diagnostics$seed <- settings$seed
   list(workflow = tune::finalize_workflow(workflow, result$values),

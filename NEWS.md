@@ -18,8 +18,12 @@
   Frozen workflows keep their contract.
 - Fix Sigmoid rejecting converged fits: with sklearn's tolerance, L-BFGS-B can
   end its line search at the optimum (`ABNORMAL_TERMINATION_IN_LNSRCH`). Such a
-  fit is now kept when its mean gradient per P row is at most `pgtol`, as
-  sklearn keeps it; other nonconvergence still fails without a fallback.
+  fit is now kept when its mean gradient per P row is at most `pgtol`
+  (sklearn keeps such a point without any check); other nonconvergence still
+  fails without a fallback.
+- Two-stage model search strips a Tailor postprocessor once per search instead
+  of once per candidate. The per-candidate check made tuned two-stage fits about
+  25% slower than in v0.8 even without postprocessing.
 - The 80-combination and tuned postprocessing examples now use repeated outer
   folds and check exact `(id, id2, .row, .config)` coverage, notes and saved
   extracts through the installed `check_outer_identities()` helper.
