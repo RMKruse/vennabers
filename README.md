@@ -132,6 +132,9 @@ selection share never enter it. Joint scores complete compositions with fixed
 candidate settings, and the first two-stage step scores the raw engine without
 postprocessor or VA. See the
 [installed postprocessing grid example](inst/examples/postprocessing-grid.R).
+Stepwise Bayes selection uses the same local searches; only complete valid
+candidates feed the next GP, and failed or repeated proposals spend budget.
+See the [installed postprocessing Bayes example](inst/examples/postprocessing-bayes.R).
 
 ## Learn more
 
@@ -150,6 +153,7 @@ postprocessor or VA. See the
 - [Pairwise OvO Bayes example](inst/examples/pairwise-bayes.R) for local pair searches and coupled selection
 - [Regression grid example](inst/examples/regression-grid.R) for IVAR/CVAR with joint or two-stage selection
 - [Postprocessing grid example](inst/examples/postprocessing-grid.R) for local B searches with classification and regression postprocessing
+- [Postprocessing Bayes example](inst/examples/postprocessing-bayes.R) for local B Bayes searches with budget and failure records
 - [Regression Bayes example](inst/examples/regression-bayes.R) for IVAR/CVAR with joint or two-stage selection
 - [Regression example](inst/examples/inductive-regression.R) and [Cross regression example](inst/examples/cross-regression.R)
 - [Workflow example](inst/examples/calibrated-workflow.R) and [fitted workflow example](inst/examples/frozen-binary.R)

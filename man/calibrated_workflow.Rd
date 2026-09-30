@@ -71,7 +71,10 @@ the seed, \code{no_improve}, and optional time limit. Local model searches and c
 \code{yardstick::mn_log_loss} for classification or \code{yardstick::rmse} for regression; \code{report_metrics} are independent yardstick
 metrics. Explicit \code{control} must be the matching \code{tune::control_grid()} or \code{tune::control_bayes()}
 with \code{save_pred=TRUE}. Bayes calls the public \code{tune::tune_bayes()} one
-iteration at a time, filtering incomplete candidates before the next call. Inner parallelism is disabled, and a custom
+iteration at a time, filtering incomplete candidates before the next call. Failed,
+dropped and repeated proposals spend one step of the \code{iter} budget and count
+toward \code{no_improve}; the time limit is checked between complete steps. Too few
+complete initial candidates stop the fit with their reasons. Inner parallelism is disabled, and a custom
 \code{extract} callback is unavailable because selection uses extraction for
 diagnostics.
 Model/recipe and calibration IDs must be unique. Calibration search requires
@@ -622,6 +625,16 @@ prop/v. \code{venn_abers_tuning(object)$models[[fold]]} (and, for pairwise,
 postprocessing record also stores its \code{selected} values. Budgets multiply
 by the inner pair count J when it is known in advance; \code{cost$observed_base_fits}
 counts every search and final B fit. See installed \code{examples/postprocessing-grid.R}.
+
+Bayes searches follow the same B-local rule. Only candidates complete over
+every resample, inner pair and row with a valid main score enter the next GP; a
+failed inner model/postprocessor pair, a missing row or an invalid main score
+excludes the whole candidate. Excluded candidates, including proposals that
+\code{tune::tune_bayes()} drops after failing on every resample, keep their
+global candidate IDs and reasons; \code{steps}, \code{notes},
+\code{stop_reason}, \code{attempts}, \code{bayes_seed} and \code{search_seed}
+record each local search. There is no switch to Grid or another method. See
+installed \code{examples/postprocessing-bayes.R}.
 }
 
 \section{Printed costs}{The fitted engine prints source mappings, the number of base

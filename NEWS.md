@@ -1,5 +1,12 @@
 # v0.9 development (partial implementation; acceptance open)
 
+- Allow stepwise Bayes selection with every postprocessing composition, using
+  the same B-local searches as Grid. Only complete valid candidates feed the
+  next GP; a failed inner pair, missing row or invalid main score excludes the
+  whole candidate. Proposals that tune drops after failing everywhere are now
+  kept as excluded candidates with global IDs and spend budget instead of
+  ending the search as repeats; Bayes diagnostics record native notes per step
+  and the too-few-initial-points error lists its reasons.
 - Allow joint and two-stage Grid selection with every postprocessing method,
   holdout/ensemble, VA, pairwise and full path. Each B searches locally
   (each VA source, inner pair and full composition); P, C, A and S stay out.
