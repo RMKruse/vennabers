@@ -173,7 +173,7 @@ venn_abers_decode <- function(x, schema) {
         if (!is.null(p$sigmoid_class)) p$sigmoid_class <- as.character(.schema_decode_class(p$sigmoid_class, schema, "sigmoid class"))
         p$columns <- schema$original_columns[match(p$columns, schema$columns)]
         names(p$column_types) <- p$columns
-        if (!regression) p$column_types[[schema$outcome]]$levels <- schema$class_levels
+        if (!regression) p$column_types[[schema$outcome]]$levels <- p$classes
         if (!is.null(p$coefficients)) {
           coefficient_names <- if (is.matrix(p$coefficients)) colnames(p$coefficients) else names(p$coefficients)
           coefficient_classes <- match(coefficient_names, paste0(".pred_", schema$classes))

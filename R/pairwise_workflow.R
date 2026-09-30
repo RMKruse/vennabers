@@ -43,6 +43,7 @@
     rows <- entry$rows
     local <- entry$local
     list(data = local, workflow = entry$workflow, plan = entry$plan, pair_id = id,
+      pair_rows = rows, schema = state$schema,
       outcome = state$outcome, strata = settings$strata, classes = pair, event = pair[2L], y = local[[state$outcome]],
       rows_word = "local pair rows", seed_wrap = TRUE,
       precheck = NULL,
@@ -128,10 +129,7 @@
   p <- if (!is.null(cache) && identical(cache$data, new_data)) cache$predictions else
     .source_predictions(component$models, component$sources, new_data,
       function(model, model_id) {
-        # The mold's fitted outcome domain binds every retained model to its pair.
-        if (!identical(levels(workflows::extract_mold(model)$outcomes[[1L]]), pair)) {
-          stop(id, " ", model_id, " model/pair identity does not match the fitted mapping.", call. = FALSE)
-        }
+        .validate_pair_model(model, pair, paste(id, model_id))
         .base_probability(model, new_data, component$class_levels, component$event_class, paste(id, model_id))
       },
       numeric)
@@ -160,4 +158,26 @@
       model_source = rep(if (identical(shared, "Full1")) paste0(id, "/Full1") else id, k))
   }
   list(points = point, details = details)
+}
+
+# Check wrappers as well as every leaf workflow: swapping one inner member
+# must not silently mix a different class pair into the global prediction.
+.validate_pair_model <- function(model, pair, context) {
+  if (inherits(model, "vennabers_ensemble")) {
+    if (!identical(names(model$models), model$inner_folds) || length(model$models) < 2L ||
+        any(vapply(model$models, is.null, logical(1)))) {
+      stop(context, " incomplete inner ensemble.", call. = FALSE)
+    }
+    for (j in names(model$models)) .validate_pair_model(model$models[[j]], pair, paste(context, "/", j))
+    classes <- model$classes
+  } else if (inherits(model, "vennabers_sigmoid")) {
+    .validate_pair_model(model$workflow, pair, context)
+    classes <- model$classes
+  } else {
+    classes <- if (inherits(model, "workflow")) levels(workflows::extract_mold(model)$outcomes[[1L]])
+  }
+  if (!identical(classes, pair)) {
+    stop(context, " model/pair identity does not match the fitted mapping.", call. = FALSE)
+  }
+  invisible(NULL)
 }

@@ -51,8 +51,8 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   mode <- .validate_base_workflow(workflow, outcome, classification, allow_tune = !is.null(tuning),
                                   postprocessing = postprocessing)
   if (!is.null(postprocessing)) {
-    if (pairwise || prediction_model != "matched" || !is.null(tuning)) {
-      stop("Postprocessing currently supports only shared matched models with fixed parameters; this combination is not implemented.", call. = FALSE)
+    if (prediction_model != "matched" || !is.null(tuning)) {
+      stop("Postprocessing currently supports only matched models with fixed parameters; this combination is not implemented.", call. = FALSE)
     }
     workflow <- .postprocessing_workflow(workflow, postprocessing)
   }
@@ -341,6 +341,11 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
       classification = settings$classification, model_training = settings$model_training,
       prediction_model = settings$prediction_model) else NULL),
     class = "vennabers_fit")
+  if (!is.null(settings$postprocessing)) {
+    packages <- if (settings$postprocessing$method %in% c("sigmoid", "isotonic_numeric")) character() else c("tailor", "probably")
+    state$versions <- c(state$versions, vapply(setdiff(packages, names(state$versions)),
+      function(p) as.character(utils::packageVersion(p)), ""))
+  }
   if (identical(settings$model_training, "pairwise")) {
     return(.fit_pairwise(base_workflow, raw, state, tuning_plan))
   }
@@ -400,9 +405,6 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   state$calibration <- component$calibration
   if (!is.null(settings$postprocessing)) {
     state$postprocessing <- component$postprocessing
-    packages <- if (settings$postprocessing$method %in% c("sigmoid", "isotonic_numeric")) character() else c("tailor", "probably")
-    state$versions <- c(state$versions, vapply(setdiff(packages, names(state$versions)),
-      function(p) as.character(utils::packageVersion(p)), ""))
   }
   if (!is.null(state$tuning)) {
     state$tuning$models <- component$model_selection
@@ -633,6 +635,11 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
 }
 
 .integration_prediction <- function(object, new_data, include_details = FALSE) {
+  post <- object$parameters$requested$postprocessing
+  if (!is.null(post) && post$method %in% c("tailor_logistic", "tailor_multinomial", "tailor_linear") &&
+      !requireNamespace("tailor", quietly = TRUE)) {
+    stop("Postprocessing prediction requires optional package 'tailor'.", call. = FALSE)
+  }
   if (identical(object$parameters$requested$model_training, "pairwise")) {
     return(.predict_pairwise(object, new_data, include_details))
   }
@@ -845,20 +852,25 @@ venn_abers_details <- function(object, new_data, ..., loss = NULL) {
   predictors <- if (frozen) .frozen_data(state, new_data) else
     hardhat::forge(new_data, blueprint = workflows::extract_mold(object)$blueprint)$predictors
   result <- .integration_prediction(state, predictors, include_details = TRUE)
-  if (!is.null(state$postprocessing)) {
-    result$postprocessing <- state$postprocessing
-    ids <- result$details$model_source
+  pairwise <- identical(state$parameters$requested$model_training, "pairwise")
+  postprocessing <- if (pairwise) do.call(c, unname(lapply(state$pair_models, function(component) {
+    if (is.null(component$postprocessing)) return(NULL)
+    stats::setNames(component$postprocessing, paste(component$pair_id, names(component$postprocessing), sep = "/"))
+  }))) else state$postprocessing
+  if (!is.null(postprocessing)) {
+    result$postprocessing <- postprocessing
+    ids <- if (pairwise) paste(result$details$pair_id, result$details$fold, sep = "/") else result$details$model_source
     result$details$postprocessing_method <- rep(state$parameters$requested$postprocessing$method, length(ids))
-    result$details$postprocessing_input <- vapply(ids, function(id) state$postprocessing[[id]]$input, "")
+    result$details$postprocessing_input <- vapply(ids, function(id) postprocessing[[id]]$input, "")
     if (state$parameters$requested$postprocessing$strategy == "ensemble") {
-      result$details$inner_fold <- lapply(ids, function(id) names(state$postprocessing[[id]]$inner_folds))
+      result$details$inner_fold <- lapply(ids, function(id) names(postprocessing[[id]]$inner_folds))
       for (size in c("B_size", "P_size")) result$details[[size]] <- lapply(ids, function(id) {
-        vapply(state$postprocessing[[id]]$inner_folds, `[[`, 1L, size)
+        vapply(postprocessing[[id]]$inner_folds, `[[`, 1L, size)
       })
     } else {
       result$details$inner_fold <- rep("Holdout1", length(ids))
-      result$details$B_size <- vapply(ids, function(id) state$postprocessing[[id]]$B_size, 1L)
-      result$details$P_size <- vapply(ids, function(id) state$postprocessing[[id]]$P_size, 1L)
+      result$details$B_size <- vapply(ids, function(id) postprocessing[[id]]$B_size, 1L)
+      result$details$P_size <- vapply(ids, function(id) postprocessing[[id]]$P_size, 1L)
     }
   }
   result$prediction <- .bind_schema(result$prediction, state$schema)

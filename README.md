@@ -95,6 +95,12 @@ instead of `strategy = "holdout", prop = .3` to retain three complete B/P pairs.
 The P folds partition the local Q; finished class vectors are averaged with equal
 pair weights before Inductive/Cross VA. Shared two-class models still require
 `tailor_logistic`, and three or more classes require `tailor_multinomial`.
+Pairwise OvO (`model_training = "pairwise"`) supports both holdout and ensemble
+postprocessing with `tailor_logistic` or either Sigmoid input. Each class pair
+is selected before its VA and B/P plans are built. Local complete predictions
+are averaged before binary VA and global OvO coupling. See the
+[installed pairwise example](inst/examples/pairwise-postprocessing.R) for native
+resampling, `last_fit`, and the distinction between class pairs and inner B/P pairs.
 Regression workflows use `method = "tailor_linear"` with `smooth=FALSE`; P needs
 at least three rows and a full-rank intercept/prediction design. Automatic
 regression splits are unstratified. The unchanged IVAR/CVAR kernels consume the

@@ -47,15 +47,15 @@ does not remove a supplied postprocessor. Otherwise a named list with explicit
 \code{prop} (the P fraction, strictly between zero and one) or \code{splits}
 (a local rsplit or serializable function of local Q data). Analysis is B;
 assessment is P. A supplied plan cannot be combined with prop or v. Unknown,
-duplicate, irrelevant and conflicting fields are errors. Currently binary and shared OvO/OvR
+duplicate, irrelevant and conflicting fields are errors. Currently binary, shared OvO/OvR and pairwise OvO
 Inductive/Cross VA and regression IVAR/CVAR with matched models and fixed parameters are implemented;
-Binary \code{tailor_logistic}/\code{sigmoid} and shared OvO/OvR
+Binary and pairwise OvO \code{tailor_logistic}/\code{sigmoid}, shared OvO/OvR
 \code{tailor_logistic} (two classes)/\code{tailor_multinomial} (three or more), and
 regression \code{tailor_linear}/\code{isotonic_numeric} support
 \code{strategy = "ensemble"}, with an explicit integer \code{v >= 2} or
 \code{splits} (a local unrepeated rset or serializable function of Q).
-Ensembles reject prop; explicit splits reject v. Pairwise postprocessing,
-full postprocessing models and tuning combinations fail explicitly.}
+Ensembles reject prop; explicit splits reject v.
+Full postprocessing models and tuning combinations fail explicitly.}
 \item{tuning}{NULL keeps fixed settings. For binary, shared OvO/OvR or pairwise OvO classification and regression, a named list
 with \code{strategy = "joint"} or \code{"two_stage"} and \code{model} and/or
 \code{calibration} searches matching the present \code{tune()} placeholders.
@@ -537,11 +537,35 @@ CVAR's outer fold bounds remain descriptive VA bounds, not confidence or
 prediction intervals. See installed \code{examples/regression-ensemble.R}
 for both numeric methods, native evaluation, schema and held-out data checks.
 All plans are resolved first, followed by fits in stored VA/inner-fold order in
-one RNG stream; the seed is never restarted for each pair. Local plan functions
+one RNG stream; the seed is never restarted for each inner B/P pair. Local plan functions
 must be pure functions of their supplied data, not call counters or global row
 positions. Different Q domains may have different inner fold counts.
 
-\code{extract_fit_engine(fitted)$postprocessing} and the \code{postprocessing}
+For pairwise OvO, restrict the data and outcome levels to each class pair before
+resolving any VA or B/P plan. Each pair supports \code{tailor_logistic} or
+\code{sigmoid} with either explicit input type; no foreign class reaches its
+recipe, model, postprocessor or plan function. Pair-local complete predictions
+are averaged before the binary VA core, and only the resulting pair points enter
+global OvO coupling. Different pairs and VA folds can have different local sizes
+and inner fold counts. Explicit B/P plans must bind to their own Q, using a pure
+local function or \code{local_calibration_splits()} for multiple prepared domains.
+Global position plans are rejected. Existing isolated VA pair-plan seeds remain
+unchanged; all B/P plans are then resolved in class-pair/VA-fold order, followed
+by fits in class-pair/VA-fold/inner-fold order in the enclosing RNG stream.
+
+Pairwise diagnostics are stored at
+\code{extract_fit_engine(fitted)$pair_models[[pair_id]]$postprocessing}.
+\code{venn_abers_details()$postprocessing} exposes these records under unique
+\code{pair_N/VA_fold} keys. Each record includes \code{pair_id} and
+\code{pair_rows} (positions in the enclosing fit data); Q/B/P/C positions are
+relative to that class pair. Inner-fold names identify model/postprocessor pairs,
+not class pairs. The decoder preserves the two-class outcome domain and translates
+its names. Costs sum the actual inner counts across every class pair and VA fold;
+all required paths remain stored. Missing members and failed fits/predictions
+abort the complete result with pair/fold context. See installed
+\code{examples/pairwise-postprocessing.R} for native resampling and last_fit.
+
+For shared models, \code{extract_fit_engine(fitted)$postprocessing} and the \code{postprocessing}
 element of \code{venn_abers_details()} store actual Q/B/P/C row memberships,
 Q-local analysis/assessment positions, sizes, class/event and schema bindings,
 RNG settings, method-specific fit state, warnings and observed fit counts. Prediction

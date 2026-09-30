@@ -132,8 +132,9 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
   k <- if (numeric) 2L else length(domain$classes)
   expected <- if (numeric) "tailor_linear" else if (k == 2L) "tailor_logistic" else "tailor_multinomial"
   if (post$method != expected && !(post$method == "isotonic_numeric" && numeric) &&
-      !(post$method == "sigmoid" && !numeric && k == 2L && settings$classification == "binary")) {
-    stop(post$method, " B/P plan: ", if (numeric) "Regression requires" else paste(k, "model classes require"),
+      !(post$method == "sigmoid" && !numeric && k == 2L &&
+        (settings$classification == "binary" || identical(settings$model_training, "pairwise")))) {
+    stop(paste(c(domain$pair_id, post$method), collapse = " "), " B/P plan: ", if (numeric) "Regression requires" else paste(k, "model classes require"),
       " explicitly selecting ", if (numeric) "tailor_linear or isotonic_numeric" else expected, ".", call. = FALSE)
   }
   ensemble <- post$strategy == "ensemble"
@@ -174,12 +175,13 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
           analysis = pair$analysis, assessment = pair$assessment)
       }
       if (ensemble) pairs else pairs[[1L]]
-    }, error = function(e) stop(id, " / ", inner_id, " ", post$method, " B/P plan: ", conditionMessage(e), call. = FALSE))
+    }, error = function(e) stop(domain$pred_id(id), " / ", inner_id, " ", post$method, " B/P plan: ", conditionMessage(e), call. = FALSE))
   }
   folds
 }
 
 .fit_postprocessing <- function(workflow, data, fold, domain, settings, id, inner_id = "Holdout1") {
+  identity <- if (!is.null(domain$pair_id)) list(pair_id = domain$pair_id, pair_rows = domain$pair_rows) else list()
   if (settings$postprocessing$strategy == "ensemble") {
     pairs <- lapply(names(fold$postprocessing), function(j) {
       local_fold <- fold
@@ -191,15 +193,15 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
     names(pairs) <- names(fold$postprocessing)
     diagnostics <- lapply(pairs, `[[`, "diagnostics")
     model <- structure(list(models = lapply(pairs, `[[`, "model"), classes = domain$classes,
-      inner_folds = names(pairs), method = settings$postprocessing$method, context = paste(id, settings$postprocessing$method)), class = "vennabers_ensemble")
-    return(list(model = model, diagnostics = list(format_version = 1L,
+      inner_folds = names(pairs), method = settings$postprocessing$method, context = paste(domain$pred_id(id), settings$postprocessing$method)), class = "vennabers_ensemble")
+    return(list(model = model, diagnostics = c(identity, list(format_version = 1L,
       method = settings$postprocessing$method, strategy = "ensemble", input = diagnostics[[1L]]$input,
       Q = fold$analysis, C = fold$assessment, VA_fold = id, inner_folds = diagnostics,
-      observed_base_fits = length(pairs), observed_postprocessor_fits = length(pairs))))
+      observed_base_fits = length(pairs), observed_postprocessor_fits = length(pairs)))))
   }
   plan <- fold$postprocessing
   method <- sub("^tailor_", "", settings$postprocessing$method)
-  context <- paste0(id, " / ", inner_id, " ", settings$postprocessing$method, " (B=", length(plan$B), ", P=", length(plan$P), ")")
+  context <- paste0(domain$pred_id(id), " / ", inner_id, " ", settings$postprocessing$method, " (B=", length(plan$B), ", P=", length(plan$P), ")")
   warnings <- character()
   result <- tryCatch(withCallingHandlers({
     if (method == "isotonic_numeric") {
@@ -247,7 +249,7 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
     warning(message, call. = FALSE)
     invokeRestart("muffleWarning")
   }), error = function(e) stop(context, ": ", conditionMessage(e), call. = FALSE))
-  list(model = result$model, diagnostics = c(plan, list(format_version = 1L,
+  list(model = result$model, diagnostics = c(plan, identity, list(format_version = 1L,
     method = settings$postprocessing$method, strategy = "holdout",
     input = if (method == "sigmoid") settings$postprocessing$sigmoid_input else if (method %in% c("linear", "isotonic_numeric")) "numeric" else "probability", inner_fold = inner_id,
     VA_fold = id, C = fold$assessment, B_size = length(plan$B), P_size = length(plan$P),

@@ -1,5 +1,10 @@
 # v0.9 development (partial implementation; acceptance open)
 
+- Add pairwise OvO holdout and ensemble postprocessing with Tailor logistic
+  or either Sigmoid input before matched Inductive/Cross VA. Preserve local
+  pair/fold plans, class identities, RNG order and complete prediction paths.
+  Include pair diagnostics, decoded names, native evaluation and fresh RDS checks.
+
 - Add matched IVAR/CVAR inner ensembles with Tailor-linear or numeric
   reference isotonic postprocessing. Average complete pair predictions before
   VA, retaining method-specific validation, local diagnostics and all pairs.
@@ -40,8 +45,7 @@
   incompatible steps, deficient designs and unsuccessful learned states.
   Preserve complete source workflows, plans and fit diagnostics through RDS.
 - Add an installed example covering complete native resampling and last_fit.
-  Pairwise postprocessing, full postprocessing
-  models and postprocessing tuning remain unimplemented.
+  Full postprocessing models and postprocessing tuning remain unimplemented.
 
 # v0.8 development candidate (acceptance open)
 
