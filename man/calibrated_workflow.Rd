@@ -511,7 +511,10 @@ a full-rank design: the logistic intercept and one probability for two classes,
 or the multinomial intercept and K-1 probabilities for K classes. Rank and
 convergence are checked on the actual learned model after the necessary B
 predictions. Failed fits, absent learned state and method switches to none
-are errors. Warnings from successful fits are retained with source/fold context.
+are errors. Tailor multinomial uses the \code{nnet::multinom()} defaults of
+\pkg{probably} (at most 100 iterations), and the fixed Tailor arguments offer
+no iteration setting: weakly informative class probabilities can stop there
+unconverged, which is an error rather than an accepted approximate fit. Warnings from successful fits are retained with source/fold context.
 The existing VA rules for missing C classes remain unchanged (including valid
 one-class Cross subproblems); B/P requirements do not apply to C. Use \code{venn_abers_schema()} for nonsyntactic outcome
 or class names that the underlying Tailor/probably formula interface cannot use.

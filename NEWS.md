@@ -8,6 +8,10 @@
   and engine, P the postprocessor, C the unchanged VA calibrator, and F is the
   final fit data of a full composition. `?calibrated_workflow` lists costs,
   retained pairs and limits.
+- Known limit: Tailor multinomial fits use probably's `nnet::multinom()`
+  defaults (at most 100 iterations) and cannot be tuned through the fixed
+  Tailor arguments; weakly informative probabilities can stop unconverged,
+  which fails the fit.
 - Not included: out-of-fold postprocessing with a complete engine refit,
   arbitrary foreign engines or Tailor step sequences, further methods and new
   constructors.
