@@ -58,6 +58,38 @@ testthat::test_that("identical sigmoid inputs match sklearn, including rare and 
   }
 })
 
+testthat::test_that("sigmoid accepts a stationary fit whose line search stops at machine precision", {
+  for (pkg in c("workflows", "rsample")) testthat::skip_if_not_installed(pkg)
+  # Pairwise P inputs from the v0.9 tuning acceptance: with sklearn's ftol,
+  # L-BFGS-B ends in ABNORMAL_TERMINATION_IN_LNSRCH at the optimum.
+  p <- read.csv(testthat::test_path("extdata", "sigmoid-line-search.csv"))
+  original <- getS3method("predict", "workflow", envir = asNamespace("workflows"))
+  controlled <- function(object, new_data, type = NULL, ...) {
+    if (inherits(workflows::extract_spec_parsnip(object), "vennabers")) return(original(object, new_data, type, ...))
+    data.frame(.pred_b = new_data$score, .pred_a = 1 - new_data$score)
+  }
+  registerS3method("predict", "workflow", controlled, envir = asNamespace("stats"))
+  on.exit(registerS3method("predict", "workflow", original, envir = asNamespace("stats")), add = TRUE)
+  base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
+    workflows::add_model(parsnip::logistic_reg(engine = "glm"))
+  d <- data.frame(x = sin(seq_len(40 + nrow(p))), score = c(rep(.5, 40), p$score),
+    truth = factor(c(rep(c("a", "b", "b", "a"), 10), ifelse(p$truth == 1L, "b", "a"))))
+  va <- function(data) rsample::make_splits(list(analysis = c(1:20, 41:nrow(data)), assessment = 21:40), data)
+  post <- list(method = "sigmoid", strategy = "holdout", sigmoid_input = "probability",
+    splits = function(data) rsample::make_splits(list(analysis = 1:20, assessment = 21:nrow(data)), data))
+  fit <- generics::fit(calibrated_workflow(base, "truth", splits = va, postprocessing = post), d)
+  model <- workflows::extract_fit_engine(fit)$models[[1]]
+  # Exact optimum of the same smoothed-target logistic objective.
+  n1 <- sum(p$truth); n0 <- nrow(p) - n1
+  target <- ifelse(p$truth == 1L, (n1 + 1) / (n1 + 2), 1 / (n0 + 2))
+  reference <- suppressWarnings(stats::glm(target ~ p$score, family = stats::quasibinomial(),
+    control = stats::glm.control(epsilon = 1e-14, maxit = 100)))
+  grid <- seq(0, 1, by = .05)
+  expected <- stats::plogis(coef(reference)[[1L]] + coef(reference)[[2L]] * grid)
+  actual <- predict(model, data.frame(x = 0, score = grid), type = "prob")$.pred_b
+  testthat::expect_lte(max(abs(actual - expected)), 1e-7)
+})
+
 testthat::test_that("sigmoid rejects incompatible workflows and invalid local learning inputs", {
   for (pkg in c("workflows", "rsample", "tailor")) testthat::skip_if_not_installed(pkg)
   d <- data.frame(x = sin(1:80), truth = factor(rep(c("a", "b"), 40)))

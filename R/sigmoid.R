@@ -55,7 +55,12 @@
   } else {
     fit <- stats::optim(c(0, log((n0 + 1) / (n1 + 1))), loss, gradient,
       method = "L-BFGS-B", control = list(factr = 64, pgtol = 1e-6, maxit = 1000))
-    if (fit$convergence != 0L || !all(is.finite(fit$par)) || !is.finite(fit$value)) {
+    # With sklearn's ftol (factr = 64) the line search can stop at the optimum
+    # because no representable step decreases the loss (code 52); sklearn keeps
+    # that point. Accept it only when stationary: mean gradient per P row <= pgtol.
+    stationary <- fit$convergence == 52L && all(is.finite(fit$par)) &&
+      max(abs(gradient(fit$par))) <= 1e-6 * length(x)
+    if (!(fit$convergence == 0L || stationary) || !all(is.finite(fit$par)) || !is.finite(fit$value)) {
       stop("sigmoid P fit did not converge to finite coefficients.", call. = FALSE)
     }
     ab <- fit$par
