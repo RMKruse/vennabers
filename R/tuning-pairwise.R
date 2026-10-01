@@ -1,12 +1,14 @@
 # Global pairwise joint selection builds candidates for the common search path.
 
-.pairwise_grid_joint <- function(tuning, pairwise) {
-  isTRUE(pairwise) && identical(tuning$strategy, "joint") &&
+# With postprocessing every B selects locally, as in pairwise Bayes; the global
+# Cartesian pair grid would choose outside B and share one choice across B sets.
+.pairwise_grid_joint <- function(tuning, pairwise, postprocessing = NULL) {
+  isTRUE(pairwise) && is.null(postprocessing) && identical(tuning$strategy, "joint") &&
     !is.null(tuning$model) && identical(tuning$model$method, "grid") &&
     (is.null(tuning$calibration) || identical(tuning$calibration$method, "grid"))
 }
 
-.assess_pairwise_bayes_joint <- function(data, workflow, outcome, parameters, counter) {
+.assess_pairwise_joint <- function(data, workflow, outcome, parameters, counter) {
   settings <- parameters$requested
   search <- list(grid = data.frame(pairwise = 1L), candidate_ids = "joint_0001",
     ids = c(pairwise = "pairwise"), resamples = settings$tuning$joint_resamples,

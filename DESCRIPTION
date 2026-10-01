@@ -1,6 +1,6 @@
 Package: vennabers
 Title: Venn-Abers Classification and Regression Calibration
-Version: 0.8.0
+Version: 0.9.0
 Authors@R: c(person("Venn-Abers", "Authors", role = "aut"),
     person("René-M.", "Kruse", email = "rene.marcel.kruse@protonmail.com", role = "cre"))
 Description: Fits binary Inductive and Cross Venn-Abers calibrators from
@@ -17,7 +17,9 @@ Description: Fits binary Inductive and Cross Venn-Abers calibrators from
     predictions or equal-weight means of complete fold results. Optional
     native 'tidymodels' workflows train complete local preprocessing and
     models for binary, one-vs-one, one-vs-rest and regression calibration,
-    with Inductive or Cross splits and complete outer resampling.
+    with Inductive or Cross splits and complete outer resampling, joint or
+    two-stage Grid/Bayes selection, and learned Sigmoid, 'tailor' or
+    reference isotonic postprocessing on separate holdouts or inner ensembles.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.5.0)

@@ -146,7 +146,9 @@ venn_abers_decode <- function(x, schema) {
   regression <- schema$mode == "regression"
   if (is.list(x) && !is.data.frame(x) &&
       (identical(names(x), c("prediction", "details")) ||
-       regression && identical(names(x), c("prediction", "details", "aggregate")))) {
+       identical(names(x), c("prediction", "details", "postprocessing")) ||
+       regression && (identical(names(x), c("prediction", "details", "aggregate")) ||
+                      identical(names(x), c("prediction", "details", "aggregate", "postprocessing"))))) {
     result <- venn_abers_decode(x$prediction, schema)
     details <- x$details
     .schema_data_names(details)
@@ -160,6 +162,32 @@ venn_abers_decode <- function(x, schema) {
     for (cl in classes) details[[cl]] <- as.character(.schema_decode_class(details[[cl]], schema, cl))
     attr(details, "vennabers_schema") <- NULL
     result$details <- details
+    if (!is.null(x$postprocessing)) {
+      decode_postprocessing <- function(p) {
+        if (!is.null(p$inner_folds)) {
+          p$inner_folds <- lapply(p$inner_folds, decode_postprocessing)
+          return(p)
+        }
+        if (!regression) p$classes <- as.character(.schema_decode_class(p$classes, schema, "postprocessing classes"))
+        if (!is.null(p$event_class)) p$event_class <- as.character(.schema_decode_class(p$event_class, schema, "postprocessing event"))
+        if (!is.null(p$sigmoid_class)) p$sigmoid_class <- as.character(.schema_decode_class(p$sigmoid_class, schema, "sigmoid class"))
+        p$columns <- schema$original_columns[match(p$columns, schema$columns)]
+        names(p$column_types) <- p$columns
+        if (!regression) p$column_types[[schema$outcome]]$levels <- p$classes
+        if (!is.null(p$coefficients)) {
+          coefficient_names <- if (is.matrix(p$coefficients)) colnames(p$coefficients) else names(p$coefficients)
+          coefficient_classes <- match(coefficient_names, paste0(".pred_", schema$classes))
+          mapped <- !is.na(coefficient_classes)
+          coefficient_names[mapped] <- paste0(".pred_", schema$class_levels[coefficient_classes[mapped]])
+          if (is.matrix(p$coefficients)) {
+            colnames(p$coefficients) <- coefficient_names
+            rownames(p$coefficients) <- as.character(.schema_decode_class(rownames(p$coefficients), schema, "postprocessing coefficients"))
+          } else names(p$coefficients) <- coefficient_names
+        }
+        p
+      }
+      result$postprocessing <- lapply(x$postprocessing, decode_postprocessing)
+    }
     if ("aggregate" %in% names(x)) {
       .schema_data_names(x$aggregate)
       .schema_binding(x$aggregate, schema)

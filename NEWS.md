@@ -1,3 +1,103 @@
+# vennabers 0.9.0 (local macOS acceptance candidate)
+
+- Scope: 80 fixed postprocessing compositions (method x holdout/inner ensemble
+  x Inductive/Cross x matched/full) for binary and pairwise OvO (Sigmoid,
+  Tailor logistic), shared OvO/OvR (Tailor multinomial from three classes,
+  Tailor logistic for two) and regression (reference isotonic, Tailor linear),
+  each with joint or two-stage Grid/Bayes selection inside B. B learns recipe
+  and engine, P the postprocessor, C the unchanged VA calibrator, and F is the
+  final fit data of a full composition. `?calibrated_workflow` lists costs,
+  retained pairs and limits.
+- Known limit: Tailor multinomial fits use probably's `nnet::multinom()`
+  defaults (at most 100 iterations) and cannot be tuned through the fixed
+  Tailor arguments; weakly informative probabilities can stop unconverged,
+  which fails the fit.
+- Not included: out-of-fold postprocessing with a complete engine refit,
+  arbitrary foreign engines or Tailor step sequences, further methods and new
+  constructors.
+  Frozen workflows keep their contract.
+- Fix Sigmoid rejecting converged fits: with sklearn's tolerance, L-BFGS-B can
+  end its line search at the optimum (`ABNORMAL_TERMINATION_IN_LNSRCH`). Such a
+  fit is now kept when its mean gradient per P row is at most `pgtol`
+  (sklearn keeps such a point without any check); other nonconvergence still
+  fails without a fallback.
+- Two-stage model search strips a Tailor postprocessor once per search instead
+  of once per candidate. The per-candidate check made tuned two-stage fits about
+  25% slower than in v0.8 even without postprocessing.
+- The 80-combination and tuned postprocessing examples now use repeated outer
+  folds and check exact `(id, id2, .row, .config)` coverage, notes and saved
+  extracts through the installed `check_outer_identities()` helper.
+- Older entries name `tools/acceptance-v0*.md` records that are no longer in
+  the source checkout. They are historical references, not available evidence.
+- Acceptance is local to macOS. GitHub Actions stay disabled; the eight
+  R/platform combinations, Linux core-only, minimum-dependency and R-devel runs
+  and the Linux reference benchmark are deferred to v1.0 and not claimed here.
+
+- Allow stepwise Bayes selection with every postprocessing composition, using
+  the same B-local searches as Grid. Only complete valid candidates feed the
+  next GP; a failed inner pair, missing row or invalid main score excludes the
+  whole candidate. Proposals that tune drops after failing everywhere are now
+  kept as excluded candidates with global IDs and spend budget instead of
+  ending the search as repeats; Bayes diagnostics record native notes per step
+  and the too-few-initial-points error lists its reasons.
+- Allow joint and two-stage Grid selection with every postprocessing method,
+  holdout/ensemble, VA, pairwise and full path. Each B searches locally
+  (each VA source, inner pair and full composition); P, C, A and S stay out.
+  Two-stage scores the raw engine first; pairwise joint Grid then selects per
+  local B instead of a Cartesian pair grid. Diagnostics name every inner search.
+- Add full-model transfer for every fixed holdout/ensemble postprocessing path.
+  Preserve held C values and VA calibrators, fit an additional complete B/P
+  composition per allowed domain, and retain only its prediction workflows.
+  Diagnostics include the final plans and actual costs; predictions reuse each
+  full composition across VA folds. Cover all 80 fixed combinations with native
+  outer evaluation, last_fit and fresh RDS prediction.
+- Add pairwise OvO holdout and ensemble postprocessing with Tailor logistic
+  or either Sigmoid input before matched Inductive/Cross VA. Preserve local
+  pair/fold plans, class identities, RNG order and complete prediction paths.
+  Include pair diagnostics, decoded names, native evaluation and fresh RDS checks.
+
+- Add matched IVAR/CVAR inner ensembles with Tailor-linear or numeric
+  reference isotonic postprocessing. Average complete pair predictions before
+  VA, retaining method-specific validation, local diagnostics and all pairs.
+  Cover numeric references, data roles, native evaluation and fresh RDS prediction.
+
+- Add shared OvO/OvR inner ensembles for matched Inductive/Cross VA: explicit
+  Tailor logistic for two classes and multinomial for three or more. Average
+  complete class vectors before VA; retain local pair diagnostics, schema and
+  fit counts through native evaluation and fresh RDS prediction.
+
+- Add binary inner ensembles for matched Inductive/Cross VA with Tailor
+  logistic or either Sigmoid input. Validate local P partitions, retain all
+  complete B/P pairs, and average their aligned probabilities equally before
+  VA. Preserve pair diagnostics, fit counts, schema and fresh RDS prediction.
+
+- Add matched IVAR/CVAR numeric isotonic holdouts using unweighted P fits,
+  frequency-aware ties, linear interpolation and constant edge extension.
+  Save the complete B workflow and isotonic support for prediction; cover
+  native evaluation, schema decoding and fresh-process restoration.
+
+- Add binary Sigmoid holdouts with explicit probability or public GLM-logit
+  inputs, sklearn-compatible smoothed targets, complete saved prediction
+  state, diagnostics and native evaluation. No Python runtime is required.
+
+- Add matched fixed-parameter IVAR/CVAR Tailor-linear holdouts through
+  `postprocessing`, with unstratified B/P plans, finite-input, rank and
+  convergence checks, numeric diagnostics and unchanged regression cores.
+  Include public Tailor parity across scales, data-role checks, native
+  evaluation, fresh-process RDS checks and an installed regression example.
+
+- Add shared OvO/OvR Tailor holdouts: explicit logistic for two classes and
+  multinomial for three or more, with full-rank and convergence checks. Preserve
+  multiclass decoding, single-row predictions and complete native evaluation.
+- Add binary Tailor logistic holdouts through `postprocessing` for matched
+  Inductive/Cross VA with fixed parameters. Recipes and engines learn on B,
+  Tailor learns on disjoint P, and held-out C trains the unchanged VA core.
+- Validate all local B/P plans before learning and reject unsupported methods,
+  incompatible steps, deficient designs and unsuccessful learned states.
+  Preserve complete source workflows, plans and fit diagnostics through RDS.
+- Add an installed example covering complete native resampling and last_fit.
+  Postprocessing tuning remains unimplemented.
+
 # v0.8 development candidate (acceptance open)
 
 - Add local Grid and Bayes selection with joint and two-stage strategies for

@@ -76,19 +76,122 @@ Use `method = "cross"` for fold-based workflow calibration. See
 `?calibrated_workflow` and `?calibrate_workflow` for split, model and prediction
 options.
 
+Binary workflows also support
+`postprocessing = list(method = "sigmoid", strategy = "holdout", prop = .3,
+sigmoid_input = "probability")`. Select `"glm_link"` explicitly for binomial
+GLM logit inputs through the complete workflow and recipe. Sigmoid requires
+both classes in B and P, at least two P rows, and no existing postprocessor.
+It uses sklearn-compatible smoothed targets without a Python runtime dependency.
+
+Binary and shared OvO/OvR workflows can learn Tailor postprocessing on a separate
+holdout before VA calibration. Pass
+`postprocessing = list(method = "tailor_logistic", strategy = "holdout", prop = .3)`;
+Use `tailor_multinomial` instead for shared models with three or more classes;
+two-class OvO/OvR requires `tailor_logistic`. `prop` is the fraction reserved for the postprocessor. Recipe/model training,
+postprocessing, and VA calibration use separate B/P/C portions. This path needs
+the optional `tailor` and `probably` packages and fixed model parameters.
+For binary and shared OvO/OvR classification, choose `strategy = "ensemble", v = 3`
+instead of `strategy = "holdout", prop = .3` to retain three complete B/P pairs.
+The P folds partition the local Q; finished class vectors are averaged with equal
+pair weights before Inductive/Cross VA. Shared two-class models still require
+`tailor_logistic`, and three or more classes require `tailor_multinomial`.
+Pairwise OvO (`model_training = "pairwise"`) supports both holdout and ensemble
+postprocessing with `tailor_logistic` or either Sigmoid input. Each class pair
+is selected before its VA and B/P plans are built. Local complete predictions
+are averaged before binary VA and global OvO coupling. See the
+[installed pairwise example](inst/examples/pairwise-postprocessing.R) for native
+resampling, `last_fit`, and the distinction between class pairs and inner B/P pairs.
+Regression workflows use `method = "tailor_linear"` with `smooth=FALSE`; P needs
+at least three rows and a full-rank intercept/prediction design. Automatic
+regression splits are unstratified. The unchanged IVAR/CVAR kernels consume the
+complete adjusted workflow predictions, using the requested `m` or `epsilon`.
+For numeric reference isotonic calibration, use `method = "isotonic_numeric"`
+with a base workflow without a postprocessor. P needs at least two finite rows;
+ties retain their frequencies, predictions interpolate between fitted supports,
+and extrapolation uses the nearest fitted value. No `tailor` or `probably`
+installation is needed for this method.
+Both numeric methods also accept `strategy = "ensemble", v = 3`: each pair
+keeps its complete B workflow and P postprocessor, and their finished numeric
+predictions are averaged equally before IVAR/CVAR. CVAR bounds remain descriptive
+VA bounds, not confidence or prediction intervals.
+
+Set `prediction_model = "full"` with any fixed postprocessing method to train
+one additional complete holdout or ensemble on the permitted fit data, with its
+own B/P splits. Held C predictions and VA calibrators stay unchanged; only the
+additional full composition is retained for prediction. Each inner engine still
+learns only on B. Full Inductive costs 2J pairs; Cross costs (K+1)J, retaining J
+per domain (sum differing local counts). Full-model transfer does not inherit
+split-calibration guarantees automatically. The
+[installed full-postprocessing example](inst/examples/full-postprocessing.R)
+covers all 80 fixed combinations through native evaluation and `last_fit`.
+
+Postprocessing also accepts `tuning` with joint or two-stage Grid selection of
+engine/recipe settings. Each B (every VA source, inner ensemble pair and full
+composition) runs its own local search; P, C, outer assessment and a reserved
+selection share never enter it. Joint scores complete compositions with fixed
+candidate settings, and the first two-stage step scores the raw engine without
+postprocessor or VA. See the
+[installed postprocessing grid example](inst/examples/postprocessing-grid.R).
+Stepwise Bayes selection uses the same local searches; only complete valid
+candidates feed the next GP, and failed or repeated proposals spend budget.
+See the [installed postprocessing Bayes example](inst/examples/postprocessing-bayes.R).
+
+## Supported postprocessing compositions
+
+Each row runs with holdout or inner ensemble, Inductive or Cross VA, and
+matched or full prediction models: eight fixed compositions per row, 80 in
+total. Every composition also accepts joint or two-stage Grid/Bayes selection
+of engine/recipe settings inside each B.
+
+| Path | Methods | Compositions |
+| --- | --- | ---: |
+| Binary | Sigmoid (probability or GLM-link input), Tailor logistic | 16 |
+| Pairwise OvO | Sigmoid (either input), Tailor logistic | 16 |
+| Shared OvO, three or more classes | Tailor multinomial | 8 |
+| Shared OvR, three or more classes | Tailor multinomial | 8 |
+| Shared OvO, two classes | Tailor logistic | 8 |
+| Shared OvR, two classes | Tailor logistic | 8 |
+| Regression (IVAR/CVAR) | Reference isotonic, Tailor linear | 16 |
+
+B learns recipe and engine, P learns the postprocessor, and held-out C trains
+the unchanged VA core. Full compositions train an additional B/P holdout or
+ensemble on the permitted final data F. Without tuning, J inner pairs cost J
+(Inductive matched), 2J (Inductive full), KJ (Cross matched with K folds) or
+(K+1)J (Cross full) engine and postprocessor fits per domain and retain J, J,
+KJ or J pairs; class pairs add up. For example, three class pairs, five Cross
+folds and a three-pair ensemble in full mode train 54 engines and 54
+postprocessors and keep nine pairs.
+
+Sigmoid follows the sklearn target smoothing without a Python runtime. Tailor
+methods use the public workflow path with `smooth = FALSE`; reference isotonic
+needs neither `tailor` nor `probably`. These are R extensions of the Python
+reference, which has no tidymodels postprocessing. Out of scope: out-of-fold
+postprocessing followed by a complete engine refit, arbitrary foreign engines
+or Tailor step sequences, further methods and new constructors. Frozen
+workflows (`calibrate_workflow()`) keep their existing contract. Full-model
+transfer does not inherit split-calibration guarantees.
+
 ## Learn more
 
 - [Binary Cross example](inst/examples/cross-venn-abers.R)
+- [Binary Sigmoid holdout example](inst/examples/sigmoid-holdout.R) with probability and GLM-link inputs
+- [Regression Tailor holdout example](inst/examples/tailor-regression-holdout.R) with IVAR/CVAR and native evaluation
+- [Regression isotonic holdout example](inst/examples/isotonic-regression-holdout.R) with IVAR/CVAR and native evaluation
+- [Regression ensemble example](inst/examples/regression-ensemble.R) with both numeric methods, native evaluation and held-out data checks
+- [Shared multiclass ensemble example](inst/examples/multiclass-ensemble.R) with retained pairs, encoded names and native evaluation
+- [Shared multiclass Tailor holdout example](inst/examples/tailor-multiclass-holdout.R) with encoded names and native evaluation
+- [Binary Tailor holdout example](inst/examples/tailor-holdout.R) with diagnostics, resampling and last_fit
 - [Multiclass example](inst/examples/inductive-ovo.R) and [Cross multiclass example](inst/examples/cross-multiclass.R)
 - [Shared multiclass grid example](inst/examples/shared-multiclass-grid.R) for OvO/OvR and joint/two-stage selection
 - [Shared multiclass Bayes example](inst/examples/shared-multiclass-bayes.R) for complete OvO/OvR matrix selection
 - [Pairwise OvO grid example](inst/examples/pairwise-grid.R) for local pair grids and coupled selection
 - [Pairwise OvO Bayes example](inst/examples/pairwise-bayes.R) for local pair searches and coupled selection
 - [Regression grid example](inst/examples/regression-grid.R) for IVAR/CVAR with joint or two-stage selection
+- [Postprocessing grid example](inst/examples/postprocessing-grid.R) for local B searches with classification and regression postprocessing
+- [Postprocessing Bayes example](inst/examples/postprocessing-bayes.R) for local B Bayes searches with budget and failure records
 - [Regression Bayes example](inst/examples/regression-bayes.R) for IVAR/CVAR with joint or two-stage selection
 - [Regression example](inst/examples/inductive-regression.R) and [Cross regression example](inst/examples/cross-regression.R)
 - [Workflow example](inst/examples/calibrated-workflow.R) and [fitted workflow example](inst/examples/frozen-binary.R)
 - [Release notes](NEWS.md)
-- [v0.8 local acceptance record](tools/acceptance-v08.md) for the support matrix and open release gates
 
 Run `help(package = "vennabers")` for the complete function reference.

@@ -43,6 +43,7 @@
     rows <- entry$rows
     local <- entry$local
     list(data = local, workflow = entry$workflow, plan = entry$plan, pair_id = id,
+      pair_rows = rows, schema = state$schema,
       outcome = state$outcome, strata = settings$strata, classes = pair, event = pair[2L], y = local[[state$outcome]],
       rows_word = "local pair rows", seed_wrap = TRUE,
       precheck = NULL,
@@ -76,8 +77,13 @@
     state$tuning$models <- lapply(components, function(component) {
       selections <- component$model_selection
       for (fold in names(selections)) if (!is.null(selections[[fold]])) {
-        selections[[fold]]$pair_id <- component$pair_id
-        selections[[fold]]$fold_id <- fold
+        if (is.null(settings$postprocessing)) {
+          selections[[fold]]$pair_id <- component$pair_id
+          selections[[fold]]$fold_id <- fold
+        } else for (inner in names(selections[[fold]])) {
+          # Inner B searches already carry their fold ID.
+          selections[[fold]][[inner]]$pair_id <- component$pair_id
+        }
       }
       selections
     })
@@ -128,10 +134,7 @@
   p <- if (!is.null(cache) && identical(cache$data, new_data)) cache$predictions else
     .source_predictions(component$models, component$sources, new_data,
       function(model, model_id) {
-        # The mold's fitted outcome domain binds every retained model to its pair.
-        if (!identical(levels(workflows::extract_mold(model)$outcomes[[1L]]), pair)) {
-          stop(id, " ", model_id, " model/pair identity does not match the fitted mapping.", call. = FALSE)
-        }
+        .validate_pair_model(model, pair, paste(id, model_id))
         .base_probability(model, new_data, component$class_levels, component$event_class, paste(id, model_id))
       },
       numeric)
@@ -157,7 +160,29 @@
       class_1 = rep(pair[1L], k), class_2 = rep(pair[2L], k),
       part[c("lower", "upper", "probability")], model_training = rep("pairwise", k),
       prediction_model = rep(object$parameters$requested$prediction_model, k),
-      model_source = rep(if (identical(shared, "Full1")) paste0(id, "/Full1") else id, k))
+      model_source = rep(if (identical(object$parameters$requested$prediction_model, "full")) paste(id, shared, sep = "/") else id, k))
   }
   list(points = point, details = details)
+}
+
+# Check wrappers as well as every leaf workflow: swapping one inner member
+# must not silently mix a different class pair into the global prediction.
+.validate_pair_model <- function(model, pair, context) {
+  if (inherits(model, "vennabers_ensemble")) {
+    if (!identical(names(model$models), model$inner_folds) || length(model$models) < 2L ||
+        any(vapply(model$models, is.null, logical(1)))) {
+      stop(context, " incomplete inner ensemble.", call. = FALSE)
+    }
+    for (j in names(model$models)) .validate_pair_model(model$models[[j]], pair, paste(context, "/", j))
+    classes <- model$classes
+  } else if (inherits(model, c("vennabers_sigmoid", "vennabers_tailor_workflow"))) {
+    .validate_pair_model(model$workflow, pair, context)
+    classes <- model$classes
+  } else {
+    classes <- if (inherits(model, "workflow")) levels(workflows::extract_mold(model)$outcomes[[1L]])
+  }
+  if (!identical(classes, pair)) {
+    stop(context, " model/pair identity does not match the fitted mapping.", call. = FALSE)
+  }
+  invisible(NULL)
 }

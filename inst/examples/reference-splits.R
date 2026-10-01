@@ -1,7 +1,7 @@
 # Reference-style row partitions; no downloads or new splitter API.
-# Inspired by the binary, multiclass and regression applications documented in
-# tools/paper-group-time-scenarios.md in the source repository. These small
-# synthetic examples illustrate roles, not reproductions of paper benchmarks.
+# Inspired by the binary, multiclass and regression applications of the
+# Venn-Abers papers. These small synthetic examples illustrate roles, not
+# reproductions of paper benchmarks.
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 
