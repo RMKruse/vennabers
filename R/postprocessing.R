@@ -174,34 +174,35 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
         pairs[[inner_id]] <- list(Q = Q, B = Q[pair$analysis], P = Q[pair$assessment],
           analysis = pair$analysis, assessment = pair$assessment)
       }
-      if (ensemble) pairs else pairs[[1L]]
+      pairs
     }, error = function(e) stop(domain$pred_id(id), " / ", inner_id, " ", post$method, " B/P plan: ", conditionMessage(e), call. = FALSE))
   }
   folds
 }
 
-.fit_postprocessing <- function(workflow, data, fold, domain, settings, id, inner_id = "Holdout1",
-                                tuning_plan = NULL) {
+.fit_postprocessing <- function(workflow, data, fold, domain, settings, id, tuning_plan = NULL) {
+  pairs <- lapply(names(fold$postprocessing), function(j) {
+    .fit_postprocessing_pair(workflow, data, fold$postprocessing[[j]], fold, domain, settings, id, j,
+      tuning_plan = tuning_plan)
+  })
+  names(pairs) <- names(fold$postprocessing)
+  if (settings$postprocessing$strategy == "holdout") return(pairs[[1L]])
+  diagnostics <- lapply(pairs, `[[`, "diagnostics")
+  model <- structure(list(models = lapply(pairs, `[[`, "model"), classes = domain$classes,
+    inner_folds = names(pairs), method = settings$postprocessing$method, context = paste(domain$pred_id(id), settings$postprocessing$method)), class = "vennabers_ensemble")
+  selection <- do.call(c, unname(lapply(pairs, `[[`, "selection")))
   identity <- if (!is.null(domain$pair_id)) list(pair_id = domain$pair_id, pair_rows = domain$pair_rows) else list()
-  # An ensemble plan is a list of inner pairs; settings stay unchanged so that
-  # nested joint candidates keep the configured strategy.
-  if (settings$postprocessing$strategy == "ensemble" && is.null(fold$postprocessing$B)) {
-    pairs <- lapply(names(fold$postprocessing), function(j) {
-      local_fold <- fold
-      local_fold$postprocessing <- fold$postprocessing[[j]]
-      .fit_postprocessing(workflow, data, local_fold, domain, settings, id, j, tuning_plan = tuning_plan)
-    })
-    names(pairs) <- names(fold$postprocessing)
-    diagnostics <- lapply(pairs, `[[`, "diagnostics")
-    model <- structure(list(models = lapply(pairs, `[[`, "model"), classes = domain$classes,
-      inner_folds = names(pairs), method = settings$postprocessing$method, context = paste(domain$pred_id(id), settings$postprocessing$method)), class = "vennabers_ensemble")
-    selection <- do.call(c, unname(lapply(pairs, `[[`, "selection")))
-    return(list(model = model, selection = selection, diagnostics = c(identity, list(format_version = 1L,
-      method = settings$postprocessing$method, strategy = "ensemble", input = diagnostics[[1L]]$input,
-      Q = fold$analysis, C = fold$assessment, VA_fold = id, inner_folds = diagnostics,
-      observed_base_fits = length(pairs), observed_postprocessor_fits = length(pairs)))))
-  }
-  plan <- fold$postprocessing
+  list(model = model, selection = selection, diagnostics = c(identity, list(format_version = 1L,
+    method = settings$postprocessing$method, strategy = "ensemble", input = diagnostics[[1L]]$input,
+    Q = fold$analysis, C = fold$assessment, VA_fold = id, inner_folds = diagnostics,
+    inner_fold = list(names(pairs)), B_size = list(vapply(diagnostics, `[[`, 1L, "B_size")),
+    P_size = list(vapply(diagnostics, `[[`, 1L, "P_size")),
+    observed_base_fits = length(pairs), observed_postprocessor_fits = length(pairs))))
+}
+
+.fit_postprocessing_pair <- function(workflow, data, plan, fold, domain, settings, id, inner_id,
+                                     tuning_plan = NULL) {
+  identity <- if (!is.null(domain$pair_id)) list(pair_id = domain$pair_id, pair_rows = domain$pair_rows) else list()
   method <- sub("^tailor_", "", settings$postprocessing$method)
   context <- paste0(domain$pred_id(id), " / ", inner_id, " ", settings$postprocessing$method, " (B=", length(plan$B), ", P=", length(plan$P), ")")
   warnings <- character()

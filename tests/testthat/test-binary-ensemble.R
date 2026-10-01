@@ -1,3 +1,48 @@
+testthat::test_that("holdout and ensemble fits consume named inner pairs without shape detection", {
+  for (pkg in c("workflows", "rsample")) testthat::skip_if_not_installed(pkg)
+  d <- data.frame(x = sin(1:80), truth = factor(rep(c("a", "b"), 40)))
+  base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
+    workflows::add_model(parsnip::logistic_reg(engine = "glm"))
+  va <- function(data) rsample::make_splits(list(analysis = 1:60, assessment = 61:80), data)
+  inner <- function(data) {
+    P <- list(seq_len(nrow(data) %/% 3L), seq.int(nrow(data) %/% 3L + 1L, nrow(data)))
+    rsample::manual_rset(lapply(P, function(rows) rsample::make_splits(
+      list(analysis = setdiff(seq_len(nrow(data)), rows), assessment = rows), data)), c("B", "P"))
+  }
+  fit_pair <- .fit_postprocessing_pair
+  seen <- list()
+  testthat::local_mocked_bindings(.fit_postprocessing_pair = function(workflow, data, plan, fold,
+      domain, settings, id, inner_id, ...) {
+    testthat::expect_identical(plan, fold$postprocessing[[inner_id]])
+    seen[[length(seen) + 1L]] <<- paste(id, inner_id, sep = "/")
+    fit_pair(workflow, data, plan, fold, domain, settings, id, inner_id, ...)
+  })
+  for (strategy in c("holdout", "ensemble")) for (prediction_model in c("matched", "full")) {
+    seen <- list()
+    post <- list(method = "sigmoid", sigmoid_input = "glm_link", strategy = strategy,
+      splits = if (strategy == "ensemble") inner else function(data) inner(data)$splits[[1L]])
+    fit <- generics::fit(calibrated_workflow(base, "truth", splits = va, seed = 42,
+      prediction_model = prediction_model, postprocessing = post), d)
+    state <- workflows::extract_fit_engine(fit)
+    expected <- if (strategy == "holdout") "Holdout1" else c("B", "P")
+    plan <- state$folds$Inductive1$postprocessing
+    testthat::expect_named(plan, expected)
+    diagnostics <- state$postprocessing$Inductive1
+    members <- if (strategy == "holdout") list(Holdout1 = diagnostics) else diagnostics$inner_folds
+    testthat::expect_identical(plan, lapply(members, function(p) p[names(plan[[1L]])]))
+    sources <- if (prediction_model == "full") c("Inductive1", "Full1") else "Inductive1"
+    testthat::expect_identical(unlist(seen), unlist(lapply(sources, function(id) paste(id, expected, sep = "/"))))
+    source <- if (prediction_model == "full") "Full1" else "Inductive1"
+    for (n in c(0L, 1L, 7L)) {
+      details <- venn_abers_details(fit, d[seq_len(n), "x", drop = FALSE])
+      testthat::expect_identical(details$prediction, predict(fit, d[seq_len(n), "x", drop = FALSE], type = "prob"))
+      for (field in c("inner_fold", "B_size", "P_size")) {
+        testthat::expect_identical(details$details[[field]], rep(state$postprocessing[[source]][[field]], n))
+      }
+    }
+  }
+})
+
 testthat::test_that("binary ensembles average complete pairs before the unchanged VA core", {
   for (pkg in c("workflows", "tailor", "probably", "rsample")) testthat::skip_if_not_installed(pkg)
   d <- data.frame(x = sin(1:160), truth = factor(rep(c("a", "b", "b", "a"), 40)))

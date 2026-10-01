@@ -131,7 +131,7 @@ testthat::test_that("a failure in one inner pair excludes the whole candidate fr
   for (pkg in c("tune", "tailor", "probably")) testthat::skip_if_not_installed(pkg)
   d <- bayes_binary_data()
   base <- bayes_tuned_base(d)
-  fit_postprocessing <- .fit_postprocessing
+  fit_postprocessing_pair <- .fit_postprocessing_pair
   fit_sigmoid <- .fit_sigmoid_workflow
   base_probability <- .base_probability
   tuning_score <- .tuning_score
@@ -140,9 +140,9 @@ testthat::test_that("a failure in one inner pair excludes the whole candidate fr
   fails <- function(kind, context_or_inner, degree) identical(seen$kind, kind) && identical(degree, 3) &&
     grepl("Fold2", context_or_inner, fixed = TRUE)
   testthat::local_mocked_bindings(
-    .fit_postprocessing = function(workflow, data, fold, domain, settings, id, inner_id = "Holdout1", ...) {
+    .fit_postprocessing_pair = function(workflow, data, plan, fold, domain, settings, id, inner_id, ...) {
       if (fails("fit", inner_id, workflow_degree(workflow))) stop("injected B fit failure")
-      fit_postprocessing(workflow, data, fold, domain, settings, id, inner_id, ...)
+      fit_postprocessing_pair(workflow, data, plan, fold, domain, settings, id, inner_id, ...)
     },
     .fit_sigmoid_workflow = function(workflow, data, plan, domain, input, context) {
       fitted <- fit_sigmoid(workflow, data, plan, domain, input, context)
@@ -203,9 +203,9 @@ testthat::test_that("a failure in one inner pair excludes the whole candidate fr
     tuning = list(strategy = "joint", model = bayes_search(initial = 2L)),
     postprocessing = list(method = "tailor_logistic", strategy = "ensemble", v = 2)), d),
     "Bayes needs at least 2 complete initial model candidates; found 1: .*injected B fit failure")
-  testthat::local_mocked_bindings(.fit_postprocessing = function(workflow, data, fold, domain, settings, id, inner_id = "Holdout1", ...) {
+  testthat::local_mocked_bindings(.fit_postprocessing_pair = function(workflow, data, plan, fold, domain, settings, id, inner_id, ...) {
     if (!is.na(workflow_degree(workflow)) && identical(inner_id, "Fold2")) stop("injected B fit failure")
-    fit_postprocessing(workflow, data, fold, domain, settings, id, inner_id, ...)
+    fit_postprocessing_pair(workflow, data, plan, fold, domain, settings, id, inner_id, ...)
   })
   testthat::expect_error(generics::fit(calibrated_workflow(base, "truth", seed = 6, calibration_prop = .3,
     tuning = list(strategy = "joint", model = bayes_search()),

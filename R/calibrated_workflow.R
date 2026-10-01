@@ -876,15 +876,9 @@ venn_abers_details <- function(object, new_data, ..., loss = NULL) {
       paste(result$details$pair_id, result$details$fold, sep = "/") else result$details$model_source
     result$details$postprocessing_method <- rep(state$parameters$requested$postprocessing$method, length(ids))
     result$details$postprocessing_input <- vapply(ids, function(id) postprocessing[[id]]$input, "")
-    if (state$parameters$requested$postprocessing$strategy == "ensemble") {
-      result$details$inner_fold <- lapply(ids, function(id) names(postprocessing[[id]]$inner_folds))
-      for (size in c("B_size", "P_size")) result$details[[size]] <- lapply(ids, function(id) {
-        vapply(postprocessing[[id]]$inner_folds, `[[`, 1L, size)
-      })
-    } else {
-      result$details$inner_fold <- rep("Holdout1", length(ids))
-      result$details$B_size <- vapply(ids, function(id) postprocessing[[id]]$B_size, 1L)
-      result$details$P_size <- vapply(ids, function(id) postprocessing[[id]]$P_size, 1L)
+    for (field in c("inner_fold", "B_size", "P_size")) {
+      result$details[[field]] <- do.call(c, c(list(postprocessing[[1L]][[field]][FALSE]),
+        unname(lapply(ids, function(id) postprocessing[[id]][[field]]))))
     }
   }
   result$prediction <- .bind_schema(result$prediction, state$schema)
