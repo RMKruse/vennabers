@@ -80,7 +80,7 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
   post <- tryCatch(workflows::extract_postprocessor(fitted_workflow), error = function(e) NULL)
   if (!is.null(post)) {
     post <- workflows::extract_postprocessor(fitted_workflow, estimated = TRUE)
-    if (length(post$adjustments) && !tailor::tailor_fully_trained(post)) {
+    if (nrow(generics::tidy(post)) && !tailor::tailor_fully_trained(post)) {
       stop("Frozen workflow postprocessor must be fully trained.", call. = FALSE)
     }
   }

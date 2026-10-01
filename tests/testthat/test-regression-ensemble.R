@@ -388,16 +388,14 @@ testthat::test_that("numeric ensemble means preserve finite extremes and cancell
   fit <- generics::fit(calibrated_workflow(ensemble_regression_base(d), "truth", seed = 42,
     postprocessing = list(method = "tailor_linear", strategy = "ensemble", v = 3L)), d)
   ensemble <- workflows::extract_fit_engine(fit)$models[[1]]
-  # Isolate averaging with fixed outputs at the complete public workflow seam.
-  original <- getS3method("predict", "workflow", envir = asNamespace("stats"))
+  # Isolate averaging with fixed outputs at the complete owned prediction seam.
   column <- 0L
   values <- rbind(c(1e308, 1e308, 1e308), c(1e16, 1, -1e16), c(-1e308, -1e308, -1e308))
   supplied <- function(object, new_data, ...) {
     column <<- column + 1L
     tibble::tibble(.pred = values[, column])
   }
-  registerS3method("predict", "workflow", supplied, envir = asNamespace("stats"))
-  on.exit(registerS3method("predict", "workflow", original, envir = asNamespace("stats")), add = TRUE)
+  testthat::local_mocked_bindings(predict.vennabers_tailor_workflow = supplied, .package = "vennabers")
   actual <- predict(ensemble, d[1:3, ])$.pred
   testthat::expect_true(all(is.finite(actual)))
   testthat::expect_equal(actual[c(1, 3)], c(1e308, -1e308), tolerance = 1e-15)

@@ -3,12 +3,20 @@
 record_postprocessing_fits <- function(env = parent.frame()) {
   audit <- new.env()
   audit$fits <- list()
+  # Observe B/P at the owned composition boundary, then count the public B fit.
+  fit_tailor <- .fit_tailor_workflow
+  testthat::local_mocked_bindings(.fit_tailor_workflow = function(workflow, data, data_calibration, ...) {
+    audit$calibration <- data_calibration$row_id
+    on.exit(audit$calibration <- NULL)
+    fit_tailor(workflow, data, data_calibration, ...)
+  }, .package = "vennabers", .env = env)
   fit_method <- getS3method("fit", "workflow", envir = asNamespace("generics"))
   registerS3method("fit", "workflow", function(object, data, ..., data_calibration = NULL) {
     if (!inherits(workflows::extract_spec_parsnip(object), c("vennabers", "vennabers_grid"))) {
       post <- tryCatch(workflows::extract_postprocessor(object), error = function(e) NULL)
       audit$fits[[length(audit$fits) + 1L]] <- list(rows = data$row_id,
-        calibration = data_calibration$row_id, tailor = !is.null(post))
+        calibration = if (!is.null(audit$calibration)) audit$calibration else data_calibration$row_id,
+        tailor = !is.null(audit$calibration) || !is.null(post))
     }
     fit_method(object, data, ..., data_calibration = data_calibration)
   }, envir = asNamespace("generics"))

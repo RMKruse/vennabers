@@ -162,10 +162,9 @@ testthat::test_that("C can change F but never its original Q fits, while F B and
     }
     learned <- function(s) {
       m <- member(s)
-      if (inherits(m, "workflow")) {
-        adjustment <- workflows::extract_tailor(m)$adjustments[[1]]$results$fit$estimates[[1]]$estimate
-        post_state <- coef(adjustment)
-      } else post_state <- if (inherits(m, "vennabers_sigmoid")) m$coefficients else m$isotonic
+      diagnostic <- s$postprocessing$Full1
+      if (strategy == "ensemble") diagnostic <- diagnostic$inner_folds[[1]]
+      post_state <- if (inherits(m, "vennabers_isotonic_workflow")) m$isotonic else diagnostic$coefficients
       list(engine = coef(workflows::extract_fit_engine(workflow(s))), postprocessor = post_state)
     }
     for (column in c("x", "truth")) {

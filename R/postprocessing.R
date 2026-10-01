@@ -46,84 +46,7 @@
     .validate_sigmoid_workflow(workflow, postprocessing$sigmoid_input)
     return(workflow)
   }
-  method <- sub("^tailor_", "", postprocessing$method)
-  numeric <- method == "linear"
-  canonical <- if (numeric) tailor::tailor() |> tailor::adjust_numeric_calibration(method = method, smooth = FALSE) else
-    tailor::tailor() |> tailor::adjust_probability_calibration(method = method, smooth = FALSE)
-  adapter <- if (numeric) "vennabers_numeric_calibration" else "vennabers_probability_calibration"
-  post <- tryCatch(workflows::extract_postprocessor(workflow), error = function(e) NULL)
-  if (is.null(post)) {
-    workflow <- workflows::add_tailor(workflow, canonical)
-    post <- canonical
-  }
-  # Compare configuration, including untrained state, without depending on list order.
-  if (!inherits(post, "tailor") || length(post$adjustments) != 1L ||
-      !identical(post$type, canonical$type) || !is.null(post$columns) || ncol(post$ptype)) {
-    stop("Postprocessing requires exactly one untrained canonical Tailor ", method, " step with smooth=FALSE.", call. = FALSE)
-  }
-  step <- post$adjustments[[1L]]
-  class(step) <- setdiff(class(step), adapter)
-  expected <- canonical$adjustments[[1L]]
-  if (!setequal(names(step$arguments), names(expected$arguments))) {
-    stop("Postprocessing Tailor arguments must be exactly method='", method, "', smooth=FALSE.", call. = FALSE)
-  }
-  step$arguments <- step$arguments[names(expected$arguments)]
-  if (!identical(step, expected)) stop("Postprocessing Tailor step must match the untrained canonical ", method, " step.", call. = FALSE)
-  # A validation-only dispatch layer preserves the canonical adjustment and
-  # its public fit/predict path, without another step or another prediction.
-  class(step) <- c(adapter, class(step))
-  post$adjustments[[1L]] <- step
-  workflows::update_tailor(workflow, post)
-}
-
-.validate_tailor_input <- function(data, tailor) {
-  if (tailor$type == "regression") {
-    return(.validate_regression_vector(data[[tailor$columns$estimate]], "Tailor numeric input"))
-  }
-  classes <- levels(tailor$ptype[[tailor$columns$outcome]])
-  .validate_base_probabilities(data[tailor$columns$probabilities], nrow(data), classes, "Tailor input")
-}
-
-#' @exportS3Method generics::fit
-fit.vennabers_probability_calibration <- function(object, data, tailor = NULL, ...) {
-  .validate_tailor_input(data, tailor)
-  fitted <- NextMethod()
-  if (!is.list(fitted$results$fit)) return(fitted)
-  estimates <- fitted$results$fit$estimates
-  estimate <- if (length(estimates) == 1L && is.list(estimates[[1L]])) estimates[[1L]]$estimate
-  if (inherits(estimate, "multinom")) {
-    # probably expects a matrix; nnet drops dimensions for a single row.
-    class(estimate) <- c("vennabers_multinom", class(estimate))
-    fitted$results$fit$estimates[[1L]]$estimate <- estimate
-  }
-  fitted
-}
-
-#' @export
-predict.vennabers_multinom <- function(object, newdata, type = "class", ...) {
-  result <- NextMethod()
-  if (identical(type, "probs") && is.null(dim(result)) && nrow(newdata) == 1L) {
-    result <- matrix(result, nrow = 1L, dimnames = list(rownames(newdata), names(result)))
-  }
-  result
-}
-
-#' @export
-predict.vennabers_probability_calibration <- function(object, new_data, tailor, ...) {
-  .validate_tailor_input(new_data, tailor)
-  NextMethod()
-}
-
-#' @exportS3Method generics::fit
-fit.vennabers_numeric_calibration <- function(object, data, tailor = NULL, ...) {
-  .validate_tailor_input(data, tailor)
-  NextMethod()
-}
-
-#' @export
-predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...) {
-  .validate_tailor_input(new_data, tailor)
-  NextMethod()
+  .configure_tailor_workflow(workflow, sub("^tailor_", "", postprocessing$method))
 }
 
 .plan_postprocessing <- function(folds, domain, settings) {
@@ -234,24 +157,9 @@ predict.vennabers_numeric_calibration <- function(object, new_data, tailor, ...)
       result <- .fit_sigmoid_workflow(workflow, data, plan, domain, settings$postprocessing$sigmoid_input, context)
       model <- result$model$workflow
     } else {
-      model <- generics::fit(workflow, data[plan$B, , drop = FALSE], data_calibration = data[plan$P, , drop = FALSE])
-      step <- workflows::extract_tailor(model)$adjustments[[1L]]
-      fit <- step$results$fit
-      if (!isTRUE(step$trained) || !identical(step$arguments$method, method) ||
-          !inherits(fit, paste0("cal_estimate_", method)) || length(fit$estimates) != 1L) {
-        stop("P has no learned ", method, " state; failed fits and switches to none are not allowed.", call. = FALSE)
-      }
-      estimate <- fit$estimates[[1L]]$estimate
-      rank <- if (method == "linear") 2L else length(domain$classes)
-      if (!inherits(estimate, if (method == "multinomial") "multinom" else "glm") ||
-          !identical(estimate$rank, rank) || length(plan$P) <= rank) {
-        stop("P requires full design rank ", rank, " and more rows than rank.", call. = FALSE)
-      }
-      converged <- if (method == "multinomial") isTRUE(estimate$convergence == 0L) else isTRUE(estimate$converged)
-      if (!converged || !all(is.finite(stats::coef(estimate)))) {
-        stop("P ", method, " fit did not converge to finite coefficients.", call. = FALSE)
-      }
-      result <- list(model = model, rank = estimate$rank, coefficients = stats::coef(estimate))
+      result <- .fit_tailor_workflow(workflow, data[plan$B, , drop = FALSE],
+        data[plan$P, , drop = FALSE], domain, method, context)
+      model <- result$model
     }
     engine <- workflows::extract_fit_engine(if (method == "isotonic_numeric") model$workflow else model)
     if (is.list(engine) && (identical(engine$converged, FALSE) ||

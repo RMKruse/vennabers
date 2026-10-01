@@ -281,8 +281,9 @@ as \code{a b} and \code{a.b} require a compatible base engine. Raw predictor
 \code{effective}), \code{outcome}, \code{predictors}, \code{columns} (predictors
 then outcome), \code{class_levels}, \code{event_class}, \code{loss},
 \code{folds} (by fold ID, with integer \code{analysis}/\code{assessment} positions and
-\code{training_size}/\code{calibration_size}), \code{models} (full
-fitted base workflows named by the same IDs, or only \code{Full1} in full mode),
+\code{training_size}/\code{calibration_size}), \code{models} (complete fitted
+prediction sources named by the same IDs, or only \code{Full1} in full mode;
+learned postprocessing uses package-owned compositions),
 \code{calibrator}, \code{calibration} (for binary: a list named by fold ID, each
 with original local integer \code{row}, logical event \code{truth} and unrounded
 double held-out \code{probability}; for multiclass: one list per fold with
@@ -494,8 +495,9 @@ matching-model guarantees do not automatically transfer and better quality is no
 }
 \section{Tailor holdouts}{
 Each VA source training portion Q is partitioned into disjoint B and P. The
-recipe and engine learn only on B. The complete public workflow is fitted with
-\code{data = B, data_calibration = P}, using
+recipe and engine learn only on B through the public workflow fit. A
+package-owned composition validates its P predictions and fits an unchanged
+canonical Tailor through its public fit, using
 \code{tailor::adjust_probability_calibration(method = "logistic", smooth = FALSE)}
 for two classes, or \code{method = "multinomial", smooth = FALSE} for three or
 more classes. The requested method must match the class count; no automatic
@@ -503,7 +505,8 @@ exchange is performed. Shared two-class OvO/OvR retains multiclass class and
 tie rules, not the binary event contract.
 One exactly matching untrained Tailor adjustment may already be configured;
 it is adopted once. Foreign, trained or multiple adjustments are rejected.
-The full stored workflow predicts held-out VA data C and new predictors.
+The stored composition predicts held-out VA data C and new predictors through
+the base workflow, input validation and the public Tailor prediction path.
 The VA core, event alignment, loss and rounding rules are unchanged.
 
 Both B and P must contain all K model classes. P needs at least K+1 rows and
@@ -521,12 +524,12 @@ or class names that the underlying Tailor/probably formula interface cannot use.
 
 Linear regression postprocessing requires \code{method = "tailor_linear"} explicitly and uses
 \code{tailor::adjust_numeric_calibration(method = "linear", smooth = FALSE)}
-through the public workflow calibration path. Recipe/engine learning uses B;
+through the same package-owned composition. Recipe/engine learning uses B;
 the intercept and slope are learned only on P. Numeric 0/1 targets remain
 regression. Automatic B/P splits are unstratified. P needs at least three rows,
 finite predictions and truth, full actual design rank two, finite coefficients
 and convergence; constant predictions, absent fits and switches to none fail.
-The complete workflow's numeric output enters the unchanged IVAR/CVAR core
+The complete composition's numeric output enters the unchanged IVAR/CVAR core
 with the requested valid \code{m} or \code{epsilon}. CVAR averages fold points
 and both bounds separately. No confidence or prediction intervals are added.
 See installed \code{examples/tailor-regression-holdout.R} for both paths,
@@ -599,7 +602,7 @@ Q-local analysis/assessment positions, sizes, class/event and schema bindings,
 RNG settings, method-specific fit state, warnings and observed fit counts. Prediction
 details add the inner fold, method, input and B/P sizes. Package versions are
 stored in the fitted engine's \code{versions}. Each nonempty prediction calls
-each complete retained workflow once; empty batches call none. Predict needs
+each retained base workflow and Tailor once; empty batches call none. Predict needs
 no truth or plan resolution and never learns. RDS retains the full trained state.
 Ensemble records contain a named \code{inner_folds} list of complete pair
 diagnostics and summed observed fit counts. Their prediction details use
@@ -615,8 +618,11 @@ See installed \code{examples/tailor-holdout.R} for native fit, complete repeated
 outer resampling, last_fit, diagnostics and checks of held-out data roles.
 \code{examples/tailor-multiclass-holdout.R} adds shared two-, three- and four-class
 OvO/OvR, encoded names and the yardstick Brier factor of one half. Single-row
-multinomial predictions retain matrix dimensions through a stored S3 adapter
-for nnet, preserving the full Workflow/Tailor/probably prediction path.
+multinomial predictions use a duplicated prediction row at the composition
+boundary, then discard that extra result. The base workflow is predicted once;
+the canonical Tailor and its learned nnet model remain unchanged. Learned-state
+compatibility checks are confined to the package's Tailor boundary because
+Tailor has no public learned-model extractor.
 }
 \section{Tuned postprocessing}{
 With \code{postprocessing}, every engine/recipe search runs inside its own B:

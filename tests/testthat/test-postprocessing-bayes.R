@@ -151,7 +151,7 @@ testthat::test_that("a failure in one inner pair excludes the whole candidate fr
     },
     .base_probability = function(model, data, classes, event, id = "Inductive1") {
       out <- base_probability(model, data, classes, event, id)
-      degree <- if (inherits(model, "workflow")) workflow_degree(model) else NA_real_
+      degree <- if (inherits(model, c("workflow", "vennabers_tailor_workflow"))) workflow_degree(model) else NA_real_
       if (fails("predict", id, degree)) stop("injected predict failure")
       if (fails("rows", id, degree)) out <- out[-1L, , drop = FALSE]
       out

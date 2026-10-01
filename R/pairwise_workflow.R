@@ -175,7 +175,7 @@
     }
     for (j in names(model$models)) .validate_pair_model(model$models[[j]], pair, paste(context, "/", j))
     classes <- model$classes
-  } else if (inherits(model, "vennabers_sigmoid")) {
+  } else if (inherits(model, c("vennabers_sigmoid", "vennabers_tailor_workflow"))) {
     .validate_pair_model(model$workflow, pair, context)
     classes <- model$classes
   } else {
