@@ -1,4 +1,4 @@
-# Run from the checkout after installation: Rscript examples/binary-options.R
+# After installation: source(system.file("examples", "binary-options.R", package = "vennabers"))
 library(vennabers)
 
 # Precomputed probabilities from a fixed model on its separate calibration set.
@@ -15,6 +15,12 @@ for (loss in c("log", "brier")) {
 }
 # Precision affects calibration only; choosing a new precision requires a fit.
 # The new values above are deliberately not rounded to two decimal places.
+
+# To select class 0 as the event, reverse truth AND the supplied probabilities.
+# Round only after selecting the event; rounded results need not be complements.
+other_event <- venn_abers(truth == 0, 1 - calibration_probability, precision = 2)
+print(predict(other_event, 1 - new_probability))
+# Inductive bounds are VA endpoints, not confidence intervals.
 
 # Cross uses held-out probabilities from each corresponding retained fold model.
 # These illustrative folds have unequal sizes; each still receives equal weight.
@@ -52,3 +58,4 @@ local({
 })
 # Classes use the combined probability with TRUE at .5, never a fold vote.
 # Fold details concern new observations; there is no aggregate Cross interval.
+# No improvement in test scores or perfect Cross calibration is promised.
