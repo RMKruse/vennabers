@@ -23,25 +23,29 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
       setdiff(names(parameters$candidates), "id"), drop = FALSE])
   }
   if (is.data.frame(y) && ncol(y) == 1L) y <- y[[1L]]
-  candidate <- parameters$candidate_plan(candidate_values)
-  if (is.null(candidate$parameters)) {
-    data <- as.data.frame(x)
-    data[[outcome]] <- y
-    fitted <- .fit_base_model(candidate$workflow, data, parameters$counter)
-  } else {
-    data <- .calibrated_fit_data(x, y, candidate$workflow, outcome, candidate$parameters)
-    seed <- candidate$parameters$requested$seed
-    if (!is.null(seed)) withr::local_seed(seed)
-    fitted <- .fit_calibrated_components(candidate$workflow, data, outcome,
-      candidate$parameters, candidate$tuning_plan)
-  }
+  record <- if (is.null(parameters$fit_log)) function(values, error) NULL else parameters$fit_log$record
+  fitted <- withCallingHandlers({
+    candidate <- parameters$candidate_plan(candidate_values)
+    if (is.null(candidate$parameters)) {
+      data <- as.data.frame(x)
+      data[[outcome]] <- y
+      .fit_base_model(candidate$workflow, data, parameters$counter)
+    } else {
+      data <- .calibrated_fit_data(x, y, candidate$workflow, outcome, candidate$parameters)
+      seed <- candidate$parameters$requested$seed
+      if (!is.null(seed)) withr::local_seed(seed)
+      .fit_calibrated_components(candidate$workflow, data, outcome,
+        candidate$parameters, candidate$tuning_plan)
+    }
+  }, error = function(e) record(candidate_values, conditionMessage(e)))
+  record(candidate_values, NA_character_)
   structure(list(fitted = fitted, class_levels = levels(y),
     event_level = parameters$event_level, classification = parameters$classification),
     class = "vennabers_grid_fit")
 }
 
 .bayes_proxy_workflow <- function(data, outcome, event_level, classification,
-                                  candidate_plan, counter, ids) {
+                                  candidate_plan, counter, ids, fit_log) {
   .register_grid_proxy()
   mode <- if (is.numeric(data[[outcome]])) "regression" else "classification"
   spec <- parsnip::new_model_spec("vennabers_grid", args = list(), eng_args = NULL,
@@ -49,7 +53,7 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
   spec <- parsnip::set_engine(spec, "proxy", outcome = outcome,
     parameters = list(candidate_plan = candidate_plan,
       candidates = NULL, event_level = event_level, classification = classification,
-      counter = counter))
+      counter = counter, fit_log = fit_log))
   for (id in unname(ids)) spec$eng_args[[id]] <- rlang::new_quosure(tune::tune(id), env = emptyenv())
   carrier <- rlang::inject(workflows::add_variables(
     workflows::workflow(),
@@ -194,19 +198,23 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
          seed = NULL))
 }
 
-.bayes_candidates <- function(result, ids) {
+# Parameter values of the iterations tune_bayes added after `after`.
+.bayes_new_values <- function(result, ids, after) {
   metrics <- tryCatch(tune::collect_metrics(result, summarize = FALSE), error = identity)
-  if (inherits(metrics, "error") || !nrow(metrics) || !all(unname(ids) %in% names(metrics))) {
-    return(data.frame())
-  }
-  unique(as.data.frame(metrics[unname(ids)], stringsAsFactors = FALSE))
+  if (inherits(metrics, "error") || !all(c(unname(ids), ".iter") %in% names(metrics))) return(data.frame())
+  unique(as.data.frame(metrics[metrics$.iter > after, unname(ids), drop = FALSE], stringsAsFactors = FALSE))
 }
 
-.bayes_step_candidates <- function(result, ids) {
-  metrics <- tryCatch(tune::collect_metrics(result, summarize = FALSE), error = identity)
-  if (inherits(metrics, "error") || !nrow(metrics) || !all(unname(ids) %in% names(metrics))) return(data.frame())
-  if (".iter" %in% names(metrics)) metrics <- metrics[metrics$.iter == max(metrics$.iter), , drop = FALSE]
-  unique(as.data.frame(metrics[unname(ids)], stringsAsFactors = FALSE))
+# tune_bayes keeps no trace of a proposal that failed on every resample, so the
+# proxy reports each fit it was asked for: the values and the error, if any.
+.bayes_fit_log <- function(ids) {
+  log <- new.env()
+  log$fits <- list()
+  log$record <- function(values, error) {
+    log$fits[[length(log$fits) + 1L]] <- list(
+      values = as.data.frame(values[unname(ids)], stringsAsFactors = FALSE), error = error)
+  }
+  log
 }
 
 .note_rows <- function(step = character(), resample = NA_character_, location = NA_character_, note = character()) {
@@ -256,6 +264,82 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
   list(scored = scored, known = known)
 }
 
+.bayes_best <- function(estimates, direction) {
+  if (direction == "minimize") min(estimates) else max(estimates)
+}
+
+# The one record of a Bayes search: every attempt with a stable ID, the
+# complete eligible results that feed the GP, per-step diagnostics, and the
+# stall count behind no_improve.
+.bayes_ledger <- function(scored, initial, notes, ids, label, direction) {
+  identified <- .stable_bayes_ids(scored, ids, label)
+  scored <- identified$scored
+  values <- scored$candidates[scored$eligible, unname(ids), drop = FALSE]
+  list(history = scored, known = identified$known, ids = ids, label = label, direction = direction,
+       values = values, native = tune::filter_parameters(initial, parameters = values),
+       steps = list(initial = scored$candidates), notes = notes,
+       best = .bayes_best(scored$candidates$estimate[scored$eligible], direction), stale = 0L)
+}
+
+# One continuation step as one outcome: "failed" (tune_bayes raised),
+# "repeated" (no new candidate), "excluded" (tune_bayes dropped a proposal that
+# failed on every resample), or "evaluated" (scored rows of the new iteration).
+# Messages are kept as notes when tune_bayes left no native notes for the step.
+.bayes_step <- function(name, ledger, run, fit_log, score, plans) {
+  fit_log$fits <- list()
+  messages <- character()
+  keep <- function(restart) function(condition) {
+    messages <<- c(messages, trimws(conditionMessage(condition)))
+    invokeRestart(restart)
+  }
+  result <- tryCatch(withCallingHandlers(run(ledger$native),
+    message = keep("muffleMessage"), warning = keep("muffleWarning")), error = identity)
+  logged <- .note_rows(name, note = unique(messages))
+  if (inherits(result, "error")) return(list(kind = "failed", error = conditionMessage(result), notes = logged))
+  after <- if (".iter" %in% names(ledger$native)) max(ledger$native$.iter) else 0L
+  rows <- which(result$.iter > after)
+  attempted <- lapply(fit_log$fits, `[[`, "values")
+  values <- if (length(rows)) .bayes_new_values(result, ledger$ids, after) else
+    if (length(attempted)) unique(do.call(rbind, attempted)) else ledger$values[0L, , drop = FALSE]
+  notes <- if (length(rows)) .bayes_notes(result, name, rows) else logged
+  if (!nrow(values) || all(.candidate_key(values) %in% names(ledger$known))) {
+    return(list(kind = "repeated", values = values, notes = notes))
+  }
+  if (!length(rows)) {
+    errors <- unique(stats::na.omit(vapply(fit_log$fits, `[[`, "", "error")))
+    return(list(kind = "excluded", notes = notes, scored = .excluded_candidates(values,
+      paste(c("All resamples failed", errors), collapse = " | "), plans)))
+  }
+  list(kind = "evaluated", notes = notes, result = result,
+       scored = score(result[rows, , drop = FALSE], values))
+}
+
+.bayes_record <- function(ledger, name, step) {
+  ledger$notes <- rbind(ledger$notes, step$notes)
+  if (step$kind %in% c("failed", "repeated")) {
+    ledger$steps[[name]] <- if (step$kind == "failed") list(error = step$error) else list(repeated = step$values)
+    ledger$stale <- ledger$stale + 1L
+    return(ledger)
+  }
+  identified <- .stable_bayes_ids(step$scored, ledger$ids, ledger$label, ledger$known)
+  scored <- identified$scored
+  ledger$known <- identified$known
+  ledger$history <- .append_history(ledger$history, scored)
+  ledger$steps[[name]] <- scored$candidates
+  eligible <- which(scored$candidates$status == "eligible")
+  if (!length(eligible)) {
+    ledger$stale <- ledger$stale + 1L
+    return(ledger)
+  }
+  ledger$values <- rbind(ledger$values, scored$candidates[eligible, unname(ledger$ids), drop = FALSE])
+  ledger$native <- tune::filter_parameters(step$result, parameters = ledger$values)
+  estimate <- .bayes_best(scored$candidates$estimate[eligible], ledger$direction)
+  improved <- if (ledger$direction == "minimize") estimate < ledger$best else estimate > ledger$best
+  ledger$stale <- if (improved) 0L else ledger$stale + 1L
+  if (improved) ledger$best <- estimate
+  ledger
+}
+
 .bayes_select <- function(search, data, outcome, event_level, classification,
                           candidate_plan, label, counter) {
   # Keep the same metric-cache boundary as Grid, including Bayes initialization.
@@ -273,14 +357,9 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
     state <- proxy$fitted
     if (inherits(state, "vennabers_fit")) list(decision = state$tuning$models) else list(decision = NULL)
   }
-  # tune_bayes silently drops a proposal that failed on every resample; the
-  # values the proxy was asked to fit are the only record of that attempt.
-  proposals <- new.env()
-  proposals$values <- list()
-  proxy <- .bayes_proxy_workflow(data, outcome, event_level, classification, function(values) {
-    proposals$values[[length(proposals$values) + 1L]] <- values[unname(search$ids)]
-    candidate_plan(values)
-  }, counter, search$ids)
+  fit_log <- .bayes_fit_log(search$ids)
+  proxy <- .bayes_proxy_workflow(data, outcome, event_level, classification, candidate_plan,
+    counter, search$ids, fit_log)
   params <- dials::finalize(search$param_info, data)
   initial_grid <- withr::with_seed(control$seed, dials::grid_space_filling(params, size = search$initial))
   budget <- .grid_budget(list(grid = initial_grid), plans, candidate_plan, classes = levels(data[[outcome]]))
@@ -294,19 +373,18 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
   initial <- tryCatch(suppressMessages(suppressWarnings(tune::tune_grid(proxy, resamples = plan$rset,
     grid = initial_grid, param_info = params, metrics = native_metrics, control = grid_control))), error = identity)
   if (inherits(initial, "error")) stop("Native ", label, " Bayes initialization failed: ", conditionMessage(initial), call. = FALSE)
-  candidates <- as.data.frame(initial_grid)
-  candidates$id <- sprintf("%s_%03d", label, seq_len(nrow(candidates)))
-  scored <- .score_tuning_candidates(search, initial, data, plans, outcome, event_level, classification,
-    candidates, as.data.frame(initial_grid), counter, initial_fits, budget)
+  score <- function(result, values) {
+    candidates <- values
+    candidates$id <- sprintf("%s_%03d", label, seq_len(nrow(candidates)))
+    .score_tuning_candidates(search, result, data, plans, outcome, event_level, classification,
+      candidates, values, counter, initial_fits, budget)
+  }
+  scored <- score(initial, as.data.frame(initial_grid))
   required <- nrow(params) + 1L
   if (!nrow(scored$candidates)) {
     stop("Bayes needs at least ", required, " complete initial ", label,
          " candidates; found 0.", call. = FALSE)
   }
-  identified <- .stable_bayes_ids(scored, search$ids, label)
-  scored <- identified$scored
-  history <- scored
-  known_ids <- identified$known
   notes <- .bayes_notes(initial, "initial")
   if (length(scored$eligible) < required) {
     # As in Grid: excluded candidates and native notes explain the shortfall.
@@ -315,6 +393,8 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
          length(scored$eligible), if (length(reasons)) paste0(": ", paste(reasons, collapse = " | ")) else ".",
          call. = FALSE)
   }
+  direction <- attr(search$primary_metric, "direction")
+  ledger <- .bayes_ledger(scored, initial, notes, search$ids, label, direction)
   metric_names <- unique(tune::collect_metrics(initial)$.metric)
   metric_name <- if (inherits(search$primary_metric, "class_metric"))
     setdiff(metric_names, "brier_class")[[1L]] else metric_names[[1L]]
@@ -322,110 +402,36 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
   names(metric_functions) <- metric_name
   if (inherits(search$primary_metric, "class_metric")) metric_functions$brier_class <- yardstick::brier_class
   native_metrics <- do.call(yardstick::metric_set, metric_functions)
-  valid <- tune::filter_parameters(initial,
-    parameters = scored$candidates[scored$eligible, unname(search$ids), drop = FALSE])
-  valid_values <- scored$candidates[scored$eligible, unname(search$ids), drop = FALSE]
-  steps <- list(initial = scored$candidates)
-  best <- if (attr(search$primary_metric, "direction") == "minimize") min(scored$candidates$estimate[scored$eligible]) else
-    max(scored$candidates$estimate[scored$eligible])
-  stale <- 0L
   reason <- "budget"
-  for (step in seq_len(search$iter)) {
+  for (i in seq_len(search$iter)) {
     if (!is.na(search$control$time_limit) && proc.time()[3L] - started >= search$control$time_limit) {
       reason <- "time_limit"
       break
     }
     step_control <- control
-    step_control$seed <- control$seed + step
-    before <- length(proposals$values)
-    # Keep tune's own step log: it is the only trace of a proposal it dropped.
-    step_log <- character()
-    record <- function(restart) function(condition) {
-      step_log <<- c(step_log, trimws(conditionMessage(condition)))
-      invokeRestart(restart)
+    step_control$seed <- control$seed + i
+    run <- function(valid) tune::tune_bayes(proxy, resamples = plan$rset, initial = valid, iter = 1L,
+      param_info = params, metrics = native_metrics, control = step_control)
+    name <- paste0("step_", i)
+    step <- .bayes_step(name, ledger, run, fit_log, score, plans)
+    ledger <- .bayes_record(ledger, name, step)
+    if (step$kind == "repeated") {
+      reason <- "repeated_candidate"
+      break
     }
-    next_result <- tryCatch(withCallingHandlers(tune::tune_bayes(proxy, resamples = plan$rset,
-      initial = valid, iter = 1L, param_info = params, metrics = native_metrics, control = step_control),
-      message = record("muffleMessage"), warning = record("muffleWarning")), error = identity)
-    if (inherits(next_result, "error")) {
-      stale <- stale + 1L
-      steps[[paste0("step_", step)]] <- list(error = conditionMessage(next_result))
-    } else {
-      has_iter <- ".iter" %in% names(next_result)
-      new_iteration <- has_iter && max(next_result$.iter) > (if (".iter" %in% names(valid)) max(valid$.iter) else 0L)
-      rows <- if (has_iter) which(next_result$.iter == max(next_result$.iter)) else seq_len(nrow(next_result))
-      # Without a new iteration the last rows are earlier results with their notes.
-      step_notes <- .bayes_notes(next_result, paste0("step_", step), if (new_iteration) rows else integer())
-      notes <- rbind(notes, step_notes)
-      known <- names(known_ids)
-      errors <- unique(stats::na.omit(step_notes$note[nzchar(step_notes$note)]))
-      attempted <- proposals$values[seq_along(proposals$values) > before]
-      proposed <- if (new_iteration || !length(attempted)) .bayes_step_candidates(next_result, search$ids) else
-        unique(as.data.frame(do.call(rbind, lapply(attempted, as.data.frame, stringsAsFactors = FALSE))))
-      if (!new_iteration && length(attempted) && !all(.candidate_key(proposed) %in% known)) {
-        # A dropped new proposal failed on every resample: an excluded attempt.
-        notes <- rbind(notes, .note_rows(paste0("step_", step), note = unique(step_log)))
-        identified <- .stable_bayes_ids(.excluded_candidates(proposed,
-          paste(c("All resamples failed", unique(step_log)), collapse = " | "), plans), search$ids, label, known_ids)
-        known_ids <- identified$known
-        history <- .append_history(history, identified$scored)
-        stale <- stale + 1L
-        steps[[paste0("step_", step)]] <- identified$scored$candidates
-        if (stale >= search$control$no_improve) {
-          reason <- "no_improve"
-          break
-        }
-        next
-      } else if (!nrow(proposed) && length(errors)) {
-        stale <- stale + 1L
-        steps[[paste0("step_", step)]] <- list(error = paste(errors, collapse = " | "))
-        if (stale >= search$control$no_improve) {
-          reason <- "no_improve"
-          break
-        }
-        next
-      } else if (!nrow(proposed) || all(.candidate_key(proposed) %in% known)) {
-        stale <- stale + 1L
-        steps[[paste0("step_", step)]] <- list(repeated = proposed)
-        reason <- "repeated_candidate"
-        break
-      }
-      candidates <- proposed
-      candidates$id <- sprintf("%s_%03d", label, seq_len(nrow(candidates)))
-      scored <- .score_tuning_candidates(search, next_result[rows, , drop = FALSE], data, plans,
-        outcome, event_level, classification, candidates, proposed, counter, initial_fits, budget)
-      identified <- .stable_bayes_ids(scored, search$ids, label, known_ids)
-      scored <- identified$scored
-      known_ids <- identified$known
-      history <- .append_history(history, scored)
-      if (!length(scored$eligible)) {
-        stale <- stale + 1L
-        steps[[paste0("step_", step)]] <- scored$candidates
-      } else {
-        valid_values <- rbind(valid_values,
-          scored$candidates[scored$eligible, unname(search$ids), drop = FALSE])
-        valid <- tune::filter_parameters(next_result, parameters = valid_values)
-        direction <- attr(search$primary_metric, "direction")
-        candidate_best <- if (direction == "minimize") min(scored$candidates$estimate[scored$eligible]) else
-          max(scored$candidates$estimate[scored$eligible])
-        improved <- if (direction == "minimize") candidate_best < best else candidate_best > best
-        stale <- if (improved) 0L else stale + 1L
-        best <- if (improved) candidate_best else best
-        steps[[paste0("step_", step)]] <- scored$candidates
-      }
-    }
-    if (stale >= search$control$no_improve) {
+    if (ledger$stale >= search$control$no_improve) {
       reason <- "no_improve"
       break
     }
   }
+  history <- ledger$history
+  valid <- ledger$native
   eligible <- which(history$candidates$status == "eligible")
   values <- history$candidates[eligible, unname(search$ids), drop = FALSE]
-  direction <- attr(search$primary_metric, "direction")
   pick <- if (direction == "minimize") which.min(history$candidates$estimate[eligible]) else
     which.max(history$candidates$estimate[eligible])
   best <- eligible[pick]
-  attempts <- nrow(initial_grid) + length(steps) - 1L
+  attempts <- nrow(initial_grid) + length(ledger$steps) - 1L
   history$cost$candidate_evaluations <- attempts * length(plans)
   history$cost$eligible_candidates <- length(eligible)
   history$cost$excluded_candidates <- nrow(history$candidates) - length(eligible)
@@ -442,7 +448,7 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
     tie_break = "first candidate in attempt order", scores = history$scores,
     report_metrics = history$report_metrics, decisions = history$decisions, native = valid,
     resamples = plans, primary_metric = search$primary_metric, direction = direction,
-    seed = control$seed, bayes_seed = control$seed, steps = steps, notes = notes, stop_reason = reason,
-    attempts = attempts, no_improve = stale, elapsed_seconds = proc.time()[3L] - started),
+    seed = control$seed, bayes_seed = control$seed, steps = ledger$steps, notes = ledger$notes, stop_reason = reason,
+    attempts = attempts, no_improve = ledger$stale, elapsed_seconds = proc.time()[3L] - started),
     history[c("budget", "cost")]))
 }
