@@ -206,11 +206,23 @@ if (all(vapply(c(packages, "nnet"), requireNamespace, logical(1), quietly = TRUE
   saveRDS(saved, path)
   writeLines(c(paste0(".libPaths(", paste(deparse(.libPaths()), collapse = ""), ")"), "library(vennabers)",
     paste0("outputs <- ", paste(deparse(outputs), collapse = "\n")),
-    vapply(guards, function(g) paste0("trace(", deparse(g[2L]), ", where = asNamespace(", deparse(g[1L]),
-      "), tracer = quote(stop('Unexpected learning')), print = FALSE)"), ""),
-    'for (name in c("venn_abers", "venn_abers_regression")) trace(name, where = asNamespace("vennabers"), tracer = quote(stop("Unexpected calibration learning")), print = FALSE)',
+    # The main process and each worker restore the saved fits under the same learning guards.
+    paste0("guard <- function() {", paste(vapply(guards, function(g) paste0("trace(", deparse(g[2L]),
+      ", where = asNamespace(", deparse(g[1L]), "), tracer = quote(stop('Unexpected learning')), print = FALSE)"), ""),
+      collapse = "; "), "; for (name in c('venn_abers', 'venn_abers_regression')) trace(name, where = asNamespace('vennabers'),",
+      " tracer = quote(stop('Unexpected calibration learning')), print = FALSE) }"),
+    "guard()",
     paste0("saved <- readRDS(", deparse(path), ")"),
-    'for (s in saved) stopifnot(identical(s$expected, outputs(s$fit, s$new)), identical(s$empty, outputs(s$fit, s$new[0, ])), identical(s$single, outputs(s$fit, s$new[1, , drop = FALSE])), identical(s$fit$schema, s$schema), identical(s$fit$parameters, s$parameters))'), script)
+    'for (s in saved) stopifnot(identical(s$expected, outputs(s$fit, s$new)), identical(s$empty, outputs(s$fit, s$new[0, ])), identical(s$single, outputs(s$fit, s$new[1, , drop = FALSE])), identical(s$fit$schema, s$schema), identical(s$fit$parameters, s$parameters))',
+    'if (requireNamespace("future", quietly = TRUE)) {',
+    '  future::plan(future::multisession, workers = 2)',
+    '  jobs <- lapply(saved, function(s) future::future({ suppressMessages(guard()); list(pid = Sys.getpid(), expected = outputs(s$fit, s$new), empty = outputs(s$fit, s$new[0, ]), single = outputs(s$fit, s$new[1, , drop = FALSE])) }, globals = list(s = s, outputs = outputs, guard = guard), packages = "vennabers", seed = NULL))',
+    '  found <- lapply(jobs, future::value)',
+    '  future::plan(future::sequential)',
+    '  pids <- vapply(found, function(x) x$pid, 0L)',
+    '  stopifnot(!any(pids == Sys.getpid()), length(unique(pids)) == 2L)',
+    '  for (i in seq_along(saved)) stopifnot(identical(found[[i]][c("expected", "empty", "single")], saved[[i]][c("expected", "empty", "single")]))',
+    '}'), script)
   status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
   if (status != 0L) stop(paste(readLines(log), collapse = "\n"))
 })
@@ -273,6 +285,43 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
   e <- tryCatch(calibrate_workflow(frozen, d[41:80, ], "y"), error = identity)
   stopifnot(inherits(e, "error"), grepl("Frozen calibration.*class.*x", conditionMessage(e)),
             grepl("probability|unique|duplicat", conditionMessage(e)))
+})
+
+if (all(vapply(c(packages, "nnet"), requireNamespace, logical(1), quietly = TRUE))) local({
+  # An ordered trained outcome keeps ordered decisions, like the original workflow.
+  # Calibration factors are matched by level identity, whatever their order or status.
+  set.seed(906)
+  for (k in 2:3) for (method in if (k == 2L) c("binary", "ovo", "ovr") else c("ovo", "ovr")) {
+    for (encoded in c(FALSE, TRUE)) {
+      classes <- c("low", "mid", "high")[seq_len(k)]
+      d <- data.frame(x = rnorm(300), z = rnorm(300),
+                      truth = factor(rep(classes, length.out = 300), levels = classes, ordered = TRUE))
+      schema <- if (encoded) venn_abers_schema(d[1:100, ], "truth", classification = method) else NULL
+      data <- if (encoded) venn_abers_encode(d, schema) else d
+      outcome <- if (encoded) schema$encoded_outcome else "truth"
+      spec <- if (k == 2L) parsnip::logistic_reg(engine = "glm") else
+        parsnip::multinom_reg(penalty = .1) |> parsnip::set_engine("nnet", trace = FALSE)
+      frozen <- generics::fit(workflows::workflow() |>
+        workflows::add_recipe(recipes::recipe(stats::as.formula(paste(outcome, "~ .")), data[1:100, ])) |>
+        workflows::add_model(spec), data[1:100, ])
+      calibration <- data[101:200, ]
+      reordered <- calibration
+      reordered[[outcome]] <- factor(reordered[[outcome]], levels = rev(levels(reordered[[outcome]])))
+      fit <- calibrate_workflow(frozen, calibration, outcome, classification = method, schema = schema)
+      same <- calibrate_workflow(frozen, reordered, outcome, classification = method, schema = schema)
+      new <- data[201:300, setdiff(names(data), outcome)]
+      native <- predict(frozen, new, type = "class")$.pred_class
+      assert_conditions(is.ordered(native), identical(same$calibrator, fit$calibrator))
+      for (n in c(0L, 1L, nrow(new))) {
+        decision <- predict(fit, new[seq_len(n), ], type = "class")$.pred_class
+        assert_conditions(is.ordered(decision), identical(levels(decision), levels(native)), length(decision) == n)
+        if (encoded) {
+          decoded <- venn_abers_decode(predict(fit, new[seq_len(n), ], type = "class"), schema)$class
+          assert_conditions(is.ordered(decoded), identical(levels(decoded), classes))
+        }
+      }
+    }
+  }
 })
 
   testthat::expect_true(TRUE)

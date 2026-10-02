@@ -155,6 +155,17 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
 }
 
 #' @export
+print.vennabers_frozen <- function(x, ...) {
+  cat("Venn-Abers inductive calibrated predictor\n")
+  cat("Frozen workflow adopted unchanged\n")
+  cat("Base fits:", 0L, "\n")
+  cat("Models per nonempty prediction:", length(x$models), "\n")
+  cat("Calibration rows:", x$calibration_size, "(new data; only the calibrator learned)", "\n")
+  for (id in names(x$sources)) cat(" ", id, "->", x$sources[[id]], "\n")
+  invisible(x)
+}
+
+#' @export
 predict.vennabers_frozen <- function(object, new_data, type = NULL, ..., loss = NULL) {
   .integration_dots(...)
   .integration_packages()
@@ -168,7 +179,11 @@ predict.vennabers_frozen <- function(object, new_data, type = NULL, ..., loss = 
   }
   new_data <- .frozen_data(object, new_data)
   result <- if (regression) tibble::tibble(.pred = predict_vennabers_numeric(object, new_data)) else
-    if (type == "class") tibble::tibble(.pred_class = predict_vennabers_class(object, new_data)) else
-      predict_vennabers_prob(object, new_data)
+    if (type == "class") {
+      # Keep the ordered status of the stored workflow's trained outcome.
+      target <- workflows::extract_mold(object$models[[1L]])$blueprint$ptypes$outcomes[[object$outcome]]
+      decision <- predict_vennabers_class(object, new_data)
+      tibble::tibble(.pred_class = factor(decision, levels = levels(decision), ordered = is.ordered(target)))
+    } else predict_vennabers_prob(object, new_data)
   .bind_schema(result, object$schema)
 }

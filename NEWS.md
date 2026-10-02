@@ -31,6 +31,14 @@
   mismatched extract configurations even when predictions and metrics are complete.
 - The pairwise OvO examples print the fitted full-transfer state instead of fixed
   cost text and no longer describe automatic local selection as pending.
+- Fix `print()` of `calibrate_workflow()` results, which failed since v0.7. It
+  now reports the unchanged adopted workflow, zero base fits and the
+  calibration rows.
+- Frozen class predictions keep an ordered trained outcome ordered, as the
+  original workflow does.
+- `?calibrate_workflow` and `frozen-binary.R` show the loss-only Log/Brier
+  choice on separate validation rows without refitting. The help page also
+  covers adopting workflows fitted by native `fit_resamples()`/`last_fit()`.
 - Older entries name `tools/acceptance-v0*.md` records that are no longer in
   the source checkout. They are historical references, not available evidence.
 - Acceptance is local to macOS. GitHub Actions stay disabled; the eight
