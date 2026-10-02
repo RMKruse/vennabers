@@ -27,6 +27,8 @@
 - The 80-combination and tuned postprocessing examples now use repeated outer
   folds and check exact `(id, id2, .row, .config)` coverage, notes and saved
   extracts through the installed `check_outer_identities()` helper.
+- The outer evaluation audit rejects missing or empty saved extracts and
+  mismatched extract configurations even when predictions and metrics are complete.
 - Older entries name `tools/acceptance-v0*.md` records that are no longer in
   the source checkout. They are historical references, not available evidence.
 - Acceptance is local to macOS. GitHub Actions stay disabled; the eight
