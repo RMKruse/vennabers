@@ -1,0 +1,71 @@
+testthat::test_that("Grid workflows replay on outer workers and restore without learning", {
+  for (pkg in c("tune", "yardstick", "future", "recipes", "rpart")) testthat::skip_if_not_installed(pkg)
+  source("helper-helpers.R")
+  snapshot <- function(fit, new, schema = NULL) {
+    tuning <- venn_abers_tuning(fit)
+    selection <- function(x) {
+      if (is.null(x)) return(NULL)
+      x[c("chosen", "selected", "candidates", "grid", "resamples", "seed", "budget", "cost")]
+    }
+    models <- if (identical(tuning$model_training, "pairwise")) lapply(tuning$models, function(x) lapply(x, selection)) else
+      lapply(tuning$models, selection)
+    list(outputs = lapply(c(0L, 1L, 7L), function(n) {
+      batch <- new[seq_len(n), , drop = FALSE]
+      list(prediction = predict(fit, batch, type = if (is.numeric(new$truth)) "numeric" else "prob"),
+        details = venn_abers_details(fit, batch))
+    }), models = models, calibration = selection(tuning$calibration), joint = selection(tuning$joint),
+      cost = tuning$cost, roles = tuning$fit_roles, sources = tuning$sources)
+  }
+  saved <- tempfile(fileext = ".rds"); fitted <- tempfile(fileext = ".rds")
+  script <- tempfile(fileext = ".R"); log <- tempfile()
+  on.exit(unlink(c(saved, fitted, script, log)), add = TRUE)
+  for (domain in c("binary", "ovo", "ovr", "pairwise", "regression")) for (strategy in c("joint", "two_stage")) {
+    data <- withr::with_seed(81, data.frame(x = stats::rnorm(720),
+      truth = if (domain == "regression") stats::rnorm(720) else
+        factor(rep(if (domain == "binary") c("a", "b") else c("a", "b", "c"), length.out = 720))))
+    base <- workflows::workflow() |> workflows::add_recipe(recipes::recipe(truth ~ x, data) |>
+      recipes::step_poly(x, degree = tune::tune("degree"))) |>
+      workflows::add_model(parsnip::decision_tree(tree_depth = tune::tune("depth"), min_n = 10) |>
+        parsnip::set_mode(if (domain == "regression") "regression" else "classification") |>
+        parsnip::set_engine("rpart"))
+    folds <- function(d) rsample::vfold_cv(d, v = 2)
+    grid <- data.frame(degree = 1:2, depth = 1:2)
+    # The Cartesian pair route is already covered with two model candidates;
+    # one here keeps worker replay small while still tuning calibration.
+    if (domain == "pairwise" && strategy == "joint") grid <- grid[1L, , drop = FALSE]
+    tuning <- list(strategy = strategy, selection_prop = .5,
+      model = list(method = "grid", grid = grid, resamples = folds),
+      calibration = list(method = "grid", resamples = folds,
+        grid = if (domain == "regression") data.frame(moderation = c(.2, .3)) else
+          data.frame(va_loss = c("log", "brier"))))
+    if (domain == "pairwise" && strategy == "joint") tuning$model$resamples <- NULL
+    args <- list(workflow = base, outcome = "truth", method = "cross", v = 2,
+      prediction_model = "full", seed = 31, tuning = tuning)
+    if (domain == "regression") args$epsilon <- tune::tune("moderation") else args$loss <- tune::tune("va_loss")
+    if (domain %in% c("ovo", "ovr", "pairwise")) args$classification <- if (domain == "pairwise") "ovo" else domain
+    if (domain == "pairwise") args$model_training <- "pairwise"
+    model <- do.call(calibrated_workflow, args, quote = TRUE)
+    outer <- withr::with_seed(82, rsample::vfold_cv(data, v = 2, repeats = 2))
+    saveRDS(list(snapshot = snapshot, replay = list(model = model, outer = outer, new = data[1:7, ], schema = NULL)), saved)
+    metrics <- if (domain == "regression") "yardstick::metric_set(yardstick::rmse)" else
+      "yardstick::metric_set(yardstick::mn_log_loss)"
+    writeLines(c(
+      paste0(".libPaths(", paste(deparse(.libPaths()), collapse = ""), ")"), "library(vennabers)",
+      paste0("s <- readRDS(", deparse(saved), ")"),
+      worker_replay(metrics, c("vennabers", "rpart"), character()),
+      "checker <- new.env(); sys.source(system.file('examples', 'check-encoded-evaluation.R', package = 'vennabers'), checker)",
+      "checker$check_outer_identities(parallel, r$outer, metrics = 1L)",
+      paste0("saveRDS(found, ", deparse(fitted), ")"),
+      paste0("restored <- readRDS(", deparse(fitted), ")"),
+      "guard <- function(...) stop('Unexpected learning, planning or search')",
+      "registerS3method('fit', 'workflow', guard, envir = asNamespace('generics'))",
+      "for (f in c('venn_abers', 'venn_abers_regression')) trace(f, where = asNamespace('vennabers'), tracer = quote(guard()), print = FALSE)",
+      "trace('prep.recipe', where = asNamespace('recipes'), tracer = quote(guard()), print = FALSE)",
+      "for (f in c('initial_split', 'vfold_cv')) trace(f, where = asNamespace('rsample'), tracer = quote(guard()), print = FALSE)",
+      "for (f in c('tune_grid', 'tune_bayes')) trace(f, where = asNamespace('tune'), tracer = quote(guard()), print = FALSE)",
+      "for (i in seq_along(restored)) stopifnot(identical(s$snapshot(restored[[i]]$workflow, r$new), s$snapshot(expected[[i]], r$new)))"
+    ), script)
+    status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
+    testthat::expect_equal(status, 0L, info = paste(domain, strategy, paste(readLines(log), collapse = "\n")))
+  }
+})

@@ -379,6 +379,60 @@ testthat::test_that("regression selection stays inside outer training and surviv
   testthat::expect_error(generics::fit(calibrated_workflow(tuned, "truth", tuning = bad, seed = 17), data), "binding")
 })
 
+testthat::test_that("Grid searches exclude S and each fold's held calibration rows", {
+  testthat::skip_if_not_installed("tune")
+  data <- withr::with_seed(84, data.frame(x = stats::rnorm(480), truth = stats::rnorm(480)))
+  base <- workflows::workflow() |> workflows::add_recipe(recipes::recipe(truth ~ x, data) |>
+    recipes::step_normalize(x) |> recipes::step_poly(x, degree = tune::tune("degree"))) |>
+    workflows::add_model(parsnip::linear_reg(engine = "lm"))
+  for (strategy in c("joint", "two_stage")) {
+    tuning <- list(strategy = strategy,
+      selection_split = function(d) rsample::make_splits(list(analysis = 1:240, assessment = 241:480), d),
+      model = list(method = "grid", grid = data.frame(degree = 1:2),
+        resamples = function(d) rsample::vfold_cv(d, v = 2)),
+      calibration = list(method = "grid", grid = data.frame(moderation = .3),
+        resamples = function(d) rsample::vfold_cv(d, v = 2)))
+    # Bind the same row roles in every local candidate, regardless of its size.
+    splits <- function(d) {
+      half <- seq_len(nrow(d) %/% 2L)
+      rsample::manual_rset(lapply(list(half, setdiff(seq_len(nrow(d)), half)), function(rows)
+        rsample::make_splits(list(analysis = setdiff(seq_len(nrow(d)), rows), assessment = rows), d)),
+        c("left", "right"))
+    }
+    model <- calibrated_workflow(base, "truth", method = "cross", splits = splits,
+      prediction_model = "full", epsilon = tune::tune("moderation"), tuning = tuning, seed = 31)
+    fit <- generics::fit(model, data)
+    diagnostic <- venn_abers_tuning(fit)
+    changed <- data
+    changed$x[241:480] <- changed$x[241:480] + 100
+    changed$truth[241:480] <- changed$truth[241:480] - 100
+    other <- generics::fit(model, changed)
+    testthat::expect_identical(venn_abers_details(fit, data[1:7, ]), venn_abers_details(other, data[1:7, ]))
+    for (id in names(diagnostic$models)) {
+      original <- diagnostic$models[[id]]
+      mutated <- venn_abers_tuning(other)$models[[id]]
+      testthat::expect_identical(original$candidates, mutated$candidates)
+      testthat::expect_identical(original$selected, mutated$selected)
+      training_rows <- if (id == "Full1") 1:240 else diagnostic$fit_roles[[id]]$analysis
+      testthat::expect_equal(as.data.frame(original$native$splits[[1L]]$data), data[training_rows, ], ignore_attr = TRUE)
+    }
+    # C changes the calibrator and the sibling/full searches, but its own B
+    # search (including learned preprocessing and nested candidates) is fixed.
+    changed <- data
+    changed$x[1:120] <- changed$x[1:120] + 20
+    changed$truth[1:120] <- changed$truth[1:120] + 30
+    other <- generics::fit(model, changed)
+    original <- diagnostic$models$left
+    mutated <- venn_abers_tuning(other)$models$left
+    testthat::expect_identical(original$candidates, mutated$candidates)
+    testthat::expect_identical(tune::collect_predictions(original$native), tune::collect_predictions(mutated$native))
+    testthat::expect_false(identical(workflows::extract_fit_engine(fit)$calibration$left,
+      workflows::extract_fit_engine(other)$calibration$left))
+    testthat::expect_false(identical(diagnostic$models$Full1$candidates,
+      venn_abers_tuning(other)$models$Full1$candidates))
+  }
+})
+
 testthat::test_that("moderation metadata cannot overwrite regression outcome names", {
   testthat::skip_if_not_installed("tune")
   for (option in c("m", "epsilon")) {
