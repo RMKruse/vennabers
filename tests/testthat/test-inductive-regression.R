@@ -26,6 +26,13 @@ assert_conditions(identical(fit$requested, list()), fit$m == 1, fit$epsilon == 1
 explicit <- venn_abers_regression(1:5, 1:5, m = 2)
 stopifnot(identical(explicit$requested, list(m = 2)), explicit$m == 2,
           explicit$epsilon == 2 / 3)
+# Maximum m=2 replaces extremes rather than discarding rows: lower truths
+# (0,0,2,2,2;0) average to 1, upper (2,2,2,6,6;6) to 4.
+# At the tie, weights 1 and 2 give point 3; the midpoint would be 2.5.
+maximum <- venn_abers_regression(c(-10, 0, 2, 6, 20), rep(0, 5), m = 2)
+close_regression(as.matrix(predict(maximum, c(-1, 0, 1))),
+                 cbind(prediction = c(4, 3, 1),
+                       lower = c(0, 1, 1), upper = c(4, 4, 6)))
 for (epsilon in c(1 / 3, 2 / 3 - 1e-12, 2 / 3, 2 / 3 + 1e-12)) {
   fit_e <- venn_abers_regression(1:5, 1:5, epsilon = epsilon)
   stopifnot(identical(fit_e$requested, list(epsilon = epsilon)),
@@ -106,6 +113,12 @@ named <- venn_abers_regression(setNames(c(-10, 0, 2, 6, 20), letters[1:5]),
                                setNames(rep(0, 5), rev(letters[1:5])))
 stopifnot(identical(predict(fit, c(-1, 0, 1)), predict(named, c(z = -1, x = 0, y = 1))),
           inherits(venn_abers_regression(c(0, 1, 0), 1:3), "venn_abers_regression"))
+# Numeric 0/1 outcomes still use the regression merger: tied lower truths
+# (0,0,0;0) give 0, upper (0,1,0;1) give .5, hence point .5.
+binary_truth <- venn_abers_regression(c(0, 1, 0), rep(0, 3))
+stopifnot(identical(predict(binary_truth, c(-1, 0, 1)),
+                    data.frame(prediction = rep(.5, 3), lower = rep(0, 3),
+                               upper = c(.5, .5, 1))))
 before <- serialize(fit, NULL)
 for (input in list(numeric(), 0, c(1, -1, 0))) {
   result <- predict(fit, input)

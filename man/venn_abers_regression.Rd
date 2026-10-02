@@ -77,7 +77,8 @@ API. Offline fixtures use valid regression components from Python venn-abers
 1.5.4, commit 0e7b4bc575ce230134576ba1c76688d46bf99ac7. Reference lower-bound
 defects are checked with reflected upper components and independent isotonic
 calculations; undefined reference point results use the explicit contract above.
-See the installed \file{extdata/regression-reference.md} for provenance.
+See \file{tests/testthat/extdata/regression-reference.md} in the source package
+for provenance.
 Package-managed training, automatic splits, new regression score/plot functions,
 exact minimax, observation weights and rounding options are not provided.
 }

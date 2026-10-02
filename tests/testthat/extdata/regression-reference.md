@@ -12,6 +12,12 @@ NumPy, SciPy, pandas and scikit-learn installed. The environment JSON records
 actual versions, seed, options, coverage and SHA-256 hashes of every CSV.
 Normal installed-package tests need neither Python nor a network connection.
 
+Generator version: `cbd2729:tools/generate-regression-fixtures.py` in this
+repository's Git history. Its IVAR fixtures are unchanged from
+`1cc4f79:inst/extdata`; the CSV hashes in `regression-environment.json`
+identify the exact stored inputs and outputs. The generator is currently
+git-ignored; restoring reproducible release tooling belongs to ticket 19.
+
 The 116 cases comprise five deterministic and 24 seeded random cases, each in
 four target transformations: ordinary (`s=1`), small (`s=1e-12`), large
 (`s=1e120`) and shifted (`s=1`, additive shift `1e5`). Here `s` is the positive
@@ -58,3 +64,5 @@ midpoint under the agreed contract. Constant truth, nonconstant zero weights,
 very small positive weights, coincident bounds, extreme finite values, epsilon
 rounding/domain errors and fresh-process RDS restoration have separate public
 contract tests. Reference NaNs are never treated as desired predictions.
+Independent hand calculations also check maximum moderation (`m=2` on five
+tied scores: lower 1, upper 4, point 3) and numeric 0/1 regression outcomes.
