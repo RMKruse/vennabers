@@ -29,6 +29,8 @@
   extracts through the installed `check_outer_identities()` helper.
 - The outer evaluation audit rejects missing or empty saved extracts and
   mismatched extract configurations even when predictions and metrics are complete.
+- The pairwise OvO examples print the fitted full-transfer state instead of fixed
+  cost text and no longer describe automatic local selection as pending.
 - Older entries name `tools/acceptance-v0*.md` records that are no longer in
   the source checkout. They are historical references, not available evidence.
 - Acceptance is local to macOS. GitHub Actions stay disabled; the eight

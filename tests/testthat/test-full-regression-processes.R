@@ -1,6 +1,7 @@
 testthat::test_that("full-regression-processes", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
+source("helper-helpers.R")
 packages <- c("workflows", "parsnip", "recipes", "rsample")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
   example <- new.env()
@@ -13,6 +14,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
   })
   saved <- tempfile(fileext = ".rds"); script <- tempfile(fileext = ".R"); log <- tempfile(fileext = ".log")
   on.exit(unlink(c(saved, script, log)), add = TRUE)
+  workers <- worker_replay_available()
   for (method in c("inductive", "cross")) for (outcome in c(".pred", ".row", "id")) {
     case <- example$examples[[method]]
     raw <- example$data; names(raw)[3L] <- outcome
@@ -45,8 +47,12 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
     for (input in list(bad, new[-1L], setNames(new, c("unknown", names(new)[2L])))) {
       error(predict(fit, input)); error(venn_abers_details(fit, input))
     }
+    # The shipped evaluation belongs to the example's own outcome name.
+    replay <- workers && outcome == ".pred"
     saveRDS(list(fit = fit, new = new, schema = schema, snapshot = snapshot,
-      expected = snapshot(fit, new, schema)), saved)
+      expected = snapshot(fit, new, schema), replay = if (replay) list(model = case$model, outer = case$outer,
+        evaluation = case$evaluation, schema = case$schema,
+        new = case$assessment[setdiff(names(case$assessment), case$schema$encoded_outcome)])), saved)
     writeLines(c(
       paste0('.libPaths(', paste(deparse(.libPaths()), collapse = ''), ')'), 'library(vennabers)',
       paste0('s <- readRDS(', deparse(saved), ')'),
@@ -54,7 +60,9 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
       'trace("prep.recipe", where = asNamespace("recipes"), tracer = quote(stop("Unexpected preprocessing")), print = FALSE)',
       'trace("venn_abers_regression", where = asNamespace("vennabers"), tracer = quote(stop("Unexpected calibration")), print = FALSE)',
       'stopifnot(identical(s$expected, s$snapshot(s$fit, s$new, s$schema)),',
-      '  identical(names(workflows::extract_fit_engine(s$fit)$models), "Full1"))'
+      '  identical(names(workflows::extract_fit_engine(s$fit)$models), "Full1"))',
+      if (replay) worker_replay("yardstick::metric_set(yardstick::rmse, yardstick::mae)", c("vennabers", "stats"),
+        c(workflows = "fit.workflow", recipes = "prep.recipe", vennabers = "venn_abers_regression"))
     ), script)
     status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
     if (status != 0L) stop(paste(readLines(log), collapse = "\n"))

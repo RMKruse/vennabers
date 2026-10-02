@@ -60,3 +60,30 @@ pairwise_reference <- function(model = "va_pair_reference") {
   list(audit = audit, pair_fit = pair_fit, pair_prob = pair_prob, spec = spec,
        make_base = make_base, pair_data = pair_data, couple = couple)
 }
+
+worker_replay_available <- function() {
+  all(vapply(c("tune", "yardstick", "future", "withr"), requireNamespace, logical(1), quietly = TRUE))
+}
+
+# Fresh-process script lines for a script holding `s$replay` and `s$snapshot`:
+# two multisession workers, each a process other than the script's own, must
+# rebuild the saved outer evaluation (or a sequential run of it) and every state.
+worker_replay <- function(metrics, packages, untraced) c(
+  sprintf('untrace("%s", where = asNamespace("%s"))', untraced, names(untraced)),
+  'Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1", MKL_NUM_THREADS = "1")',
+  'r <- s$replay',
+  paste0('control <- function(extract) tune::control_resamples(save_pred = TRUE, extract = extract, parallel_over = "resamples", pkgs = ',
+    paste(deparse(packages), collapse = ""), ')'),
+  paste0('run <- function(extract = identity) withr::with_seed(43, tune::fit_resamples(r$model, r$outer, metrics = ', metrics,
+    ', control = control(extract)))'),
+  'reference <- if (is.null(r$evaluation)) run() else r$evaluation',
+  'future::plan(future::multisession, workers = 2)',
+  'parallel <- run(function(x) list(workflow = x, pid = Sys.getpid()))',
+  'future::plan(future::sequential)',
+  'found <- tune::collect_extracts(parallel)$.extracts; expected <- tune::collect_extracts(reference)$.extracts',
+  'pids <- vapply(found, function(x) x$pid, 0L)',
+  'stopifnot(nrow(tune::collect_notes(parallel)) == 0L, length(found) == nrow(r$outer), length(expected) == length(found),',
+  '  !any(pids == Sys.getpid()), length(unique(pids)) == 2L,',
+  '  identical(tune::collect_predictions(parallel), tune::collect_predictions(reference)),',
+  '  identical(tune::collect_metrics(parallel), tune::collect_metrics(reference)))',
+  'for (i in seq_along(found)) stopifnot(identical(s$snapshot(found[[i]]$workflow, r$new, r$schema), s$snapshot(expected[[i]], r$new, r$schema)))')
