@@ -236,11 +236,12 @@ local({
   stopifnot(!summary$visible, identical(graphics::par("mfrow"), layout),
             identical(names(summary$value), c("class", "mean_probability", "event_rate", "count")),
             identical(levels(summary$value$class), classes))
-  for (class in classes) {
-    expected <- calibration_plot(assessment == class, prob[, class], bins = 2)
-    actual <- summary$value[summary$value$class == class, -1]
-    close(as.matrix(actual), as.matrix(expected))
-  }
+  # Literal groups: z has 0/.5, a has .25/1, and the unobserved third
+  # class has one group averaging 0 and .25. No binary plotting oracle.
+  stopifnot(identical(as.character(summary$value$class), c("z", "z", "a", "a", "a/z")))
+  close(summary$value$mean_probability, c(0, .5, .25, 1, .125))
+  close(summary$value$event_rate, c(0, 1, 0, 1, 0))
+  close(summary$value$count, c(1, 1, 1, 1, 2))
   expect_error(calibration_plot(assessment, prob, bins = 0), "bins")
   stopifnot(identical(graphics::par("mfrow"), layout))
 })
