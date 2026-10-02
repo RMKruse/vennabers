@@ -17,6 +17,12 @@ reference method, counts, and SHA-256 hashes of the four CSV files.
 Normal tests use only the installed R package and saved data, without Python
 or networking.
 
+Generator version: `cbd2729:tools/generate-regression-fixtures.py` in this
+repository's Git history. The Cross CSVs are unchanged from
+`cbd2729:inst/extdata`; their exact hashes are recorded in
+`cross-regression-environment.json`. The generator is currently git-ignored;
+restoring reproducible release tooling belongs to ticket 19.
+
 There are 80 cases: four deterministic and 16 random cases (seed 20260908),
 each in ordinary, small, large and shifted outcome scales. They contain 220
 folds, 1,540 complete fold predictions and 560 aggregate predictions. Fold
@@ -57,3 +63,7 @@ opposite-signed folds at magnitudes 1e16 and 1e308 across all six permutations
 restoration. The installed fold-model example checks training exclusion,
 reconstruction and RMSE/MAE on separate assessment data. Its help example and
 the package acceptance gate execute it against the installed artifact.
+Independent tied-score calculations additionally verify epsilon=.5 on five
+and eight rows (effective m=1 and m=2), complete fold results and their separate
+means. Numeric 0/1 outcomes are checked through actual regression points and
+bounds, including their unequal-fold aggregate.

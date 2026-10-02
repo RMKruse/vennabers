@@ -103,7 +103,7 @@ not a prediction-interval error rate.
 This manual Cross entry point is an R extension. Offline reference fixtures
 combine valid IVAR components from Python venn-abers 1.5.4 and independently
 computed arithmetic means; no public manual Python CVAR wrapper is claimed.
-See installed \file{extdata/cross-regression-reference.md} for provenance,
+See \file{tests/testthat/extdata/cross-regression-reference.md} in the source package for provenance,
 retained reference defects and fixed scale-aware tolerances.
 }
 \seealso{\code{\link{venn_abers_regression}}}

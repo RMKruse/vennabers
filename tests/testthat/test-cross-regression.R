@@ -73,6 +73,15 @@ for (epsilon in c(1 / 3, 2 / 3 - 1e-12, 2 / 3, 2 / 3 + 1e-12)) {
 }
 explicit <- cross_venn_abers_regression(1:13, 13:1, moderation_folds, m = 2)
 stopifnot(all(vapply(explicit$calibrators, function(x) identical(x$requested, list(m = 2)), TRUE)))
+# At tied score zero, epsilon=.5 gives m=1 for five rows, m=2 for eight.
+# The latter's moderated sums are 24 (lower) and 32 (upper); adding a=-2
+# or b=10 gives L=22/9, U=14/3 and weighted point=362/99.
+unequal <- cross_venn_abers_regression(c(-10, 0, 2, 6, 20, -8, -2, 0, 1, 3, 8, 10, 30),
+                                     rep(0, 13), moderation_folds, epsilon = .5)
+unequal_details <- predict(unequal, cbind(eight = 0, five = 0), type = "details")
+close_regression(as.matrix(unequal_details$folds$five), matrix(c(29 / 7, -1, 8), 1))
+close_regression(as.matrix(unequal_details$folds$eight), matrix(c(362 / 99, 22 / 9, 14 / 3), 1))
+close_regression(as.matrix(unequal_details$prediction), matrix(c(5405 / 1386, 13 / 18, 19 / 3), 1))
 expect_error(cross_venn_abers_regression(truth, prediction, fold, m = 2), "constant")
 expect_error(cross_venn_abers_regression(1:7, 1:7, rep(c("valid", "too small"), c(5, 2))), "too small")
 expect_error(cross_venn_abers_regression(truth, prediction, fold, epsilon = .4), "constant")
@@ -132,8 +141,15 @@ for (ids in list(c(20, 3), c("fold / B", "fold:A"), c(" A", "a"))) {
   rownames(input) <- c("third", "first", "second")
   stopifnot(identical(predict(named, input), details$prediction))
 }
-stopifnot(inherits(cross_venn_abers_regression(rep(c(0, 1, 0), 2), 1:6,
-                                             rep(c("A", "B"), each = 3)), "cross_venn_abers_regression"))
+# Numeric 0/1 outcomes retain the regression bounds and weighted merger.
+# At tied score zero, three rows give (.5, 0, .5); five give (17/30, .5, 2/3).
+binary_fit <- cross_venn_abers_regression(c(0, 1, 0, 0, 0, 1, 1, 1), rep(0, 8),
+                                        rep(c("three", "five"), c(3, 5)))
+binary_details <- predict(binary_fit, cbind(five = 0, three = 0), type = "details")
+close_regression(as.matrix(binary_details$folds$three), matrix(c(.5, 0, .5), 1))
+close_regression(as.matrix(binary_details$folds$five), matrix(c(17 / 30, .5, 2 / 3), 1))
+close_regression(as.matrix(binary_details$prediction), matrix(c(8 / 15, .25, 7 / 12), 1))
+check_schema(binary_details$prediction, 1)
 permutation <- c(8, 1, 6, 3, 5, 2, 7, 4)
 permuted <- cross_venn_abers_regression(truth[permutation], prediction[permutation], fold[permutation])
 close_regression(as.matrix(predict(permuted, newdata[3:1, 2:1])),
