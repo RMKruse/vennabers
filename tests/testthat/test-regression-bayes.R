@@ -228,3 +228,58 @@ testthat::test_that("regression Bayes fits local model and moderation choices in
     }
   }
 })
+
+testthat::test_that("Bayes accounts for discarded and repeated proposals without postprocessing", {
+  testthat::skip_if_not_installed("tune")
+  audit <- new.env(parent = emptyenv())
+  strict_fit <- function(x, y, variant) {
+    audit$fits <- c(audit$fits, variant)
+    if (!variant %in% c(1L, 3L, 6L)) stop("planned continuation failure")
+    list(variant = variant)
+  }
+  strict_predict <- function(object, new_data) new_data$x / object$variant
+  register_reference_engine("linear_reg", "regression", "strict_fit", "strict_predict", "numeric",
+    engine = "strict_bayes_reference", new_model = FALSE)
+  data <- data.frame(x = seq(-1, 1, length.out = 120))
+  data$truth <- data$x
+  base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
+    workflows::add_model(parsnip::linear_reg() |>
+      parsnip::set_engine("strict_bayes_reference", variant = tune::tune("variant")))
+  params <- dials::parameters(dials::new_quant_param(type = "integer", range = c(1L, 6L),
+    inclusive = c(TRUE, TRUE), label = c(variant = "Variant")))
+  run <- function(no_improve = 10L, time_limit = NA_real_) {
+    audit$fits <- integer()
+    config <- list(strategy = "two_stage", model = list(method = "bayes", initial = 3L, iter = 3L,
+      param_info = params, resamples = function(d) rsample::vfold_cv(d, v = 2),
+      control = tune::control_bayes(seed = 4, save_pred = TRUE,
+        no_improve = no_improve, time_limit = time_limit)))
+    fitted <- generics::fit(calibrated_workflow(base, "truth", seed = 2, tuning = config), data)
+    selection <- venn_abers_tuning(fitted)
+    testthat::expect_identical(selection$cost$observed_base_fits, length(audit$fits))
+    selection$models$Inductive1
+  }
+  selected <- run()
+  testthat::expect_identical(selected$steps$initial$variant, c(6L, 1L, 3L))
+  testthat::expect_identical(selected$candidates$id, sprintf("model_%03d", 1:4))
+  testthat::expect_identical(selected$steps$step_1$variant, 2L)
+  testthat::expect_identical(selected$steps$step_1$status, "excluded")
+  testthat::expect_match(selected$steps$step_1$reason, "planned continuation failure")
+  testthat::expect_true(any(grepl("planned continuation failure", selected$notes$note)))
+  testthat::expect_setequal(tune::collect_metrics(selected$native)$variant, c(1L, 3L, 6L))
+  testthat::expect_identical(selected$steps$step_2$repeated$variant, 3L)
+  testthat::expect_identical(selected$stop_reason, "repeated_candidate")
+  testthat::expect_identical(selected$attempts, 5L)
+  testthat::expect_identical(selected$no_improve, 2L)
+  testthat::expect_identical(selected$cost$candidate_evaluations, 10L)
+  testthat::expect_identical(selected$cost$observed_base_fits, 10L)
+  testthat::expect_identical(selected$chosen, "model_002")
+  stale <- run(no_improve = 1L)
+  testthat::expect_identical(stale$stop_reason, "no_improve")
+  testthat::expect_identical(stale$attempts, 4L)
+  testthat::expect_identical(stale$cost$observed_base_fits, 8L)
+  timed <- run(time_limit = 1e-9)
+  testthat::expect_identical(timed$stop_reason, "time_limit")
+  testthat::expect_named(timed$steps, "initial")
+  testthat::expect_identical(timed$attempts, 3L)
+  testthat::expect_identical(timed$cost$observed_base_fits, 6L)
+})

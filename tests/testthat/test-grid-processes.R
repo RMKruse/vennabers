@@ -1,11 +1,12 @@
-testthat::test_that("Grid workflows replay on outer workers and restore without learning", {
+testthat::test_that("Grid and Bayes workflows replay on outer workers and restore without learning", {
   for (pkg in c("tune", "yardstick", "future", "recipes", "rpart")) testthat::skip_if_not_installed(pkg)
   source("helper-helpers.R")
   snapshot <- function(fit, new, schema = NULL) {
     tuning <- venn_abers_tuning(fit)
     selection <- function(x) {
       if (is.null(x)) return(NULL)
-      x[c("chosen", "selected", "candidates", "grid", "resamples", "seed", "budget", "cost")]
+      x[c("chosen", "selected", "candidates", "grid", "resamples", "seed", "budget", "cost",
+        "bayes_seed", "steps", "notes", "attempts", "stop_reason", "no_improve", "scores", "report_metrics")]
     }
     models <- if (identical(tuning$model_training, "pairwise")) lapply(tuning$models, function(x) lapply(x, selection)) else
       lapply(tuning$models, selection)
@@ -19,7 +20,8 @@ testthat::test_that("Grid workflows replay on outer workers and restore without 
   saved <- tempfile(fileext = ".rds"); fitted <- tempfile(fileext = ".rds")
   script <- tempfile(fileext = ".R"); log <- tempfile()
   on.exit(unlink(c(saved, fitted, script, log)), add = TRUE)
-  for (domain in c("binary", "ovo", "ovr", "pairwise", "regression")) for (strategy in c("joint", "two_stage")) {
+  for (search in c("grid", "bayes")) for (domain in c("binary", "ovo", "ovr", "pairwise", "regression"))
+    for (strategy in c("joint", "two_stage")) {
     data <- withr::with_seed(81, data.frame(x = stats::rnorm(720),
       truth = if (domain == "regression") stats::rnorm(720) else
         factor(rep(if (domain == "binary") c("a", "b") else c("a", "b", "c"), length.out = 720))))
@@ -32,13 +34,28 @@ testthat::test_that("Grid workflows replay on outer workers and restore without 
     grid <- data.frame(degree = 1:2, depth = 1:2)
     # The Cartesian pair route is already covered with two model candidates;
     # one here keeps worker replay small while still tuning calibration.
-    if (domain == "pairwise" && strategy == "joint") grid <- grid[1L, , drop = FALSE]
+    if (search == "grid" && domain == "pairwise" && strategy == "joint") grid <- grid[1L, , drop = FALSE]
     tuning <- list(strategy = strategy, selection_prop = .5,
       model = list(method = "grid", grid = grid, resamples = folds),
       calibration = list(method = "grid", resamples = folds,
         grid = if (domain == "regression") data.frame(moderation = c(.2, .3)) else
           data.frame(va_loss = c("log", "brier"))))
-    if (domain == "pairwise" && strategy == "joint") tuning$model$resamples <- NULL
+    if (search == "grid" && domain == "pairwise" && strategy == "joint") tuning$model$resamples <- NULL
+    if (search == "bayes") {
+      params <- dials::parameters(
+        dials::new_quant_param(type = "integer", range = c(1L, 2L), inclusive = c(TRUE, TRUE),
+          label = c(degree = "Degree")),
+        dials::new_quant_param(type = "integer", range = c(1L, 3L), inclusive = c(TRUE, TRUE),
+          label = c(depth = "Depth")))
+      options <- if (domain == "regression") dials::new_quant_param(type = "double",
+        range = c(.2, .3), inclusive = c(TRUE, TRUE), label = c(moderation = "Moderation")) else
+        dials::new_qual_param(type = "character", values = c("log", "brier"), label = c(va_loss = "Loss"))
+      tuning$model <- list(method = "bayes", initial = 3L, iter = 2L, param_info = params,
+        resamples = folds, control = tune::control_bayes(seed = 4, save_pred = TRUE, no_improve = 2L))
+      tuning$calibration <- list(method = "bayes", initial = 2L, iter = 1L,
+        param_info = dials::parameters(options), resamples = folds,
+        control = tune::control_bayes(seed = 5, save_pred = TRUE, no_improve = 2L))
+    }
     args <- list(workflow = base, outcome = "truth", method = "cross", v = 2,
       prediction_model = "full", seed = 31, tuning = tuning)
     if (domain == "regression") args$epsilon <- tune::tune("moderation") else args$loss <- tune::tune("va_loss")
@@ -66,6 +83,6 @@ testthat::test_that("Grid workflows replay on outer workers and restore without 
       "for (i in seq_along(restored)) stopifnot(identical(s$snapshot(restored[[i]]$workflow, r$new), s$snapshot(expected[[i]], r$new)))"
     ), script)
     status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
-    testthat::expect_equal(status, 0L, info = paste(domain, strategy, paste(readLines(log), collapse = "\n")))
+    testthat::expect_equal(status, 0L, info = paste(search, domain, strategy, paste(readLines(log), collapse = "\n")))
   }
 })
