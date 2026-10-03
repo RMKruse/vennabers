@@ -90,6 +90,36 @@ testthat::test_that("sigmoid accepts a stationary fit whose line search stops at
   testthat::expect_lte(max(abs(actual - expected)), 1e-7)
 })
 
+testthat::test_that("a line-search stop is kept only at a stationary point; other stops fail", {
+  for (pkg in c("workflows", "rsample")) testthat::skip_if_not_installed(pkg)
+  d <- data.frame(x = sin(1:80), truth = factor(rep(c("a", "b", "b", "a"), 20)))
+  base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
+    workflows::add_model(parsnip::logistic_reg(engine = "glm"))
+  original_optim <- stats::optim
+  # The optimizer's own result, reported as ABNORMAL_TERMINATION_IN_LNSRCH (52).
+  fit_after_stop <- function(spec, shift) testthat::with_mocked_bindings(
+    workflows::extract_fit_engine(generics::fit(spec, d))$postprocessing[[1]],
+    optim = function(...) {
+      result <- original_optim(...)
+      result$par <- result$par + shift
+      result$convergence <- 52L
+      result
+    }, .package = "stats")
+  for (input in c("probability", "glm_link")) {
+    spec <- calibrated_workflow(base, "truth", seed = 24,
+      postprocessing = list(method = "sigmoid", strategy = "holdout", prop = .3, sigmoid_input = input))
+    converged <- workflows::extract_fit_engine(generics::fit(spec, d))$postprocessing[[1]]
+    kept <- fit_after_stop(spec, c(0, 0))
+    testthat::expect_identical(kept$coefficients, converged$coefficients)
+    testthat::expect_true(kept$converged)
+    # Away from the optimum, or at a nonfinite point, the same stop is nonconvergence.
+    for (shift in list(c(.05, 0), c(0, -.05), c(NaN, 0))) {
+      testthat::expect_error(fit_after_stop(spec, shift), "Inductive1 / Holdout1 sigmoid.*P fit did not converge",
+        info = paste(input, toString(shift)))
+    }
+  }
+})
+
 testthat::test_that("sigmoid rejects incompatible workflows and invalid local learning inputs", {
   for (pkg in c("workflows", "rsample", "tailor")) testthat::skip_if_not_installed(pkg)
   d <- data.frame(x = sin(1:80), truth = factor(rep(c("a", "b"), 40)))

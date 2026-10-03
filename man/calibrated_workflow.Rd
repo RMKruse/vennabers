@@ -748,11 +748,19 @@ Both VA event choices are supported by named probability selection after Sigmoid
 
 The mapping minimizes unregularized logistic loss with targets
 \eqn{(N_1+1)/(N_1+2)} for the second class and \eqn{1/(N_0+2)} for the first.
-It follows scikit-learn's Platt calibration. Stored \code{coefficients} are
+It follows scikit-learn's Platt calibration, including its start values,
+L-BFGS-B tolerances (relative loss reduction of 64 machine epsilons, gradient
+1e-6) and SciPy's ten correction pairs. These tolerances stop short of the exact
+optimum, so the optimizer path determines the result. Stored \code{coefficients} are
 \code{a, b} on the stored input \code{scale}: the second-class output is
 \code{plogis(-(a * (x / scale) + b))}. The scale is the maximum absolute P
-input when at least 30, otherwise one. Constant inputs use a zero slope.
-Nonfinite or incomplete inputs, unsuccessful optimization, and incomplete
+input when at least 30, otherwise one. Constant inputs use the exact zero-slope
+solution (the mean target). This is an R choice, not Python parity:
+scikit-learn's iterative estimate stops within its gradient tolerance and, for
+very small P, can differ from it by more than 1e-7. A line-search stop is kept
+only when its mean gradient per P row is at most 1e-6 in each coefficient, as at
+a machine-precision optimum.
+Nonfinite or incomplete inputs, every other unsuccessful optimization, and incomplete
 probability outputs fail with method, role and local fold context.
 
 The fitted state retains the complete base workflow, mapping and package

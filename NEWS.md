@@ -21,6 +21,12 @@
   fit is now kept when its mean gradient per P row is at most `pgtol`
   (sklearn keeps such a point without any check); other nonconvergence still
   fails without a fallback.
+- Fix Sigmoid outputs drifting from scikit-learn by up to 1.7e-5: L-BFGS-B now
+  keeps SciPy's ten correction pairs (`lmm = 10`) instead of R's five. sklearn's
+  tolerances stop short of the exact optimum, so the optimizer path decides the
+  result. Across 2,000 random P sets, every nonconstant case now agrees within
+  2.1e-8. The sklearn fixture gains a 30-row concentrated case; constant P
+  keeps the exact zero-slope solution.
 - Two-stage model search strips a Tailor postprocessor once per search instead
   of once per candidate. The per-candidate check made tuned two-stage fits about
   25% slower than in v0.8 even without postprocessing.
