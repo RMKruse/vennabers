@@ -517,7 +517,11 @@ predictions. Failed fits, absent learned state and method switches to none
 are errors. Tailor multinomial uses the \code{nnet::multinom()} defaults of
 \pkg{probably} (at most 100 iterations), and the fixed Tailor arguments offer
 no iteration setting: weakly informative class probabilities can stop there
-unconverged, which is an error rather than an accepted approximate fit. Warnings from successful fits are retained with source/fold context.
+unconverged even when the B engine converges. Setting \code{maxit} on the B
+engine does not change the P postprocessor's limit. The composition fails
+with fold, inner-pair and B/P context, without retry, method switch or partial
+ensemble. This R composition limit does not change numerical VA parity on
+identical valid inputs. Warnings from successful fits are retained with source/fold context.
 The existing VA rules for missing C classes remain unchanged (including valid
 one-class Cross subproblems); B/P requirements do not apply to C. Use \code{venn_abers_schema()} for nonsyntactic outcome
 or class names that the underlying Tailor/probably formula interface cannot use.

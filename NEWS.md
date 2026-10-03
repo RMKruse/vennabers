@@ -11,7 +11,11 @@
 - Known limit: Tailor multinomial fits use probably's `nnet::multinom()`
   defaults (at most 100 iterations) and cannot be tuned through the fixed
   Tailor arguments; weakly informative probabilities can stop unconverged,
-  which fails the fit.
+  which fails the fit with fold, inner-pair and B/P context, without retry,
+  method switch or partial ensemble. Clarify this limit in README, help and
+  installed examples: a B engine's `maxit` setting does not change the P
+  postprocessor's limit. The multinomial composition is an R extension;
+  numerical VA parity on identical valid inputs is unchanged.
 - Not included: out-of-fold postprocessing with a complete engine refit,
   arbitrary foreign engines or Tailor step sequences, further methods and new
   constructors.

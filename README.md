@@ -165,7 +165,14 @@ postprocessors and keep nine pairs.
 Sigmoid follows the sklearn target smoothing without a Python runtime. Tailor
 methods use the public workflow path with `smooth = FALSE`; reference isotonic
 needs neither `tailor` nor `probably`. These are R extensions of the Python
-reference, which has no tidymodels postprocessing. Out of scope: out-of-fold
+reference, which has no tidymodels postprocessing. Tailor multinomial uses
+probably's `nnet::multinom()` defaults (at most 100 iterations); the fixed
+postprocessing arguments expose no `maxit` setting. Weakly informative class
+probabilities can reach this limit even when the B engine converges. The fit
+then fails with fold, inner-pair and B/P context, without retry, method switch
+or partial ensemble. Setting `maxit` on the B engine does not change the P
+postprocessor's limit. This R composition limit does not change numerical VA
+parity on the same valid inputs. Out of scope: out-of-fold
 postprocessing followed by a complete engine refit, arbitrary foreign engines
 or Tailor step sequences, further methods and new constructors. Frozen
 workflows (`calibrate_workflow()`) keep their existing contract. Full-model

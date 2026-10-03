@@ -38,6 +38,9 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     engine <- if (regression) parsnip::linear_reg(engine = "lm") else
       if (pairwise || k == 2L) parsnip::logistic_reg(engine = "glm") else
         parsnip::multinom_reg(penalty = .1) |> parsnip::set_engine("nnet", trace = FALSE, maxit = 1000)
+    # maxit = 1000 controls only B. Tailor multinomial P still uses probably's
+    # default 100 iterations. Any unconverged pair fails the whole composition
+    # with fold/pair/B/P context, without retry, method switch or partial ensemble.
     base <- workflows::workflow() |> workflows::add_recipe(
       recipes::recipe(reformulate(predictors, outcome), d) |>
         recipes::step_normalize(recipes::all_numeric_predictors())) |> workflows::add_model(engine)
