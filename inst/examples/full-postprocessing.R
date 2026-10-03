@@ -42,8 +42,10 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
       recipes::recipe(reformulate(predictors, outcome), d) |>
         recipes::step_normalize(recipes::all_numeric_predictors())) |> workflows::add_model(engine)
     # Repeated outer folds: identities are checked on (id, id2, .row, .config).
-    # Seeds 43-45 leave a pairwise Tailor P of about 25 rows separable; its
-    # nonconvergence is refused (no switch to none), so this example uses 42.
+    # Small nested data: with seed 44 one pairwise Tailor P of 25 rows stops
+    # unconverged and that resample fails (no retry, no switch to none); seeds
+    # 43 and 45 keep a converged separable pairwise B engine with its retained
+    # glm warning, a tune note. This example uses 42, whose evaluation has none.
     outer <- withr::with_seed(42, rsample::vfold_cv(d, v = 2, repeats = 2))
     split <- rsample::make_splits(list(analysis = 1:384, assessment = 385:480), d)
     metrics <- if (regression) yardstick::metric_set(yardstick::rmse, yardstick::mae) else
