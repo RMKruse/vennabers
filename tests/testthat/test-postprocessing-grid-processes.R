@@ -67,3 +67,42 @@ testthat::test_that("outer parallel workers reproduce sequential tuned postproce
   status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
   testthat::expect_equal(status, 0L, info = paste(readLines(log), collapse = "\n"))
 })
+
+testthat::test_that("postprocessed Grid ensembles preserve complete searches and costs on outer workers", {
+  for (pkg in c("tune", "yardstick", "future", "withr", "recipes", "rpart", "tailor", "probably")) testthat::skip_if_not_installed(pkg)
+  source("helper-helpers.R")
+  snapshot <- function(fit, new, schema = NULL) {
+    state <- workflows::extract_fit_engine(fit)
+    tuning <- venn_abers_tuning(fit)
+    selection <- function(x) c(x[c("chosen", "selected", "candidates", "grid", "resamples", "seed",
+      "search_seed", "budget", "cost", "scores", "report_metrics", "decisions")],
+      list(predictions = tune::collect_predictions(x$native)))
+    list(outputs = lapply(c(0L, 1L, 7L), function(n) {
+      batch <- new[seq_len(n), , drop = FALSE]
+      list(prediction = predict(fit, batch), details = venn_abers_details(fit, batch))
+    }), models = lapply(tuning$models, function(path) lapply(path, selection)),
+      plans = state$postprocessing, cost = tuning$cost, roles = tuning$fit_roles, sources = tuning$sources)
+  }
+  # Nested joint ensembles need B large enough for a nonconstant tree and
+  # full-rank Tailor P; a small constant-tree fixture correctly fails instead.
+  data <- withr::with_seed(81, {
+    x <- rnorm(1920)
+    data.frame(x = x, truth = 3 * x + rnorm(1920, sd = .5))
+  })
+  base <- workflows::workflow() |> workflows::add_recipe(recipes::recipe(truth ~ x, data) |>
+    recipes::step_normalize(x) |> recipes::step_poly(x, degree = tune::tune("degree"))) |>
+    workflows::add_model(parsnip::decision_tree(tree_depth = tune::tune("depth"), min_n = 10) |>
+      parsnip::set_mode("regression") |> parsnip::set_engine("rpart"))
+  outer <- withr::with_seed(82, rsample::vfold_cv(data, v = 2, repeats = 2))
+  saved <- tempfile(fileext = ".rds")
+  on.exit(unlink(saved), add = TRUE)
+  for (method in c("isotonic_numeric", "tailor_linear")) for (strategy in c("joint", "two_stage")) {
+    model <- calibrated_workflow(base, "truth", method = "cross", v = 2, prediction_model = "full", seed = 31,
+      tuning = list(strategy = strategy, model = list(method = "grid", grid = data.frame(degree = 1:2, depth = 1:2),
+        resamples = function(d) rsample::vfold_cv(d, v = 2))),
+      postprocessing = list(method = method, strategy = "ensemble", v = 2))
+    saveRDS(list(snapshot = snapshot, replay = list(model = model, outer = outer, new = data[1:7, ], schema = NULL)), saved)
+    run_guarded_replay(saved, "yardstick::metric_set(yardstick::rmse)", c("vennabers", "rpart", "probably"),
+      info = paste(method, strategy))
+  }
+})

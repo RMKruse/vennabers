@@ -1,3 +1,31 @@
+# Replays the saved `s$replay` on two fresh workers in a fresh process, then
+# restores every worker fit from RDS under guards against learning, planning
+# or search; `s$snapshot` must match the sequential reference throughout.
+run_guarded_replay <- function(saved, metrics, packages, info = "") {
+  fitted <- tempfile(fileext = ".rds"); script <- tempfile(fileext = ".R"); log <- tempfile()
+  on.exit(unlink(c(fitted, script, log)), add = TRUE)
+  writeLines(c(
+    paste0(".libPaths(", paste(deparse(.libPaths()), collapse = ""), ")"), "library(vennabers)",
+    paste0("s <- readRDS(", deparse(saved), ")"),
+    worker_replay(metrics, packages, character()),
+    "checker <- new.env(); sys.source(system.file('examples', 'check-encoded-evaluation.R', package = 'vennabers'), checker)",
+    "checker$check_outer_identities(parallel, r$outer, metrics = 1L)",
+    paste0("saveRDS(found, ", deparse(fitted), ")"),
+    paste0("restored <- readRDS(", deparse(fitted), ")"),
+    "guard <- function(...) stop('Unexpected learning, planning or search')",
+    "registerS3method('fit', 'workflow', guard, envir = asNamespace('generics'))",
+    "registerS3method('fit', 'tailor', guard, envir = asNamespace('generics'))",
+    "for (f in c('venn_abers', 'venn_abers_regression')) trace(f, where = asNamespace('vennabers'), tracer = quote(guard()), print = FALSE)",
+    "trace('isoreg', where = asNamespace('stats'), tracer = quote(guard()), print = FALSE)",
+    "trace('prep.recipe', where = asNamespace('recipes'), tracer = quote(guard()), print = FALSE)",
+    "for (f in c('initial_split', 'vfold_cv')) trace(f, where = asNamespace('rsample'), tracer = quote(guard()), print = FALSE)",
+    "for (f in c('tune_grid', 'tune_bayes')) trace(f, where = asNamespace('tune'), tracer = quote(guard()), print = FALSE)",
+    "for (i in seq_along(restored)) stopifnot(identical(s$snapshot(restored[[i]]$workflow, r$new), s$snapshot(expected[[i]], r$new)))"
+  ), script)
+  status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
+  testthat::expect_equal(status, 0L, info = paste(info, paste(readLines(log), collapse = "\n")))
+}
+
 # Shared checks for the independently scheduled search/domain replay tests.
 check_tuning_replay <- function(search, domain) {
   for (pkg in c("tune", "yardstick", "future", "recipes", "rpart")) testthat::skip_if_not_installed(pkg)
@@ -18,9 +46,8 @@ check_tuning_replay <- function(search, domain) {
     }), models = models, calibration = selection(tuning$calibration), joint = selection(tuning$joint),
       cost = tuning$cost, roles = tuning$fit_roles, sources = tuning$sources)
   }
-  saved <- tempfile(fileext = ".rds"); fitted <- tempfile(fileext = ".rds")
-  script <- tempfile(fileext = ".R"); log <- tempfile()
-  on.exit(unlink(c(saved, fitted, script, log)), add = TRUE)
+  saved <- tempfile(fileext = ".rds")
+  on.exit(unlink(saved), add = TRUE)
   for (strategy in c("joint", "two_stage")) {
     data <- withr::with_seed(81, data.frame(x = stats::rnorm(720),
       truth = if (domain == "regression") stats::rnorm(720) else
@@ -66,23 +93,6 @@ check_tuning_replay <- function(search, domain) {
     saveRDS(list(snapshot = snapshot, replay = list(model = model, outer = outer, new = data[1:7, ], schema = NULL)), saved)
     metrics <- if (domain == "regression") "yardstick::metric_set(yardstick::rmse)" else
       "yardstick::metric_set(yardstick::mn_log_loss)"
-    writeLines(c(
-      paste0(".libPaths(", paste(deparse(.libPaths()), collapse = ""), ")"), "library(vennabers)",
-      paste0("s <- readRDS(", deparse(saved), ")"),
-      worker_replay(metrics, c("vennabers", "rpart"), character()),
-      "checker <- new.env(); sys.source(system.file('examples', 'check-encoded-evaluation.R', package = 'vennabers'), checker)",
-      "checker$check_outer_identities(parallel, r$outer, metrics = 1L)",
-      paste0("saveRDS(found, ", deparse(fitted), ")"),
-      paste0("restored <- readRDS(", deparse(fitted), ")"),
-      "guard <- function(...) stop('Unexpected learning, planning or search')",
-      "registerS3method('fit', 'workflow', guard, envir = asNamespace('generics'))",
-      "for (f in c('venn_abers', 'venn_abers_regression')) trace(f, where = asNamespace('vennabers'), tracer = quote(guard()), print = FALSE)",
-      "trace('prep.recipe', where = asNamespace('recipes'), tracer = quote(guard()), print = FALSE)",
-      "for (f in c('initial_split', 'vfold_cv')) trace(f, where = asNamespace('rsample'), tracer = quote(guard()), print = FALSE)",
-      "for (f in c('tune_grid', 'tune_bayes')) trace(f, where = asNamespace('tune'), tracer = quote(guard()), print = FALSE)",
-      "for (i in seq_along(restored)) stopifnot(identical(s$snapshot(restored[[i]]$workflow, r$new), s$snapshot(expected[[i]], r$new)))"
-    ), script)
-    status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
-    testthat::expect_equal(status, 0L, info = paste(search, domain, strategy, paste(readLines(log), collapse = "\n")))
+    run_guarded_replay(saved, metrics, c("vennabers", "rpart"), info = paste(search, domain, strategy))
   }
 }
