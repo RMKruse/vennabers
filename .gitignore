@@ -20,10 +20,12 @@ renv/python/
 # Local planning artifacts
 .scratch/
 CONTEXT.md
-tools/
+/tools/*
 .DS_Store
 inst/
 AGENTS.md
 docs/
-tools
-
+# Keep the standard verification command and its scheduling history.
+!/tools/verify.R
+!/tools/test-verify.R
+!/tools/test-durations.csv

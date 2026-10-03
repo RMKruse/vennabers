@@ -195,3 +195,25 @@ transfer does not inherit split-calibration guarantees.
 - [Release notes](NEWS.md)
 
 Run `help(package = "vennabers")` for the complete function reference.
+
+## Verification
+
+```sh
+Rscript --vanilla tools/verify.R
+```
+
+This installs the current package and its tests in a temporary library, then
+runs every test file once on four processes. Files start in descending order
+of recorded duration; each free process takes the next file. Failures, errors,
+warnings and skips fail verification. Logs and results stay in the printed
+temporary directory. A successful run refreshes `tools/test-durations.csv`.
+All suggested dependencies and `rpart` must be installed; use `R_LIBS` for an
+additional dependency library. Pass `3` to compare three processes.
+
+The original timings total about 60 minutes of test work. After splitting the
+large replay test, ideal scheduling estimates about 20 minutes with three
+processes or 15 with four. These are planning estimates: some tests launch two
+workers themselves, so actual gains require measurement. The local macOS / R
+4.6.1 run on 2026-10-03 completed all 96 files and 21,219 expectations in
+15.90 minutes with four processes, with no failures, errors, warnings or skips.
+The timing file now contains measured durations for all ten replay groups.
