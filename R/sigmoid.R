@@ -54,8 +54,10 @@
     ab <- c(0, -stats::qlogis(mean(target)))
   } else {
     pgtol <- 1e-6
+    # sklearn's tolerances stop short of the exact optimum, so its result depends
+    # on the optimizer path: lmm = 10 follows SciPy's L-BFGS-B memory (maxcor).
     fit <- stats::optim(c(0, log((n0 + 1) / (n1 + 1))), loss, gradient,
-      method = "L-BFGS-B", control = list(factr = 64, pgtol = pgtol, maxit = 1000))
+      method = "L-BFGS-B", control = list(factr = 64, pgtol = pgtol, maxit = 1000, lmm = 10))
     finite <- all(is.finite(fit$par)) && is.finite(fit$value)
     # With sklearn's ftol (factr = 64) the line search can stop at the optimum
     # because no representable step decreases the loss (code 52); sklearn keeps

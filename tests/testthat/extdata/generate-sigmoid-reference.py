@@ -16,6 +16,8 @@ cases = {
     "constant": ([.6] * 8, [0] * 6 + [1] * 2),
     "two": ([.2, .8], [0, 1]),
     "saturated": ([0, 0, .1, .2, .8, .9, 1, 1], [0, 1, 0, 0, 1, 1, 0, 1]),
+    # Many L-BFGS-B iterations: the optimizer path, not only its tolerances, matters.
+    "concentrated": (.5 + .01 * np.sin(np.arange(1, 31)), [0, 1, 0, 0, 1, 1] * 5),
 }
 rows = []
 for input_type in ["probability", "glm_link"]:
