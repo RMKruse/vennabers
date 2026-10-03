@@ -1,0 +1,42 @@
+example,coverage,covered_by,reason
+assertions.R,helper,tests/testthat/test-assertion-labels.R,Assertion helper exercised by tests and example callers.
+binary-ensemble.R,suite,tests/testthat/test-binary-ensemble-processes.R,Suite sources the complete example and checks native outer evaluation.
+binary-grid.R,standalone,package standalone example,Binary grid tutorial with local preprocessing and independent assessment.
+binary-options.R,core,core-without-tidymodels,Manual binary options execute with optional integration packages unavailable.
+calibrated-resampling.R,standalone,package standalone example,Fixed workflow resampling tutorial and outer split audits.
+calibrated-workflow.R,standalone,package standalone example,Installed workflow tutorial including learned preprocessing and assessment.
+check-encoded-evaluation.R,helper,tests/testthat/test-outer-identities.R,Evaluation helper exercised by tests and encoded example callers.
+cross-multiclass.R,core,core-without-tidymodels,Manual Cross multiclass calibration without integration packages.
+cross-regression.R,core,core-without-tidymodels,Manual Cross regression calibration without integration packages.
+cross-venn-abers.R,core,core-without-tidymodels,Manual binary Cross calibration without integration packages.
+encoded-binary.R,standalone,package standalone example,Binary schema tutorial using reserved names and decoded native evaluation.
+encoded-multiclass-regression.R,standalone,package standalone example,Multiclass and regression schema tutorials with decoded native evaluation.
+frozen-binary.R,standalone,package standalone example,Frozen binary tutorial with earlier recipe/model/Tailor learning and new calibration data.
+frozen-multiclass-regression.R,standalone,package standalone example,Frozen shared multiclass and regression tutorials with distinct earlier learning roles.
+frozen-schema.R,standalone,package standalone example,Frozen workflow schema tutorial retaining the schema from before training.
+full-model-workflow.R,standalone,package standalone example,Binary full-model tutorial comparing fixed procedures on the same permitted splits.
+full-multiclass-workflow.R,suite,tests/testthat/test-full-multiclass-processes.R,Suite sources the complete example before fresh-process RDS checks.
+full-postprocessing.R,suite,tests/testthat/test-full-postprocessing-processes.R,Suite sources all 80 compositions and adds numerical/plan/RDS checks.
+full-regression-workflow.R,suite,tests/testthat/test-full-regression-processes.R,Suite sources the complete example before fresh-process RDS checks.
+inductive-ovo.R,core,core-without-tidymodels,Manual Inductive OvO calibration without integration packages.
+inductive-ovr.R,core,core-without-tidymodels,Manual Inductive OvR calibration without integration packages.
+inductive-regression.R,core,core-without-tidymodels,Manual Inductive regression calibration without integration packages.
+isotonic-regression-holdout.R,suite,tests/testthat/test-isotonic-regression-processes.R,Suite sources both regression cases before fresh-process RDS checks.
+multiclass-ensemble.R,suite,tests/testthat/test-multiclass-ensemble-processes.R,Suite sources the complete example before fresh-process RDS checks.
+pairwise-bayes.R,standalone,package standalone example,Pairwise Bayes tutorial with overlapping synthetic classes and local pair searches.
+pairwise-cross.R,suite,tests/testthat/test-pairwise-processes.R,Suite sources the complete example and checks fresh-process pairwise predictions.
+pairwise-grid.R,standalone,package standalone example,Pairwise grid tutorial with overlapping synthetic classes and coupled selection.
+pairwise-inductive.R,suite,tests/testthat/test-pairwise-processes.R,Suite sources the complete example and checks fresh-process pairwise predictions.
+pairwise-postprocessing.R,suite,tests/testthat/test-pairwise-postprocessing-processes.R,Suite sources the complete example before fresh-process RDS checks.
+postprocessing-bayes.R,suite,tests/testthat/test-postprocessing-bayes-processes.R,Suite sources the complete Bayes example before RDS and worker replay checks.
+postprocessing-grid.R,suite,tests/testthat/test-postprocessing-grid-processes.R,Suite sources the complete grid example before RDS and worker replay checks.
+reference-splits.R,standalone,package standalone example,Ordered reference-style row partitions across calibration domains.
+regression-bayes.R,standalone,package standalone example,IVAR/CVAR Bayes tutorial with independent assessment and joint/two-stage selection.
+regression-ensemble.R,suite,tests/testthat/test-regression-ensemble-processes.R,Suite sources all four numeric cases before fresh-process RDS checks.
+regression-grid.R,standalone,package standalone example,IVAR/CVAR grid tutorial with local learning and joint/two-stage selection.
+shared-multiclass-bayes.R,standalone,package standalone example,Shared OvO/OvR Bayes tutorial with complete matrix selection.
+shared-multiclass-grid.R,standalone,package standalone example,Shared OvO/OvR grid tutorial with joint/two-stage selection.
+sigmoid-holdout.R,suite,tests/testthat/test-sigmoid-processes.R,Suite sources the complete example and checks native outer evaluation.
+tailor-holdout.R,suite,tests/testthat/test-tailor-processes.R,Suite sources the complete example and checks native outer evaluation.
+tailor-multiclass-holdout.R,suite,tests/testthat/test-tailor-multiclass-processes.R,Suite sources the complete example before fresh-process RDS checks.
+tailor-regression-holdout.R,suite,tests/testthat/test-tailor-regression-processes.R,Suite sources the complete example before fresh-process RDS checks.

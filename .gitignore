@@ -29,3 +29,7 @@ docs/
 !/tools/verify.R
 !/tools/test-verify.R
 !/tools/test-durations.csv
+# Keep package acceptance and its example coverage map reproducible.
+!/tools/acceptance-v09-package.R
+!/tools/acceptance-v09-example-coverage.csv
+!/tools/test-acceptance-v09-package.R
