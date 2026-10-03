@@ -1,4 +1,5 @@
-testthat::test_that("Grid and Bayes workflows replay on outer workers and restore without learning", {
+# Shared checks for the independently scheduled search/domain replay tests.
+check_tuning_replay <- function(search, domain) {
   for (pkg in c("tune", "yardstick", "future", "recipes", "rpart")) testthat::skip_if_not_installed(pkg)
   source("helper-helpers.R")
   snapshot <- function(fit, new, schema = NULL) {
@@ -20,8 +21,7 @@ testthat::test_that("Grid and Bayes workflows replay on outer workers and restor
   saved <- tempfile(fileext = ".rds"); fitted <- tempfile(fileext = ".rds")
   script <- tempfile(fileext = ".R"); log <- tempfile()
   on.exit(unlink(c(saved, fitted, script, log)), add = TRUE)
-  for (search in c("grid", "bayes")) for (domain in c("binary", "ovo", "ovr", "pairwise", "regression"))
-    for (strategy in c("joint", "two_stage")) {
+  for (strategy in c("joint", "two_stage")) {
     data <- withr::with_seed(81, data.frame(x = stats::rnorm(720),
       truth = if (domain == "regression") stats::rnorm(720) else
         factor(rep(if (domain == "binary") c("a", "b") else c("a", "b", "c"), length.out = 720))))
@@ -85,4 +85,4 @@ testthat::test_that("Grid and Bayes workflows replay on outer workers and restor
     status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
     testthat::expect_equal(status, 0L, info = paste(search, domain, strategy, paste(readLines(log), collapse = "\n")))
   }
-})
+}
