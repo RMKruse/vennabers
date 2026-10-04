@@ -29,6 +29,24 @@ also use `rpart`. The manual functions in
 `vignette("manual-calibration", package = "vennabers")` need none of these.
 All examples here use local data and fixed seeds.
 
+## Choose a learning path
+
+Start with the [complete binary workflow](#a-complete-binary-workflow): prepare
+development data, define the base workflow, fit, predict and inspect the result.
+Then continue with the task you need:
+
+- [Cross calibration and prediction models](#cross-matched-models-and-full-model-transfer)
+- [Multiclass training](#multiclass-calibration-method-versus-model-training) or
+  [regression](#regression-workflows)
+- [Calibrating an already fitted model](#frozen-workflows-calibrate-without-retraining)
+- [Learning a postprocessor](#learning-a-postprocessor-before-venn-abers)
+- Parameter selection and final assessment in
+  `vignette("tuning", package = "vennabers")`
+
+Keep `?calibrated_workflow` beside this guide for argument defaults.
+`?workflow_training`, `?workflow_postprocessing`, `?venn_abers_details` and
+`?venn_abers_tuning` hold the detailed contracts for each topic.
+
 ## A complete binary workflow
 
 Hold out assessment data before constructing the procedure. Workflow
@@ -243,7 +261,7 @@ it does not converge; changing the B engine's `maxit` does not change that limit
 With `strategy = "ensemble", v = 3`, omit `prop`: three complete B/P pairs are
 retained and their finished predictions are averaged before VA calibration.
 Full-model mode trains an additional complete B/P composition. See
-`?calibrated_workflow` for supported combinations and diagnostics.
+`?workflow_postprocessing` for supported combinations and diagnostics.
 
 ## Names, assessment and next steps
 

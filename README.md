@@ -76,9 +76,12 @@ fit <- calibrated_workflow(base, outcome = "truth", seed = 42) |>
 predict(fit, data.frame(x = c(-0.5, 0.5)), type = "prob")
 ```
 
-Use `method = "cross"` for fold-based workflow calibration. See
-`?calibrated_workflow` and `?calibrate_workflow` for split, model and prediction
-options.
+Use `method = "cross"` for fold-based workflow calibration. Continue with the
+[step-by-step workflow guide](vignettes/workflows.Rmd), also available through
+`vignette("workflows", package = "vennabers")`. Use `?calibrated_workflow` for
+arguments, `?workflow_training` for split and model rules, and
+`?venn_abers_details` for prediction diagnostics. For an already fitted model,
+see `?calibrate_workflow`.
 
 Binary workflows also support
 `postprocessing = list(method = "sigmoid", strategy = "holdout", prop = .3,

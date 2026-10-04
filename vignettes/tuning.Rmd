@@ -218,7 +218,7 @@ selection scores complete class vectors. **Pairwise OvO** uses local searches
 inside each class pair. Its joint Grid path without postprocessing selects a
 Cartesian grid of pair choices using `joint_resamples` and rejects more than
 4096 combinations. Pairwise Bayes and tuned postprocessing search locally
-instead; see `?calibrated_workflow` before adapting a shared model plan.
+instead; see `?venn_abers_tuning` before adapting a shared model plan.
 
 With **postprocessing**, every B training portion runs its own local search,
 excluding P (postprocessor), C (VA calibration), S (selection) and outer
