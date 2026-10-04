@@ -171,15 +171,39 @@ postprocessing arguments expose no `maxit` setting. Weakly informative class
 probabilities can reach this limit even when the B engine converges. The fit
 then fails with fold, inner-pair and B/P context, without retry, method switch
 or partial ensemble. Setting `maxit` on the B engine does not change the P
-postprocessor's limit. This R composition limit does not change numerical VA
-parity on the same valid inputs. Out of scope: out-of-fold
-postprocessing followed by a complete engine refit, arbitrary foreign engines
-or Tailor step sequences, further methods and new constructors. Frozen
+postprocessor's limit. This is an accepted limit of the 1.x contract, not a
+pending option. It does not change numerical VA parity on the same valid
+inputs. Out of scope: out-of-fold postprocessing followed by a complete engine
+refit, arbitrary foreign engines or Tailor step sequences, further methods and
+new constructors. Frozen
 workflows (`calibrate_workflow()`) keep their existing contract. Full-model
 transfer does not inherit split-calibration guarantees.
 
+## Compatibility, parity and migration
+
+From 1.0.0 on, the user-facing functions in `help(package = "vennabers")`, their
+arguments and defaults, and the output formats their help pages document stay
+compatible throughout 1.x; incompatible changes wait for 2.0.0. Documented bug
+fixes may still change numerical results, and NEWS names each one. The parsnip
+engine entry points (`?vennabers-engine`) exist only for model registration.
+The minimum R version is separate: each release supports at least the previous
+R minor series and may raise the minimum with a NEWS entry.
+
+[`PARITY.md`](inst/PARITY.md) (installed as
+`system.file("PARITY.md", package = "vennabers")`) indexes the evidence for each
+capability. It keeps numerical parity with Python venn-abers 1.5.4,
+training/data parity, R extensions, reference deviations and accepted limits
+apart. Matching numbers on identical inputs do not imply identical training
+procedures.
+
+Code written for 0.9.0 runs unchanged. In the 22 paths checked by
+`tools/migration-v09.R`, objects saved with 0.9.0 predict identically and keep
+their diagnostics. Refit Sigmoid compositions to pick up the corrected
+optimizer; see [NEWS](NEWS.md) for details.
+
 ## Learn more
 
+- [Binary options example](inst/examples/binary-options.R) for precision, Log/Brier and event selection
 - [Binary Cross example](inst/examples/cross-venn-abers.R)
 - [Binary Sigmoid holdout example](inst/examples/sigmoid-holdout.R) with probability and GLM-link inputs
 - [Regression Tailor holdout example](inst/examples/tailor-regression-holdout.R) with IVAR/CVAR and native evaluation
@@ -188,7 +212,8 @@ transfer does not inherit split-calibration guarantees.
 - [Shared multiclass ensemble example](inst/examples/multiclass-ensemble.R) with retained pairs, encoded names and native evaluation
 - [Shared multiclass Tailor holdout example](inst/examples/tailor-multiclass-holdout.R) with encoded names and native evaluation
 - [Binary Tailor holdout example](inst/examples/tailor-holdout.R) with diagnostics, resampling and last_fit
-- [Multiclass example](inst/examples/inductive-ovo.R) and [Cross multiclass example](inst/examples/cross-multiclass.R)
+- [Multiclass OvO example](inst/examples/inductive-ovo.R), [OvR example](inst/examples/inductive-ovr.R) and [Cross multiclass example](inst/examples/cross-multiclass.R)
+- [Binary grid example](inst/examples/binary-grid.R) for joint/two-stage selection with independent assessment
 - [Shared multiclass grid example](inst/examples/shared-multiclass-grid.R) for OvO/OvR and joint/two-stage selection
 - [Shared multiclass Bayes example](inst/examples/shared-multiclass-bayes.R) for complete OvO/OvR matrix selection
 - [Pairwise OvO grid example](inst/examples/pairwise-grid.R) for local pair grids and coupled selection
@@ -199,6 +224,7 @@ transfer does not inherit split-calibration guarantees.
 - [Regression Bayes example](inst/examples/regression-bayes.R) for IVAR/CVAR with joint or two-stage selection
 - [Regression example](inst/examples/inductive-regression.R) and [Cross regression example](inst/examples/cross-regression.R)
 - [Workflow example](inst/examples/calibrated-workflow.R) and [fitted workflow example](inst/examples/frozen-binary.R)
+- [Reference splits example](inst/examples/reference-splits.R) with the paper-style binary, multiclass and regression data roles (not paper benchmark reproductions)
 - [Release notes](NEWS.md)
 
 Run `help(package = "vennabers")` for the complete function reference.

@@ -27,7 +27,9 @@ Description: Fits binary Inductive and Cross Venn-Abers calibrators from
     couples the pairwise Inductive or Cross Venn-Abers probabilities as in
     Manokhin (2017) <https://proceedings.mlr.press/v60/manokhin17a.html>.
     This independent R implementation checks its shared core results
-    against reference outputs of the 'Python' package 'venn-abers'.
+    against reference outputs of the 'Python' package 'venn-abers'; the
+    installed file PARITY.md separates numerical parity from R extensions
+    and documented deviations.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.5.0)

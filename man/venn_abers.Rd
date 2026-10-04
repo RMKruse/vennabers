@@ -101,4 +101,9 @@ predict(ovr, new_p, loss = "brier", type = "class")
 brier_score(assessment, ovr_details$prediction)
 log_loss(assessment, ovr_details$prediction)
 calibration_plot(assessment, ovr_details$prediction)
+
+# Installed standalone examples for binary options (precision, loss, event
+# selection, Cross) and both multiclass methods:
+system.file("examples", c("binary-options.R", "inductive-ovo.R", "inductive-ovr.R"),
+  package = "vennabers")
 }

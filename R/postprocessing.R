@@ -92,18 +92,21 @@
         pairs[[inner_id]] <- list(Q = Q, B = Q[pair$analysis], P = Q[pair$assessment],
           analysis = pair$analysis, assessment = pair$assessment)
       }
-      pairs
+      # A holdout plan stays the bare B/P pair, as stored since v0.9.0.
+      if (ensemble) pairs else pairs[[1L]]
     }, error = function(e) stop(domain$pred_id(id), " / ", inner_id, " ", post$method, " B/P plan: ", conditionMessage(e), call. = FALSE))
   }
   folds
 }
 
 .fit_postprocessing <- function(workflow, data, fold, domain, settings, id, tuning_plan = NULL) {
-  pairs <- lapply(names(fold$postprocessing), function(j) {
-    .fit_postprocessing_pair(workflow, data, fold$postprocessing[[j]], fold, domain, settings, id, j,
+  plans <- if (settings$postprocessing$strategy == "holdout") list(Holdout1 = fold$postprocessing) else
+    fold$postprocessing
+  pairs <- lapply(names(plans), function(j) {
+    .fit_postprocessing_pair(workflow, data, plans[[j]], fold, domain, settings, id, j,
       tuning_plan = tuning_plan)
   })
-  names(pairs) <- names(fold$postprocessing)
+  names(pairs) <- names(plans)
   if (settings$postprocessing$strategy == "holdout") return(pairs[[1L]])
   diagnostics <- lapply(pairs, `[[`, "diagnostics")
   model <- structure(list(models = lapply(pairs, `[[`, "model"), classes = domain$classes,
@@ -113,8 +116,6 @@
   list(model = model, selection = selection, diagnostics = c(identity, list(format_version = 1L,
     method = settings$postprocessing$method, strategy = "ensemble", input = diagnostics[[1L]]$input,
     Q = fold$analysis, C = fold$assessment, VA_fold = id, inner_folds = diagnostics,
-    inner_fold = list(names(pairs)), B_size = list(vapply(diagnostics, `[[`, 1L, "B_size")),
-    P_size = list(vapply(diagnostics, `[[`, 1L, "P_size")),
     observed_base_fits = length(pairs), observed_postprocessor_fits = length(pairs))))
 }
 

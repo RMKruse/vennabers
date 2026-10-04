@@ -13,7 +13,9 @@ testthat::test_that("holdout and ensemble fits consume named inner pairs without
   seen <- list()
   testthat::local_mocked_bindings(.fit_postprocessing_pair = function(workflow, data, plan, fold,
       domain, settings, id, inner_id, ...) {
-    testthat::expect_identical(plan, fold$postprocessing[[inner_id]])
+    members <- if (settings$postprocessing$strategy == "holdout") list(Holdout1 = fold$postprocessing) else
+      fold$postprocessing
+    testthat::expect_identical(plan, members[[inner_id]])
     seen[[length(seen) + 1L]] <<- paste(id, inner_id, sep = "/")
     fit_pair(workflow, data, plan, fold, domain, settings, id, inner_id, ...)
   })
@@ -26,18 +28,41 @@ testthat::test_that("holdout and ensemble fits consume named inner pairs without
     state <- workflows::extract_fit_engine(fit)
     expected <- if (strategy == "holdout") "Holdout1" else c("B", "P")
     plan <- state$folds$Inductive1$postprocessing
-    testthat::expect_named(plan, expected)
     diagnostics <- state$postprocessing$Inductive1
-    members <- if (strategy == "holdout") list(Holdout1 = diagnostics) else diagnostics$inner_folds
-    testthat::expect_identical(plan, lapply(members, function(p) p[names(plan[[1L]])]))
+    # As in v0.9.0, a holdout plan is the bare B/P pair; an ensemble plan names its pairs.
+    if (strategy == "holdout") {
+      testthat::expect_named(plan, c("Q", "B", "P", "analysis", "assessment"))
+      testthat::expect_identical(plan, diagnostics[names(plan)])
+    } else {
+      testthat::expect_named(plan, expected)
+      testthat::expect_identical(plan, lapply(diagnostics$inner_folds, function(p) p[names(plan[[1L]])]))
+    }
     sources <- if (prediction_model == "full") c("Inductive1", "Full1") else "Inductive1"
     testthat::expect_identical(unlist(seen), unlist(lapply(sources, function(id) paste(id, expected, sep = "/"))))
     source <- if (prediction_model == "full") "Full1" else "Inductive1"
+    record <- state$postprocessing[[source]]
+    # The v0.9.0 record format: an ensemble record holds its pairs only under
+    # inner_folds, and details derive the per-pair list-columns from them.
+    # Q has 60 rows and F 80; each inner plan holds out a first third as P.
+    sizes <- if (prediction_model == "full") c(54L, 26L) else c(40L, 20L)
+    if (strategy == "ensemble") {
+      testthat::expect_false(any(c("inner_fold", "B_size", "P_size") %in% names(record)))
+      testthat::expect_identical(vapply(record$inner_folds, `[[`, 1L, "B_size"), c(B = sizes[[1L]], P = sizes[[2L]]))
+      testthat::expect_identical(vapply(record$inner_folds, `[[`, 1L, "P_size"), c(B = sizes[[2L]], P = sizes[[1L]]))
+    } else {
+      testthat::expect_identical(c(record$B_size, record$P_size), sizes)
+    }
     for (n in c(0L, 1L, 7L)) {
       details <- venn_abers_details(fit, d[seq_len(n), "x", drop = FALSE])
       testthat::expect_identical(details$prediction, predict(fit, d[seq_len(n), "x", drop = FALSE], type = "prob"))
-      for (field in c("inner_fold", "B_size", "P_size")) {
-        testthat::expect_identical(details$details[[field]], rep(state$postprocessing[[source]][[field]], n))
+      expected_fields <- if (strategy == "holdout") list(inner_fold = rep("Holdout1", n),
+        B_size = stats::setNames(rep(record$B_size, n), rep(source, n)),
+        P_size = stats::setNames(rep(record$P_size, n), rep(source, n))) else list(
+        inner_fold = rep(list(c("B", "P")), n),
+        B_size = rep(list(vapply(record$inner_folds, `[[`, 1L, "B_size")), n),
+        P_size = rep(list(vapply(record$inner_folds, `[[`, 1L, "P_size")), n))
+      for (field in names(expected_fields)) {
+        testthat::expect_identical(details$details[[field]], expected_fields[[field]])
       }
     }
   }

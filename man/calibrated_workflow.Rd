@@ -7,9 +7,9 @@
 \description{Wrap an unfitted, fully configured classification or regression workflow in a normal
 outer workflow. The outer XY blueprint transports selected raw columns. Complete base workflows learn only on their local training splits; held-out
 predictions fit the existing classification or regression Inductive/Cross Venn-Abers core.}
-\section{Release scope and dependencies}{
-Version 0.5 supports all eight combinations of binary, OvO, OvR and regression
-with Inductive or Cross training, including complete outer resampling.
+\section{Supported scope and dependencies}{
+All eight combinations of binary, OvO, OvR and regression with Inductive or
+Cross training are supported, including complete outer resampling.
 The integration packages in DESCRIPTION are optional Suggests and must be
 installed explicitly; manual calibration needs none of them. Use the declared
 minimum versions or newer supported versions. Tuning additionally needs
@@ -23,12 +23,15 @@ engine namespaces, for example through \code{control_resamples(pkgs = ...)}.
 Reversible name encoding for binary, OvO/OvR and regression is available through \code{venn_abers_schema()}.
 Frozen classification/regression workflow adoption is available through \code{\link{calibrate_workflow}}.
 Ordered reference holdouts and binary/shared multiclass full-model transfer are supported.
-Matched/full Inductive and Cross pair training are also supported in v0.7.
-Binary, shared OvO/OvR, pairwise OvO, and regression joint/two-stage grid and Bayes selection is available in v0.8;
-learned postprocessing in v0.9. Shared multiclass training does not establish
-complete Python training parity.
+Pairwise OvO training supports matched/full Inductive and Cross calibration.
+Binary, shared OvO/OvR, pairwise OvO and regression paths support joint or
+two-stage Grid and Bayes selection, and learned postprocessing. Shared multiclass
+training does not establish complete Python training parity.
+\code{system.file("PARITY.md", package = "vennabers")} separates numerical
+parity, training/data parity, R extensions and reference deviations;
+the installed \code{NEWS.md} states the 1.x compatibility promise.
 
-The v0.9 postprocessing scope is a finite matrix of 80 fixed compositions:
+The postprocessing scope is a finite matrix of 80 fixed compositions:
 method x holdout/inner ensemble x Inductive/Cross x matched/full over binary
 (Sigmoid, Tailor logistic), pairwise OvO (Sigmoid, Tailor logistic), shared
 OvO/OvR with three or more classes (Tailor multinomial), shared two-class
@@ -97,7 +100,8 @@ toward \code{no_improve}; the time limit is checked between complete steps. Too 
 complete initial candidates stop the fit with their reasons. Inner parallelism is disabled, and a custom
 \code{extract} callback is unavailable because selection uses extraction for
 diagnostics.
-Model/recipe and calibration IDs must be unique. Calibration search requires
+Model/recipe and calibration IDs must be unique. The ID \code{id} is unsupported
+because native tune uses it for resample identities. Calibration search requires
 exactly one of \code{selection_prop} (the proportion reserved for selection S)
 or \code{selection_split} (rsplit or function, with analysis=final fit F and
 assessment=selection S). S is never included in F. Automatic calibration
@@ -524,8 +528,9 @@ no iteration setting: weakly informative class probabilities can stop there
 unconverged even when the B engine converges. Setting \code{maxit} on the B
 engine does not change the P postprocessor's limit. The composition fails
 with fold, inner-pair and B/P context, without retry, method switch or partial
-ensemble. This R composition limit does not change numerical VA parity on
-identical valid inputs. Warnings from successful fits are retained with source/fold context.
+ensemble. This is an accepted limit of the 1.x contract, not a pending
+option. This R composition limit does not change
+numerical VA parity on identical valid inputs. Warnings from successful fits are retained with source/fold context.
 The existing VA rules for missing C classes remain unchanged (including valid
 one-class Cross subproblems); B/P requirements do not apply to C. Use \code{venn_abers_schema()} for nonsyntactic outcome
 or class names that the underlying Tailor/probably formula interface cannot use.

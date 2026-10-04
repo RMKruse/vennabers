@@ -21,9 +21,11 @@ attempts, including failures. Bayes diagnostics additionally retain each public 
 continuation, its stop reason, elapsed time, and the global no-improvement count. The estimate is unavailable when a provider
 function determines a nested plan size at fit time; its count factors remain
 visible. In Bayes candidate tables, parameter IDs that collide with
-\code{id}, \code{status}, \code{estimate} or \code{reason} receive unique
+\code{status}, \code{estimate} or \code{reason} receive unique
 numeric suffixes separated by an underscore (for example, \code{status_1}).
-Selected values and native results keep the original parameter IDs.
+Selected values and native results keep the original parameter IDs. The ID
+\code{id} itself is unsupported because native tune uses it for resample
+identities.
 Calibration selection also records the
 disjoint selection (S) and final fit (F) row positions. In full-model mode,
 \code{models$Full1} is its separate local search. With postprocessing, each
@@ -38,4 +40,9 @@ recorded in \code{fit_roles[[fold]]$moderation}; epsilon may imply different
 integer m values on different fold sizes. These are moderation parameters,
 not confidence or prediction interval levels.
 }
-\seealso{\code{\link{calibrated_workflow}}}
+\seealso{\code{\link{calibrated_workflow}}. Installed Grid examples
+\code{binary-grid.R}, \code{shared-multiclass-grid.R}, \code{pairwise-grid.R},
+\code{regression-grid.R} and \code{postprocessing-grid.R}, and Bayes examples
+\code{shared-multiclass-bayes.R}, \code{pairwise-bayes.R}, \code{regression-bayes.R}
+and \code{postprocessing-bayes.R}, are under
+\code{system.file("examples", package = "vennabers")}.}

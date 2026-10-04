@@ -1,5 +1,88 @@
 # vennabers (development version)
 
+## Compatibility promise
+
+- From 1.0.0 on, the user-facing functions listed in
+  `help(package = "vennabers")`, their arguments and defaults, and the output
+  formats their help pages document stay compatible throughout 1.x.
+  Documented formats include prediction columns and types, `type = "details"`
+  and `venn_abers_details()` tables, the documented postprocessing records
+  and `venn_abers_tuning()` fields. Incompatible changes wait for 2.0.0.
+  New options keep the previous behaviour unless they are enabled explicitly.
+- Documented bug fixes may still change numerical results; NEWS names each one.
+- The parsnip engine entry points `fit_vennabers()`, `fit_vennabers_proxy()`
+  and `predict_vennabers_*()` are exported only for model registration
+  (`?vennabers-engine`). Use `calibrated_workflow()` instead.
+- The minimum R version is separate from this promise. Each release supports
+  at least the R minor series before it and may raise the minimum, noted
+  here; the minimum of a published release never changes afterwards.
+- The installed `PARITY.md` (`system.file("PARITY.md", package = "vennabers")`)
+  indexes the evidence for every capability and keeps numerical parity with
+  Python venn-abers 1.5.4, training/data parity, R extensions, reference
+  deviations and accepted limits apart. Public parity statements refer to it.
+- Maintainer decision (2026-10-04): the Tailor multinomial P fit keeps
+  probably's fixed limit of 100 `nnet::multinom()` iterations and its complete
+  failure with context. This is an accepted limit of the 1.x contract, with no
+  `maxit` option. README, `?calibrated_workflow` and the installed examples
+  `tailor-multiclass-holdout.R`, `multiclass-ensemble.R` and
+  `full-postprocessing.R` describe it: a B engine's `maxit` setting does not
+  change the P postprocessor's limit, and numerical VA parity on identical
+  valid inputs is unaffected.
+
+## Migration from the previous release
+
+- No code changes are needed. Exported functions, their arguments and defaults
+  are unchanged.
+- `tools/migration-v09.R` in the source repository fits 22 representative
+  paths with 0.9.0 in a fresh process: manual cores, shared, pairwise,
+  schema-encoded and frozen workflows, Grid- and Bayes-tuned fits and
+  postprocessing compositions. In all of them, saved 0.9.0 objects return
+  identical predictions, `venn_abers_details()` and `venn_abers_tuning()`
+  (apart from run times and native tune objects) in the current version.
+- Refit Sigmoid compositions to obtain the corrected optimizer result below;
+  saved 0.9.0 fits keep their stored coefficients. In the checked paths all
+  other refits reproduce 0.9.0 exactly. For a saved specification `spec` and
+  its training data:
+
+  ```r
+  refitted <- generics::fit(spec, training)
+  venn_abers_details(refitted, new_data)$postprocessing
+  ```
+
+## Fixes and changes
+
+- Fix Sigmoid outputs drifting from scikit-learn by up to 1.7e-5: L-BFGS-B now
+  keeps SciPy's ten correction pairs (`lmm = 10`) instead of R's five. sklearn's
+  tolerances stop short of the exact optimum, so the optimizer path decides the
+  result. Across 2,000 random P sets, every nonconstant case now agrees within
+  2.1e-8. The sklearn fixture gains a 30-row concentrated case; constant P
+  keeps the exact zero-slope solution.
+- Fix Bayes selection failing when a tuning parameter ID is `status`,
+  `estimate` or `reason`: candidate metadata overwrote the parameter column.
+  Bayes candidate tables now suffix such IDs (for example `status_1`); selected
+  values and native results keep the original IDs. Grid tables keep parameter
+  values separately in `grid` and were not affected. The ID `id` remains
+  unsupported because native tune uses it for resample identities.
+- Bayes diagnostics also keep tune's messages and warnings as `notes` for
+  steps that fail or repeat a candidate.
+- Fix `print()` of `calibrate_workflow()` results, which failed since v0.7. It
+  now reports the unchanged adopted workflow, zero base fits and the
+  calibration rows.
+- Frozen class predictions keep an ordered trained outcome ordered, as the
+  original workflow does.
+- `?calibrate_workflow` and `frozen-binary.R` show the loss-only Log/Brier
+  choice on separate validation rows without refitting. The help page also
+  covers adopting workflows fitted by native `fit_resamples()`/`last_fit()`.
+- The outer evaluation audit rejects missing or empty saved extracts and
+  mismatched extract configurations even when predictions and metrics are complete.
+- The pairwise OvO examples print the fitted full-transfer state instead of fixed
+  cost text and no longer describe automatic local selection as pending.
+- `?calibrated_workflow` describes the supported scope without version history,
+  and `?venn_abers` and `?venn_abers_tuning` name the installed binary-option,
+  OvR and Grid/Bayes examples.
+
+## Package metadata and optional dependencies
+
 - Package metadata: René-M. Kruse is the sole author, maintainer and copyright
   holder (`aut`, `cre`, `cph`); the placeholder author "Venn-Abers Authors" is
   removed from `Authors@R` and `LICENSE`. The Description cites Vovk and Petej
@@ -22,6 +105,15 @@
   `encoded-multiclass-regression.R`) now run only when every workflow
   integration package is available, instead of failing when only some are.
 
+## Release status
+
+- Not yet released. Still outstanding before 1.0.0: the source package with
+  PDF manual as a fixed candidate, `R CMD check --as-cran` on Linux x86_64,
+  Windows x86_64, macOS Intel and macOS ARM with the current and previous R
+  minor series, the Linux runs without tidymodels, with the declared minimum
+  dependencies and on R-devel, and the Linux benchmark series against 0.9.0.
+  Local macOS checks are not evidence for these runs.
+
 # vennabers 0.9.0 (local macOS acceptance candidate)
 
 - Scope: 80 fixed postprocessing compositions (method x holdout/inner ensemble
@@ -35,11 +127,7 @@
 - Known limit: Tailor multinomial fits use probably's `nnet::multinom()`
   defaults (at most 100 iterations) and cannot be tuned through the fixed
   Tailor arguments; weakly informative probabilities can stop unconverged,
-  which fails the fit with fold, inner-pair and B/P context, without retry,
-  method switch or partial ensemble. Clarify this limit in README, help and
-  installed examples: a B engine's `maxit` setting does not change the P
-  postprocessor's limit. The multinomial composition is an R extension;
-  numerical VA parity on identical valid inputs is unchanged.
+  which fails the fit.
 - Not included: out-of-fold postprocessing with a complete engine refit,
   arbitrary foreign engines or Tailor step sequences, further methods and new
   constructors.
@@ -49,30 +137,12 @@
   fit is now kept when its mean gradient per P row is at most `pgtol`
   (sklearn keeps such a point without any check); other nonconvergence still
   fails without a fallback.
-- Fix Sigmoid outputs drifting from scikit-learn by up to 1.7e-5: L-BFGS-B now
-  keeps SciPy's ten correction pairs (`lmm = 10`) instead of R's five. sklearn's
-  tolerances stop short of the exact optimum, so the optimizer path decides the
-  result. Across 2,000 random P sets, every nonconstant case now agrees within
-  2.1e-8. The sklearn fixture gains a 30-row concentrated case; constant P
-  keeps the exact zero-slope solution.
 - Two-stage model search strips a Tailor postprocessor once per search instead
   of once per candidate. The per-candidate check made tuned two-stage fits about
   25% slower than in v0.8 even without postprocessing.
 - The 80-combination and tuned postprocessing examples now use repeated outer
   folds and check exact `(id, id2, .row, .config)` coverage, notes and saved
   extracts through the installed `check_outer_identities()` helper.
-- The outer evaluation audit rejects missing or empty saved extracts and
-  mismatched extract configurations even when predictions and metrics are complete.
-- The pairwise OvO examples print the fitted full-transfer state instead of fixed
-  cost text and no longer describe automatic local selection as pending.
-- Fix `print()` of `calibrate_workflow()` results, which failed since v0.7. It
-  now reports the unchanged adopted workflow, zero base fits and the
-  calibration rows.
-- Frozen class predictions keep an ordered trained outcome ordered, as the
-  original workflow does.
-- `?calibrate_workflow` and `frozen-binary.R` show the loss-only Log/Brier
-  choice on separate validation rows without refitting. The help page also
-  covers adopting workflows fitted by native `fit_resamples()`/`last_fit()`.
 - Older entries name `tools/acceptance-v0*.md` records that are no longer in
   the source checkout. They are historical references, not available evidence.
 - Acceptance is local to macOS. GitHub Actions stay disabled; the eight

@@ -33,3 +33,6 @@ docs/
 !/tools/acceptance-v09-package.R
 !/tools/acceptance-v09-example-coverage.csv
 !/tools/test-acceptance-v09-package.R
+# Keep the executable migration check from 0.9.0.
+!/tools/migration-v09.R
+!/tools/test-migration-v09.R
