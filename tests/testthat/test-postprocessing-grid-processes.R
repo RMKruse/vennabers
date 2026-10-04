@@ -71,18 +71,6 @@ testthat::test_that("outer parallel workers reproduce sequential tuned postproce
 testthat::test_that("postprocessed Grid ensembles preserve complete searches and costs on outer workers", {
   for (pkg in c("tune", "yardstick", "future", "withr", "recipes", "rpart", "tailor", "probably")) testthat::skip_if_not_installed(pkg)
   source("helper-helpers.R")
-  snapshot <- function(fit, new, schema = NULL) {
-    state <- workflows::extract_fit_engine(fit)
-    tuning <- venn_abers_tuning(fit)
-    selection <- function(x) c(x[c("chosen", "selected", "candidates", "grid", "resamples", "seed",
-      "search_seed", "budget", "cost", "scores", "report_metrics", "decisions")],
-      list(predictions = tune::collect_predictions(x$native)))
-    list(outputs = lapply(c(0L, 1L, 7L), function(n) {
-      batch <- new[seq_len(n), , drop = FALSE]
-      list(prediction = predict(fit, batch), details = venn_abers_details(fit, batch))
-    }), models = lapply(tuning$models, function(path) lapply(path, selection)),
-      plans = state$postprocessing, cost = tuning$cost, roles = tuning$fit_roles, sources = tuning$sources)
-  }
   # Nested joint ensembles need B large enough for a nonconstant tree and
   # full-rank Tailor P; a small constant-tree fixture correctly fails instead.
   data <- withr::with_seed(81, {
@@ -101,7 +89,7 @@ testthat::test_that("postprocessed Grid ensembles preserve complete searches and
       tuning = list(strategy = strategy, model = list(method = "grid", grid = data.frame(degree = 1:2, depth = 1:2),
         resamples = function(d) rsample::vfold_cv(d, v = 2))),
       postprocessing = list(method = method, strategy = "ensemble", v = 2))
-    saveRDS(list(snapshot = snapshot, replay = list(model = model, outer = outer, new = data[1:7, ], schema = NULL)), saved)
+    saveRDS(list(snapshot = postprocessing_replay_snapshot, replay = list(model = model, outer = outer, new = data[1:7, ], schema = NULL)), saved)
     run_guarded_replay(saved, "yardstick::metric_set(yardstick::rmse)", c("vennabers", "rpart", "probably"),
       info = paste(method, strategy))
   }

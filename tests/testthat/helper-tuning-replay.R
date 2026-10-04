@@ -1,7 +1,8 @@
 # Replays the saved `s$replay` on two fresh workers in a fresh process, then
 # restores every worker fit from RDS under guards against learning, planning
 # or search; `s$snapshot` must match the sequential reference throughout.
-run_guarded_replay <- function(saved, metrics, packages, info = "") {
+# Optional `checks` are script lines run last on the `restored` worker fits.
+run_guarded_replay <- function(saved, metrics, packages, info = "", checks = character()) {
   fitted <- tempfile(fileext = ".rds"); script <- tempfile(fileext = ".R"); log <- tempfile()
   on.exit(unlink(c(fitted, script, log)), add = TRUE)
   writeLines(c(
@@ -20,10 +21,28 @@ run_guarded_replay <- function(saved, metrics, packages, info = "") {
     "trace('prep.recipe', where = asNamespace('recipes'), tracer = quote(guard()), print = FALSE)",
     "for (f in c('initial_split', 'vfold_cv')) trace(f, where = asNamespace('rsample'), tracer = quote(guard()), print = FALSE)",
     "for (f in c('tune_grid', 'tune_bayes')) trace(f, where = asNamespace('tune'), tracer = quote(guard()), print = FALSE)",
-    "for (i in seq_along(restored)) stopifnot(identical(s$snapshot(restored[[i]]$workflow, r$new), s$snapshot(expected[[i]], r$new)))"
+    "for (i in seq_along(restored)) stopifnot(identical(s$snapshot(restored[[i]]$workflow, r$new), s$snapshot(expected[[i]], r$new)))",
+    checks
   ), script)
   status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
   testthat::expect_equal(status, 0L, info = paste(info, paste(readLines(log), collapse = "\n")))
+}
+
+# Complete stored state of a tuned postprocessed fit for run_guarded_replay():
+# outputs for 0/1/7 rows, every local Grid or Bayes search record with its
+# native predictions, B/P/C plans with seeds and RNG kind, costs and roles.
+postprocessing_replay_snapshot <- function(fit, new, schema = NULL) {
+  state <- workflows::extract_fit_engine(fit)
+  tuning <- venn_abers_tuning(fit)
+  selection <- function(x) c(x[c("chosen", "selected", "candidates", "grid", "resamples", "seed",
+    "search_seed", "budget", "cost", "scores", "report_metrics", "decisions",
+    "bayes_seed", "steps", "notes", "attempts", "stop_reason", "no_improve")],
+    list(predictions = tune::collect_predictions(x$native)))
+  list(outputs = lapply(c(0L, 1L, 7L), function(n) {
+    batch <- new[seq_len(n), , drop = FALSE]
+    list(prediction = predict(fit, batch), details = venn_abers_details(fit, batch))
+  }), models = lapply(tuning$models, function(path) lapply(path, selection)),
+    plans = state$postprocessing, cost = tuning$cost, roles = tuning$fit_roles, sources = tuning$sources)
 }
 
 # Shared checks for the independently scheduled search/domain replay tests.
