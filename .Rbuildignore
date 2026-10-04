@@ -1,6 +1,7 @@
 ^CONTEXT\.md$
 ^\.scratch$
 ^\.github$
+^\.claude$
 ^AGENTS\.md$
 ^docs$
 ^RELEASE-ROADMAP\.md$

@@ -1,7 +1,9 @@
 # Build and verify a release candidate
 
-Use R >= 4.5, Git and a working LaTeX installation (`R CMD Rd2pdf`). The
-builder uses R's own [SHA-256 support](https://stat.ethz.ch/CRAN/bin/windows/base/old/4.5.0/NEWS.R-4.5.0.html)
+Use R >= 4.5, Git, Pandoc (for the HTML vignettes) and a working LaTeX
+installation (`R CMD Rd2pdf`). Install `knitr` and `rmarkdown` with the other
+suggested packages below. The builder uses R's own
+[SHA-256 support](https://stat.ethz.ch/CRAN/bin/windows/base/old/4.5.0/NEWS.R-4.5.0.html)
 and has no additional R dependencies. Run from a fresh checkout of the
 candidate commit. Disposable archives, installed libraries, logs and RDS
 results belong outside `.scratch`; keep only the Markdown result summary there.
@@ -32,9 +34,10 @@ Rscript --vanilla tools/build-candidate.R HEAD /absolute/path/to/new-candidate-d
 The output contains a Git export in `checkout/`, the source tarball,
 `vennabers-manual.pdf`, `candidate.dcf` (package version, full commit/tree,
 source/PDF SHA-256, R and platform), `SHA256SUMS`, and `contents.csv` with hashes
-of every packaged file. The builder compares every committed test, fixture
-and installed example with the unpacked archive and fails on omission or
-changes. Local edits and untracked files cannot enter the export. A rebuild
+of every packaged file. The build executes the vignettes and includes their
+HTML and extracted R code. The builder compares every committed test, fixture,
+installed example and vignette source with the unpacked archive and fails on
+omission or changes. Local edits and untracked files cannot enter the export. A rebuild
 may have different archive/PDF hashes because of packaging timestamps; retain
 and share the specific hashed archive for all checks of the same candidate.
 

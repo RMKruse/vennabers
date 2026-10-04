@@ -10,14 +10,18 @@ R 4.5 or later.
 
 ## Installation
 
-From a local checkout:
+From a local checkout (building the source archive also renders the vignettes):
 
 ```sh
-R CMD INSTALL .
+R CMD build .
+R CMD INSTALL vennabers_1.0.0.tar.gz
 ```
 
 The manual calibration functions need no additional R packages. Workflow
-integration uses the optional packages listed in `DESCRIPTION`.
+integration uses the optional packages listed in `DESCRIPTION`. Building the
+vignettes requires the suggested packages, including `knitr` and `rmarkdown`,
+plus Pandoc. `R CMD INSTALL .` installs directly from a checkout without
+rendering the vignettes.
 
 ## Getting started
 
@@ -202,6 +206,17 @@ their diagnostics. Refit Sigmoid compositions to pick up the corrected
 optimizer; see [NEWS](NEWS.md) for details.
 
 ## Learn more
+
+Start with the three executable guides, also available after installing a
+built package through `browseVignettes("vennabers")`:
+
+| Guide | Contents | R command |
+| --- | --- | --- |
+| [Calibrating supplied predictions](vignettes/manual-calibration.Rmd) | Binary and multiclass OvO/OvR, Inductive/Cross, regression, scores and bounds | `vignette("manual-calibration", package = "vennabers")` |
+| [Training and freezing calibrated workflows](vignettes/workflows.Rmd) | Recipes, matched/full models, pairwise training, frozen adoption and postprocessing | `vignette("workflows", package = "vennabers")` |
+| [Tuning and assessing the complete procedure](vignettes/tuning.Rmd) | Joint/two-stage Grid, Bayes, data roles, outer resampling and final assessment | `vignette("tuning", package = "vennabers")` |
+
+Standalone examples cover additional combinations:
 
 - [Binary options example](inst/examples/binary-options.R) for precision, Log/Brier and event selection
 - [Binary Cross example](inst/examples/cross-venn-abers.R)

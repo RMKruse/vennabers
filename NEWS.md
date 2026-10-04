@@ -1,5 +1,12 @@
 # vennabers 1.0.0
 
+## Guides
+
+- Add three executable HTML vignettes covering manual Inductive/Cross binary,
+  OvO/OvR and regression calibration; trainable and frozen workflows; and
+  Grid/Bayes tuning with independent assessment. Register the knitr builder
+  and build the guides into release candidates for access through `vignette()`.
+
 ## Release verification
 
 - Version the v0.9 acceptance matrices and benchmark sources. The repository's

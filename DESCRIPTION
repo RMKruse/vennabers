@@ -34,6 +34,8 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.5.0)
 Suggests:
+    knitr,
+    rmarkdown,
     mgcv,
     nnet,
     parsnip (>= 1.6.0),
@@ -54,5 +56,6 @@ Suggests:
     future (>= 1.67.0),
     rpart,
     testthat (>= 3.0.0)
+VignetteBuilder: knitr
 Config/roxygen2/version: 8.1.0
 Config/testthat/edition: 3
