@@ -46,7 +46,7 @@ verify <- function(root, processes = 4L) {
     MKL_NUM_THREADS = "1", VECLIB_MAXIMUM_THREADS = "1",
     R_LIBS = paste(.libPaths(), collapse = .Platform$path.sep))
   description <- read.dcf(file.path(root, "DESCRIPTION"))
-  packages <- c(trimws(sub(" *[(].*", "", strsplit(description[1, "Suggests"], ",")[[1]])), "rpart")
+  packages <- trimws(sub(" *[(].*", "", strsplit(description[1, "Suggests"], ",")[[1]]))
   missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
   if (length(missing)) stop("Missing test dependencies: ", paste(missing, collapse = ", "))
   install_log <- file.path(output, "install.log")

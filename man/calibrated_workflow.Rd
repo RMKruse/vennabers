@@ -12,9 +12,13 @@ Version 0.5 supports all eight combinations of binary, OvO, OvR and regression
 with Inductive or Cross training, including complete outer resampling.
 The integration packages in DESCRIPTION are optional Suggests and must be
 installed explicitly; manual calibration needs none of them. Use the declared
-minimum versions or newer supported versions. Basis engines also need their own
-packages: the examples use \code{stats} for GLM/LM and \code{nnet} for a shared
-multinomial model. Fresh parallel workers must load \code{vennabers} and those
+minimum versions or newer supported versions. Tuning additionally needs
+\code{tune}, \code{dials} and \code{yardstick}; Tailor postprocessing needs
+\code{tailor} and \code{probably}. Each path checks its packages and minimum
+versions at construction and again at fit, and stops with the missing package.
+Basis engines also need their own packages: the examples use \code{stats} for
+GLM/LM, \code{nnet} for a shared multinomial model and \code{rpart} for
+decision trees. Fresh parallel workers must load \code{vennabers} and those
 engine namespaces, for example through \code{control_resamples(pkgs = ...)}.
 Reversible name encoding for binary, OvO/OvR and regression is available through \code{venn_abers_schema()}.
 Frozen classification/regression workflow adoption is available through \code{\link{calibrate_workflow}}.

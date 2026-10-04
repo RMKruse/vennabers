@@ -87,3 +87,24 @@ worker_replay <- function(metrics, packages, untraced) c(
   '  identical(tune::collect_predictions(parallel), tune::collect_predictions(reference)),',
   '  identical(tune::collect_metrics(parallel), tune::collect_metrics(reference)))',
   'for (i in seq_along(found)) stopifnot(identical(s$snapshot(found[[i]]$workflow, r$new, r$schema), s$snapshot(expected[[i]], r$new, r$schema)))')
+
+# Skips unless every package calibrated_workflow() requires, plus each additional
+# optional package named in `...` (for example "tune" or "nnet"), is installed. Minimum versions come from the tables the
+# package itself checks (R/registration.R), so a partly available or outdated
+# integration skips instead of failing; a complete environment never skips here.
+skip_if_no_integration <- function(...) {
+  integration <- vennabers:::.integration_versions
+  minimums <- c(integration, vennabers:::.tuning_versions, vennabers:::.tailor_versions)
+  for (package in union(names(integration), c(...))) {
+    testthat::skip_if_not_installed(package, minimum_version = if (package %in% names(minimums)) minimums[[package]])
+  }
+  invisible(NULL)
+}
+
+# Fresh-process script lines that load the installed vennabers under test (the
+# copy at `root`) with the caller's library paths, failing instead of using
+# any other copy.
+installed_vennabers_lines <- function(root = getNamespaceInfo(asNamespace("vennabers"), "path")) c(
+  paste0(".libPaths(", paste(deparse(.libPaths()), collapse = ""), ")"),
+  "library(vennabers)",
+  paste0("stopifnot(normalizePath(find.package('vennabers')) == normalizePath(", deparse(root), "))"))

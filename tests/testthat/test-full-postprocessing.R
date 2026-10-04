@@ -1,5 +1,5 @@
 testthat::test_that("full postprocessing preserves held calibration and retains only its new ensemble", {
-  for (pkg in c("workflows", "rsample", "tailor", "probably")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   d <- data.frame(x = sin(1:180), truth = factor(rep(c("a", "b", "c"), 60)))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
@@ -75,7 +75,7 @@ testthat::test_that("full postprocessing preserves held calibration and retains 
 })
 
 testthat::test_that("full domains use their own local inner counts and fail without fallback", {
-  for (pkg in c("workflows", "rsample", "tailor", "probably")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   d <- data.frame(x = sin(1:240), truth = factor(rep(c("a", "b", "c", "a"), 60)))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
@@ -130,7 +130,7 @@ testthat::test_that("full domains use their own local inner counts and fail with
 })
 
 testthat::test_that("C can change F but never its original Q fits, while F B and P keep their roles", {
-  for (pkg in c("workflows", "recipes", "rsample", "tailor", "probably")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   va <- function(data) rsample::make_splits(list(analysis = 1:108, assessment = 109:144), data)
   inner <- function(data) {
     n <- nrow(data); ends <- c(0L, n %/% 6L, n %/% 2L, n)
@@ -198,7 +198,7 @@ testthat::test_that("C can change F but never its original Q fits, while F B and
 })
 
 testthat::test_that("failed final postprocessors abort after successful source fits", {
-  for (pkg in c("workflows", "rsample", "tailor", "probably")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   d <- data.frame(x = sin(1:120), truth = factor(rep(c("a", "b"), 60)))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
@@ -228,7 +228,7 @@ testthat::test_that("failed final postprocessors abort after successful source f
 })
 
 testthat::test_that("a caller fold named Full1 keeps its source diagnostics", {
-  for (pkg in c("workflows", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration()
   d <- data.frame(x = sin(1:180), truth = factor(rep(c("a", "b", "c"), 60)))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
@@ -266,7 +266,7 @@ testthat::test_that("a caller fold named Full1 keeps its source diagnostics", {
 })
 
 testthat::test_that("pairwise and shared multiclass F compositions keep B/P roles and predict from RDS without plans", {
-  for (pkg in c("workflows", "recipes", "rsample", "tailor", "probably", "nnet")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably", "nnet")
   cl <- factor(rep(c("a", "b", "c"), 80))
   d <- withr::with_seed(5, data.frame(x = rnorm(240, sd = 2) + as.integer(cl), z = rnorm(240, sd = 2) - as.integer(cl), truth = cl))
   # Positional plans keep every role fixed under mutation; a fresh process sets

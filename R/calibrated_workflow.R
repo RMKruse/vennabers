@@ -47,6 +47,7 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     stop("`model_training = 'pairwise'` requires classification = 'ovo'.", call. = FALSE)
   }
   .integration_packages()
+  if (!is.null(tuning)) .tuning_packages()
   postprocessing <- .validate_postprocessing(postprocessing)
   mode <- .validate_base_workflow(workflow, outcome, classification, allow_tune = !is.null(tuning),
                                   postprocessing = postprocessing)
@@ -282,6 +283,9 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
 .calibrated_fit_data <- function(x, y, base_workflow, outcome, parameters) {
   .integration_packages()
   settings <- parameters$requested
+  # A saved specification can be fitted in a session without its optional packages.
+  if (!is.null(settings$tuning)) .tuning_packages()
+  .postprocessing_packages(settings$postprocessing)
   regression <- settings$mode == "regression"
   .validate_base_workflow(base_workflow, outcome, settings$classification,
                           allow_tune = !is.null(settings$tuning$model), postprocessing = settings$postprocessing)
@@ -342,7 +346,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
       prediction_model = settings$prediction_model) else NULL),
     class = "vennabers_fit")
   if (!is.null(settings$postprocessing)) {
-    packages <- if (settings$postprocessing$method %in% c("sigmoid", "isotonic_numeric")) character() else c("tailor", "probably")
+    packages <- names(.postprocessing_versions(settings$postprocessing))
     state$versions <- c(state$versions, vapply(setdiff(packages, names(state$versions)),
       function(p) as.character(utils::packageVersion(p)), ""))
   }

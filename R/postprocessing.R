@@ -26,12 +26,7 @@
       stop("`postprocessing$v` must be one whole number of at least two.", call. = FALSE)
     }
   }
-  for (package in if (post$method %in% c("sigmoid", "isotonic_numeric")) character() else c("tailor", "probably")) {
-    minimum <- if (package == "tailor") "0.1.0" else "1.1.0"
-    if (!requireNamespace(package, quietly = TRUE) || utils::packageVersion(package) < minimum) {
-      stop("Postprocessing requires optional package ", sQuote(package), " >= ", minimum, ".", call. = FALSE)
-    }
-  }
+  .postprocessing_packages(post)
   post
 }
 

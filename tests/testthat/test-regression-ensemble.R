@@ -1,5 +1,5 @@
 testthat::test_that("numeric ensembles feed mean complete pair predictions into IVAR", {
-  for (pkg in c("workflows", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration()
   d <- data.frame(x = sin(1:60), truth = 10 + 3 * sin(1:60) + cos(1:60))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::linear_reg(engine = "lm"))
@@ -29,7 +29,7 @@ ensemble_regression_plan <- function(data) {
 }
 
 testthat::test_that("IVAR and CVAR average numeric pair outputs before VA across scales and moderation", {
-  for (pkg in c("workflows", "tailor", "probably", "rsample", "recipes")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   close <- function(actual, expected, s) {
     testthat::expect_identical(dim(actual), dim(expected))
     testthat::expect_true(all(is.finite(actual)) && all(is.finite(expected)))
@@ -128,7 +128,7 @@ testthat::test_that("IVAR and CVAR average numeric pair outputs before VA across
 })
 
 testthat::test_that("numeric ensembles count complete fits and predictions without relearning", {
-  for (pkg in c("workflows", "tailor", "probably", "rsample", "recipes")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   d <- ensemble_regression_data(); base <- ensemble_regression_base(d)
   fit_method <- getS3method("fit", "workflow", envir = asNamespace("generics"))
   predict_method <- getS3method("predict", "workflow", envir = asNamespace("stats"))
@@ -216,7 +216,7 @@ testthat::test_that("numeric ensembles count complete fits and predictions witho
 })
 
 testthat::test_that("each numeric pair retains method-specific size and rank rules", {
-  for (pkg in c("workflows", "tailor", "probably", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   d <- data.frame(x = rep(1, 16), truth = c(2, 8, 4, 6, 1:12))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::linear_reg(engine = "lm"))
@@ -243,7 +243,7 @@ testthat::test_that("each numeric pair retains method-specific size and rank rul
 })
 
 testthat::test_that("numeric ensembles reject invalid local plans before learning and abort failed pairs", {
-  for (pkg in c("workflows", "tailor", "probably", "rsample", "recipes")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   d <- ensemble_regression_data(); base <- ensemble_regression_base(d)
   va <- function(data) rsample::make_splits(list(analysis = 1:72, assessment = 73:96), data)
   post <- list(method = "tailor_linear", strategy = "ensemble", splits = ensemble_regression_plan)
@@ -321,7 +321,7 @@ testthat::test_that("numeric ensembles reject invalid local plans before learnin
 })
 
 testthat::test_that("every numeric inner B P and C boundary excludes local held-out learning", {
-  for (pkg in c("workflows", "tailor", "probably", "rsample", "recipes")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   d <- ensemble_regression_data(); base <- ensemble_regression_base(d)
   for (method in c("inductive", "cross")) for (post_method in c("tailor_linear", "isotonic_numeric")) {
     va <- function(data) {
@@ -361,7 +361,7 @@ testthat::test_that("every numeric inner B P and C boundary excludes local held-
 })
 
 testthat::test_that("numeric local plans reproduce across call order and accept static matching data", {
-  for (pkg in c("workflows", "tailor", "probably", "rsample", "recipes")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   d <- ensemble_regression_data(); base <- ensemble_regression_base(d)
   va <- function(data) rsample::make_splits(list(analysis = seq_len(nrow(data) - 16L),
     assessment = seq.int(nrow(data) - 15L, nrow(data))), data)
@@ -383,7 +383,7 @@ testthat::test_that("numeric local plans reproduce across call order and accept 
 })
 
 testthat::test_that("numeric ensemble means preserve finite extremes and cancellation", {
-  for (pkg in c("workflows", "tailor", "probably", "rsample", "recipes")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   d <- ensemble_regression_data()
   fit <- generics::fit(calibrated_workflow(ensemble_regression_base(d), "truth", seed = 42,
     postprocessing = list(method = "tailor_linear", strategy = "ensemble", v = 3L)), d)

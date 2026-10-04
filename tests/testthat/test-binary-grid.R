@@ -1,5 +1,5 @@
 testthat::test_that("binary grid resolves a local model choice and predicts", {
-  testthat::skip_if_not_installed("tune")
+  skip_if_no_integration("tune")
   data <- data.frame(x = rep(seq(-2, 2, length.out = 20), 3),
                      truth = factor(rep(c("yes", "no", "yes"), each = 20)))
   recipe <- recipes::recipe(truth ~ x, data = data) |>
@@ -29,7 +29,7 @@ testthat::test_that("binary grid resolves a local model choice and predicts", {
                              selected$chosen)
   testthat::expect_equal(predict(repeated, data, type = "prob"),
                          predict(fitted, data, type = "prob"))
-  testthat::skip_if_not_installed("dials")
+  skip_if_no_integration("dials")
   config$model$grid <- 2L
   config$model$param_info <- dials::parameters(dials::new_quant_param(
     type = "integer", range = c(1L, 2L), inclusive = c(TRUE, TRUE),
@@ -40,7 +40,7 @@ testthat::test_that("binary grid resolves a local model choice and predicts", {
 })
 
 testthat::test_that("binary calibration grid keeps S out of F and matches the core", {
-  testthat::skip_if_not_installed("tune")
+  skip_if_no_integration("tune")
   data <- data.frame(x = rep(seq(-1, 1, length.out = 20), 4),
                      truth = factor(rep(c("yes", "no", "yes", "no"), each = 20)))
   base <- workflows::workflow() |>
@@ -73,7 +73,7 @@ testthat::test_that("binary calibration grid keeps S out of F and matches the co
 })
 
 testthat::test_that("joint and two-stage grids select Cross and full models locally", {
-  testthat::skip_if_not_installed("tune")
+  skip_if_no_integration("tune")
   data <- data.frame(x = sin(seq_len(240) / 7),
                      truth = factor(rep(c("yes", "no", "no", "yes"), 60)))
   recipe <- recipes::recipe(truth ~ x, data = data) |>
@@ -120,7 +120,7 @@ testthat::test_that("joint and two-stage grids select Cross and full models loca
 })
 
 testthat::test_that("grid input and candidate failures are strict", {
-  testthat::skip_if_not_installed("tune")
+  skip_if_no_integration("tune", "yardstick")
   data <- data.frame(x = sin(seq_len(80) / 4),
                      truth = factor(rep(c("yes", "no", "no", "yes"), 20)))
   recipe <- recipes::recipe(truth ~ x, data = data) |>
@@ -178,6 +178,7 @@ testthat::test_that("grid input and candidate failures are strict", {
 })
 
 testthat::test_that("a failed selected final fit has no fallback candidate", {
+  skip_if_no_integration("tune")
   fit_sizes <- integer()
   grid_final_fit <- function(x, y) {
     fit_sizes <<- c(fit_sizes, nrow(x))
@@ -203,7 +204,7 @@ testthat::test_that("a failed selected final fit has no fallback candidate", {
 })
 
 testthat::test_that("binary grid survives native resampling and serialization", {
-  testthat::skip_if_not_installed("tune")
+  skip_if_no_integration("tune", "yardstick")
   data <- data.frame(x = sin(seq_len(96) / 6),
                      truth = factor(rep(c("yes", "no", "no", "yes"), 24)))
   recipe <- recipes::recipe(truth ~ x, data) |>
@@ -238,6 +239,7 @@ testthat::test_that("binary grid survives native resampling and serialization", 
 })
 
 testthat::test_that("a class metric uses the second event on tied probabilities", {
+  skip_if_no_integration("tune", "yardstick")
   tie_fit <- function(x, y) structure(list(levels = levels(y)), class = "va_grid_tie")
   tie_prob <- function(object, new_data) {
     p <- data.frame(a = rep(.5, nrow(new_data)), b = rep(.5, nrow(new_data)))

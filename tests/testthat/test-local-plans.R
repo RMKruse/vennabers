@@ -1,7 +1,7 @@
 testthat::test_that("local-plans", {
+  skip_if_no_integration()
 library(vennabers)
-if (all(vapply(c("parsnip", "workflows", "rsample", "withr"), requireNamespace,
-               logical(1), quietly = TRUE))) local({
+local({
   data <- data.frame(x = sin(1:80), truth = factor(rep(c("yes", "no", "no", "yes"), 20)))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
