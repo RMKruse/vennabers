@@ -1,0 +1,59 @@
+# vennabers
+
+Calibrate model predictions in R with Inductive or Cross Venn-Abers methods.
+`vennabers` supports binary and multiclass classification (one-vs-one or
+one-vs-rest), regression, and optional tidymodels workflows.
+
+## Get started
+
+Fit a calibrator using probabilities from a model trained on separate data:
+
+```r
+library(vennabers)
+
+calibrator <- venn_abers(
+  truth = c(FALSE, TRUE, FALSE, TRUE),
+  probability = c(0.1, 0.4, 0.35, 0.8)
+)
+predict(calibrator, c(0.2, 0.5, 0.9))
+```
+
+The result contains `lower` and `upper` Venn-Abers bounds and a regularized
+`probability`. The bounds are not confidence intervals. Keep final assessment
+data separate from training, selection and calibration.
+
+## Choose a guide
+
+- [Calibrating supplied predictions](articles/manual-calibration.html):
+  binary and multiclass classification, regression, Inductive/Cross methods,
+  scoring and plots.
+- [Training and freezing calibrated workflows](articles/workflows.html):
+  preprocessing, model training, postprocessing and already fitted workflows.
+- [Tuning and assessing the complete procedure](articles/tuning.html):
+  Grid/Bayes selection, outer resampling and independent assessment.
+
+The [package overview](reference/vennabers-package.html) connects the main
+interfaces. Use the [function reference](reference/index.html) for argument
+details and [release notes](news/index.html) for changes and release status.
+
+## Installation
+
+The package requires R 4.5 or later. From a local checkout of the
+[source repository](https://github.com/RMKruse/venn-abers):
+
+```sh
+R CMD build .
+R CMD INSTALL vennabers_1.0.0.tar.gz
+```
+
+Manual calibration needs no additional R packages. Workflow integration and
+building the guides use the optional packages listed in `DESCRIPTION`; guide
+building also requires Pandoc.
+
+## Further examples and support
+
+The repository contains [standalone examples](https://github.com/RMKruse/venn-abers/tree/HEAD/inst/examples)
+and a [parity guide](https://github.com/RMKruse/venn-abers/blob/HEAD/inst/PARITY.md)
+that separates numerical agreement with the Python reference from R extensions
+and limitations. Report problems in the
+[issue tracker](https://github.com/RMKruse/venn-abers/issues).

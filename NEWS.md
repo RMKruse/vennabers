@@ -2,6 +2,10 @@
 
 ## Guides
 
+- Add a package overview at `?vennabers`, project and issue links in package
+  metadata, and a pkgdown website configuration with grouped reference topics
+  and all three guides. `tools/build-docs.R` builds the site locally from the
+  source package, excluding internal project notes.
 - Add three executable HTML vignettes covering manual Inductive/Cross binary,
   OvO/OvR and regression calibration; trainable and frozen workflows; and
   Grid/Bayes tuning with independent assessment. Register the knitr builder

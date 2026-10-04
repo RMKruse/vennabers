@@ -17,7 +17,7 @@ calibrated_workflow(workflow, outcome, ..., predictors = NULL,
   precision = NULL, loss = "log", m = NULL, epsilon = NULL, schema = NULL,
   prediction_model = "matched", model_training = "shared", tuning = NULL,
   postprocessing = NULL)
-\method{predict}{_vennabers_fit}(object, new_data, type = NULL,
+\method{predict}{`_vennabers_fit`}(object, new_data, type = NULL,
   opts = list(), ..., loss = NULL)
 }
 \arguments{

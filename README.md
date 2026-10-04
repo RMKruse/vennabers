@@ -210,6 +210,11 @@ optimizer; see [NEWS](NEWS.md) for details.
 
 ## Learn more
 
+Open `?vennabers` for the package overview and links to the main interfaces.
+The [source repository](https://github.com/RMKruse/venn-abers) and
+[issue tracker](https://github.com/RMKruse/venn-abers/issues) are also recorded
+in the installed package metadata.
+
 Start with the three executable guides, also available after installing a
 built package through `browseVignettes("vennabers")`:
 
@@ -246,6 +251,25 @@ Standalone examples cover additional combinations:
 - [Release notes](NEWS.md)
 
 Run `help(package = "vennabers")` for the complete function reference.
+
+### Build the documentation website
+
+With `pkgdown` and the suggested packages installed, run from the repository root:
+
+```sh
+Rscript --vanilla tools/build-docs.R
+```
+
+Open `_site/index.html` for the homepage, grouped function reference, three
+guides and release notes. The homepage lives in `pkgdown/index.md`.
+The build runs the reference examples and guide code
+against a temporary package installation. It uses the source package to exclude
+internal project notes from the website; `docs/` remains for project documents.
+Generated HTML is excluded from Git and the R source package.
+
+The website is built locally; hosting is not configured yet. When publishing,
+set `url` in `_pkgdown.yml` to the deployed site address and add that address
+to `URL` in `DESCRIPTION`.
 
 ## Verification
 

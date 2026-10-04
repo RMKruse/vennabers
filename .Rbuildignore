@@ -9,3 +9,6 @@
 ^\.Rproj\.user$
 ^tools$
 ^cran-comments\.md$
+^_pkgdown\.yml$
+^_site$
+^pkgdown$

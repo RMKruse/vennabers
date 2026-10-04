@@ -14,6 +14,7 @@
 /vignettes/*.html
 /vignettes/*.R
 /vignettes/*_files/
+/_site/
 
 # renv local state (keep renv.lock and bootstrap files)
 renv/library/
@@ -49,3 +50,4 @@ docs/
 !/tools/build-candidate.R
 !/tools/test-build-candidate.R
 !/tools/RELEASE.md
+!/tools/build-docs.R
