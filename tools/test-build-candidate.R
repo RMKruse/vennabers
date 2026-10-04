@@ -42,5 +42,13 @@ stopifnot(all(c("tests/probe.R", "tests/testthat/extdata/fixture.txt", "inst/exa
   identical(readLines(file.path(out, "checkout/R/hello.R")), "hello <- function() 'hello'"))
 hashes <- tools::sha256sum(file.path(out, c("candidateprobe_1.0.0.tar.gz", "candidateprobe-manual.pdf")))
 stopifnot(identical(unname(hashes), unname(identity[1, c("Source-SHA256", "Manual-SHA256")])) )
-unlink(c(root, out), recursive = TRUE)
+# A CLI run must leave its default output available after Rscript exits.
+dir.create(file.path(root, "tools"))
+file.copy(file.path(tools_dir, "build-candidate.R"), file.path(root, "tools"))
+cli <- system2(file.path(R.home("bin"), "Rscript"),
+  c("--vanilla", shQuote(file.path(root, "tools/build-candidate.R")), commit), stdout = TRUE, stderr = TRUE)
+stopifnot(is.null(attr(cli, "status")))
+cli_out <- trimws(sub("^Evidence:", "", grep("^Evidence:", cli, value = TRUE)))
+stopifnot(length(cli_out) == 1L, file.exists(file.path(cli_out, "candidate.dcf")))
+unlink(c(root, out, cli_out), recursive = TRUE)
 cat("Candidate build checks passed.\n")

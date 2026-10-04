@@ -1,6 +1,7 @@
 # Rscript --vanilla tools/build-candidate.R [commit=HEAD] [output=<new temporary directory>]
 # Git and a working LaTeX installation are required; no package dependencies.
-build_candidate <- function(root, ref = "HEAD", output = tempfile("vennabers-candidate-")) {
+build_candidate <- function(root, ref = "HEAD",
+    output = tempfile("vennabers-candidate-", tmpdir = dirname(tempdir()))) {
   root <- normalizePath(root)
   git <- function(...) {
     result <- system2("git", c("-C", shQuote(root), ...), stdout = TRUE, stderr = TRUE)
@@ -62,5 +63,5 @@ if (sys.nframe() == 0L) {
   args <- commandArgs(trailingOnly = TRUE)
   if (length(args) > 2L) stop("Usage: Rscript --vanilla tools/build-candidate.R [commit] [new-output-dir]")
   build_candidate(root, if (length(args)) args[1] else "HEAD",
-    if (length(args) == 2L) args[2] else tempfile("vennabers-candidate-"))
+    if (length(args) == 2L) args[2] else tempfile("vennabers-candidate-", tmpdir = dirname(tempdir())))
 }
