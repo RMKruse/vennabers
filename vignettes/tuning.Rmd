@@ -239,3 +239,7 @@ For an already fixed classifier, a loss-only Log/Brier comparison does not
 need automatic tuning or a refit: predict both losses on separate validation
 rows, choose there, then pass the chosen `loss` explicitly on untouched
 assessment data. Those validation rows are selection data from then on.
+
+For the complete standalone scripts with a contents list, open
+`vignette("examples-tuning", package = "vennabers")`.
+`?vennabers_examples` indexes all four example collections.

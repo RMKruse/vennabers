@@ -273,7 +273,9 @@ including shared two-class OvO/OvR, native outer evaluation and last_fit.
 The full-model transfer limitations in \link{workflow_training} apply to these
 complete compositions as well.
 }
-\seealso{
+\seealso{\link{vennabers_examples} for annotated installed scripts.
+
+
 \code{\link{calibrated_workflow}} for the constructor,
 \code{\link{venn_abers_details}} for returned diagnostics,
 \code{\link{venn_abers_tuning}} for searches inside each B, and

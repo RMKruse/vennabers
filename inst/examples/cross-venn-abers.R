@@ -1,5 +1,5 @@
 # Run from the checkout root after installation:
-# Rscript examples/cross-venn-abers.R
+# Rscript inst/examples/cross-venn-abers.R
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
 

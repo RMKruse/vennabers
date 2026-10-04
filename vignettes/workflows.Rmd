@@ -276,3 +276,7 @@ For unbiased assessment of the complete trainable procedure, resample the
 inside each outer analysis set. The next vignette,
 `vignette("tuning", package = "vennabers")`, shows native resampling, joint and
 two-stage selection, and an untouched final assessment split.
+
+For the complete standalone scripts with a contents list, open
+`vignette("examples-workflows", package = "vennabers")`.
+`?vennabers_examples` indexes all four example collections.

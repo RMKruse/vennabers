@@ -1,4 +1,4 @@
-# After package installation: Rscript examples/inductive-ovr.R
+# After package installation: Rscript inst/examples/inductive-ovr.R
 library(vennabers)
 
 # Illustrative probabilities from an already fixed multiclass model.

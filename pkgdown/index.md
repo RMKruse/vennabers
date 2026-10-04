@@ -52,8 +52,21 @@ building also requires Pandoc.
 
 ## Further examples and support
 
-The repository contains [standalone examples](https://github.com/RMKruse/venn-abers/tree/HEAD/inst/examples)
-and a [parity guide](https://github.com/RMKruse/venn-abers/blob/HEAD/inst/PARITY.md)
+Browse the annotated example scripts by topic. Each article has a contents list
+and commands for running the installed originals:
+
+- [Manual calibration](articles/examples-manual.html): binary options,
+  multiclass OvO/OvR and regression, including Cross fold matching.
+- [Training and frozen workflows](articles/examples-workflows.html): schemas,
+  full-model transfer, pairwise training and adoption of already fitted models.
+- [Learned postprocessing](articles/examples-postprocessing.html): Sigmoid,
+  Tailor and isotonic holdouts, ensembles and full compositions.
+- [Grid and Bayes selection](articles/examples-tuning.html): binary, shared
+  multiclass, pairwise and regression searches, including postprocessing.
+
+The [example index in the R help](reference/vennabers_examples.html) also lists
+the installed scripts and vignette commands. The
+[parity guide](https://github.com/RMKruse/venn-abers/blob/HEAD/inst/PARITY.md)
 that separates numerical agreement with the Python reference from R extensions
 and limitations. Report problems in the
 [issue tracker](https://github.com/RMKruse/venn-abers/issues).

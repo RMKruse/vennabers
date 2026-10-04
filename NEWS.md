@@ -2,6 +2,12 @@
 
 ## Guides
 
+- Publish all 38 standalone examples in four annotated articles with contents
+  lists for manual calibration, workflows, postprocessing and Grid/Bayes
+  selection. The articles include the installed script sources without running
+  their fits during documentation builds. `?vennabers_examples`, the package
+  overview and related function help link to the collections, also available
+  through `vignette()` and `browseVignettes()`.
 - Add a package overview at `?vennabers`, project and issue links in package
   metadata, and a pkgdown website configuration with grouped reference topics
   and all three guides. `tools/build-docs.R` builds the site locally from the

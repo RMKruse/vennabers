@@ -151,7 +151,9 @@ complete prediction path fails on reserved names reports the stage, names and
 underlying cause. The limited binary GLM raw-response probe without a
 postprocessor is not a product fallback; no engine or postprocessor is bypassed.
 }
-\seealso{\code{\link{calibrated_workflow}}, \code{\link{venn_abers_details}},
+\seealso{\link{vennabers_examples} for annotated installed scripts.
+
+\code{\link{calibrated_workflow}}, \code{\link{venn_abers_details}},
 \code{\link{venn_abers_schema}}, \code{\link{venn_abers}}, \code{\link{venn_abers_regression}}}
 \examples{
 if (all(vapply(c("parsnip", "workflows", "hardhat", "rsample", "recipes",

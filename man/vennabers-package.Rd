@@ -32,6 +32,16 @@ selection and independent assessment.
 Use \code{\link{venn_abers_details}} for prediction diagnostics and
 \code{\link{venn_abers_tuning}} for search configuration and results.
 }
+\section{Example scripts}{
+\link{vennabers_examples} indexes the installed standalone examples and their
+annotated articles. Each collection has a contents list for navigating scripts:
+\code{vignette("examples-manual", package = "vennabers")},
+\code{vignette("examples-workflows", package = "vennabers")},
+\code{vignette("examples-postprocessing", package = "vennabers")} and
+\code{vignette("examples-tuning", package = "vennabers")}.
+Use \code{system.file("examples", package = "vennabers")} to locate the scripts
+for inspection or execution with \code{source()}.
+}
 \section{Assessment and interpretation}{
 Score final classification probabilities with \code{\link{brier_score}} and
 \code{\link{log_loss}}, or inspect them with \code{\link{calibration_plot}}.

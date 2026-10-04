@@ -106,7 +106,7 @@ Pairwise OvO (`model_training = "pairwise"`) supports both holdout and ensemble
 postprocessing with `tailor_logistic` or either Sigmoid input. Each class pair
 is selected before its VA and B/P plans are built. Local complete predictions
 are averaged before binary VA and global OvO coupling. See the
-[installed pairwise example](inst/examples/pairwise-postprocessing.R) for native
+[pairwise example article](vignettes/examples-postprocessing.Rmd#pairwise-postprocessing) for native
 resampling, `last_fit`, and the distinction between class pairs and inner B/P pairs.
 Regression workflows use `method = "tailor_linear"` with `smooth=FALSE`; P needs
 at least three rows and a full-rank intercept/prediction design. Automatic
@@ -129,7 +129,7 @@ additional full composition is retained for prediction. Each inner engine still
 learns only on B. Full Inductive costs 2J pairs; Cross costs (K+1)J, retaining J
 per domain (sum differing local counts). Full-model transfer does not inherit
 split-calibration guarantees automatically. The
-[installed full-postprocessing example](inst/examples/full-postprocessing.R)
+[full-postprocessing example article](vignettes/examples-postprocessing.Rmd#full-postprocessing)
 covers all 80 fixed combinations through native evaluation and `last_fit`.
 
 Postprocessing also accepts `tuning` with joint or two-stage Grid selection of
@@ -138,10 +138,10 @@ composition) runs its own local search; P, C, outer assessment and a reserved
 selection share never enter it. Joint scores complete compositions with fixed
 candidate settings, and the first two-stage step scores the raw engine without
 postprocessor or VA. See the
-[installed postprocessing grid example](inst/examples/postprocessing-grid.R).
+[postprocessing Grid article](vignettes/examples-tuning.Rmd#postprocessing-grid).
 Stepwise Bayes selection uses the same local searches; only complete valid
 candidates feed the next GP, and failed or repeated proposals spend budget.
-See the [installed postprocessing Bayes example](inst/examples/postprocessing-bayes.R).
+See the [postprocessing Bayes article](vignettes/examples-tuning.Rmd#postprocessing-bayes).
 
 ## Supported postprocessing compositions
 
@@ -224,31 +224,25 @@ built package through `browseVignettes("vennabers")`:
 | [Training and freezing calibrated workflows](vignettes/workflows.Rmd) | Recipes, matched/full models, pairwise training, frozen adoption and postprocessing | `vignette("workflows", package = "vennabers")` |
 | [Tuning and assessing the complete procedure](vignettes/tuning.Rmd) | Joint/two-stage Grid, Bayes, data roles, outer resampling and final assessment | `vignette("tuning", package = "vennabers")` |
 
-Standalone examples cover additional combinations:
+All 38 standalone examples are collected in navigable articles with a contents
+list and a separate entry for each script:
 
-- [Binary options example](inst/examples/binary-options.R) for precision, Log/Brier and event selection
-- [Binary Cross example](inst/examples/cross-venn-abers.R)
-- [Binary Sigmoid holdout example](inst/examples/sigmoid-holdout.R) with probability and GLM-link inputs
-- [Regression Tailor holdout example](inst/examples/tailor-regression-holdout.R) with IVAR/CVAR and native evaluation
-- [Regression isotonic holdout example](inst/examples/isotonic-regression-holdout.R) with IVAR/CVAR and native evaluation
-- [Regression ensemble example](inst/examples/regression-ensemble.R) with both numeric methods, native evaluation and held-out data checks
-- [Shared multiclass ensemble example](inst/examples/multiclass-ensemble.R) with retained pairs, encoded names and native evaluation
-- [Shared multiclass Tailor holdout example](inst/examples/tailor-multiclass-holdout.R) with encoded names and native evaluation
-- [Binary Tailor holdout example](inst/examples/tailor-holdout.R) with diagnostics, resampling and last_fit
-- [Multiclass OvO example](inst/examples/inductive-ovo.R), [OvR example](inst/examples/inductive-ovr.R) and [Cross multiclass example](inst/examples/cross-multiclass.R)
-- [Binary grid example](inst/examples/binary-grid.R) for joint/two-stage selection with independent assessment
-- [Shared multiclass grid example](inst/examples/shared-multiclass-grid.R) for OvO/OvR and joint/two-stage selection
-- [Shared multiclass Bayes example](inst/examples/shared-multiclass-bayes.R) for complete OvO/OvR matrix selection
-- [Pairwise OvO grid example](inst/examples/pairwise-grid.R) for local pair grids and coupled selection
-- [Pairwise OvO Bayes example](inst/examples/pairwise-bayes.R) for local pair searches and coupled selection
-- [Regression grid example](inst/examples/regression-grid.R) for IVAR/CVAR with joint or two-stage selection
-- [Postprocessing grid example](inst/examples/postprocessing-grid.R) for local B searches with classification and regression postprocessing
-- [Postprocessing Bayes example](inst/examples/postprocessing-bayes.R) for local B Bayes searches with budget and failure records
-- [Regression Bayes example](inst/examples/regression-bayes.R) for IVAR/CVAR with joint or two-stage selection
-- [Regression example](inst/examples/inductive-regression.R) and [Cross regression example](inst/examples/cross-regression.R)
-- [Workflow example](inst/examples/calibrated-workflow.R) and [fitted workflow example](inst/examples/frozen-binary.R)
-- [Reference splits example](inst/examples/reference-splits.R) with the paper-style binary, multiclass and regression data roles (not paper benchmark reproductions)
-- [Release notes](NEWS.md)
+| Examples | Contents | R command |
+| --- | --- | --- |
+| [Manual calibration](vignettes/examples-manual.Rmd) | Binary options, multiclass OvO/OvR, regression and matching Cross fold models | `vignette("examples-manual", package = "vennabers")` |
+| [Training and frozen workflows](vignettes/examples-workflows.Rmd) | Encoding, reference splits, full-model transfer, pairwise training and frozen adoption | `vignette("examples-workflows", package = "vennabers")` |
+| [Learned postprocessing](vignettes/examples-postprocessing.Rmd) | Sigmoid, Tailor and isotonic holdouts, ensembles and all 80 fixed compositions | `vignette("examples-postprocessing", package = "vennabers")` |
+| [Grid and Bayes selection](vignettes/examples-tuning.Rmd) | Binary, shared multiclass, pairwise and regression searches, with and without postprocessing | `vignette("examples-tuning", package = "vennabers")` |
+
+Open `?vennabers_examples` for the complete example index. The articles display
+the installed scripts without running their fits during documentation builds.
+The originals remain available for execution:
+
+```r
+script <- system.file("examples", "binary-options.R", package = "vennabers")
+file.show(script)
+source(script)
+```
 
 Run `help(package = "vennabers")` for the complete function reference.
 
@@ -261,8 +255,9 @@ Rscript --vanilla tools/build-docs.R
 ```
 
 Open `_site/index.html` for the homepage, grouped function reference, three
-guides and release notes. The homepage lives in `pkgdown/index.md`.
-The build runs the reference examples and guide code
+guides, four example collections and release notes. The homepage lives in
+`pkgdown/index.md`. The Articles menu groups the collections under Examples.
+The build runs the reference examples and introductory guide code
 against a temporary package installation. It uses the source package to exclude
 internal project notes from the website; `docs/` remains for project documents.
 Generated HTML is excluded from Git and the R source package.

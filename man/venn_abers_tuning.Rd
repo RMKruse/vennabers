@@ -140,7 +140,9 @@ transfer, and \link{workflow_postprocessing} for B/P data roles, methods and
 compositions. These choices remain fixed while the configured parameters are
 searched.
 }
-\seealso{\code{\link{calibrated_workflow}}. Installed Grid examples
+\seealso{\link{vennabers_examples} for annotated installed scripts.
+
+\code{\link{calibrated_workflow}}. Installed Grid examples
 \code{binary-grid.R}, \code{shared-multiclass-grid.R}, \code{pairwise-grid.R},
 \code{regression-grid.R} and \code{postprocessing-grid.R}, and Bayes examples
 \code{shared-multiclass-bayes.R}, \code{pairwise-bayes.R}, \code{regression-bayes.R}

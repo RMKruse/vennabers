@@ -65,6 +65,7 @@ multiclass methods is a deliberate R extension over the examined Python
 Exactly two factor levels also select the
 multiclass matrix contract, with its distinct tie rule and Brier score scale.
 }
+\seealso{\link{vennabers_examples} for annotated installed scripts.}
 \examples{
 calibrator <- venn_abers(
   truth = c(FALSE, TRUE, FALSE, TRUE),

@@ -16,6 +16,10 @@ pkgdown::build_site(source, override = list(destination = destination),
 stopifnot(
   file.exists(file.path(destination, "index.html")),
   file.exists(file.path(destination, "reference", "vennabers-package.html")),
+  file.exists(file.path(destination, "reference", "vennabers_examples.html")),
+  all(file.exists(file.path(destination, "articles", paste0(
+    c("examples-manual", "examples-workflows", "examples-postprocessing",
+      "examples-tuning"), ".html")))),
   !any(file.exists(file.path(destination,
     c("AGENTS.html", "CONTEXT.html", "RELEASE-ROADMAP.html"))))
 )

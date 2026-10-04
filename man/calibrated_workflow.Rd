@@ -201,7 +201,9 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
   venn_abers_details(fitted, new_data)$details
 }
 }
-\seealso{
+\seealso{\link{vennabers_examples} for annotated installed scripts.
+
+
 \code{\link{venn_abers}}, \code{\link{cross_venn_abers}},
 \code{\link{venn_abers_schema}}, \code{\link{calibrate_workflow}}.
 }

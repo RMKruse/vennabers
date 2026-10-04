@@ -256,3 +256,7 @@ session. The manual calibrator does not retain the underlying model.
 
 The next vignette, `vignette("workflows", package = "vennabers")`, shows how to
 retain the complete preprocessing, model and calibration procedure together.
+
+For the complete standalone scripts with a contents list, open
+`vignette("examples-manual", package = "vennabers")`.
+`?vennabers_examples` indexes all four example collections.

@@ -111,7 +111,9 @@ corresponding public manual Cross-multiclass whole-procedure API; numerical
 checks use binary reference components and independent combination. Binary
 diagnostics are not multiclass or aggregate Cross confidence intervals.
 }
-\seealso{\code{\link{predict.cross_venn_abers}},
+\seealso{\link{vennabers_examples} for annotated installed scripts.
+
+\code{\link{predict.cross_venn_abers}},
 \code{\link{print.cross_venn_abers}}, \code{\link{brier_score}},
 \code{\link{log_loss}}, \code{\link{calibration_plot}}}
 \examples{

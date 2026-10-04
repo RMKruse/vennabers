@@ -106,7 +106,9 @@ computed arithmetic means; no public manual Python CVAR wrapper is claimed.
 See \file{tests/testthat/extdata/cross-regression-reference.md} in the source package for provenance,
 retained reference defects and fixed scale-aware tolerances.
 }
-\seealso{\code{\link{venn_abers_regression}}}
+\seealso{\link{vennabers_examples} for annotated installed scripts.
+
+\code{\link{venn_abers_regression}}}
 \examples{
 # Fits retained lm() fold models with the held-out observations excluded,
 # reconstructs the aggregates, and scores on separate assessment data.

@@ -20,11 +20,19 @@ articles:
   - manual-calibration
   - workflows
   - tuning
+- title: Example scripts
+  navbar: Examples
+  contents:
+  - examples-manual
+  - examples-workflows
+  - examples-postprocessing
+  - examples-tuning
 
 reference:
 - title: Package overview
 - contents:
   - vennabers-package
+  - vennabers_examples
 - title: Calibrate supplied predictions
 - contents:
   - venn_abers
