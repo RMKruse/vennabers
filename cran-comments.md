@@ -10,13 +10,29 @@ added before submission.
 Run so far:
 
 * Local macOS Tahoe 26.6.2 (arm64, Apple M5 Pro), R 4.6.1 (2026-06-24):
-  `R CMD check --as-cran` on the built tarball, with network access and all
-  Suggests installed. The latest check ran with `--no-tests` to save time; the
-  tests then ran separately on the installed package (all passed). The previous
-  candidate's check included the tests, which all passed in the check.
-* The same machine with `_R_CHECK_DEPENDS_ONLY_=true`: Status OK. Tests that
+  `R CMD check --as-cran` on the built 1.0.0 tarball from candidate
+  `0b35f3354d18ada96baf4d4f437e593da193d4e8`, with R's own online checks and all
+  Suggests installed. The short CRAN profile passed all 3,948 expectations,
+  without failures, warnings or skips; examples and PDF manual passed.
+  Archive SHA-256: `e73335b8f1a822fa6abed64de77a4ee1aecf1383c6cd65862badfb69eef00183`.
+  The complete suite passed separately from the same archive: 31,661 expectations
+  in all 101 installed test files, with no failures, errors, warnings or skips.
+  Four local test processes completed in 1,194.9 seconds; BLAS/OpenMP threads
+  were limited to one. Product HTTP(S) was routed to a dead proxy in that run;
+  R's own online checks were separate.
+* The same 1.0.0 archive installed with only base/recommended packages and
+  vennabers: manual core and all Rd examples passed, the optional workflow
+  packages were unavailable and remained unloaded, and the workflow entry
+  point returned its missing-package error. All 41 installed example files
+  are covered by the complete suite, core checks, 16 fresh-process standalone
+  tutorials and their helper tests. The 23 package-operation checks passed
+  with no warning lines, including registration/load orders and the static
+  scan for Python or product network calls (zero hits).
+* The preceding metadata candidate on the same machine with
+  `_R_CHECK_DEPENDS_ONLY_=true`: Status OK. Tests that
   need the optional workflow packages skip.
-* The same machine, with only R's base-priority packages and vennabers installed
+* The preceding metadata candidate on the same machine, with only R's
+  base-priority packages and vennabers installed
   (no Suggests and no recommended packages): the manual calibration examples and all
   Rd examples run. Workflow integration, tuning and Tailor postprocessing stop
   with an error that names the missing package.
@@ -56,9 +72,10 @@ process/worker and integration matrix files listed in `tests/cran-long-tests.txt
 remain in the source tarball but are excluded from the default CRAN run.
 The 36 other files run there. `NOT_CRAN=true` enables the complete in-check
 suite; `tools/verify.R` always runs every installed test file locally, with
-bounded parallelism. The 1.0.0 candidate's measured check time and results will
-be recorded after its check finishes; the results above refer to the preceding
-metadata candidate.
+bounded parallelism. On candidate `0b35f33`, the short-profile test process
+used 79.9 user + 3.2 system CPU seconds and 83.5 elapsed seconds (the check log
+rounds this to 83/84 seconds). This check included the tests; it did not use
+`--no-tests`. The complete local suite remains a separate release gate.
 
 ## Downstream dependencies
 
