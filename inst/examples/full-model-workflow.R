@@ -1,6 +1,7 @@
 # Fixed binary settings; the same permitted splits compare two procedures.
 source(system.file("examples", "assertions.R", package = "vennabers"))
-packages <- c("vennabers", "parsnip", "workflows", "recipes", "rsample", "withr")
+packages <- c("parsnip", "workflows", "hardhat", "rsample", "recipes", "rlang",
+              "tibble", "withr", "generics", "tidyselect")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
   library(vennabers)
   set.seed(12)

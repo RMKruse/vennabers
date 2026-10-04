@@ -1,18 +1,33 @@
+# Minimum versions match DESCRIPTION Suggests; each optional path checks its own
+# packages at the call that needs them and never installs anything.
 .integration_versions <- c(parsnip = "1.6.0", workflows = "1.3.0", hardhat = "1.4.3",
                            rsample = "1.3.2", recipes = "1.4.0", rlang = "1.2.0",
                            tibble = "3.3.1", withr = "3.0.3", generics = "0.1.4",
                            tidyselect = "1.2.1")
+.tuning_versions <- c(tune = "2.1.0", dials = "1.4.3", yardstick = "1.4.0")
+.tailor_versions <- c(tailor = "0.1.0", probably = "1.1.0")
 
-.integration_packages <- function() {
-  for (package in names(.integration_versions)) {
-    version <- .integration_versions[[package]]
+.require_optional <- function(versions, user) {
+  for (package in names(versions)) {
+    version <- versions[[package]]
     if (!requireNamespace(package, quietly = TRUE) || utils::packageVersion(package) < version) {
-      stop("calibrated_workflow() requires optional package ", sQuote(package),
-           " >= ", version, "; install or update it explicitly.", call. = FALSE)
+      stop(user, " requires optional package ", sQuote(package), " >= ", version,
+           "; install or update it explicitly.", call. = FALSE)
     }
   }
   invisible(NULL)
 }
+
+.integration_packages <- function() .require_optional(.integration_versions, "Workflow integration")
+
+.tuning_packages <- function() .require_optional(.tuning_versions, "Tuning")
+
+# Sigmoid and numeric isotonic postprocessing need no optional package.
+.postprocessing_versions <- function(post) {
+  if (is.null(post) || post$method %in% c("sigmoid", "isotonic_numeric")) character() else .tailor_versions
+}
+
+.postprocessing_packages <- function(post) .require_optional(.postprocessing_versions(post), "Postprocessing")
 
 .registration <- new.env(parent = emptyenv())
 

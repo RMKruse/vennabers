@@ -1,3 +1,26 @@
+# vennabers (development version)
+
+- Package metadata: René-M. Kruse is the sole author, maintainer and copyright
+  holder (`aut`, `cre`, `cph`); the placeholder author "Venn-Abers Authors" is
+  removed from `Authors@R` and `LICENSE`. The Description cites Vovk and Petej
+  (2014) and Vovk, Petej and Fedorova (2015) and names the 'Python' package
+  'venn-abers' as the numerical reference.
+- `Suggests` now declares `rpart`, which tests and an installed example use,
+  and requires `dials (>= 1.4.3)`, the lowest version that `tune (>= 2.1.0)`
+  accepts.
+- Tuning checks `tune`, `dials` and `yardstick` against their declared minimum
+  versions when `calibrated_workflow(tuning = ...)` is called and again when
+  the specification is fitted, with an error that names the package and
+  version. Tailor postprocessing also repeats its `tailor`/`probably` check at
+  fit time. Nothing is installed automatically. All three errors now end with
+  "; install or update it explicitly.", and the integration error starts with
+  "Workflow integration requires optional package ..." because it comes from
+  every workflow entry point, not only `calibrated_workflow()`.
+- The `?local_calibration_splits` example and the installed examples that the
+  help pages source (`full-model-workflow.R`, `encoded-binary.R`,
+  `encoded-multiclass-regression.R`) now run only when every workflow
+  integration package is available, instead of failing when only some are.
+
 # vennabers 0.9.0 (local macOS acceptance candidate)
 
 - Scope: 80 fixed postprocessing compositions (method x holdout/inner ensemble

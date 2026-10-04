@@ -1,6 +1,7 @@
 source(system.file("examples", "check-encoded-evaluation.R", package = "vennabers"), local = TRUE)
 
-if (all(vapply(c("vennabers", "workflows", "recipes", "rsample", "tune", "yardstick"),
+if (all(vapply(c("parsnip", "workflows", "hardhat", "rsample", "recipes", "rlang", "tibble",
+                 "withr", "generics", "tidyselect", "tune", "yardstick"),
                requireNamespace, logical(1), quietly = TRUE))) {
   development <- data.frame(x = sin(1:80), y = factor(rep(c("class", ".pred_yes", ".pred_yes", "class"), 20),
                                                     levels = c("class", ".pred_yes")))
