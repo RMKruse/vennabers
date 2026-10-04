@@ -3,8 +3,9 @@
 - Package metadata: René-M. Kruse is the sole author, maintainer and copyright
   holder (`aut`, `cre`, `cph`); the placeholder author "Venn-Abers Authors" is
   removed from `Authors@R` and `LICENSE`. The Description cites Vovk and Petej
-  (2014) and Vovk, Petej and Fedorova (2015) and names the 'Python' package
-  'venn-abers' as the numerical reference.
+  (2014), Vovk, Petej and Fedorova (2015) and, for the one-vs-one coupling,
+  Manokhin (2017), and names the 'Python' package 'venn-abers' as the numerical
+  reference.
 - `Suggests` now declares `rpart`, which tests and an installed example use,
   and requires `dials (>= 1.4.3)`, the lowest version that `tune (>= 2.1.0)`
   accepts.

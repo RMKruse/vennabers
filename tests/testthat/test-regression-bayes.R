@@ -1,4 +1,5 @@
 testthat::test_that("regression Bayes selects moderation and preserves its fitted prediction", {
+  skip_if_no_integration("tune", "dials", "yardstick")
   data <- data.frame(x = sin(seq_len(100) / 7))
   data$truth <- 3 * data$x + cos(seq_len(nrow(data))) / 5
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
@@ -47,6 +48,7 @@ testthat::test_that("regression Bayes selects moderation and preserves its fitte
 })
 
 testthat::test_that("regression Bayes does not replace a failed final fit", {
+  skip_if_no_integration("tune", "dials")
   audit <- new.env(parent = emptyenv())
   audit$fits <- list()
   final_fit <- function(x, y, variant) {
@@ -78,6 +80,7 @@ testthat::test_that("regression Bayes does not replace a failed final fit", {
 })
 
 testthat::test_that("regression Bayes rejects locally invalid moderation and records time stops", {
+  skip_if_no_integration("tune", "dials")
   data <- data.frame(x = sin(seq_len(100) / 7))
   data$truth <- 3 * data$x + cos(seq_len(nrow(data))) / 5
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
@@ -109,6 +112,7 @@ testthat::test_that("regression Bayes rejects locally invalid moderation and rec
 })
 
 testthat::test_that("Cross regression Bayes keeps scale and zero-target parity", {
+  skip_if_no_integration("tune", "dials")
   data <- data.frame(x = sin(seq_len(120) / 7))
   unit_truth <- 3 * data$x + cos(seq_len(nrow(data))) / 5
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
@@ -142,6 +146,7 @@ testthat::test_that("Cross regression Bayes keeps scale and zero-target parity",
 })
 
 testthat::test_that("regression Bayes spends continuation budget on new candidates", {
+  skip_if_no_integration("tune", "dials")
   data <- data.frame(x = sin(seq_len(150) / 7))
   data$truth <- 3 * data$x + cos(seq_len(nrow(data))) / 5
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
@@ -167,6 +172,7 @@ testthat::test_that("regression Bayes spends continuation budget on new candidat
 })
 
 testthat::test_that("regression Bayes fits local model and moderation choices in both strategies", {
+  skip_if_no_integration("tune", "dials")
   data <- data.frame(x = sin(seq_len(200) / 7))
   data$truth <- data$x^2 + cos(seq_len(nrow(data))) / 5
   base <- workflows::workflow() |>
@@ -230,7 +236,7 @@ testthat::test_that("regression Bayes fits local model and moderation choices in
 })
 
 testthat::test_that("Bayes accounts for discarded and repeated proposals without postprocessing", {
-  testthat::skip_if_not_installed("tune")
+  skip_if_no_integration("tune", "dials")
   audit <- new.env(parent = emptyenv())
   strict_fit <- function(x, y, variant) {
     audit$fits <- c(audit$fits, variant)

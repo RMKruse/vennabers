@@ -1,5 +1,5 @@
 testthat::test_that("isotonic rejects incompatible methods and undersized P before fitting", {
-  for (pkg in c("workflows", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration()
   d <- data.frame(x = 1:24, truth = 1:24)
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::linear_reg(engine = "lm"))
@@ -22,7 +22,7 @@ testthat::test_that("isotonic rejects incompatible methods and undersized P befo
 })
 
 testthat::test_that("isotonic B, P and C learning roles remain separate", {
-  for (pkg in c("workflows", "rsample", "recipes")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration()
   d <- data.frame(x = sin(1:60), truth = 10 + 3 * sin(1:60) + cos(1:60))
   base <- workflows::workflow() |> workflows::add_recipe(recipes::recipe(truth ~ x, d) |>
     recipes::step_normalize(x)) |> workflows::add_model(parsnip::linear_reg(engine = "lm"))
@@ -60,7 +60,7 @@ testthat::test_that("isotonic B, P and C learning roles remain separate", {
 })
 
 testthat::test_that("isotonic installed example and RDS predict in fresh R without learning", {
-  for (pkg in c("recipes", "tune", "yardstick")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tune", "yardstick")
   example <- new.env()
   sys.source(system.file("examples", "isotonic-regression-holdout.R", package = "vennabers"), example)
   testthat::expect_length(example$cases, 2L)

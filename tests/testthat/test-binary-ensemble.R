@@ -1,5 +1,5 @@
 testthat::test_that("holdout and ensemble fits consume named inner pairs without shape detection", {
-  for (pkg in c("workflows", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration()
   d <- data.frame(x = sin(1:80), truth = factor(rep(c("a", "b"), 40)))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
@@ -44,7 +44,7 @@ testthat::test_that("holdout and ensemble fits consume named inner pairs without
 })
 
 testthat::test_that("binary ensembles average complete pairs before the unchanged VA core", {
-  for (pkg in c("workflows", "tailor", "probably", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   d <- data.frame(x = sin(1:160), truth = factor(rep(c("a", "b", "b", "a"), 40)))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
@@ -101,7 +101,7 @@ testthat::test_that("binary ensembles average complete pairs before the unchange
 })
 
 testthat::test_that("ensemble details preserve every pair and support both events and rounding", {
-  for (pkg in c("workflows", "tailor", "probably", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   d <- data.frame(x = sin(1:160), truth = factor(rep(c("a", "b", "b", "a"), 40)))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
@@ -147,7 +147,7 @@ testthat::test_that("ensemble details preserve every pair and support both event
 })
 
 testthat::test_that("ensemble requests and local partitions fail before any learning", {
-  for (pkg in c("workflows", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration()
   d <- data.frame(x = sin(1:80), truth = factor(rep(c("a", "b"), 40)))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
@@ -208,7 +208,7 @@ testthat::test_that("ensemble requests and local partitions fail before any lear
 })
 
 testthat::test_that("inner fits consume one stable RNG stream and preserve all required pairs", {
-  for (pkg in c("workflows", "rsample", "tailor", "probably")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   d <- data.frame(x = sin(1:160), truth = factor(rep(c("a", "b", "b", "a"), 40)))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
@@ -278,7 +278,7 @@ testthat::test_that("inner fits consume one stable RNG stream and preserve all r
 })
 
 testthat::test_that("pure local plans allow different J and replay in reverse call order", {
-  for (pkg in c("workflows", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration()
   d <- data.frame(x = sin(1:160), row_id = 1:160, truth = factor(rep(c("a", "b", "b", "a"), 40)))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
@@ -307,7 +307,7 @@ testthat::test_that("pure local plans allow different J and replay in reverse ca
 })
 
 testthat::test_that("every local pair excludes its P from B learning and its C from all learning", {
-  for (pkg in c("workflows", "recipes", "tailor", "probably", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   d <- data.frame(x = sin(1:160), truth = factor(rep(c("a", "b", "b", "a"), 40)))
   base <- workflows::workflow() |> workflows::add_recipe(recipes::recipe(truth ~ x, d) |> recipes::step_normalize(x)) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
@@ -346,7 +346,7 @@ testthat::test_that("every local pair excludes its P from B learning and its C f
 })
 
 testthat::test_that("one failed or missing inner pair fails the entire ensemble with context", {
-  for (pkg in c("workflows", "tailor", "probably", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   d <- data.frame(x = sin(1:160), truth = factor(rep(c("a", "b", "b", "a"), 40)))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
@@ -391,7 +391,7 @@ testthat::test_that("one failed or missing inner pair fails the entire ensemble 
 })
 
 testthat::test_that("ensemble pairs align named outputs and reject failed postprocessors", {
-  for (pkg in c("workflows", "tailor", "probably", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor", "probably")
   d <- data.frame(x = sin(1:160), truth = factor(rep(c("a", "b", "b", "a"), 40)))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))

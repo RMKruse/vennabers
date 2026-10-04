@@ -11,7 +11,11 @@ Run so far:
 
 * Local macOS Tahoe 26.6.2 (arm64, Apple M5 Pro), R 4.6.1 (2026-06-24):
   `R CMD check --as-cran` on the built tarball, with network access and all
-  Suggests installed.
+  Suggests installed. The latest check ran with `--no-tests` to save time; the
+  tests then ran separately on the installed package (all passed). The previous
+  candidate's check included the tests, which all passed in the check.
+* The same machine with `_R_CHECK_DEPENDS_ONLY_=true`: Status OK. Tests that
+  need the optional workflow packages skip.
 * The same machine, with only R's base-priority packages and vennabers installed
   (no Suggests and no recommended packages): the manual calibration examples and all
   Rd examples run. Workflow integration, tuning and Tailor postprocessing stop
@@ -45,8 +49,8 @@ Local macOS arm64, R 4.6.1: 0 errors | 0 warnings | 2 notes
 
 ## Check time
 
-The tests took 47 CPU minutes (58 minutes elapsed) in this local
-`R CMD check`, with other jobs running on the same machine. The CRAN Repository
+On the previous candidate, the tests took 47 CPU minutes (58 minutes elapsed)
+inside the local `R CMD check`, with other jobs running on the same machine. The CRAN Repository
 Policy asks for as little check time as possible and allows long-running tests
 to be made optional. Which tests stay out of CRAN checks has not been decided
 yet; this must be settled before submission.

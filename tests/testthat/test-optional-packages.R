@@ -83,3 +83,15 @@ testthat::test_that("Tailor postprocessing names an outdated tailor or probably;
     testthat::expect_identical(nrow(predict(fitted, data[1:3, "x", drop = FALSE], type = "prob")), 3L)
   })
 })
+
+testthat::test_that("skip_if_no_integration() skips below a declared minimum and runs otherwise", {
+  for (pkg in c(integration, "tune")) testthat::skip_if_not_installed(pkg)
+  # In the full environment the shared test guard must not skip.
+  testthat::expect_no_condition(skip_if_no_integration("tune"), class = "skip")
+  for (package in c("recipes", "tidyselect", "tune")) local({
+    local_outdated(package)
+    testthat::expect_condition(skip_if_no_integration("tune"), declared_minimum(package), class = "skip")
+  })
+  local_outdated("tune")
+  testthat::expect_no_condition(skip_if_no_integration(), class = "skip")
+})

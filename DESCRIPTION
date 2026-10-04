@@ -23,9 +23,11 @@ Description: Fits binary Inductive and Cross Venn-Abers calibrators from
     Venn-Abers predictors are described in Vovk and Petej (2014)
     <doi:10.48550/arXiv.1211.0025>; Inductive and Cross Venn-Abers
     predictors in Vovk, Petej and Fedorova (2015)
-    <doi:10.48550/arXiv.1511.00213>. This independent R implementation
-    checks its shared core results against reference outputs of the
-    'Python' package 'venn-abers'.
+    <doi:10.48550/arXiv.1511.00213>. One-vs-one multiclass calibration
+    couples the pairwise Inductive or Cross Venn-Abers probabilities as in
+    Manokhin (2017) <https://proceedings.mlr.press/v60/manokhin17a.html>.
+    This independent R implementation checks its shared core results
+    against reference outputs of the 'Python' package 'venn-abers'.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.5.0)
