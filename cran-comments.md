@@ -49,11 +49,16 @@ Local macOS arm64, R 4.6.1: 0 errors | 0 warnings | 2 notes
 
 ## Check time
 
-On the previous candidate, the tests took 47 CPU minutes (58 minutes elapsed)
-inside the local `R CMD check`, with other jobs running on the same machine. The CRAN Repository
-Policy asks for as little check time as possible and allows long-running tests
-to be made optional. Which tests stay out of CRAN checks has not been decided
-yet; this must be settled before submission.
+On the previous candidate, the complete tests took 47 CPU minutes (58 minutes
+elapsed) inside the local check, with other jobs running on the same machine.
+The maintainer approved a short CRAN profile on 2026-10-04. The 65 long
+process/worker and integration matrix files listed in `tests/cran-long-tests.txt`
+remain in the source tarball but are excluded from the default CRAN run.
+The 36 other files run there. `NOT_CRAN=true` enables the complete in-check
+suite; `tools/verify.R` always runs every installed test file locally, with
+bounded parallelism. The 1.0.0 candidate's measured check time and results will
+be recorded after its check finishes; the results above refer to the preceding
+metadata candidate.
 
 ## Downstream dependencies
 

@@ -1,4 +1,4 @@
-# Run from any directory: Rscript --vanilla tools/verify.R [processes=4]
+# Run from any directory: Rscript --vanilla tools/verify.R [processes=4] [tarball]
 order_tests <- function(files, timings) {
   seconds <- timings$seconds[match(files, timings$file)]
   seconds[is.na(seconds)] <- max(c(0, timings$seconds))
@@ -32,7 +32,7 @@ run_test <- function(file, test_dir, output) {
   result
 }
 
-verify <- function(root, processes = 4L) {
+verify <- function(root, processes = 4L, tarball = NULL) {
   if (length(processes) != 1L || is.na(processes) || processes < 1L) {
     stop("Processes must be a positive integer.")
   }
@@ -44,14 +44,17 @@ verify <- function(root, processes = 4L) {
   # Subprocess tests and their two future workers inherit these limits and paths.
   Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1",
     MKL_NUM_THREADS = "1", VECLIB_MAXIMUM_THREADS = "1",
+    NOT_CRAN = "true",
     R_LIBS = paste(.libPaths(), collapse = .Platform$path.sep))
   description <- read.dcf(file.path(root, "DESCRIPTION"))
   packages <- trimws(sub(" *[(].*", "", strsplit(description[1, "Suggests"], ",")[[1]]))
   missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
   if (length(missing)) stop("Missing test dependencies: ", paste(missing, collapse = ", "))
   install_log <- file.path(output, "install.log")
+  install_source <- if (is.null(tarball)) root else normalizePath(tarball)
+  if (!is.null(tarball)) cat("Source archive SHA-256:", tools::sha256sum(install_source), "\n")
   status <- system2(file.path(R.home("bin"), "R"),
-    c("CMD", "INSTALL", "--install-tests", paste0("--library=", shQuote(library)), shQuote(root)),
+    c("CMD", "INSTALL", "--install-tests", paste0("--library=", shQuote(library)), shQuote(install_source)),
     stdout = install_log, stderr = install_log)
   if (status != 0L) stop("Package installation failed; see ", install_log)
   .libPaths(c(library, .libPaths()))
@@ -94,8 +97,9 @@ if (sys.nframe() == 0L) {
   script <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE))
   root <- dirname(dirname(normalizePath(script)))
   args <- commandArgs(trailingOnly = TRUE)
-  if (length(args) > 1L || (length(args) && !grepl("^[1-9][0-9]*$", args))) {
-    stop("Usage: Rscript --vanilla tools/verify.R [processes=4]")
+  if (length(args) > 2L || (length(args) && !grepl("^[1-9][0-9]*$", args[1]))) {
+    stop("Usage: Rscript --vanilla tools/verify.R [processes=4] [tarball]")
   }
-  verify(root, if (length(args)) as.integer(args) else 4L)
+  verify(root, if (length(args)) as.integer(args[1]) else 4L,
+    if (length(args) == 2L) args[2] else NULL)
 }

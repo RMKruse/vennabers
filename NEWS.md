@@ -1,4 +1,15 @@
-# vennabers (development version)
+# vennabers 1.0.0
+
+## Release verification
+
+- Version the v0.9 acceptance matrices and benchmark sources. The repository's
+  `tools/build-candidate.R` exports a specific commit, builds its source package
+  and PDF manual, checks packaged tests/fixtures/examples and records SHA-256
+  identities. Platform and benchmark evidence must name that candidate.
+- CRAN checks run the short test profile. `tests/cran-long-tests.txt` lists the
+  process, worker and integration matrix files excluded there; all remain in
+  the source package. `NOT_CRAN=true` enables the complete suite, and
+  `tools/verify.R` always runs it locally with bounded parallelism.
 
 ## Compatibility promise
 

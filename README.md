@@ -233,6 +233,8 @@ Run `help(package = "vennabers")` for the complete function reference.
 
 ```sh
 Rscript --vanilla tools/verify.R
+# Verify a specific built archive, using four local test processes:
+Rscript --vanilla tools/verify.R 4 /absolute/path/vennabers_1.0.0.tar.gz
 ```
 
 This installs the current package and its tests in a temporary library, then
@@ -242,6 +244,18 @@ warnings and skips fail verification. Logs and results stay in the printed
 temporary directory. A successful run refreshes `tools/test-durations.csv`.
 All suggested dependencies and `rpart` must be installed; use `R_LIBS` for an
 additional dependency library. Pass `3` to compare three processes.
+
+CRAN checks use a short profile. `tests/cran-long-tests.txt` explicitly lists
+the process, worker and integration matrix files excluded there. They remain
+in the source archive; `NOT_CRAN=true` runs the complete check suite, and
+`tools/verify.R` always runs every installed test file.
+
+Build an identified release candidate from a committed checkout with
+`Rscript --vanilla tools/build-candidate.R HEAD`. This creates the source
+archive, PDF manual, packaged-content hashes and `candidate.dcf` in the printed
+temporary directory. [Release verification instructions](tools/RELEASE.md)
+cover dependency setup, offline product tests, examples and the separate
+benchmark tools.
 
 The original timings total about 60 minutes of test work. After splitting the
 large replay test, ideal scheduling estimates about 20 minutes with three

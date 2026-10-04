@@ -36,3 +36,13 @@ docs/
 # Keep the executable migration check from 0.9.0.
 !/tools/migration-v09.R
 !/tools/test-migration-v09.R
+# Keep the v0.9 acceptance matrices and benchmark sources available in fresh checkouts.
+!/tools/acceptance-v09-matrix.R
+!/tools/benchmark-v08.R
+!/tools/benchmark-shared-v09.R
+!/tools/benchmark-v09.R
+!/tools/run-benchmarks-v09.sh
+!/tools/summarize-benchmarks-v09.R
+!/tools/build-candidate.R
+!/tools/test-build-candidate.R
+!/tools/RELEASE.md
