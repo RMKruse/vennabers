@@ -1,6 +1,6 @@
 ---
 title: "Example scripts: manual calibration"
-description: "Binary options, multiclass OvO/OvR and moderated Inductive/Cross regression."
+description: "Binary options, multiclass OvO/OvR, one-hot class decisions and moderated Inductive/Cross regression."
 output:
   rmarkdown::html_vignette:
     toc: true
@@ -24,6 +24,7 @@ step-by-step guide. `?vennabers_examples` indexes all four example collections.
 - [Inductive multiclass one-vs-one](#inductive-ovo)
 - [Inductive multiclass one-vs-rest](#inductive-ovr)
 - [Cross multiclass calibration](#cross-multiclass)
+- [One-hot class decisions](#one-hot-classes)
 - [Inductive regression](#inductive-regression)
 - [Cross regression](#cross-regression)
 
@@ -75,6 +76,13 @@ than the introductory guides.
 `cross-multiclass.R`: Supply fold-matched class matrices and reconstruct the OvO/OvR aggregation from binary diagnostics.
 
 ```{r cross-multiclass, eval=FALSE, purl=FALSE, code=readLines(system.file("examples", "cross-multiclass.R", package = "vennabers"))}
+```
+
+## One-hot class decisions {#one-hot-classes}
+
+`one-hot-classes.R`: Represent binary and multiclass class decisions as one-hot matrices, including exact ties and missing decisions.
+
+```{r one-hot-classes, eval=FALSE, purl=FALSE, code=readLines(system.file("examples", "one-hot-classes.R", package = "vennabers"))}
 ```
 
 ## Inductive regression {#inductive-regression}

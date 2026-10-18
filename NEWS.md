@@ -1,8 +1,20 @@
 # vennabers 1.0.0
 
+## Additions
+
+- Add `venn_abers_one_hot()`, which represents existing class decisions as a
+  double 0/1 matrix with one column per class. It accepts the factor from
+  multiclass `predict(type = "class")` or `venn_abers_decode()$class`, the
+  logical vector from binary `predict(type = "class")` (columns `FALSE`,
+  `TRUE`) and `.pred_class` tables from workflows. It never chooses a class
+  from probabilities, so binary ties stay with the event and multiclass ties
+  with the first level. All classes keep their columns; missing decisions give
+  `NA` rows. Prediction methods and their output formats are unchanged. See
+  the installed example `one-hot-classes.R`.
+
 ## Guides
 
-- Publish all 38 standalone examples in four annotated articles with contents
+- Publish all 39 standalone examples in four annotated articles with contents
   lists for manual calibration, workflows, postprocessing and Grid/Bayes
   selection. The articles include the installed script sources without running
   their fits during documentation builds. `?vennabers_examples`, the package
@@ -59,8 +71,8 @@
 
 ## Migration from the previous release
 
-- No code changes are needed. Exported functions, their arguments and defaults
-  are unchanged.
+- No code changes are needed. Existing exported functions, their arguments and
+  defaults are unchanged; new functions are listed under Additions.
 - `tools/migration-v09.R` in the source repository fits 22 representative
   paths with 0.9.0 in a fresh process: manual cores, shared, pairwise,
   schema-encoded and frozen workflows, Grid- and Bayes-tuned fits and

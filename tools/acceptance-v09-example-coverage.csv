@@ -23,6 +23,7 @@ inductive-ovr.R,core,core-without-tidymodels,Manual Inductive OvR calibration wi
 inductive-regression.R,core,core-without-tidymodels,Manual Inductive regression calibration without integration packages.
 isotonic-regression-holdout.R,suite,tests/testthat/test-isotonic-regression-processes.R,Suite sources both regression cases before fresh-process RDS checks.
 multiclass-ensemble.R,suite,tests/testthat/test-multiclass-ensemble-processes.R,Suite sources the complete example before fresh-process RDS checks.
+one-hot-classes.R,core,core-without-tidymodels,Binary and multiclass one-hot class decisions without integration packages.
 pairwise-bayes.R,standalone,package standalone example,Pairwise Bayes tutorial with overlapping synthetic classes and local pair searches.
 pairwise-cross.R,suite,tests/testthat/test-pairwise-processes.R,Suite sources the complete example and checks fresh-process pairwise predictions.
 pairwise-grid.R,standalone,package standalone example,Pairwise grid tutorial with overlapping synthetic classes and coupled selection.
