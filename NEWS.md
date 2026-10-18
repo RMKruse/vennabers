@@ -11,10 +11,22 @@
   with the first level. All classes keep their columns; missing decisions give
   `NA` rows. Prediction methods and their output formats are unchanged. See
   the installed example `one-hot-classes.R`.
+- Add independent Inductive sizes `training_size` and `calibration_size` to
+  `calibrated_workflow()`, like sklearn's `train_size`/`test_size`. A value in
+  (0, 1) is a proportion of the local rows (training rounds down, calibration
+  up), a whole number is a row count, and a missing size is the complement.
+  Rows in neither set form the unassigned set: the matched source model, its
+  B/P postprocessing and the calibrator never use them, while
+  `prediction_model = "full"` learns on all local rows. Classification draws
+  are stratified with exact totals unless `strata = FALSE`. Both arguments
+  default to `NULL`, which keeps `calibration_prop` and its draw unchanged;
+  they cannot be combined with Cross, explicit `calibration_prop`, `splits` or
+  `tune()`. Fits with sizes store `unassigned` positions and resolved counts,
+  and `print()` shows them. See the installed example `inductive-sizes.R`.
 
 ## Guides
 
-- Publish all 39 standalone examples in four annotated articles with contents
+- Publish all 40 standalone examples in four annotated articles with contents
   lists for manual calibration, workflows, postprocessing and Grid/Bayes
   selection. The articles include the installed script sources without running
   their fits during documentation builds. `?vennabers_examples`, the package
@@ -71,8 +83,8 @@
 
 ## Migration from the previous release
 
-- No code changes are needed. Existing exported functions, their arguments and
-  defaults are unchanged; new functions are listed under Additions.
+- No code changes are needed. Existing exported functions keep their arguments
+  and defaults; new functions and opt-in arguments are listed under Additions.
 - `tools/migration-v09.R` in the source repository fits 22 representative
   paths with 0.9.0 in a fresh process: manual cores, shared, pairwise,
   schema-encoded and frozen workflows, Grid- and Bayes-tuned fits and

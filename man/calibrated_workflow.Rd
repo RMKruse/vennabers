@@ -13,7 +13,8 @@ For a step-by-step introduction, start with
 \usage{
 calibrated_workflow(workflow, outcome, ..., predictors = NULL,
   method = "inductive", classification = "binary", event_level = "first",
-  calibration_prop = 0.2, v = 5L, strata = NULL, splits = NULL, seed = NULL,
+  calibration_prop = 0.2, training_size = NULL, calibration_size = NULL,
+  v = 5L, strata = NULL, splits = NULL, seed = NULL,
   precision = NULL, loss = "log", m = NULL, epsilon = NULL, schema = NULL,
   prediction_model = "matched", model_training = "shared", tuning = NULL,
   postprocessing = NULL)
@@ -46,6 +47,24 @@ explicitly supplying this option for OvO/OvR is an error.}
 \item{calibration_prop}{A number strictly between zero and one.
 \code{rsample::initial_split()} uses training proportion \code{1-calibration_prop}.
 Explicitly supplying this option requires Inductive.}
+\item{training_size, calibration_size}{Independent Inductive training and
+calibration sizes, like sklearn's \code{train_size}/\code{test_size}. Both NULL
+(default) keep \code{calibration_prop} and its draw unchanged. A value strictly
+between zero and one is a proportion of the local rows; a whole number of at
+least one is a row count. Proportions round training down and calibration up;
+row counts are exact. A missing size is the complement. Rows left over when both
+are supplied form the unassigned set U: the matched source model, its B/P
+postprocessing and the calibrator never use them, while
+\code{prediction_model = "full"} trains its additional workflow on all local
+rows, including calibration rows and U. Classification draws are stratified by
+outcome with exact totals (largest-remainder class allocation, ties in level
+order) unless \code{strata = FALSE}; regression is unstratified. Sizes are
+checked against the local rows and never shrunk: more rows than available, or an
+empty training or calibration set, is an error naming both sizes. They cannot be
+tuned and cannot be combined with \code{method = "cross"}, explicit
+\code{calibration_prop} or \code{splits}; the default \code{calibration_prop}
+is then ignored. Pairwise training, calibration tuning and joint model tuning do
+not support them yet. See \file{inductive-sizes.R} in \code{\link{vennabers_examples}}.}
 \item{v}{Cross fold count, a whole number of at least two, default five.
 Automatic \code{rsample::vfold_cv()} uses one repetition and never reduces this
 count; it must not exceed the local row count. Explicitly supplying \code{v}

@@ -68,7 +68,11 @@ as \code{a b} and \code{a.b} require a compatible base engine. Raw predictor
 \code{effective}), \code{outcome}, \code{predictors}, \code{columns} (predictors
 then outcome), \code{class_levels}, \code{event_class}, \code{loss},
 \code{folds} (by fold ID, with integer \code{analysis}/\code{assessment} positions and
-\code{training_size}/\code{calibration_size}), \code{models} (complete fitted
+\code{training_size}/\code{calibration_size}; with requested independent sizes,
+\code{Inductive1} also stores integer \code{unassigned} positions, and
+\code{effective} holds the resolved \code{training_size}, \code{calibration_size}
+and \code{unassigned_size} row counts; fits without the field have no
+unassigned rows), \code{models} (complete fitted
 prediction sources named by the same IDs, or only \code{Full1} in full mode;
 learned postprocessing uses package-owned compositions),
 \code{calibrator}, \code{calibration} (for binary: a list named by fold ID, each
@@ -86,7 +90,8 @@ no pooled OOF calibration or in-sample replacement. Training failure invalidates
 the whole fit; there is no fallback. A one-row full-model prediction validates
 its output contract during fit and is discarded without calibration.
 Print identifies the mode and fold-to-model
-mapping. Saved RDS objects retain the complete prediction procedure.
+mapping, and the training, calibration and unassigned row counts when
+independent sizes were requested. Saved RDS objects retain the complete prediction procedure.
 The cost is one/two base fits for matched/full Inductive and K/K+1 for Cross.
 Full prediction calls its one model once per nonempty batch, reusing that output
 across calibrators within the call. There is no persistent prediction cache.

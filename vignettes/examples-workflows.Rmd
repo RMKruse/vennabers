@@ -1,6 +1,6 @@
 ---
 title: "Example scripts: training and frozen workflows"
-description: "Training, encoding, reference splits, full-model transfer, pairwise OvO and frozen adoption."
+description: "Training, encoding, reference splits, independent Inductive sizes, full-model transfer, pairwise OvO and frozen adoption."
 output:
   rmarkdown::html_vignette:
     toc: true
@@ -25,6 +25,7 @@ step-by-step guide. `?vennabers_examples` indexes all four example collections.
 - [Encoding binary names](#encoded-binary)
 - [Encoding multiclass and regression names](#encoded-multiclass-regression)
 - [Reference-style data roles](#reference-splits)
+- [Independent Inductive training and calibration sizes](#inductive-sizes)
 - [Binary full-model transfer](#full-model-workflow)
 - [Shared multiclass full-model transfer](#full-multiclass-workflow)
 - [Regression full-model transfer](#full-regression-workflow)
@@ -75,6 +76,13 @@ than the introductory guides.
 `reference-splits.R`: Illustrate ordered holdouts and explicit fold complements on synthetic data, without claiming paper benchmark reproduction.
 
 ```{r reference-splits, eval=FALSE, purl=FALSE, code=readLines(system.file("examples", "reference-splits.R", package = "vennabers"))}
+```
+
+## Independent Inductive training and calibration sizes {#inductive-sizes}
+
+`inductive-sizes.R`: Request 50 training and 20 calibration rows out of 100, leaving 30 unassigned rows that only a full-model refit learns from.
+
+```{r inductive-sizes, eval=FALSE, purl=FALSE, code=readLines(system.file("examples", "inductive-sizes.R", package = "vennabers"))}
 ```
 
 ## Binary full-model transfer {#full-model-workflow}
