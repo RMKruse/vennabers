@@ -30,7 +30,8 @@ in fitted factor-level order, retaining new-row order and matrix row names.
 \code{"class"} returns an unnamed factor with the stored levels; the first
 stored class wins exact ties. This also applies with exactly two classes,
 whereas binary vector ties select the event. Classes use the final probabilities
-of the fitted method. For OvO, \code{"details"} returns a list
+of the fitted method. \code{\link{venn_abers_one_hot}} represents binary or
+multiclass class decisions as a one-hot matrix. For OvO, \code{"details"} returns a list
 with \code{prediction} (the response matrix) and \code{pairs}, a data frame
 with \code{row}, \code{non_event}, \code{event}, \code{lower}, \code{upper},
 and \code{probability}. Row is the integer one-based new-row position;

@@ -137,6 +137,7 @@ Neither \code{"conf_int"} nor \code{"pred_int"} is registered.}
 contain \code{.pred_class}, a factor retaining all levels. Binary favors its event
 at exactly 0.5; OvO/OvR select the first maximum in stored level order from the
 final probabilities, even with two classes. Empty predictions keep the schema without calling the inner engine.
+\code{\link{venn_abers_one_hot}} represents these class decisions as a one-hot matrix.
 
 Regression predictions contain a double \code{.pred} column in outcome units.
 Use \code{\link{venn_abers_details}} for bounds, fold identities and source models,

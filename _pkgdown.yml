@@ -55,5 +55,6 @@ reference:
 - contents:
   - brier_score
   - calibration_plot
+  - venn_abers_one_hot
   - print.venn_abers
   - print.cross_venn_abers

@@ -28,6 +28,7 @@ Scripts: \file{binary-options.R},
 \file{inductive-ovo.R},
 \file{inductive-ovr.R},
 \file{cross-multiclass.R},
+\file{one-hot-classes.R},
 \file{inductive-regression.R},
 \file{cross-regression.R}.
 }
