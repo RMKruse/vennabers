@@ -3,7 +3,8 @@
 #' @export
 calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                                 method = "inductive", classification = "binary",
-                                event_level = "first", calibration_prop = 0.2, v = 5L,
+                                event_level = "first", calibration_prop = 0.2,
+                                training_size = NULL, calibration_size = NULL, v = 5L,
                                 strata = NULL, splits = NULL, seed = NULL, precision = NULL,
                                 loss = "log", m = NULL, epsilon = NULL, schema = NULL,
                                 prediction_model = "matched", model_training = "shared",
@@ -99,6 +100,16 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
       calibration_prop <= 0 || calibration_prop >= 1) {
     stop("`calibration_prop` must be one number strictly between 0 and 1.", call. = FALSE)
   }
+  sized <- .validate_inductive_sizes(training_size, calibration_size)
+  if (sized) {
+    if (method == "cross") stop("`training_size` and `calibration_size` require method = 'inductive'.", call. = FALSE)
+    if (!missing(calibration_prop)) {
+      stop("Supply either `calibration_prop` or `training_size`/`calibration_size`, not both.", call. = FALSE)
+    }
+    if (!is.null(splits)) {
+      stop("Explicit `splits` partition all rows and cannot be combined with `training_size` or `calibration_size`.", call. = FALSE)
+    }
+  }
   if (!is.null(strata) && !identical(strata, FALSE)) {
     stop("`strata` must be NULL (classification outcome stratification; none for regression) or FALSE.", call. = FALSE)
   }
@@ -138,6 +149,10 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
       (!is.null(tuning$calibration) || (identical(tuning$strategy, "joint") && !is.null(tuning$model)))) {
     stop("Joint or calibration selection with postprocessing requires a `postprocessing$splits` provider function or prop/v.", call. = FALSE)
   }
+  if (sized && (pairwise || !is.null(tuning$calibration) ||
+                identical(tuning$strategy, "joint") && !is.null(tuning$model))) {
+    stop("`training_size` and `calibration_size` do not yet support pairwise model training, calibration tuning or joint model tuning.", call. = FALSE)
+  }
   .register_vennabers()
   requested <- list(mode = mode, predictors = predictors, method = method, classification = classification,
                     event_level = event_level, calibration_prop = calibration_prop, v = v,
@@ -145,6 +160,8 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                     m = m, epsilon = epsilon, prediction_model = prediction_model,
                     model_training = if (!regression && classification != "binary") model_training else NULL,
                     tuning = tuning, postprocessing = postprocessing)
+  # Size fields exist only when requested, so default specifications keep their stored shape.
+  if (sized) requested[c("training_size", "calibration_size")] <- list(training_size, calibration_size)
   explicit <- c(predictors = !missing(predictors), method = !missing(method),
                 classification = explicit_classification, event_level = explicit_event,
                 calibration_prop = !missing(calibration_prop), v = !missing(v), strata = !missing(strata),
@@ -152,6 +169,7 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                 m = !missing(m), epsilon = !missing(epsilon), prediction_model = !missing(prediction_model),
                 model_training = !missing(model_training), tuning = explicit_tuning,
                 postprocessing = !missing(postprocessing))
+  if (sized) explicit[c("training_size", "calibration_size")] <- c(!is.null(training_size), !is.null(calibration_size))
   spec <- parsnip::new_model_spec("vennabers", args = list(), eng_args = NULL,
                                 mode = mode, method = NULL, engine = method)
   spec <- parsnip::set_engine(spec, method, base_workflow = workflow,
@@ -324,6 +342,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   effective$predictors <- predictors
   effective$strata <- if (!regression && is.null(settings$strata)) outcome else FALSE
   if (settings$method == "cross") effective$calibration_prop <- NULL else effective$v <- NULL
+  if (.inductive_sized(settings)) effective$calibration_prop <- NULL
   if (!is.null(settings$splits)) {
     effective$calibration_prop <- effective$v <- effective$strata <- NULL
   }
@@ -400,6 +419,10 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
     parameters$effective$m <- vapply(result$plans[[1L]], function(f) f$moderation$m, 0)
     parameters$effective$epsilon <- vapply(result$plans[[1L]], function(f) f$moderation$epsilon, 0)
   }
+  if (.inductive_sized(settings)) {
+    parameters$effective[c("training_size", "calibration_size", "unassigned_size")] <-
+      as.list(lengths(result$plans[[1L]]$Inductive1[c("analysis", "assessment", "unassigned")]))
+  }
   component <- result$fitted[[1L]]
   state$parameters <- parameters
   state$folds <- component$folds
@@ -459,16 +482,21 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
 .plan_component <- function(domain, settings) {
   local <- domain$data
   cross <- settings$method == "cross"
+  # Automatic size plans may leave rows unassigned (U), so they bypass the
+  # complete-partition validator that rsample and user plans still pass through.
+  sized <- !cross && is.null(domain$plan) && .inductive_sized(settings)
   if (!is.null(domain$precheck)) domain$precheck(local)
-  resolve <- function() {
+  resolve <- function(draw) {
     # A fixed local seed makes pair plans independent of preceding model draws.
-    if (!is.null(settings$seed) && isTRUE(domain$seed_wrap)) {
-      withr::with_seed(settings$seed, .resolve_split(domain, settings, local, cross))
-    } else .resolve_split(domain, settings, local, cross)
+    if (!is.null(settings$seed) && isTRUE(domain$seed_wrap)) withr::with_seed(settings$seed, draw()) else draw()
   }
-  split <- if (is.null(domain$resolve_error)) resolve() else tryCatch(resolve(), error = domain$resolve_error)
+  split <- if (sized) resolve(function() .inductive_size_positions(domain, settings, local)) else {
+    draw <- function() .resolve_split(domain, settings, local, cross)
+    if (is.null(domain$resolve_error)) resolve(draw) else tryCatch(resolve(draw), error = domain$resolve_error)
+  }
   validate <- function() {
-    folds <- if (cross) .cross_splits(split, local) else list(Inductive1 = .inductive_split(split, local))
+    folds <- if (sized) list(Inductive1 = split) else
+      if (cross) .cross_splits(split, local) else list(Inductive1 = .inductive_split(split, local))
     for (fold_id in names(folds)) {
       folds[[fold_id]]$training_size <- length(folds[[fold_id]]$analysis)
       folds[[fold_id]]$calibration_size <- length(folds[[fold_id]]$assessment)
@@ -477,6 +505,85 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   }
   if (is.null(domain$folds_error)) validate() else
     tryCatch(validate(), error = function(e) domain$folds_error(e, if (cross) "Cross" else "Inductive1"))
+}
+
+.inductive_sized <- function(settings) {
+  !is.null(settings$training_size) || !is.null(settings$calibration_size)
+}
+
+.validate_inductive_sizes <- function(training_size, calibration_size) {
+  sizes <- list(training_size = training_size, calibration_size = calibration_size)
+  for (name in names(sizes)) {
+    size <- sizes[[name]]
+    if (is.null(size)) next
+    if (rlang::is_call(size, "tune")) {
+      stop("`", name, "` cannot be tuned; supply a fixed proportion or row count.", call. = FALSE)
+    }
+    if (!is.numeric(size) || !is.vector(size) || length(size) != 1L || !is.finite(size) ||
+        !(size > 0 && size < 1 || size >= 1 && size == floor(size) && size <= .Machine$integer.max)) {
+      stop("`", name, "` must be NULL, one proportion strictly between 0 and 1, or one whole row count of at least 1.", call. = FALSE)
+    }
+  }
+  if (!is.null(training_size) && !is.null(calibration_size) &&
+      training_size < 1 && calibration_size < 1 && training_size + calibration_size > 1) {
+    stop("`training_size` and `calibration_size` proportions must not sum to more than 1.", call. = FALSE)
+  }
+  !is.null(training_size) || !is.null(calibration_size)
+}
+
+# sklearn rounding on the local domain: training floors, calibration ceils and
+# whole numbers are exact; a missing size is the complement. Totals are exact
+# under stratification too (largest remainders per class); U is the rest.
+.inductive_size_positions <- function(domain, settings, local) {
+  n <- nrow(local)
+  pool <- paste0("the ", n, " ", domain$rows_word)
+  fail <- function(...) stop(if (!is.null(domain$pair_id)) paste0("Pair [", paste(domain$classes, collapse = ", "), "]: "),
+                             ..., call. = FALSE)
+  rows <- function(size, round) if (is.null(size)) NULL else if (size < 1) as.integer(round(n * size)) else as.integer(size)
+  shown <- function(name, k) paste0("`", name, "` = ", format(settings[[name]]), " (", k, " rows)")
+  training <- rows(settings$training_size, floor)
+  calibration <- rows(settings$calibration_size, ceiling)
+  given <- c(if (!is.null(training)) shown("training_size", training),
+             if (!is.null(calibration)) shown("calibration_size", calibration))
+  if (sum(training, calibration) > n) {
+    fail(paste(given, collapse = " and "), " request ", sum(training, calibration), " rows, but only ", pool, " are available.")
+  }
+  if (is.null(training)) training <- n - calibration
+  if (is.null(calibration)) calibration <- n - training
+  for (role in c("training", "calibration")) if (get(role) == 0L) {
+    fail(paste(given, collapse = " and "), " leave", if (length(given) == 1L) "s", " 0 ", role,
+         " rows of ", pool, "; training and calibration must be nonempty.")
+  }
+  if (identical(domain$strata, FALSE)) {
+    groups <- list(sample.int(n))
+    take <- list(c(training, calibration))
+  } else {
+    y <- local[[domain$outcome]]
+    groups <- lapply(levels(y), function(level) {
+      members <- which(y == level)
+      members[sample.int(length(members))]
+    })
+    counts <- lengths(groups)
+    trained <- .largest_remainders(training, counts, counts)
+    take <- Map(c, trained, .largest_remainders(calibration, counts, counts - trained))
+  }
+  roles <- c("analysis", "assessment", "unassigned")
+  parts <- Map(function(members, k) split(members, factor(rep(roles, c(k, length(members) - sum(k))), roles)),
+               groups, take)
+  stats::setNames(lapply(roles, function(role) {
+    sort(as.integer(unlist(lapply(parts, `[[`, role), use.names = FALSE)))
+  }), roles)
+}
+
+# Proportional integer allocation of `total` over classes; ties keep level order.
+.largest_remainders <- function(total, counts, capacity) {
+  quota <- total * counts / sum(counts)
+  take <- pmin(floor(quota), capacity)
+  ranked <- order(floor(quota) - quota, seq_along(quota))
+  while (sum(take) < total) for (k in ranked) {
+    if (sum(take) < total && take[[k]] < capacity[[k]]) take[[k]] <- take[[k]] + 1
+  }
+  as.integer(take)
 }
 
 .fit_component_sources <- function(folds, domain, task, settings, tuning_plan) {
@@ -741,6 +848,12 @@ print.vennabers_fit <- function(x, ...) {
   cat("Base fits:", source_fits, "\n")
   cat("Models per nonempty prediction:", retained, "\n")
   cat("Stored calibration rows:", calibration_rows, "(held-out truth and model predictions)\n")
+  # Only size-requested plans store U; older fits and calibration_prop plans have none.
+  sized <- x$folds$Inductive1
+  if (!is.null(sized$unassigned)) {
+    cat("Inductive rows: training", length(sized$analysis), "| calibration", length(sized$assessment),
+        "| unassigned", length(sized$unassigned), "\n")
+  }
   if (identical(settings$model_training, "pairwise")) {
     for (id in names(x$pair_models)) {
       component <- x$pair_models[[id]]

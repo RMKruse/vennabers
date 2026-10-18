@@ -21,6 +21,7 @@ full-regression-workflow.R,suite,tests/testthat/test-full-regression-processes.R
 inductive-ovo.R,core,core-without-tidymodels,Manual Inductive OvO calibration without integration packages.
 inductive-ovr.R,core,core-without-tidymodels,Manual Inductive OvR calibration without integration packages.
 inductive-regression.R,core,core-without-tidymodels,Manual Inductive regression calibration without integration packages.
+inductive-sizes.R,standalone,package standalone example,Independent Inductive sizes with unassigned rows in matched and full modes.
 isotonic-regression-holdout.R,suite,tests/testthat/test-isotonic-regression-processes.R,Suite sources both regression cases before fresh-process RDS checks.
 multiclass-ensemble.R,suite,tests/testthat/test-multiclass-ensemble-processes.R,Suite sources the complete example before fresh-process RDS checks.
 one-hot-classes.R,core,core-without-tidymodels,Binary and multiclass one-hot class decisions without integration packages.
