@@ -216,7 +216,9 @@ adapted to the two-level local domain, retaining steps, roles and blueprint opti
 
 \code{pair_models[[pair_id]]} retains \code{pair_id}, \code{class_levels},
 \code{event_class}, \code{rows} (positions in the current global fit domain),
-\code{folds} (positions in the local pair, plus sizes), \code{models},
+\code{folds} (positions in the local pair, plus sizes and, with requested
+independent sizes, the pair's \code{unassigned} positions; the resolved counts
+in \code{effective} are then named by pair ID), \code{models},
 \code{calibrator}, and \code{calibration}. Folds, models and calibration records
 are named by local fold ID: \code{Inductive1} or the supplied Cross IDs.
 The Cross calibrator retains its ordered, named binary fold calibrators.

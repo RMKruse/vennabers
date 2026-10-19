@@ -50,4 +50,19 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "withr"),
   message <- tryCatch(generics::fit(calibrated_workflow(base, "truth", seed = 42,
     training_size = 80, calibration_size = 30), development), error = conditionMessage)
   stopifnot(grepl("request 110 rows, but only the 100 local rows are available", message, fixed = TRUE))
+
+  # Pairwise multiclass resolves the sizes on each class pair's rows, with U
+  # per pair. Classes of 40, 30 and 20 rows give pairs of 70, 60 and 50 rows:
+  # half of each pair trains, 10 rows calibrate and the rest stay unassigned.
+  three <- data.frame(x = sin(1:90) + rep(c(0, 1, 2), c(40, 30, 20)),
+                      truth = factor(rep(c("a", "b", "c"), c(40, 30, 20))))
+  pairwise <- workflows::extract_fit_engine(generics::fit(calibrated_workflow(base, "truth",
+    classification = "ovo", model_training = "pairwise", seed = 42,
+    training_size = .5, calibration_size = 10), three))
+  print(pairwise)
+  stopifnot(identical(pairwise$parameters$effective$unassigned_size,
+                      c(pair_1 = 25L, pair_2 = 20L, pair_3 = 15L)))
+  # Searches whose candidates are calibrated workflows (calibration or joint
+  # model tuning) resolve the sizes again on resample rows and therefore
+  # accept proportions only; two-stage model searches also take row counts.
 }

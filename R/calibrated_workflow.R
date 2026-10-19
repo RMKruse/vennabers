@@ -149,9 +149,12 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
       (!is.null(tuning$calibration) || (identical(tuning$strategy, "joint") && !is.null(tuning$model)))) {
     stop("Joint or calibration selection with postprocessing requires a `postprocessing$splits` provider function or prop/v.", call. = FALSE)
   }
-  if (sized && (pairwise || !is.null(tuning$calibration) ||
-                identical(tuning$strategy, "joint") && !is.null(tuning$model))) {
-    stop("`training_size` and `calibration_size` do not yet support pairwise model training, calibration tuning or joint model tuning.", call. = FALSE)
+  # Calibration and joint model candidates are calibrated workflows that resolve
+  # the sizes again on resample data, where only proportions carry over.
+  if (sized && any(c(training_size, calibration_size) >= 1) &&
+      (!is.null(tuning$calibration) || identical(tuning$strategy, "joint") && !is.null(tuning$model))) {
+    stop("Calibration tuning and joint model tuning fit Venn-Abers candidates on resamples; ",
+         "supply `training_size` and `calibration_size` as proportions, not row counts.", call. = FALSE)
   }
   .register_vennabers()
   requested <- list(mode = mode, predictors = predictors, method = method, classification = classification,
@@ -381,7 +384,8 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   domain <- list(data = raw, workflow = base_workflow, plan = settings$splits,
     schema = parameters$schema,
     outcome = outcome, strata = effective$strata, classes = classes, event = event, y = y,
-    rows_word = "local rows", seed_wrap = FALSE,
+    # After calibration selection, the local rows are the final-fit F.
+    rows_word = if (is.null(tuning_plan$calibration)) "local rows" else "final-fit F rows", seed_wrap = FALSE,
     precheck = if (cross && is.null(settings$splits)) function(local) {
       if (settings$v > nrow(local)) {
         stop("`v` cannot exceed the number of local rows; the fold count is not reduced.", call. = FALSE)
@@ -849,10 +853,12 @@ print.vennabers_fit <- function(x, ...) {
   cat("Models per nonempty prediction:", retained, "\n")
   cat("Stored calibration rows:", calibration_rows, "(held-out truth and model predictions)\n")
   # Only size-requested plans store U; older fits and calibration_prop plans have none.
-  sized <- x$folds$Inductive1
-  if (!is.null(sized$unassigned)) {
-    cat("Inductive rows: training", length(sized$analysis), "| calibration", length(sized$assessment),
-        "| unassigned", length(sized$unassigned), "\n")
+  for (part in components) {
+    sized <- part$folds$Inductive1
+    if (!is.null(sized$unassigned)) {
+      cat(c(part$pair_id, "Inductive rows: training"), length(sized$analysis), "| calibration", length(sized$assessment),
+          "| unassigned", length(sized$unassigned), "\n")
+    }
   }
   if (identical(settings$model_training, "pairwise")) {
     for (id in names(x$pair_models)) {
