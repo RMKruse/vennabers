@@ -80,7 +80,7 @@ than the introductory guides.
 
 ## Independent Inductive training and calibration sizes {#inductive-sizes}
 
-`inductive-sizes.R`: Request 50 training and 20 calibration rows out of 100, leaving 30 unassigned rows that only a full-model refit learns from.
+`inductive-sizes.R`: Request 50 training and 20 calibration rows out of 100, leaving 30 unassigned rows that only a full-model refit learns from, then resolve the same sizes on every class pair of a pairwise multiclass fit.
 
 ```{r inductive-sizes, eval=FALSE, purl=FALSE, code=readLines(system.file("examples", "inductive-sizes.R", package = "vennabers"))}
 ```

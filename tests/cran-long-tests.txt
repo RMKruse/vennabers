@@ -14,6 +14,7 @@ test-full-postprocessing-processes.R
 test-full-postprocessing.R
 test-full-regression-processes.R
 test-full-regression-workflow.R
+test-inductive-sizes-processes.R
 test-integration-processes.R
 test-isotonic-regression-processes.R
 test-multiclass-bayes.R

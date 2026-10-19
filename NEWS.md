@@ -21,8 +21,13 @@
   are stratified with exact totals unless `strata = FALSE`. Both arguments
   default to `NULL`, which keeps `calibration_prop` and its draw unchanged;
   they cannot be combined with Cross, explicit `calibration_prop`, `splits` or
-  `tune()`. Fits with sizes store `unassigned` positions and resolved counts,
-  and `print()` shows them. See the installed example `inductive-sizes.R`.
+  `tune()`. Pairwise multiclass resolves the sizes on each class pair, with
+  unassigned rows per pair, and calibration selection on the final-fit F.
+  Calibration and joint model searches fit Venn-Abers candidates that resolve
+  the sizes on their resample rows, so they accept only proportions; two-stage
+  model searches also accept row counts. Fits with sizes store `unassigned`
+  positions and resolved counts, and `print()` shows them. See the installed
+  example `inductive-sizes.R`.
 
 ## Guides
 

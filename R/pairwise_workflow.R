@@ -73,6 +73,13 @@
     .fit_pairwise_grid_domains(data, domains, task, settings, tuning_plan)
   components <- stats::setNames(lapply(result$fitted, function(component) component), ids)
   state$pair_models <- components
+  # Sizes resolve on each pair's rows, so the resolved counts are named by pair ID.
+  if (.inductive_sized(settings)) {
+    roles <- c(training_size = "analysis", calibration_size = "assessment", unassigned_size = "unassigned")
+    state$parameters$effective[names(roles)] <- lapply(roles, function(role) {
+      stats::setNames(vapply(result$plans, function(plan) length(plan$Inductive1[[role]]), 1L), ids)
+    })
+  }
   if (!is.null(state$tuning)) {
     state$tuning$models <- lapply(components, function(component) {
       selections <- component$model_selection

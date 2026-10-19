@@ -63,8 +63,12 @@ checked against the local rows and never shrunk: more rows than available, or an
 empty training or calibration set, is an error naming both sizes. They cannot be
 tuned and cannot be combined with \code{method = "cross"}, explicit
 \code{calibration_prop} or \code{splits}; the default \code{calibration_prop}
-is then ignored. Pairwise training, calibration tuning and joint model tuning do
-not support them yet. See \file{inductive-sizes.R} in \code{\link{vennabers_examples}}.}
+is then ignored. With \code{model_training = "pairwise"} the sizes resolve on
+each class pair's local rows, with U per pair; after calibration selection they
+resolve on the final-fit F. Calibration tuning and joint model tuning fit
+Venn-Abers candidates that resolve the same sizes on their resample rows, so
+they accept only proportions; two-stage model tuning also accepts row counts.
+See \file{inductive-sizes.R} in \code{\link{vennabers_examples}}.}
 \item{v}{Cross fold count, a whole number of at least two, default five.
 Automatic \code{rsample::vfold_cv()} uses one repetition and never reduces this
 count; it must not exceed the local row count. Explicitly supplying \code{v}
