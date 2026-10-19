@@ -23,6 +23,8 @@ Start with \code{vignette("manual-calibration", package = "vennabers")}.
 Use \code{\link{calibrated_workflow}} with an unfitted tidymodels workflow,
 or \code{\link{calibrate_workflow}} to calibrate an already fitted workflow
 on new data. These interfaces require the optional packages in DESCRIPTION.
+\code{\link{model_adapter}} turns your own fit and predict functions into a
+workflow model without registering a parsnip engine.
 Follow \code{vignette("workflows", package = "vennabers")} for a complete
 example, then \code{vignette("tuning", package = "vennabers")} for Grid/Bayes
 selection and independent assessment.

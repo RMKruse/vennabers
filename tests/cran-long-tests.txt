@@ -17,6 +17,7 @@ test-full-regression-workflow.R
 test-inductive-sizes-processes.R
 test-integration-processes.R
 test-isotonic-regression-processes.R
+test-model-adapter-processes.R
 test-multiclass-bayes.R
 test-multiclass-ensemble-processes.R
 test-multiclass-ensemble.R

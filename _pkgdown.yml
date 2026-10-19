@@ -45,6 +45,7 @@ reference:
 - contents:
   - calibrated_workflow
   - calibrate_workflow
+  - model_adapter
   - local_calibration_splits
   - venn_abers_schema
   - workflow_training

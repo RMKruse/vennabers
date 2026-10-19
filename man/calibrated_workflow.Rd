@@ -229,5 +229,6 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
 
 
 \code{\link{venn_abers}}, \code{\link{cross_venn_abers}},
-\code{\link{venn_abers_schema}}, \code{\link{calibrate_workflow}}.
+\code{\link{venn_abers_schema}}, \code{\link{calibrate_workflow}},
+\code{\link{model_adapter}}.
 }
