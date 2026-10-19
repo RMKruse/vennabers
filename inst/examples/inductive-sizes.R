@@ -54,7 +54,7 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "withr"),
   # Pairwise multiclass resolves the sizes on each class pair's rows, with U
   # per pair. Classes of 40, 30 and 20 rows give pairs of 70, 60 and 50 rows:
   # half of each pair trains, 10 rows calibrate and the rest stay unassigned.
-  three <- data.frame(x = sin(1:90) + rep(c(0, 1, 2), c(40, 30, 20)),
+  three <- data.frame(x = sin(1:90) + rep(c(0, .5, 1), c(40, 30, 20)),
                       truth = factor(rep(c("a", "b", "c"), c(40, 30, 20))))
   pairwise <- workflows::extract_fit_engine(generics::fit(calibrated_workflow(base, "truth",
     classification = "ovo", model_training = "pairwise", seed = 42,
