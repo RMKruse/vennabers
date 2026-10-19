@@ -83,6 +83,17 @@ update.vennabers_grid <- function(object, ..., fresh = FALSE) {
   object
 }
 
+# tune finalizes every model spec, also one without parameters. Callback
+# settings are fixed in the functions, so nothing else may be replaced.
+#' @export
+update.vennabers_adapter <- function(object, ..., fresh = FALSE) {
+  if (...length()) {
+    stop("model_adapter() specs have no tunable or replaceable parameters; ",
+         "bind fixed settings inside the `fit` and `predict` functions.", call. = FALSE)
+  }
+  object
+}
+
 .onLoad <- function(libname, pkgname) {
   setHook(packageEvent("parsnip", "onLoad"), function(...) .register_vennabers())
   if ("parsnip" %in% loadedNamespaces()) .register_vennabers()

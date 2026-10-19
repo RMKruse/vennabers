@@ -1,9 +1,9 @@
 testthat::test_that("adapter fits restore in fresh processes and replay on outer workers", {
-  skip_if_no_integration("nnet")
+  skip_if_no_integration("nnet", "tune", "yardstick")
   # The example's factories bind helpers and settings locally, as a user script would.
   example <- new.env(parent = globalenv())
   sys.source(system.file("examples", "model-adapter.R", package = "vennabers"), example)
-  testthat::expect_named(example$examples, c("binary", "multiclass", "regression"))
+  testthat::expect_named(example$examples, c("binary", "multiclass", "regression", "search"))
   snapshot <- function(fit, new, schema = NULL) lapply(c(0L, 1L, 7L), function(n) {
     batch <- new[seq_len(n), , drop = FALSE]
     regression <- workflows::extract_fit_engine(fit)$parameters$requested$mode == "regression"

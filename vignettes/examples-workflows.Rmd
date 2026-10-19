@@ -88,7 +88,7 @@ than the introductory guides.
 
 ## Own fit and predict functions {#model-adapter}
 
-`model-adapter.R`: Wrap GLM, multinomial and linear regression fit/predict functions with `model_adapter()`, calibrate them like native engines and keep their settings bound for saved fits.
+`model-adapter.R`: Wrap GLM, multinomial and linear regression fit/predict functions with `model_adapter()`, calibrate them like native engines and keep their settings bound for saved fits. The GLM callback also carries pairwise OvO, Sigmoid postprocessing and a grid search over a recipe degree and the VA loss.
 
 ```{r model-adapter, eval=FALSE, purl=FALSE, code=readLines(system.file("examples", "model-adapter.R", package = "vennabers"))}
 ```
