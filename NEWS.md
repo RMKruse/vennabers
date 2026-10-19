@@ -11,6 +11,20 @@
   with the first level. All classes keep their columns; missing decisions give
   `NA` rows. Prediction methods and their output formats are unchanged. See
   the installed example `one-hot-classes.R`.
+- Add `model_adapter(mode, fit, predict)`, which turns your own
+  `fit(x, y)` and `predict(object, new_data)` functions into an unfitted
+  parsnip model for workflows and `calibrated_workflow()`, without registering
+  an engine. Each local fit trains a fresh model on its prepared rows:
+  Inductive or Cross sources, the full-model refit and outer resamples.
+  Calibration rows never reach `fit`. Classification returns a matrix with one
+  column per original class, also for two classes; columns are matched by
+  name. Regression returns one number per row. Malformed output fails with a
+  concrete error and the fold or refit context. The local seed applies to
+  callbacks that use R's generator. Saved fits keep the functions; bind
+  helpers and settings locally so they work in a fresh process. Fitted
+  adapter workflows can be adopted frozen with `calibrate_workflow()`. The
+  `glm_link` Sigmoid input still requires the native GLM engine. See the
+  installed example `model-adapter.R`.
 - Add independent Inductive sizes `training_size` and `calibration_size` to
   `calibrated_workflow()`, like sklearn's `train_size`/`test_size`. A value in
   (0, 1) is a proportion of the local rows (training rounds down, calibration
@@ -31,7 +45,7 @@
 
 ## Guides
 
-- Publish all 40 standalone examples in four annotated articles with contents
+- Publish all 41 standalone examples in four annotated articles with contents
   lists for manual calibration, workflows, postprocessing and Grid/Bayes
   selection. The articles include the installed script sources without running
   their fits during documentation builds. `?vennabers_examples`, the package

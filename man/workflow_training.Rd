@@ -22,6 +22,7 @@ decision trees. Fresh parallel workers must load \code{vennabers} and those
 engine namespaces, for example through \code{control_resamples(pkgs = ...)}.
 Reversible name encoding for binary, OvO/OvR and regression is available through \code{venn_abers_schema()}.
 Frozen classification/regression workflow adoption is available through \code{\link{calibrate_workflow}}.
+Own fit and predict functions enter as a workflow model through \code{\link{model_adapter}}.
 Ordered reference holdouts and binary/shared multiclass full-model transfer are supported.
 Pairwise OvO training supports matched/full Inductive and Cross calibration.
 Binary, shared OvO/OvR, pairwise OvO and regression paths support joint or

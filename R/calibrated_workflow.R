@@ -272,6 +272,7 @@ predict.vennabers_workflow <- function(object, new_data, ...) {
 #' @export
 fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   .integration_dots(...)
+  if (inherits(parameters, "vennabers_adapter_callbacks")) return(.fit_model_adapter(x, y, parameters))
   raw <- .calibrated_fit_data(x, y, base_workflow, outcome, parameters)
   settings <- parameters$requested
   if (!is.null(settings$seed)) withr::local_seed(settings$seed)
@@ -907,6 +908,7 @@ print.vennabers_fit <- function(x, ...) {
 
 #' @export
 predict_vennabers_numeric <- function(object, new_data) {
+  if (inherits(object, "vennabers_adapter_fit")) return(.predict_model_adapter(object, new_data))
   if (inherits(object, "vennabers_grid_fit")) {
     if (inherits(object$fitted, "vennabers_fit")) {
       if (!is.null(object$fitted$schema)) .schema_encoded_data(new_data, object$fitted$schema)
@@ -919,6 +921,7 @@ predict_vennabers_numeric <- function(object, new_data) {
 
 #' @export
 predict_vennabers_prob <- function(object, new_data) {
+  if (inherits(object, "vennabers_adapter_fit")) return(.predict_model_adapter(object, new_data))
   if (inherits(object, "vennabers_grid_fit")) {
     if (inherits(object$fitted, "vennabers_fit")) {
       if (!is.null(object$fitted$schema)) .schema_encoded_data(new_data, object$fitted$schema)
@@ -931,6 +934,10 @@ predict_vennabers_prob <- function(object, new_data) {
 
 #' @export
 predict_vennabers_class <- function(object, new_data) {
+  if (inherits(object, "vennabers_adapter_fit")) {
+    probabilities <- as.matrix(.predict_model_adapter(object, new_data))
+    return(factor(object$class_levels[max.col(probabilities, ties.method = "first")], levels = object$class_levels))
+  }
   if (inherits(object, "vennabers_grid_fit")) {
     probabilities <- predict_vennabers_prob(object, new_data)
     classes <- object$class_levels

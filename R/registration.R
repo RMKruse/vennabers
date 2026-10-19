@@ -31,21 +31,21 @@
 
 .registration <- new.env(parent = emptyenv())
 
-.register_vennabers <- function() {
-  if (utils::packageVersion("parsnip") < .integration_versions[["parsnip"]]) return(invisible(NULL))
-  model <- "vennabers"
+# All package models share the data.frame fit interface, untouched predictors
+# and the exported prediction entry points.
+.register_model <- function(model, engines, fun) {
   if (model %in% parsnip::get_from_env("models")) {
-    if (identical(.registration$fit, parsnip::get_fit(model))) return(invisible(NULL))
-    stop("A foreign parsnip registration already owns model 'vennabers'; it will not be overwritten.", call. = FALSE)
+    if (identical(.registration[[model]], parsnip::get_fit(model))) return(invisible(NULL))
+    stop("A foreign parsnip registration already owns model '", model, "'; it will not be overwritten.", call. = FALSE)
   }
   parsnip::set_new_model(model)
   for (mode in c("classification", "regression")) parsnip::set_model_mode(model, mode)
-  for (mode in c("classification", "regression")) for (engine in c("inductive", "cross")) {
+  for (mode in c("classification", "regression")) for (engine in engines) {
     parsnip::set_model_engine(model, mode, engine)
     parsnip::set_dependency(model, engine, pkg = "vennabers", mode = mode)
     parsnip::set_fit(model, mode, engine,
                      list(interface = "data.frame", protect = c("x", "y"),
-                          func = c(pkg = "vennabers", fun = "fit_vennabers"), defaults = list()))
+                          func = c(pkg = "vennabers", fun = fun), defaults = list()))
     parsnip::set_encoding(model, mode, engine,
                           list(predictor_indicators = "none", compute_intercept = FALSE,
                                remove_intercept = FALSE, allow_sparse_x = FALSE))
@@ -56,36 +56,24 @@
                              args = list(object = quote(object$fit), new_data = quote(new_data))))
     }
   }
-  .registration$fit <- parsnip::get_fit(model)
+  .registration[[model]] <- parsnip::get_fit(model)
   invisible(NULL)
 }
 
+.register_vennabers <- function() {
+  if (utils::packageVersion("parsnip") < .integration_versions[["parsnip"]]) return(invisible(NULL))
+  .register_model("vennabers", c("inductive", "cross"), "fit_vennabers")
+  .register_model_adapter()
+}
+
 .register_grid_proxy <- function() {
-  model <- "vennabers_grid"
-  if (model %in% parsnip::get_from_env("models")) {
-    if (identical(.registration$grid_fit, parsnip::get_fit(model))) return(invisible(NULL))
-    stop("A foreign parsnip registration already owns model 'vennabers_grid'.", call. = FALSE)
-  }
-  parsnip::set_new_model(model)
-  for (mode in c("classification", "regression")) {
-    parsnip::set_model_mode(model, mode)
-    parsnip::set_model_engine(model, mode, "proxy")
-    parsnip::set_dependency(model, "proxy", pkg = "vennabers", mode = mode)
-    parsnip::set_fit(model, mode, "proxy",
-      list(interface = "data.frame", protect = c("x", "y"),
-           func = c(pkg = "vennabers", fun = "fit_vennabers_proxy"), defaults = list()))
-    parsnip::set_encoding(model, mode, "proxy",
-      list(predictor_indicators = "none", compute_intercept = FALSE,
-           remove_intercept = FALSE, allow_sparse_x = FALSE))
-    for (type in if (mode == "regression") "numeric" else c("prob", "class")) {
-      parsnip::set_pred(model, mode, "proxy", type,
-        list(pre = NULL, post = NULL,
-             func = c(pkg = "vennabers", fun = paste0("predict_vennabers_", type)),
-             args = list(object = quote(object$fit), new_data = quote(new_data))))
-    }
-  }
-  .registration$grid_fit <- parsnip::get_fit(model)
-  invisible(NULL)
+  .register_model("vennabers_grid", "proxy", "fit_vennabers_proxy")
+}
+
+# Callback adapters reuse the public fit entry point: their validated callbacks
+# arrive as `parameters` (see model_adapter()).
+.register_model_adapter <- function() {
+  .register_model("vennabers_adapter", "callbacks", "fit_vennabers")
 }
 
 #' @export
