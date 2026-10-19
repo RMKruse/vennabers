@@ -20,6 +20,9 @@ Description: Fits binary Inductive and Cross Venn-Abers calibrators from
     with Inductive or Cross splits and complete outer resampling, joint or
     two-stage Grid/Bayes selection, and learned Sigmoid, 'tailor' or
     reference isotonic postprocessing on separate holdouts or inner ensembles.
+    Inductive training and calibration sizes can be set independently, own
+    model fit and predict functions can serve as workflow models, and class
+    decisions can be represented as one-hot matrices.
     Venn-Abers predictors are described in Vovk and Petej (2014)
     <doi:10.48550/arXiv.1211.0025>; Inductive and Cross Venn-Abers
     predictors in Vovk, Petej and Fedorova (2015)

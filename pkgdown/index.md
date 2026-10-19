@@ -56,9 +56,12 @@ Browse the annotated example scripts by topic. Each article has a contents list
 and commands for running the installed originals:
 
 - [Manual calibration](articles/examples-manual.html): binary options,
-  multiclass OvO/OvR and regression, including Cross fold matching.
-- [Training and frozen workflows](articles/examples-workflows.html): schemas,
-  full-model transfer, pairwise training and adoption of already fitted models.
+  multiclass OvO/OvR, one-hot class decisions and regression, including Cross
+  fold matching.
+- [Training and frozen workflows](articles/examples-workflows.html): own fit
+  and predict functions, fixed engine options, schemas, independent Inductive
+  sizes, full-model transfer, pairwise training and adoption of already fitted
+  models.
 - [Learned postprocessing](articles/examples-postprocessing.html): Sigmoid,
   Tailor and isotonic holdouts, ensembles and full compositions.
 - [Grid and Bayes selection](articles/examples-tuning.html): binary, shared

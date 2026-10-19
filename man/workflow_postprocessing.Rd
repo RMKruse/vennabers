@@ -48,8 +48,9 @@ data of a full composition. Without tuning, J inner pairs cost J (Inductive
 matched), 2J (Inductive full), KJ (Cross matched with K folds) or (K+1)J (Cross full)
 engine and postprocessor fits per domain, retaining J, J, KJ or J pairs;
 class pairs add up. Out of scope: out-of-fold postprocessing followed by a
-complete engine refit, arbitrary foreign engines or Tailor step sequences,
-further postprocessing methods, and new public constructors. Frozen workflows
+complete engine refit, foreign engines beyond \code{\link{model_adapter}}
+callbacks, Tailor step sequences, further postprocessing methods, and other new
+public constructors. Frozen workflows
 (\code{\link{calibrate_workflow}}) keep their existing contract.
 }
 \section{Binary Sigmoid holdouts}{

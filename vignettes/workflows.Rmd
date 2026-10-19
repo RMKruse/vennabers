@@ -41,6 +41,8 @@ Then continue with the task you need:
 - [Calibrating an already fitted model](#frozen-workflows-calibrate-without-retraining)
 - [Learning a postprocessor](#learning-a-postprocessor-before-venn-abers)
 - [Fixed engine options and early stopping](#engine-options-and-model-internal-validation)
+- Your own fit and predict functions as the model: `?model_adapter` and the
+  installed example `model-adapter.R`
 - Parameter selection and final assessment in
   `vignette("tuning", package = "vennabers")`
 
@@ -116,7 +118,10 @@ head(venn_abers_details(cross_fit, new_data)$details)
 
 Cross fits one complete base workflow per fold complement. The default
 `prediction_model = "matched"` retains those same workflows for new predictions.
-`v` is a Cross option; `calibration_prop` is an Inductive option. Classification
+`v` is a Cross option; `calibration_prop` is an Inductive option. For sizes set
+independently, as with sklearn's `train_size`/`test_size`, use
+`training_size` and `calibration_size`; rows in neither set are learned only by
+a full prediction model (installed example `inductive-sizes.R`). Classification
 splits are stratified by outcome by default; regression splits are unstratified.
 
 `prediction_model = "full"` fits one additional complete workflow on the
