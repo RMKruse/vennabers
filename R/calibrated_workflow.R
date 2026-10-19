@@ -430,7 +430,8 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   fitted <- lapply(seq_along(domains), function(i) .fit_component_sources(plans[[i]], domains[[i]], task, settings, tuning_plan))
   fitted <- lapply(fitted, .calibrate_component, task = task, settings = settings)
   if (identical(settings$prediction_model, "full")) {
-    fitted <- lapply(seq_along(domains), function(i) .fit_component_full(fitted[[i]], domains[[i]], task, settings, tuning_plan))
+    fitted <- lapply(seq_along(domains), function(i) .use_full_model(fitted[[i]],
+      .fit_component_full(domains[[i]], task, settings, tuning_plan, names(fitted[[i]]$postprocessing))))
   }
   list(plans = plans, fitted = fitted)
 }
@@ -616,10 +617,13 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   component
 }
 
-.fit_component_full <- function(component, domain, task, settings, tuning_plan) {
+# The full refit on all local rows. `taken` are the source diagnostics IDs the
+# full ID must not overwrite; it reads no calibration settings.
+.fit_component_full <- function(domain, task, settings, tuning_plan, taken = NULL) {
   local <- domain$data
   # Explicit VA fold names must not be overwritten by the final diagnostics.
-  id <- utils::tail(make.unique(c(names(component$postprocessing), "Full1")), 1L)
+  id <- utils::tail(make.unique(c(taken, "Full1")), 1L)
+  diagnostics <- NULL
   if (is.null(settings$postprocessing)) {
     selected <- .choose_model(domain$workflow, local, domain, settings, tuning_plan, id)
     model <- tryCatch(.fit_base_model(selected$workflow, local, tuning_plan$counter),
@@ -631,14 +635,20 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
     fitted <- .fit_postprocessing(domain$workflow, local, plan[[id]], domain, settings, id, tuning_plan = tuning_plan)
     model <- fitted$model
     selection <- fitted$selection
-    component$postprocessing[[id]] <- fitted$diagnostics
+    diagnostics <- fitted$diagnostics
   }
   # Check the prediction contract without using full-model values for calibration.
   task$pred(model, local[1L, , drop = FALSE], .domain_label(domain, id), domain$classes, domain$event)
-  # Discard temporary source workflows only after the complete fit succeeds.
-  component$models <- stats::setNames(list(model), id)
-  component$model_selection[id] <- list(selection)
-  component$sources[] <- id
+  list(id = id, model = model, selection = selection, diagnostics = diagnostics)
+}
+
+# The full model replaces the temporary source models and predicts every fold
+# slot; called only after the complete full fit succeeded.
+.use_full_model <- function(component, full) {
+  if (!is.null(full$diagnostics)) component$postprocessing[[full$id]] <- full$diagnostics
+  component$models <- stats::setNames(list(full$model), full$id)
+  component$model_selection[full$id] <- list(full$selection)
+  component$sources[] <- full$id
   component
 }
 

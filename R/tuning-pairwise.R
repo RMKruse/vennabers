@@ -148,7 +148,6 @@
       before <- tuning_plan$counter$n
       # Each pair/role has its own RNG scope, independent of other grid choices.
       value <- tryCatch(withr::with_seed(cache$seed, fit), error = identity)
-      if (!inherits(value, "error")) value$models <- lapply(value$models, .memoised_model)
       entry <- list(value = value, fits = tuning_plan$counter$n - before)
       cache$entries[[key]] <- entry
     } else cache$reused <- cache$reused + entry$fits
@@ -156,20 +155,19 @@
     entry$value
   }
   fitted <- lapply(seq_along(domains), function(i) {
-    component <- get_fit(domains[[i]], "source",
-      .fit_component_sources(cache$plans[[i]], domains[[i]], task, settings, tuning_plan))
+    component <- get_fit(domains[[i]], "source", {
+      sources <- .fit_component_sources(cache$plans[[i]], domains[[i]], task, settings, tuning_plan)
+      sources$models <- lapply(sources$models, .memoised_model)
+      sources
+    })
     .calibrate_component(component, task, settings)
   })
   if (identical(settings$prediction_model, "full")) {
-    fitted <- lapply(seq_along(domains), function(i) {
-      component <- fitted[[i]]
-      full <- get_fit(domains[[i]], "full",
-        .fit_component_full(component, domains[[i]], task, settings, tuning_plan))
-      component$models <- full$models
-      component$sources <- full$sources
-      component$model_selection["Full1"] <- full$model_selection["Full1"]
-      component
-    })
+    fitted <- lapply(seq_along(domains), function(i) .use_full_model(fitted[[i]], get_fit(domains[[i]], "full", {
+      full <- .fit_component_full(domains[[i]], task, settings, tuning_plan, names(fitted[[i]]$postprocessing))
+      full$model <- .memoised_model(full$model)
+      full
+    })))
   }
   fitted <- lapply(fitted, function(component) {
     for (id in names(component$model_selection))
