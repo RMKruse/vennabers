@@ -11,6 +11,7 @@ cross-regression.R,core,core-without-tidymodels,Manual Cross regression calibrat
 cross-venn-abers.R,core,core-without-tidymodels,Manual binary Cross calibration without integration packages.
 encoded-binary.R,standalone,package standalone example,Binary schema tutorial using reserved names and decoded native evaluation.
 encoded-multiclass-regression.R,standalone,package standalone example,Multiclass and regression schema tutorials with decoded native evaluation.
+engine-options.R,standalone,package standalone example,Fixed rpart engine options in a full-model Cross fit and rejected outer fit arguments; XGBoost is not run.
 frozen-binary.R,standalone,package standalone example,Frozen binary tutorial with earlier recipe/model/Tailor learning and new calibration data.
 frozen-multiclass-regression.R,standalone,package standalone example,Frozen shared multiclass and regression tutorials with distinct earlier learning roles.
 frozen-schema.R,standalone,package standalone example,Frozen workflow schema tutorial retaining the schema from before training.

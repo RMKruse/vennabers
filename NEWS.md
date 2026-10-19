@@ -49,7 +49,18 @@
 
 ## Guides
 
-- Publish all 41 standalone examples in four annotated articles with contents
+- Document fixed engine options and model-internal validation in
+  `?workflow_training` and the workflows guide. Options set with
+  `parsnip::set_engine()` reach every local fit (sources, class pairs, the
+  full-model refit and postprocessing B), each on its own rows; extra fit
+  arguments to `calibrated_workflow()` or `fit()` stay rejected. Native
+  XGBoost early stopping (`stop_iter` with `validation`) splits its validation
+  share from each local fit's prepared rows. A table lists the rows each local
+  fit learns from. No new fit-data interface is added, and no support is
+  promised for observation weights, offsets or an external `eval_set`. xgboost
+  stays outside Suggests; `tools/xgboost-early-stopping.R` runs the real fits.
+  See the installed example `engine-options.R`.
+- Publish all 42 standalone examples in four annotated articles with contents
   lists for manual calibration, workflows, postprocessing and Grid/Bayes
   selection. The articles include the installed script sources without running
   their fits during documentation builds. `?vennabers_examples`, the package

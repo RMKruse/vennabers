@@ -43,6 +43,38 @@ OvO pair in any fold fails before any base training, naming the pair and fold.
 Splits are never repaired. Trainability of the base engine is a separate requirement, and engine
 errors identify the training or probability-prediction stage.
 }
+\section{Engine options and model-internal validation}{
+Fixed, data-independent model options belong in the base workflow's model
+specification: main arguments and \code{parsnip::set_engine()} arguments.
+They travel with the base workflow, so every local fit uses them on its own
+rows. \code{calibrated_workflow()} and \code{fit()} accept no extra fit
+arguments; there is no interface for separately supplied validation data.
+An engine's internal validation, such as native XGBoost early stopping, splits
+its share from the prepared rows of each local fit, after the base recipe was
+learned on all of them. It is not an independent assessment of the procedure.
+\tabular{ll}{
+  \strong{Local fit} \tab \strong{Rows for learning and internal validation} \cr
+  Inductive/Cross source \tab its analysis rows, or their B with postprocessing; never C \cr
+  Class pair \tab the analysis rows of that pair with its two original levels \cr
+  Full1 \tab all local fit rows (F), or its own B with postprocessing \cr
+  Search candidate \tab its local training rows; held-out rows stay out \cr
+  Frozen workflow \tab none: no base training, only calibration \cr
+}
+P trains only the postprocessor and outer assessment rows never reach a fit.
+Invalid engine settings fail the whole fit with its fold, pair or B/P context;
+there is no fallback. Validation of engine-specific values stays with the
+engine. No support is promised for observation weights, offsets or an external
+\code{eval_set}. Not run, because xgboost is not a vennabers dependency:
+\preformatted{spec <- parsnip::boost_tree(mode = "classification",
+  trees = 100L, stop_iter = 10L) |>
+  parsnip::set_engine("xgboost", validation = 0.2)
+base <- workflows::workflow() |>
+  workflows::add_formula(truth ~ .) |>
+  workflows::add_model(spec)
+fitted <- calibrated_workflow(base, outcome = "truth", seed = 42) |>
+  generics::fit(data = training_data)
+}
+}
 \section{Shared multiclass probabilities}{
 With \code{model_training = "shared"}, multiclass uses one trained base workflow per split complement. Its probability columns must
 be exactly \code{.pred_} plus each original class name, unique and complete;

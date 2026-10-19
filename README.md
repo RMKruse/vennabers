@@ -224,13 +224,13 @@ built package through `browseVignettes("vennabers")`:
 | [Training and freezing calibrated workflows](vignettes/workflows.Rmd) | Recipes, matched/full models, pairwise training, frozen adoption and postprocessing | `vignette("workflows", package = "vennabers")` |
 | [Tuning and assessing the complete procedure](vignettes/tuning.Rmd) | Joint/two-stage Grid, Bayes, data roles, outer resampling and final assessment | `vignette("tuning", package = "vennabers")` |
 
-All 41 standalone examples are collected in navigable articles with a contents
+All 42 standalone examples are collected in navigable articles with a contents
 list and a separate entry for each script:
 
 | Examples | Contents | R command |
 | --- | --- | --- |
 | [Manual calibration](vignettes/examples-manual.Rmd) | Binary options, multiclass OvO/OvR, one-hot class decisions, regression and matching Cross fold models | `vignette("examples-manual", package = "vennabers")` |
-| [Training and frozen workflows](vignettes/examples-workflows.Rmd) | Own fit/predict functions, encoding, reference splits, independent Inductive sizes, full-model transfer, pairwise training and frozen adoption | `vignette("examples-workflows", package = "vennabers")` |
+| [Training and frozen workflows](vignettes/examples-workflows.Rmd) | Own fit/predict functions, fixed engine options, encoding, reference splits, independent Inductive sizes, full-model transfer, pairwise training and frozen adoption | `vignette("examples-workflows", package = "vennabers")` |
 | [Learned postprocessing](vignettes/examples-postprocessing.Rmd) | Sigmoid, Tailor and isotonic holdouts, ensembles and all 80 fixed compositions | `vignette("examples-postprocessing", package = "vennabers")` |
 | [Grid and Bayes selection](vignettes/examples-tuning.Rmd) | Binary, shared multiclass, pairwise and regression searches, with and without postprocessing | `vignette("examples-tuning", package = "vennabers")` |
 

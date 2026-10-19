@@ -1,6 +1,6 @@
 ---
 title: "Example scripts: training and frozen workflows"
-description: "Training, own fit/predict functions, encoding, reference splits, independent Inductive sizes, full-model transfer, pairwise OvO and frozen adoption."
+description: "Training, own fit/predict functions, fixed engine options, encoding, reference splits, independent Inductive sizes, full-model transfer, pairwise OvO and frozen adoption."
 output:
   rmarkdown::html_vignette:
     toc: true
@@ -27,6 +27,7 @@ step-by-step guide. `?vennabers_examples` indexes all four example collections.
 - [Reference-style data roles](#reference-splits)
 - [Independent Inductive training and calibration sizes](#inductive-sizes)
 - [Own fit and predict functions](#model-adapter)
+- [Fixed engine options and internal validation](#engine-options)
 - [Binary full-model transfer](#full-model-workflow)
 - [Shared multiclass full-model transfer](#full-multiclass-workflow)
 - [Regression full-model transfer](#full-regression-workflow)
@@ -91,6 +92,13 @@ than the introductory guides.
 `model-adapter.R`: Wrap GLM, multinomial and linear regression fit/predict functions with `model_adapter()`, calibrate them like native engines and keep their settings bound for saved fits. The GLM callback also carries pairwise OvO, Sigmoid postprocessing and a grid search over a recipe degree and the VA loss.
 
 ```{r model-adapter, eval=FALSE, purl=FALSE, code=readLines(system.file("examples", "model-adapter.R", package = "vennabers"))}
+```
+
+## Fixed engine options and internal validation {#engine-options}
+
+`engine-options.R`: Set fixed rpart options with `parsnip::set_engine()`, check that the full-model refit carries them, see extra fit arguments rejected, and read the not-run XGBoost early-stopping call.
+
+```{r engine-options, eval=FALSE, purl=FALSE, code=readLines(system.file("examples", "engine-options.R", package = "vennabers"))}
 ```
 
 ## Binary full-model transfer {#full-model-workflow}
