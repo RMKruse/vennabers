@@ -43,10 +43,25 @@ models and outer resampling. For shared multiclass, the callbacks must learn
 and predict all local classes. Encodings and transformations belong in the
 workflow; the adapter does not guess model-specific preprocessing.
 
+The existing compositions work unchanged:
+\itemize{
+\item \code{model_training = "pairwise"}: a binary callback is fitted on each
+class pair's rows, with \code{y} holding that pair's two original levels.
+This does not make it a shared multiclass model.
+\item \code{postprocessing}: \code{fit} learns on B only, for a holdout and for
+every inner ensemble member; P and C never reach it. Sigmoid on
+probabilities, Tailor logistic and multinomial on class probabilities, and
+Tailor linear or numeric isotonic on regression predictions keep their task,
+method and convergence rules.
+\item \code{tuning}: Grid and Bayes searches tune calibration and declared
+recipe parameters, each local search fitting fresh callbacks.
+}
+
 The callbacks receive no case weights, additional data or tuning parameters.
 Bind fixed model options inside the functions. An adapter has no \code{tune()}
-parameters. \code{postprocessing$sigmoid_input = "glm_link"} requires the
-native GLM engine, also when a callback calls \code{stats::glm()}.
+parameters: a search grid column for it is rejected, and so is
+\code{update()} with any argument. \code{postprocessing$sigmoid_input = "glm_link"}
+requires the native GLM engine, also when a callback calls \code{stats::glm()}.
 }
 \section{Predictions and errors}{
 Class probability columns are aligned to the stored class order by name, never
@@ -61,7 +76,9 @@ probabilities. For regression, a matrix, a wrong length or non-finite values
 are errors. Errors from your functions start with
 \code{model_adapter() `fit` callback:} or
 \code{model_adapter() `predict` callback:}. Calibrated workflows add the fold
-or refit, for example \code{Inductive1}, \code{Fold2} or \code{Full1}.
+or refit, for example \code{Inductive1}, \code{Fold2} or \code{Full1}, and the
+class pair (\code{pair_2 Fold1}) or inner postprocessing fold
+(\code{Inductive1 / Fold2 sigmoid}).
 }
 \section{Reproducibility and saving}{
 The local \code{seed} of \code{\link{calibrated_workflow}} also applies to
@@ -97,7 +114,8 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
 }
 }
 \seealso{\file{model-adapter.R} in \link{vennabers_examples} for GLM, multinomial
-and linear regression adapters with saved fits.
+and linear regression adapters with saved fits, pairwise OvO, Sigmoid
+postprocessing and a grid search.
 
 \code{\link{calibrated_workflow}}, \code{\link{calibrate_workflow}},
 \code{\link{workflow_training}}.

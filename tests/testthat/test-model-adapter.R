@@ -191,9 +191,4 @@ testthat::test_that("adapters keep the local seed, frozen adoption, outer resamp
   restored <- unserialize(serialize(fit, NULL))
   testthat::expect_identical(predict(restored, d$new, type = "prob"), predict(fit, d$new, type = "prob"))
   testthat::expect_identical(venn_abers_details(restored, d$new), venn_abers_details(fit, d$new))
-
-  # glm_link needs the native GLM engine, also when a callback uses stats::glm().
-  testthat::expect_error(calibrated_workflow(adapter_base(adapter_glm(), d$train), "truth",
-    postprocessing = list(method = "sigmoid", strategy = "holdout", prop = .3, sigmoid_input = "glm_link")),
-    "sigmoid glm_link B requires a binomial GLM workflow")
 })

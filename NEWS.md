@@ -22,7 +22,11 @@
   concrete error and the fold or refit context. The local seed applies to
   callbacks that use R's generator. Saved fits keep the functions; bind
   helpers and settings locally so they work in a fresh process. Fitted
-  adapter workflows can be adopted frozen with `calibrate_workflow()`. The
+  adapter workflows can be adopted frozen with `calibrate_workflow()`.
+  Adapters also work in pairwise OvO (a binary callback per class pair), in
+  Sigmoid, Tailor and numeric isotonic postprocessing (fitted on B, also in
+  inner ensembles) and in Grid or Bayes searches over calibration and recipe
+  parameters. Adapters have no tunable parameters of their own. The
   `glm_link` Sigmoid input still requires the native GLM engine. See the
   installed example `model-adapter.R`.
 - Add independent Inductive sizes `training_size` and `calibration_size` to
