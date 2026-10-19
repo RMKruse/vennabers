@@ -162,9 +162,7 @@
       .fit_component_sources(folds, domain, task, source_settings, tuning_plan))
     calibration <- component$calibration
     component$calibrator <- task$calibrate(lapply(calibration, `[[`, "truth"),
-      lapply(calibration, `[[`, "probability"),
-      lapply(names(folds), function(id) rep(id, length(folds[[id]]$assessment))),
-      folds, settings)
+      lapply(calibration, `[[`, "probability"), .va_fold(folds, settings), settings)
     component
   })
   if (identical(settings$prediction_model, "full")) {

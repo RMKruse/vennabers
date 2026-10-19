@@ -67,7 +67,7 @@
       pred_id = function(fold) paste(id, fold),
       fields = function() list(pair_id = id, class_levels = pair, event_class = pair[2L], rows = rows))
   })
-  task <- .component_task("binary", settings, list())
+  task <- .binary_task()
   # Finish every source fit first so full-model RNG draws cannot change calibration.
   result <- if (is.null(tuning_plan$pair_cache)) .fit_domains(domains, task, settings, tuning_plan) else
     .fit_pairwise_grid_domains(data, domains, task, settings, tuning_plan)
@@ -113,7 +113,7 @@
   cross <- object$parameters$requested$method == "cross"
   for (i in seq_along(pairs)) {
     id <- ids[i]
-    component <- .predict_pair_component(object, new_data, id, pairs[[i]], n, include_details, cross)
+    component <- .predict_pair_component(object, new_data, id, pairs[[i]], include_details, cross)
     points[, i] <- component$points
     if (include_details) details[[i]] <- component$details
   }
@@ -124,7 +124,7 @@
   result
 }
 
-.predict_pair_component <- function(object, new_data, id, pair, n, include_details, cross) {
+.predict_pair_component <- function(object, new_data, id, pair, include_details, cross) {
   component <- object$pair_models[[id]]
   fold_ids <- if (cross) component$calibrator$folds else "Inductive1"
   if (!identical(component$pair_id, id) || !identical(component$class_levels, pair) ||
@@ -149,15 +149,12 @@
     cache$data <- new_data
     cache$predictions <- p
   }
-  binary <- .calibrate_binary_points(component$calibrator, p, cross, object$loss, n, include_details)
-  point <- binary$probability
+  binary <- .binary_task()$predict(component$calibrator, p, include_details,
+                                   component$class_levels, component$event_class, object$loss)
+  point <- binary$prediction[[paste0(".pred_", component$event_class)]]
   details <- NULL
   if (include_details) {
-    if (cross) {
-      part <- binary$details
-    } else {
-      part <- data.frame(row = seq_len(n), fold = rep("Inductive1", n), binary$details)
-    }
+    part <- binary$details
     k <- nrow(part)
     # The shared model id (constant per component) decides whether the source
     # label needs qualifying beyond the pair id.

@@ -417,8 +417,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
     full_error = function(e) stop("Full1 base workflow training: ", conditionMessage(e), call. = FALSE),
     pred_id = function(fold) fold,
     fields = function() list())
-  task <- .component_task(if (regression) "regression" else if (multiclass) "multiclass" else "binary",
-                          settings, moderation)
+  task <- .task_for(settings, moderation)
   result <- .fit_domains(list(domain), task, settings, tuning_plan)
   if (regression) {
     parameters$effective$m <- vapply(result$plans[[1L]], function(f) f$moderation$m, 0)
@@ -597,7 +596,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   classes <- domain$classes
   event <- domain$event
   y <- domain$y
-  models <- calibration_predictions <- truths <- fold_ids <- vector("list", length(folds))
+  models <- calibration_predictions <- truths <- vector("list", length(folds))
   model_selection <- vector("list", length(folds))
   postprocessing <- if (!is.null(settings$postprocessing)) vector("list", length(folds))
   names(models) <- names(folds)
@@ -621,9 +620,8 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
     k <- match(id, names(folds))
     calibration_predictions[[k]] <- task$pred(models[[id]], local[assessment, , drop = FALSE], domain$pred_id(id), classes, event)
     truths[[k]] <- task$truth(y, assessment, classes, event)
-    fold_ids[[k]] <- rep(id, length(assessment))
   }
-  calibrator <- task$calibrate(truths, calibration_predictions, fold_ids, folds, settings)
+  calibrator <- task$calibrate(truths, calibration_predictions, .va_fold(folds, settings), settings)
   calibration <- stats::setNames(lapply(seq_along(folds), function(k) {
     task$record(folds[[k]]$assessment, truths[[k]], calibration_predictions[[k]])
   }), names(folds))
@@ -660,44 +658,114 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   component
 }
 
-# The binary/multiclass/regression variation in one place: held-out truth and
-# prediction transforms, calibrator construction and calibration record shape.
-.component_task <- function(kind, settings, moderation) {
-  regression <- kind == "regression"
-  multiclass <- kind == "multiclass"
-  list(kind = kind,
-    pred = function(model, data, id, classes, event) {
-      if (regression) .base_numeric(model, data, id) else
-        .base_probability(model, data, classes, event, id)
-    },
-    truth = function(y, assessment, classes, event) {
-      if (regression || multiclass) y[assessment] else y[assessment] == event
-    },
-    calibrate = function(truths, predictions, fold_ids, folds, settings) {
-      if (regression) {
-        if (settings$method == "cross") {
-          do.call(cross_venn_abers_regression,
-            c(list(truth = unlist(truths), prediction = unlist(predictions), fold = unlist(fold_ids)), moderation))
-        } else do.call(venn_abers_regression,
-          c(list(truth = truths[[1L]], prediction = predictions[[1L]]), moderation))
-      } else if (multiclass) {
-        if (settings$method == "cross") {
-          cross_venn_abers(do.call(c, truths), do.call(rbind, predictions), unlist(fold_ids),
-            precision = settings$precision, method = settings$classification)
-        } else venn_abers(truths[[1L]], predictions[[1L]], precision = settings$precision,
-          method = settings$classification)
-      } else if (settings$method == "cross") {
-        core <- cross_venn_abers(unlist(truths), unlist(predictions), unlist(fold_ids), precision = settings$precision)
-        names(core$calibrators) <- core$folds
-        core
-      } else venn_abers(truths[[1L]], predictions[[1L]], precision = settings$precision)
-    },
-    record = function(rows, truth, prediction) {
-      if (regression) data.frame(row = rows, truth = truth, prediction = prediction) else
-      if (multiclass) list(row = rows, truth = truth, probability = prediction) else
-        data.frame(row = rows, truth = truth, probability = prediction)
-    })
+# The only binary/multiclass/regression switch. Each task owns held-out truth
+# and base predictions, calibrator fitting and prediction, and the calibration
+# record shape; `moderation` holds the explicitly requested regression m/epsilon.
+.task_for <- function(settings, moderation = list()) {
+  if (settings$mode == "regression") .regression_task(moderation) else
+    if (settings$classification != "binary") .multiclass_task() else .binary_task()
 }
+
+# Fold IDs of the pooled held-out rows for a cross core; NULL selects the
+# inductive core in .va().
+.va_fold <- function(folds, settings) {
+  if (settings$method == "cross") rep(names(folds), lengths(lapply(folds, `[[`, "assessment")))
+}
+
+.va <- function(truth, p, fold = NULL, ..., inductive = venn_abers, cross = cross_venn_abers) {
+  if (is.null(fold)) inductive(truth, p, ...) else cross(truth, p, fold, ...)
+}
+
+# A cross core scores the sources of all its folds together; an inductive core
+# scores its single source.
+.va_newdata <- function(calibrator, points, stack) {
+  if (is.null(calibrator$folds)) points[[1L]] else stack(points)
+}
+
+# Per-fold binary or regression calibrators, named like the sources.
+.va_fold_calibrators <- function(calibrator, ids) {
+  if (is.null(calibrator$folds)) stats::setNames(list(calibrator), ids) else calibrator$calibrators
+}
+
+# One long detail row per new row and fold, in fold order.
+.fold_details <- function(calibrators, points, ...) {
+  do.call(rbind, lapply(names(calibrators), function(id) {
+    n <- length(points[[id]])
+    data.frame(row = seq_len(n), fold = rep(id, n), stats::predict(calibrators[[id]], points[[id]], ...))
+  }))
+}
+
+.binary_task <- function() list(
+  pred = function(model, data, id, classes, event) .base_probability(model, data, classes, event, id),
+  empty = function(classes) numeric(),
+  truth = function(y, assessment, classes, event) y[assessment] == event,
+  calibrate = function(truths, predictions, fold, settings) {
+    .va(unlist(truths, use.names = FALSE), unlist(predictions, use.names = FALSE), fold,
+        precision = settings$precision)
+  },
+  predict = function(calibrator, points, details, classes, event, loss) {
+    probability <- stats::predict(calibrator, .va_newdata(calibrator, points, function(p) do.call(cbind, p)),
+                                  loss = loss)$probability
+    probabilities <- lapply(classes, function(cl) if (cl == event) probability else 1 - probability)
+    names(probabilities) <- paste0(".pred_", classes)
+    result <- list(prediction = tibble::as_tibble(probabilities, .name_repair = "minimal"))
+    if (!details) return(result)
+    folds <- .fold_details(.va_fold_calibrators(calibrator, names(points)), points, loss = loss)
+    folds$event_class <- rep(event, nrow(folds))
+    result$details <- folds[c("row", "fold", "event_class", "lower", "upper", "probability")]
+    result
+  },
+  record = function(rows, truth, prediction) data.frame(row = rows, truth = truth, probability = prediction))
+
+.multiclass_task <- function() list(
+  pred = function(model, data, id, classes, event) .base_probability(model, data, classes, event, id),
+  empty = function(classes) matrix(numeric(), 0L, length(classes), dimnames = list(NULL, classes)),
+  truth = function(y, assessment, classes, event) y[assessment],
+  calibrate = function(truths, predictions, fold, settings) {
+    .va(do.call(c, truths), do.call(rbind, predictions), fold,
+        precision = settings$precision, method = settings$classification)
+  },
+  predict = function(calibrator, points, details, classes, event, loss) {
+    result <- stats::predict(calibrator, .va_newdata(calibrator, points, identity), loss = loss, type = "details")
+    prediction <- result$prediction
+    colnames(prediction) <- paste0(".pred_", classes)
+    prediction <- tibble::as_tibble(prediction, .name_repair = "minimal")
+    if (!details) return(list(prediction = prediction))
+    method <- if (identical(calibrator$method, "ovr")) "ovr" else "ovo"
+    details <- if (method == "ovo") result$pairs else result$classes
+    names(details)[names(details) == "non_event"] <- "class_1"
+    names(details)[names(details) == "event"] <- if (method == "ovo") "class_2" else "class"
+    # Inductive details carry no fold column; their fold is the single source.
+    if (is.null(details$fold)) details$fold <- rep(names(points), nrow(details))
+    details$method <- rep(method, nrow(details))
+    details$event_class <- if (method == "ovo") details$class_2 else details$class
+    identity <- if (method == "ovo") c("class_1", "class_2") else "class"
+    list(prediction = prediction,
+         details = details[c("row", "fold", "method", "event_class", identity, "lower", "upper", "probability")])
+  },
+  record = function(rows, truth, prediction) list(row = rows, truth = truth, probability = prediction))
+
+.regression_task <- function(moderation = list()) list(
+  pred = function(model, data, id, classes, event) .base_numeric(model, data, id),
+  empty = function(classes) numeric(),
+  truth = function(y, assessment, classes, event) y[assessment],
+  calibrate = function(truths, predictions, fold, settings) {
+    do.call(.va, c(list(unlist(truths, use.names = FALSE), unlist(predictions, use.names = FALSE), fold,
+                        inductive = venn_abers_regression, cross = cross_venn_abers_regression), moderation))
+  },
+  predict = function(calibrator, points, details, classes, event, loss) {
+    calibrated <- stats::predict(calibrator, .va_newdata(calibrator, points, function(p) do.call(cbind, p)))
+    result <- list(prediction = tibble::tibble(.pred = as.double(calibrated$prediction)))
+    if (!details) return(result)
+    result$details <- .fold_details(.va_fold_calibrators(calibrator, names(points)), points)
+    # Only a cross core aggregates several folds into one interval per row.
+    if (!is.null(calibrator$folds)) {
+      result$aggregate <- tibble::tibble(row = seq_len(nrow(calibrated)), lower = calibrated$lower,
+                                         upper = calibrated$upper)
+    }
+    result
+  },
+  record = function(rows, truth, prediction) data.frame(row = rows, truth = truth, prediction = prediction))
 
 # `sources` maps every fold slot to the model it predicts with, so full-model
 # reuse is just a repeated lookup instead of a `full` branch.
@@ -707,20 +775,6 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   })
   names(by_model) <- names(models)
   stats::setNames(by_model[sources], names(sources))
-}
-
-.calibrate_binary_points <- function(calibrator, p, cross, loss, n, include_details) {
-  if (cross) {
-    result <- stats::predict(calibrator, do.call(cbind, p), loss = loss,
-      type = if (include_details) "details" else "response")
-    probability <- if (include_details) result$prediction$probability else result$probability
-    details <- if (include_details) result$folds
-  } else {
-    bounds <- stats::predict(calibrator, p[[1L]], loss = loss)
-    probability <- bounds$probability
-    if (include_details) details <- data.frame(row = seq_len(n), fold = rep("Inductive1", n), bounds)
-  }
-  list(probability = probability, details = if (include_details) details)
 }
 
 .base_probability <- function(model, data, classes, event, id = "Inductive1") {
@@ -764,70 +818,38 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
 }
 
 .integration_prediction <- function(object, new_data, include_details = FALSE) {
-  post <- object$parameters$requested$postprocessing
+  requested <- object$parameters$requested
+  post <- requested$postprocessing
   if (!is.null(post) && post$method %in% c("tailor_logistic", "tailor_multinomial", "tailor_linear") &&
       !requireNamespace("tailor", quietly = TRUE)) {
     stop("Postprocessing prediction requires optional package 'tailor'.", call. = FALSE)
   }
-  if (identical(object$parameters$requested$model_training, "pairwise")) {
+  if (identical(requested$model_training, "pairwise")) {
     return(.predict_pairwise(object, new_data, include_details))
   }
-  if (object$parameters$requested$mode == "regression") {
-    return(.integration_regression_prediction(object, new_data, include_details))
-  }
-  multiclass <- object$parameters$requested$classification != "binary"
-  cross <- object$parameters$requested$method == "cross"
+  task <- .task_for(requested)
+  classes <- object$class_levels
+  event <- object$event_class
   p <- .source_predictions(object$models, object$sources, new_data,
-    function(model, id) .base_probability(model, new_data, object$class_levels, object$event_class, id),
-    function() if (multiclass) matrix(numeric(), 0L, length(object$class_levels),
-      dimnames = list(NULL, object$class_levels)) else numeric())
-  if (multiclass) {
-    result <- stats::predict(object$calibrator, if (cross) p else p[[1L]], loss = object$loss,
-                             type = if (include_details) "details" else "response")
-    prediction <- if (include_details) result$prediction else result
-    colnames(prediction) <- paste0(".pred_", object$class_levels)
-    prediction <- tibble::as_tibble(prediction, .name_repair = "minimal")
-    if (!include_details) return(list(prediction = prediction))
-    method <- object$parameters$requested$classification
-    details <- if (method == "ovo") result$pairs else result$classes
-    names(details)[names(details) == "non_event"] <- "class_1"
-    names(details)[names(details) == "event"] <- if (method == "ovo") "class_2" else "class"
-    if (!cross) details$fold <- rep("Inductive1", nrow(details))
-    details$method <- rep(method, nrow(details))
-    details$event_class <- if (method == "ovo") details$class_2 else details$class
-    extra <- character(0)
-    if (!is.null(object$parameters$requested$model_training)) {
-      details$model_training <- rep(object$parameters$requested$model_training, nrow(details))
-      extra <- c(extra, "model_training")
-    }
-    if (!is.null(object$parameters$requested$prediction_model)) {
-      details$prediction_model <- rep(object$parameters$requested$prediction_model, nrow(details))
-      details$model_source <- unname(object$sources[details$fold])
-      extra <- c(extra, "prediction_model", "model_source")
-    }
-    identity <- if (method == "ovo") c("class_1", "class_2") else "class"
-    return(list(prediction = prediction,
-                details = tibble::as_tibble(details[c("row", "fold", "method", "event_class", identity,
-                                                    "lower", "upper", "probability", extra)])))
+    function(model, id) task$pred(model, new_data, id, classes, event),
+    function() task$empty(classes))
+  result <- task$predict(object$calibrator, p, include_details, classes, event, object$loss)
+  if (!include_details) return(result)
+  details <- result$details
+  if (!is.null(requested$model_training)) {
+    details$model_training <- rep(requested$model_training, nrow(details))
   }
-  binary <- .calibrate_binary_points(object$calibrator, p, cross, object$loss, nrow(new_data), include_details)
-  probability <- binary$probability
-  if (include_details) details <- binary$details
-  probabilities <- lapply(object$class_levels, function(cl) {
-    if (cl == object$event_class) probability else 1 - probability
-  })
-  names(probabilities) <- paste0(".pred_", object$class_levels)
-  prediction <- tibble::as_tibble(probabilities, .name_repair = "minimal")
-  if (!include_details) return(list(prediction = prediction))
-  details$event_class <- rep(object$event_class, nrow(details))
-  extra <- character(0)
-  if (!is.null(object$parameters$requested$prediction_model)) {
-    details$prediction_model <- rep(object$parameters$requested$prediction_model, nrow(details))
+  mode <- requested$prediction_model
+  if (!is.null(mode)) {
+    details$prediction_model <- rep(mode, nrow(details))
     details$model_source <- unname(object$sources[details$fold])
-    extra <- c("prediction_model", "model_source")
+    if (!is.null(result$aggregate)) {
+      result$aggregate$prediction_model <- rep(mode, nrow(new_data))
+      result$aggregate$model_source <- rep(list(names(object$models)), nrow(new_data))
+    }
   }
-  list(prediction = prediction,
-       details = tibble::as_tibble(details[c("row", "fold", "event_class", "lower", "upper", "probability", extra)]))
+  result$details <- tibble::as_tibble(details)
+  result
 }
 
 #' @export
@@ -869,41 +891,6 @@ print.vennabers_fit <- function(x, ...) {
   }
   for (id in names(x$sources)) cat(" ", id, "->", x$sources[[id]], "\n")
   invisible(x)
-}
-
-.integration_regression_prediction <- function(object, new_data, include_details = FALSE) {
-  cross <- object$parameters$requested$method == "cross"
-  mode <- object$parameters$requested$prediction_model
-  p <- .source_predictions(object$models, object$sources, new_data,
-    function(model, id) .base_numeric(model, new_data, id), numeric)
-  if (cross) {
-    result <- stats::predict(object$calibrator, do.call(cbind, p),
-                             type = if (include_details) "details" else "response")
-    points <- if (include_details) result$prediction else result
-    if (include_details) folds <- result$folds
-  } else {
-    points <- stats::predict(object$calibrator, p[[1L]])
-    if (include_details) folds <- list(Inductive1 = points)
-  }
-  prediction <- tibble::tibble(.pred = as.double(points$prediction))
-  if (!include_details) return(list(prediction = prediction))
-  details <- do.call(rbind, lapply(names(folds), function(id) {
-    data.frame(row = seq_len(nrow(new_data)), fold = rep(id, nrow(new_data)), folds[[id]])
-  }))
-  if (!is.null(mode)) {
-    details$prediction_model <- rep(mode, nrow(details))
-    details$model_source <- unname(object$sources[details$fold])
-  }
-  result <- list(prediction = prediction,
-                 details = tibble::as_tibble(details))
-  if (cross) {
-    result$aggregate <- tibble::tibble(row = seq_len(nrow(new_data)), lower = points$lower, upper = points$upper)
-    if (!is.null(mode)) {
-      result$aggregate$prediction_model <- rep(mode, nrow(new_data))
-      result$aggregate$model_source <- rep(list(names(object$models)), nrow(new_data))
-    }
-  }
-  result
 }
 
 #' @export

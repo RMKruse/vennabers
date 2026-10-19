@@ -13,6 +13,7 @@ cross_venn_abers <- function(truth, probability, fold, precision = NULL, method 
     rows <- fold == id
     venn_abers(truth[rows], probability[rows], precision = precision)
   })
+  names(calibrators) <- identities
   structure(
     list(folds = identities, calibrators = calibrators, observations = length(truth)),
     class = "cross_venn_abers"
