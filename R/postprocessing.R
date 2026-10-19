@@ -94,7 +94,7 @@
       }
       # A holdout plan stays the bare B/P pair, as stored since v0.9.0.
       if (ensemble) pairs else pairs[[1L]]
-    }, error = function(e) stop(domain$pred_id(id), " / ", inner_id, " ", post$method, " B/P plan: ", conditionMessage(e), call. = FALSE))
+    }, error = function(e) stop(.domain_label(domain, id), " / ", inner_id, " ", post$method, " B/P plan: ", conditionMessage(e), call. = FALSE))
   }
   folds
 }
@@ -110,7 +110,7 @@
   if (settings$postprocessing$strategy == "holdout") return(pairs[[1L]])
   diagnostics <- lapply(pairs, `[[`, "diagnostics")
   model <- structure(list(models = lapply(pairs, `[[`, "model"), classes = domain$classes,
-    inner_folds = names(pairs), method = settings$postprocessing$method, context = paste(domain$pred_id(id), settings$postprocessing$method)), class = "vennabers_ensemble")
+    inner_folds = names(pairs), method = settings$postprocessing$method, context = paste(.domain_label(domain, id), settings$postprocessing$method)), class = "vennabers_ensemble")
   selection <- do.call(c, unname(lapply(pairs, `[[`, "selection")))
   identity <- if (!is.null(domain$pair_id)) list(pair_id = domain$pair_id, pair_rows = domain$pair_rows) else list()
   list(model = model, selection = selection, diagnostics = c(identity, list(format_version = 1L,
@@ -123,7 +123,7 @@
                                      tuning_plan = NULL) {
   identity <- if (!is.null(domain$pair_id)) list(pair_id = domain$pair_id, pair_rows = domain$pair_rows) else list()
   method <- sub("^tailor_", "", settings$postprocessing$method)
-  context <- paste0(domain$pred_id(id), " / ", inner_id, " ", settings$postprocessing$method, " (B=", length(plan$B), ", P=", length(plan$P), ")")
+  context <- paste0(.domain_label(domain, id), " / ", inner_id, " ", settings$postprocessing$method, " (B=", length(plan$B), ", P=", length(plan$P), ")")
   warnings <- character()
   selection <- NULL
   result <- tryCatch(withCallingHandlers({

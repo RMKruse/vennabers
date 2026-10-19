@@ -4,7 +4,6 @@
 # domains and couples pair points into class probabilities.
 .fit_pairwise <- function(base_workflow, data, state, tuning_plan) {
   settings <- state$parameters$requested
-  cross <- settings$method == "cross"
   pairs <- utils::combn(state$class_levels, 2L, simplify = FALSE)
   ids <- paste0("pair_", seq_along(pairs))
   pair_plans <- settings$splits
@@ -36,36 +35,13 @@
     list(id = id, pair = pair, rows = rows, local = local, workflow = workflow,
       plan = if (is.function(pair_plans)) pair_plans else if (named) pair_plans[[id]] else NULL)
   })
-  domains <- lapply(seq_along(planned), function(i) {
-    entry <- planned[[i]]
-    id <- entry$id
+  domains <- lapply(planned, function(entry) {
     pair <- entry$pair
-    rows <- entry$rows
-    local <- entry$local
-    list(data = local, workflow = entry$workflow, plan = entry$plan, pair_id = id,
-      pair_rows = rows, schema = state$schema,
-      outcome = state$outcome, strata = settings$strata, classes = pair, event = pair[2L], y = local[[state$outcome]],
-      rows_word = "local pair rows", seed_wrap = TRUE,
-      precheck = NULL,
-      resolve_error = function(e) stop(id, if (cross) " Cross: " else " Inductive1: ",
-        conditionMessage(e), call. = FALSE),
-      folds_error = function(e, slot) stop(id, if (cross) " Cross: " else " Inductive1: ",
-        conditionMessage(e), call. = FALSE),
-      post = function(folds, local) {
-        if (!cross) for (part in c("analysis", "assessment")) {
-          for (fold_id in names(folds)) {
-            if (any(tabulate(local[[state$outcome]][folds[[fold_id]][[part]]], nbins = 2L) == 0L)) {
-              stop("Both pair classes must occur in ", part, " (training/calibration).", call. = FALSE)
-            }
-          }
-        }
-        folds
-      },
-      fit_error = function(fold, e) stop(id, " ", fold, " base workflow training: ",
-        conditionMessage(e), call. = FALSE),
-      full_error = function(e) stop(id, " Full1 base workflow training: ", conditionMessage(e), call. = FALSE),
-      pred_id = function(fold) paste(id, fold),
-      fields = function() list(pair_id = id, class_levels = pair, event_class = pair[2L], rows = rows))
+    list(data = entry$local, workflow = entry$workflow, plan = entry$plan, pair_id = entry$id,
+      pair_rows = entry$rows, schema = state$schema,
+      outcome = state$outcome, strata = settings$strata, classes = pair, event = pair[2L],
+      y = entry$local[[state$outcome]], rows_word = "local pair rows",
+      fields = list(pair_id = entry$id, class_levels = pair, event_class = pair[2L], rows = entry$rows))
   })
   task <- .binary_task()
   # Finish every source fit first so full-model RNG draws cannot change calibration.
@@ -99,6 +75,15 @@
   }
   if (!is.null(state$tuning)) state$tuning$cost <- list(observed_base_fits = tuning_plan$counter$n)
   state
+}
+
+# An inductive pair fold must train and calibrate on both of its classes.
+.pair_fold_classes <- function(folds, y) {
+  for (part in c("analysis", "assessment")) for (fold_id in names(folds)) {
+    if (any(tabulate(y[folds[[fold_id]][[part]]], nbins = 2L) == 0L)) {
+      stop("Both pair classes must occur in ", part, " (training/calibration).", call. = FALSE)
+    }
+  }
 }
 
 .predict_pairwise <- function(object, new_data, include_details) {

@@ -135,7 +135,7 @@
   if (!identical(cache$data, data)) {
     cache$entries <- new.env(parent = emptyenv())
     cache$plans <- withr::with_seed(cache$seed,
-      lapply(domains, function(domain) .plan_component(domain, settings)))
+      lapply(domains, function(domain) .plan_component(domain, task, settings)))
     cache$data <- data
   }
   get_fit <- function(domain, role, fit) {
