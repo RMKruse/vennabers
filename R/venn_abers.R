@@ -184,6 +184,21 @@ venn_abers <- function(truth, probability, precision = NULL, method = "ovo") {
   if (loss == "brier") upper + (lower^2 - upper^2) / 2 else upper / (1 - lower + upper)
 }
 
+# The Klassenentscheidung on `prob` columns in `classes` order: with an `event`,
+# the binary event at a probability of at least 0.5; without one, the first
+# stored class among the highest probabilities.
+.class_decision <- function(prob, classes, event = NULL) {
+  prob <- as.matrix(prob)
+  chosen <- if (is.null(event)) max.col(prob, ties.method = "first") else {
+    at <- match(event, classes)
+    ifelse(.event_chosen(prob[, at]), at, 3L - at)
+  }
+  factor(classes[chosen], levels = classes)
+}
+
+# The binary half of the Klassenentscheidung on bare event probabilities.
+.event_chosen <- function(probability) probability >= .5
+
 #' @export
 predict.venn_abers <- function(object, newdata, ..., loss = "log", type = "response") {
   if (length(list(...))) {
@@ -199,7 +214,7 @@ predict.venn_abers <- function(object, newdata, ..., loss = "log", type = "respo
   lower <- object$lower[findInterval(newdata, object$knots) + 1L]
   upper <- object$upper[findInterval(newdata, object$knots, left.open = TRUE) + 1L]
   probability <- .regularized_probability(lower, upper, loss)
-  if (type == "class") return(probability >= .5)
+  if (type == "class") return(.event_chosen(probability))
   data.frame(
     lower = lower,
     upper = upper,

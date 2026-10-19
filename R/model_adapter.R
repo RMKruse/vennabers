@@ -29,11 +29,11 @@ model_adapter <- function(mode, fit, predict) {
             class = "vennabers_adapter_fit")
 }
 
-.predict_model_adapter <- function(object, new_data) {
+.predict_fit.vennabers_adapter_fit <- function(object, new_data) {
   new_data <- as.data.frame(new_data)
   n <- nrow(new_data)
   # Empty predictions keep their shape without calling the callback.
-  if (!n) return(if (object$mode == "regression") double() else
+  if (!n) return(if (object$mode == "regression") tibble::tibble(.pred = double()) else
     tibble::as_tibble(stats::setNames(rep(list(double()), length(object$class_levels)), paste0(".pred_", object$class_levels))))
   p <- tryCatch(object$predict(object$state, new_data),
                 error = function(e) stop("model_adapter() `predict` callback: ", conditionMessage(e), call. = FALSE))
@@ -42,7 +42,7 @@ model_adapter <- function(mode, fit, predict) {
       stop("model_adapter() `predict` must return a numeric vector with one finite value per input row; ",
            "received ", .adapter_shape(p), " for ", n, " input rows.", call. = FALSE)
     }
-    return(as.double(p))
+    return(tibble::tibble(.pred = as.double(p)))
   }
   classes <- object$class_levels
   expected <- paste(sQuote(classes), collapse = ", ")

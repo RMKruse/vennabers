@@ -31,7 +31,7 @@
   } else {
     .validate_base_probabilities(prediction, nrow(data), classes, "Tailor input")
     prediction <- prediction[paste0(".pred_", classes)]
-    prediction$.pred_class <- factor(classes[max.col(as.matrix(prediction), ties.method = "first")], levels = classes)
+    prediction$.pred_class <- .class_decision(prediction, classes)
     prediction <- prediction[c(".pred_class", paste0(".pred_", classes))]
   }
   prediction

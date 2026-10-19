@@ -40,8 +40,20 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
   }, error = function(e) record(candidate_values, conditionMessage(e)))
   record(candidate_values, NA_character_)
   structure(list(fitted = fitted, class_levels = levels(y),
-    event_level = parameters$event_level, classification = parameters$classification),
+    event_class = if (identical(parameters$classification, "binary"))
+      levels(y)[if (parameters$event_level == "first") 1L else 2L]),
     class = "vennabers_grid_fit")
+}
+
+# A candidate is a plain base fit or a nested calibrated fit.
+.predict_fit.vennabers_grid_fit <- function(object, new_data) {
+  if (inherits(object$fitted, "vennabers_fit")) {
+    if (!is.null(object$fitted$schema)) .schema_encoded_data(new_data, object$fitted$schema)
+    return(.predict_fit(object$fitted, new_data))
+  }
+  classes <- object$class_levels
+  if (is.null(classes)) return(stats::predict(object$fitted, new_data, type = "numeric"))
+  stats::predict(object$fitted, new_data, type = "prob")[paste0(".pred_", classes)]
 }
 
 .bayes_proxy_workflow <- function(data, outcome, event_level, classification,

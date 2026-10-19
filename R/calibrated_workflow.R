@@ -920,57 +920,21 @@ print.vennabers_fit <- function(x, ...) {
   invisible(x)
 }
 
-#' @export
-predict_vennabers_numeric <- function(object, new_data) {
-  if (inherits(object, "vennabers_adapter_fit")) return(.predict_model_adapter(object, new_data))
-  if (inherits(object, "vennabers_grid_fit")) {
-    if (inherits(object$fitted, "vennabers_fit")) {
-      if (!is.null(object$fitted$schema)) .schema_encoded_data(new_data, object$fitted$schema)
-      return(predict_vennabers_numeric(object$fitted, new_data))
-    }
-    return(stats::predict(object$fitted, new_data, type = "numeric")$.pred)
-  }
-  .integration_prediction(object, new_data)$prediction$.pred
-}
+# A fit's predictions in parsnip's shape: `.pred` for regression, otherwise
+# one `.pred_<class>` column per stored class in their order.
+.predict_fit <- function(object, new_data) UseMethod(".predict_fit")
+
+.predict_fit.vennabers_fit <- function(object, new_data) .integration_prediction(object, new_data)$prediction
 
 #' @export
-predict_vennabers_prob <- function(object, new_data) {
-  if (inherits(object, "vennabers_adapter_fit")) return(.predict_model_adapter(object, new_data))
-  if (inherits(object, "vennabers_grid_fit")) {
-    if (inherits(object$fitted, "vennabers_fit")) {
-      if (!is.null(object$fitted$schema)) .schema_encoded_data(new_data, object$fitted$schema)
-      return(predict_vennabers_prob(object$fitted, new_data))
-    }
-    return(stats::predict(object$fitted, new_data, type = "prob"))
-  }
-  .integration_prediction(object, new_data)$prediction
-}
+predict_vennabers_numeric <- function(object, new_data) .predict_fit(object, new_data)$.pred
+
+#' @export
+predict_vennabers_prob <- function(object, new_data) .predict_fit(object, new_data)
 
 #' @export
 predict_vennabers_class <- function(object, new_data) {
-  if (inherits(object, "vennabers_adapter_fit")) {
-    probabilities <- as.matrix(.predict_model_adapter(object, new_data))
-    return(factor(object$class_levels[max.col(probabilities, ties.method = "first")], levels = object$class_levels))
-  }
-  if (inherits(object, "vennabers_grid_fit")) {
-    probabilities <- predict_vennabers_prob(object, new_data)
-    classes <- object$class_levels
-    if (object$classification != "binary") {
-      return(factor(classes[max.col(as.matrix(probabilities[paste0(".pred_", classes)]),
-                                        ties.method = "first")], levels = classes))
-    }
-    event <- classes[if (object$event_level == "first") 1L else 2L]
-    return(factor(ifelse(probabilities[[paste0(".pred_", event)]] >= .5,
-                         event, setdiff(classes, event)), levels = classes))
-  }
-  probabilities <- .integration_prediction(object, new_data)$prediction
-  if (object$parameters$requested$classification != "binary") {
-    return(factor(object$class_levels[max.col(as.matrix(probabilities), ties.method = "first")],
-                  levels = object$class_levels))
-  }
-  p <- probabilities[[paste0(".pred_", object$event_class)]]
-  factor(ifelse(p >= .5, object$event_class,
-                object$class_levels[object$class_levels != object$event_class]), levels = object$class_levels)
+  .class_decision(.predict_fit(object, new_data), object$class_levels, object$event_class)
 }
 
 #' @export

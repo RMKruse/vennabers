@@ -73,7 +73,7 @@ predict.cross_venn_abers <- function(object, newdata, ..., loss = "log", type = 
   } else {
     .cross_probability(lower, upper)
   }
-  if (type == "class") return(probability >= .5)
+  if (type == "class") return(.event_chosen(probability))
   prediction <- data.frame(probability = probability)
   if (type == "response") return(prediction)
   list(
