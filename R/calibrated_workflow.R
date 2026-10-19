@@ -416,16 +416,19 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
 }
 
 # Every fit is a list of components: one shared component, or one per class
-# pair with its recipe-retargeted workflow. Three phase functions, each applied
-# in turn, give one path for all task and model-training combinations. A domain
-# is plain data; a pair domain differs only by its `pair_id`, which prefixes its
-# error labels, seeds its split and adds the pair class check.
+# pair with its recipe-retargeted workflow. Four phase functions, each applied
+# in turn, give one path for all task and model-training combinations. Only
+# calibration reads the calibration settings, so source and full fits can be
+# reused across them. A domain is plain data; a pair domain differs only by its
+# `pair_id`, which prefixes its error labels, seeds its split and adds the pair
+# class check.
 .fit_domains <- function(domains, task, settings, tuning_plan) {
   plans <- lapply(domains, function(domain) .plan_component(domain, task, settings))
   if (!is.null(settings$postprocessing)) {
     plans <- lapply(seq_along(domains), function(i) .plan_postprocessing(plans[[i]], domains[[i]], settings))
   }
   fitted <- lapply(seq_along(domains), function(i) .fit_component_sources(plans[[i]], domains[[i]], task, settings, tuning_plan))
+  fitted <- lapply(fitted, .calibrate_component, task = task, settings = settings)
   if (identical(settings$prediction_model, "full")) {
     fitted <- lapply(seq_along(domains), function(i) .fit_component_full(fitted[[i]], domains[[i]], task, settings, tuning_plan))
   }
@@ -597,16 +600,20 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
     calibration_predictions[[k]] <- task$pred(models[[id]], local[assessment, , drop = FALSE], .domain_label(domain, id), classes, event)
     truths[[k]] <- task$truth(y, assessment, classes, event)
   }
-  calibrator <- task$calibrate(truths, calibration_predictions, .va_fold(folds, settings), settings)
   calibration <- stats::setNames(lapply(seq_along(folds), function(k) {
     task$record(folds[[k]]$assessment, truths[[k]], calibration_predictions[[k]])
   }), names(folds))
   # `sources` maps every fold slot to the model that predicts it: itself when
-  # matched, the shared Full1 refit when full.
+  # matched, the shared Full1 refit when full. `calibration` holds the held-out
+  # predictions that .calibrate_component() fits on.
   c(domain$fields, list(folds = folds, models = models, model_selection = model_selection,
-    sources = stats::setNames(names(folds), names(folds)),
-    calibrator = calibrator, calibration = calibration),
+    sources = stats::setNames(names(folds), names(folds)), calibration = calibration),
     if (!is.null(postprocessing)) list(postprocessing = postprocessing))
+}
+
+.calibrate_component <- function(component, task, settings) {
+  component$calibrator <- task$calibrate(component$calibration, .va_fold(component$folds, settings), settings)
+  component
 }
 
 .fit_component_full <- function(component, domain, task, settings, tuning_plan) {
@@ -679,9 +686,9 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   pred = function(model, data, id, classes, event) .base_probability(model, data, classes, event, id),
   empty = function(classes) numeric(),
   truth = function(y, assessment, classes, event) y[assessment] == event,
-  calibrate = function(truths, predictions, fold, settings) {
-    .va(unlist(truths, use.names = FALSE), unlist(predictions, use.names = FALSE), fold,
-        precision = settings$precision)
+  calibrate = function(records, fold, settings) {
+    .va(unlist(lapply(records, `[[`, "truth"), use.names = FALSE),
+        unlist(lapply(records, `[[`, "probability"), use.names = FALSE), fold, precision = settings$precision)
   },
   predict = function(calibrator, points, details, classes, event, loss) {
     probability <- stats::predict(calibrator, .va_newdata(calibrator, points, function(p) do.call(cbind, p)),
@@ -707,8 +714,8 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   pred = function(model, data, id, classes, event) .base_probability(model, data, classes, event, id),
   empty = function(classes) matrix(numeric(), 0L, length(classes), dimnames = list(NULL, classes)),
   truth = function(y, assessment, classes, event) y[assessment],
-  calibrate = function(truths, predictions, fold, settings) {
-    .va(do.call(c, truths), do.call(rbind, predictions), fold,
+  calibrate = function(records, fold, settings) {
+    .va(do.call(c, lapply(records, `[[`, "truth")), do.call(rbind, lapply(records, `[[`, "probability")), fold,
         precision = settings$precision, method = settings$classification)
   },
   predict = function(calibrator, points, details, classes, event, loss) {
@@ -744,8 +751,9 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   pred = function(model, data, id, classes, event) .base_numeric(model, data, id),
   empty = function(classes) numeric(),
   truth = function(y, assessment, classes, event) y[assessment],
-  calibrate = function(truths, predictions, fold, settings) {
-    do.call(.va, c(list(unlist(truths, use.names = FALSE), unlist(predictions, use.names = FALSE), fold,
+  calibrate = function(records, fold, settings) {
+    do.call(.va, c(list(unlist(lapply(records, `[[`, "truth"), use.names = FALSE),
+                        unlist(lapply(records, `[[`, "prediction"), use.names = FALSE), fold,
                         inductive = venn_abers_regression, cross = cross_venn_abers_regression), moderation))
   },
   predict = function(calibrator, points, details, classes, event, loss) {
@@ -842,16 +850,10 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   task <- if (pair) .binary_task() else .task_for(requested)
   classes <- part$class_levels
   event <- part$event_class
-  cache <- part$prediction_cache
-  p <- if (!is.null(cache) && identical(cache$data, new_data)) cache$predictions else
-    .source_predictions(part$models, part$sources, new_data, function(model, id) {
-      if (pair) .validate_pair_model(model, classes, .domain_label(part, id))
-      task$pred(model, new_data, .domain_label(part, id), classes, event)
-    }, function() task$empty(classes))
-  if (!is.null(cache)) {
-    cache$data <- new_data
-    cache$predictions <- p
-  }
+  p <- .source_predictions(part$models, part$sources, new_data, function(model, id) {
+    if (pair) .validate_pair_model(model, classes, .domain_label(part, id))
+    task$pred(model, new_data, .domain_label(part, id), classes, event)
+  }, function() task$empty(classes))
   result <- task$predict(part$calibrator, p, include_details, classes, event, object$loss)
   if (!include_details) return(result)
   details <- result$details
