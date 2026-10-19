@@ -49,9 +49,9 @@
   numeric <- is.null(domain$classes)
   k <- if (numeric) 2L else length(domain$classes)
   expected <- if (numeric) "tailor_linear" else if (k == 2L) "tailor_logistic" else "tailor_multinomial"
+  # Sigmoid needs a binary component (a shared binary fit or a class pair): one with an event class.
   if (post$method != expected && !(post$method == "isotonic_numeric" && numeric) &&
-      !(post$method == "sigmoid" && !numeric && k == 2L &&
-        (settings$classification == "binary" || identical(settings$model_training, "pairwise")))) {
+      !(post$method == "sigmoid" && !is.null(domain$event))) {
     stop(paste(c(domain$pair_id, post$method), collapse = " "), " B/P plan: ", if (numeric) "Regression requires" else paste(k, "model classes require"),
       " explicitly selecting ", if (numeric) "tailor_linear or isotonic_numeric" else expected, ".", call. = FALSE)
   }

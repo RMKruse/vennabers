@@ -819,16 +819,40 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
       !requireNamespace("tailor", quietly = TRUE)) {
     stop("Postprocessing prediction requires optional package 'tailor'.", call. = FALSE)
   }
-  if (identical(requested$model_training, "pairwise")) {
-    return(.predict_pairwise(object, new_data, include_details))
+  pairwise <- identical(requested$model_training, "pairwise")
+  if (pairwise) .validate_pair_components(object)
+  parts <- lapply(.fit_components(object), function(part) .predict_component(object, part, new_data, include_details))
+  result <- if (pairwise) .couple_pairs(object, parts) else parts[[1L]]
+  if (include_details) result$details <- tibble::as_tibble(result$details)
+  result
+}
+
+# The read-side view of a fit as its components, matching .fit_domains(): a
+# shared fit is its own single component, a pairwise fit stores one per class
+# pair. Both shapes are saved since v0.9.0.
+.fit_components <- function(state) {
+  if (identical(state$parameters$requested$model_training, "pairwise")) state$pair_models else list(state)
+}
+
+# One component's calibrated prediction from its own source models; a pair
+# component is binary over its two classes and checks each model's pair.
+.predict_component <- function(object, part, new_data, include_details) {
+  requested <- object$parameters$requested
+  pair <- !is.null(part$pair_id)
+  task <- if (pair) .binary_task() else .task_for(requested)
+  classes <- part$class_levels
+  event <- part$event_class
+  cache <- part$prediction_cache
+  p <- if (!is.null(cache) && identical(cache$data, new_data)) cache$predictions else
+    .source_predictions(part$models, part$sources, new_data, function(model, id) {
+      if (pair) .validate_pair_model(model, classes, .domain_label(part, id))
+      task$pred(model, new_data, .domain_label(part, id), classes, event)
+    }, function() task$empty(classes))
+  if (!is.null(cache)) {
+    cache$data <- new_data
+    cache$predictions <- p
   }
-  task <- .task_for(requested)
-  classes <- object$class_levels
-  event <- object$event_class
-  p <- .source_predictions(object$models, object$sources, new_data,
-    function(model, id) task$pred(model, new_data, id, classes, event),
-    function() task$empty(classes))
-  result <- task$predict(object$calibrator, p, include_details, classes, event, object$loss)
+  result <- task$predict(part$calibrator, p, include_details, classes, event, object$loss)
   if (!include_details) return(result)
   details <- result$details
   if (!is.null(requested$model_training)) {
@@ -837,13 +861,13 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   mode <- requested$prediction_model
   if (!is.null(mode)) {
     details$prediction_model <- rep(mode, nrow(details))
-    details$model_source <- unname(object$sources[details$fold])
+    details$model_source <- unname(part$sources[details$fold])
     if (!is.null(result$aggregate)) {
       result$aggregate$prediction_model <- rep(mode, nrow(new_data))
-      result$aggregate$model_source <- rep(list(names(object$models)), nrow(new_data))
+      result$aggregate$model_source <- rep(list(names(part$models)), nrow(new_data))
     }
   }
-  result$details <- tibble::as_tibble(details)
+  result$details <- if (pair) .pair_details(part, details, mode) else details
   result
 }
 
@@ -856,7 +880,7 @@ print.vennabers_fit <- function(x, ...) {
     cat("Prediction model:", settings$prediction_model,
         if (settings$prediction_model == "full") "(full-model transfer)" else "", "\n")
   }
-  components <- if (identical(settings$model_training, "pairwise")) x$pair_models else list(x)
+  components <- .fit_components(x)
   source_fits <- sum(vapply(components, function(part) {
     if (is.null(part$postprocessing)) length(part$folds) + as.integer(identical(settings$prediction_model, "full")) else
       sum(vapply(part$postprocessing, `[[`, 1L, "observed_base_fits"))
@@ -878,13 +902,9 @@ print.vennabers_fit <- function(x, ...) {
           "| unassigned", length(sized$unassigned), "\n")
     }
   }
-  if (identical(settings$model_training, "pairwise")) {
-    for (id in names(x$pair_models)) {
-      component <- x$pair_models[[id]]
-      for (fold in names(component$sources)) cat(" ", id, fold, "->", id, component$sources[[fold]], "\n")
-    }
+  for (part in components) for (fold in names(part$sources)) {
+    cat(" ", part$pair_id, fold, "->", part$pair_id, part$sources[[fold]], "\n")
   }
-  for (id in names(x$sources)) cat(" ", id, "->", x$sources[[id]], "\n")
   invisible(x)
 }
 
@@ -977,15 +997,22 @@ venn_abers_details <- function(object, new_data, ..., loss = NULL) {
   predictors <- if (frozen) .frozen_data(state, new_data) else
     hardhat::forge(new_data, blueprint = workflows::extract_mold(object)$blueprint)$predictors
   result <- .integration_prediction(state, predictors, include_details = TRUE)
-  pairwise <- identical(state$parameters$requested$model_training, "pairwise")
-  postprocessing <- if (pairwise) do.call(c, unname(lapply(state$pair_models, function(component) {
-    if (is.null(component$postprocessing)) return(NULL)
-    stats::setNames(component$postprocessing, paste(component$pair_id, names(component$postprocessing), sep = "/"))
-  }))) else state$postprocessing
+  # Postprocessing records are keyed by their source model, prefixed "<pair_id>/" in a pair.
+  components <- .fit_components(state)
+  key <- function(part, id) paste(c(part$pair_id, id), collapse = "/")
+  postprocessing <- do.call(c, unname(lapply(components, function(part) {
+    if (is.null(part$postprocessing)) return(NULL)
+    stats::setNames(part$postprocessing, vapply(names(part$postprocessing), key, "", part = part, USE.NAMES = FALSE))
+  })))
   if (!is.null(postprocessing)) {
     result$postprocessing <- postprocessing
-    ids <- if (pairwise && state$parameters$requested$prediction_model != "full")
-      paste(result$details$pair_id, result$details$fold, sep = "/") else result$details$model_source
+    # Each detail row reads the record of its component's source for its fold.
+    owners <- result$details[["pair_id"]]
+    if (is.null(owners)) owners <- rep(1L, nrow(result$details))
+    ids <- vapply(seq_along(owners), function(r) {
+      part <- components[[owners[[r]]]]
+      key(part, part$sources[[result$details$fold[[r]]]])
+    }, "")
     result$details$postprocessing_method <- rep(state$parameters$requested$postprocessing$method, length(ids))
     result$details$postprocessing_input <- vapply(ids, function(id) postprocessing[[id]]$input, "")
     # Ensemble records keep their pairs under inner_folds, as saved since v0.9.0.

@@ -86,72 +86,58 @@
   }
 }
 
-.predict_pairwise <- function(object, new_data, include_details) {
+# Check the whole pair/class mapping before any pair component predicts.
+.validate_pair_components <- function(object) {
   pairs <- utils::combn(object$class_levels, 2L, simplify = FALSE)
   ids <- paste0("pair_", seq_along(pairs))
   if (!identical(names(object$pair_models), ids)) {
     stop("Pair/class mapping does not match the fitted global class order.", call. = FALSE)
   }
-  n <- nrow(new_data)
-  points <- matrix(0, n, length(pairs))
-  details <- vector("list", length(pairs))
   cross <- object$parameters$requested$method == "cross"
   for (i in seq_along(pairs)) {
     id <- ids[i]
-    component <- .predict_pair_component(object, new_data, id, pairs[[i]], include_details, cross)
-    points[, i] <- component$points
-    if (include_details) details[[i]] <- component$details
+    pair <- pairs[[i]]
+    component <- object$pair_models[[id]]
+    fold_ids <- if (cross) component$calibrator$folds else "Inductive1"
+    if (!identical(component$pair_id, id) || !identical(component$class_levels, pair) ||
+        !identical(component$event_class, pair[2L]) ||
+        !identical(names(component$sources), fold_ids) ||
+        !identical(names(component$models), unique(unname(component$sources))) ||
+        !identical(names(component$folds), fold_ids) ||
+        !identical(names(component$calibration), fold_ids) ||
+        (cross && (length(fold_ids) < 2L || anyNA(fold_ids) || any(!nzchar(fold_ids)) ||
+                   anyDuplicated(fold_ids) || !identical(names(component$calibrator$calibrators), fold_ids)))) {
+      stop(id, " model/pair/fold identity does not match the fitted mapping.", call. = FALSE)
+    }
   }
-  prediction <- .couple_ovo(points, pairs, object$class_levels)
-  colnames(prediction) <- paste0(".pred_", object$class_levels)
-  result <- list(prediction = tibble::as_tibble(prediction, .name_repair = "minimal"))
-  if (include_details) result$details <- tibble::as_tibble(do.call(rbind, details))
-  result
+  invisible(NULL)
 }
 
-.predict_pair_component <- function(object, new_data, id, pair, include_details, cross) {
-  component <- object$pair_models[[id]]
-  fold_ids <- if (cross) component$calibrator$folds else "Inductive1"
-  if (!identical(component$pair_id, id) || !identical(component$class_levels, pair) ||
-      !identical(component$event_class, pair[2L]) ||
-      !identical(names(component$sources), fold_ids) ||
-      !identical(names(component$models), unique(unname(component$sources))) ||
-      !identical(names(component$folds), fold_ids) ||
-      !identical(names(component$calibration), fold_ids) ||
-      (cross && (length(fold_ids) < 2L || anyNA(fold_ids) || any(!nzchar(fold_ids)) ||
-                 anyDuplicated(fold_ids) || !identical(names(component$calibrator$calibrators), fold_ids)))) {
-    stop(id, " model/pair/fold identity does not match the fitted mapping.", call. = FALSE)
-  }
-  cache <- component$prediction_cache
-  p <- if (!is.null(cache) && identical(cache$data, new_data)) cache$predictions else
-    .source_predictions(component$models, component$sources, new_data,
-      function(model, model_id) {
-        .validate_pair_model(model, pair, paste(id, model_id))
-        .base_probability(model, new_data, component$class_levels, component$event_class, paste(id, model_id))
-      },
-      numeric)
-  if (!is.null(cache)) {
-    cache$data <- new_data
-    cache$predictions <- p
-  }
-  binary <- .binary_task()$predict(component$calibrator, p, include_details,
-                                   component$class_levels, component$event_class, object$loss)
-  point <- binary$prediction[[paste0(".pred_", component$event_class)]]
-  details <- NULL
-  if (include_details) {
-    part <- binary$details
-    k <- nrow(part)
-    # The shared model id (constant per component) decides whether the source
-    # label needs qualifying beyond the pair id.
-    shared <- unname(component$sources[[1L]])
-    details <- data.frame(row = part$row, pair_id = rep(id, k),
-      fold = part$fold, method = rep("ovo", k), event_class = rep(component$event_class, k),
-      class_1 = rep(pair[1L], k), class_2 = rep(pair[2L], k),
-      part[c("lower", "upper", "probability")], model_training = rep("pairwise", k),
-      prediction_model = rep(object$parameters$requested$prediction_model, k),
-      model_source = rep(if (identical(object$parameters$requested$prediction_model, "full")) paste(id, shared, sep = "/") else id, k))
-  }
-  list(points = point, details = details)
+# Pair detail rows name their pair and classes; a matched pair's model source
+# is the pair itself, a full one its pair-qualified shared refit.
+.pair_details <- function(part, details, prediction_model) {
+  k <- nrow(details)
+  pair <- part$class_levels
+  data.frame(row = details$row, pair_id = rep(part$pair_id, k),
+    fold = details$fold, method = rep("ovo", k), event_class = details$event_class,
+    class_1 = rep(pair[1L], k), class_2 = rep(pair[2L], k),
+    details[c("lower", "upper", "probability", "model_training", "prediction_model")],
+    model_source = rep(if (identical(prediction_model, "full")) paste(part$pair_id, part$sources[[1L]], sep = "/") else
+      part$pair_id, k))
+}
+
+# Couple the pair components' event probabilities into class probabilities.
+.couple_pairs <- function(object, parts) {
+  pairs <- lapply(object$pair_models, `[[`, "class_levels")
+  points <- do.call(cbind, lapply(seq_along(parts), function(i) {
+    parts[[i]]$prediction[[paste0(".pred_", pairs[[i]][2L])]]
+  }))
+  prediction <- .couple_ovo(points, unname(pairs), object$class_levels)
+  colnames(prediction) <- paste0(".pred_", object$class_levels)
+  result <- list(prediction = tibble::as_tibble(prediction, .name_repair = "minimal"))
+  details <- lapply(parts, `[[`, "details")
+  if (!is.null(details[[1L]])) result$details <- do.call(rbind, unname(details))
+  result
 }
 
 # Check wrappers as well as every leaf workflow: swapping one inner member
