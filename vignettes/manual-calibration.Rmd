@@ -175,7 +175,9 @@ Score the **final class matrix**, not pair diagnostics. Multiclass Brier scores
 sum squared errors across classes before averaging observations; their scale
 differs from the binary event-only score. Exact class ties select the first
 factor level. Diagnostic bounds describe binary subproblems, not multiclass
-confidence intervals.
+confidence intervals. `venn_abers_one_hot()` turns class decisions into a 0/1
+matrix with one column per class; the installed example `one-hot-classes.R`
+covers binary decisions, ties and missing values.
 
 For manual Cross multiclass calibration, supply an out-of-fold class matrix
 and a shared fold vector. New predictions are a **list of class matrices named

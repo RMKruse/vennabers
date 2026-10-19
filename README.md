@@ -52,7 +52,9 @@ data separate from model training and calibration.
 | Calibrate binary or multiclass probabilities | `venn_abers()` |
 | Calibrate out-of-fold classification probabilities | `cross_venn_abers()` |
 | Calibrate numeric predictions | `venn_abers_regression()` or `cross_venn_abers_regression()` |
+| Represent class decisions as a one-hot matrix | `venn_abers_one_hot()` |
 | Fit and calibrate a tidymodels workflow | `calibrated_workflow()` |
+| Use your own fit and predict functions as the workflow model | `model_adapter()` |
 | Calibrate an already fitted workflow | `calibrate_workflow()` |
 
 For multiclass calibration, pass factor truth and a probability matrix with
@@ -76,7 +78,9 @@ fit <- calibrated_workflow(base, outcome = "truth", seed = 42) |>
 predict(fit, data.frame(x = c(-0.5, 0.5)), type = "prob")
 ```
 
-Use `method = "cross"` for fold-based workflow calibration. Continue with the
+Use `method = "cross"` for fold-based workflow calibration. For Inductive
+training and calibration sizes set independently, as with sklearn's
+`train_size`/`test_size`, use `training_size` and `calibration_size`. Continue with the
 [step-by-step workflow guide](vignettes/workflows.Rmd), also available through
 `vignette("workflows", package = "vennabers")`. Use `?calibrated_workflow` for
 arguments, `?workflow_training` for split and model rules, and
@@ -181,8 +185,8 @@ or partial ensemble. Setting `maxit` on the B engine does not change the P
 postprocessor's limit. This is an accepted limit of the 1.x contract, not a
 pending option. It does not change numerical VA parity on the same valid
 inputs. Out of scope: out-of-fold postprocessing followed by a complete engine
-refit, arbitrary foreign engines or Tailor step sequences, further methods and
-new constructors. Frozen
+refit, foreign engines beyond `model_adapter()` callbacks, Tailor step
+sequences, further methods and other new constructors. Frozen
 workflows (`calibrate_workflow()`) keep their existing contract. Full-model
 transfer does not inherit split-calibration guarantees.
 

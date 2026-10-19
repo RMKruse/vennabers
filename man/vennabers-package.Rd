@@ -16,6 +16,8 @@ The manual interfaces require no additional R packages. Use
 Both support binary inputs and multiclass one-vs-one or one-vs-rest calibration.
 For numeric predictions, use \code{\link{venn_abers_regression}} or
 \code{\link{cross_venn_abers_regression}}.
+\code{\link{venn_abers_one_hot}} represents class decisions as a 0/1 matrix
+with one column per class.
 
 Start with \code{vignette("manual-calibration", package = "vennabers")}.
 }
