@@ -94,13 +94,119 @@ old_cross <- cross
 old_cross$calibrators <- NULL
 error(plot(old_cross), stored)
 
-# Multiclass fits are not part of the binary diagnoses yet.
+testthat::expect_true(TRUE)
+})
+
+testthat::test_that("fit diagnoses draw one panel per multiclass subproblem", {
+library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
+error <- function(expr, pattern) {
+  result <- tryCatch({force(expr); NULL}, error = identity)
+  stopifnot(inherits(result, "error"), grepl(pattern, conditionMessage(result), fixed = TRUE))
+}
+path <- tempfile(fileext = ".pdf")
+grDevices::pdf(path)
+layout <- graphics::par("mfrow")
+# Every new panel records the grid it is drawn in.
+grids <- list()
+setHook("plot.new", function() grids[[length(grids) + 1L]] <<- graphics::par("mfrow"))
+on.exit({ setHook("plot.new", NULL, "replace"); grDevices::dev.off(); unlink(path) })
+panels <- function(expr) {
+  grids <<- list()
+  force(expr)
+  grids
+}
+values <- c("score", "lower", "upper", "probability", "width")
+
 classes <- c("a", "b", "c")
-class_truth <- factor(rep(classes, 3), levels = classes)
-class_probability <- matrix(c(.6, .2, .2, .2, .6, .2, .2, .2, .6), 9, 3, byrow = TRUE,
-                            dimnames = list(NULL, classes))
-error(plot(venn_abers(class_truth, class_probability)), "multiclass")
-error(plot(cross_venn_abers(class_truth, class_probability, fold = rep(1:3, each = 3))), "multiclass")
+truth <- factor(rep(classes, 4), levels = classes)
+probability <- matrix(c(.6, .3, .1, .2, .5, .3, .1, .2, .7, .5, .1, .4,
+                        .3, .4, .3, .2, .2, .6, .4, .4, .2, .1, .6, .3,
+                        .3, .3, .4, .5, .3, .2, .2, .7, .1, .2, .2, .6), 12, 3, byrow = TRUE,
+                      dimnames = list(NULL, classes))
+fold <- rep(c(2, 1), 6)
+
+for (method in c("ovr", "ovo")) {
+  labels <- if (method == "ovr") "class" else c("class_1", "class_2")
+  fits <- list(inductive = venn_abers(truth, probability, method = method),
+               cross = cross_venn_abers(truth, probability, fold = fold, method = method))
+  for (kind in names(fits)) {
+    fit <- fits[[kind]]
+    problems <- if (method == "ovr") as.list(classes) else fit$pairs
+    cross <- kind == "cross"
+    for (loss in c("log", "brier")) {
+      drawn <- panels(maps <- plot(fit, loss = loss))
+      assert_conditions(identical(names(maps), c(if (cross) "fold", labels, values)),
+                        identical(rownames(maps), as.character(seq_len(nrow(maps)))),
+                        identical(maps$width, maps$upper - maps$lower),
+                        length(drawn) == 3L, identical(drawn[[1L]], c(2L, 2L)),
+                        identical(graphics::par("mfrow"), layout))
+      # Each subproblem holds the map of its own calibrator, Cross folds in
+      # the stored order of the fit.
+      for (i in seq_along(problems)) {
+        problem <- problems[[i]]
+        own <- if (method == "ovr") maps[maps$class == problem, ] else
+          maps[maps$class_1 == problem[1L] & maps$class_2 == problem[2L], ]
+        calibrator <- fit$calibrators[[i]]
+        if (cross) {
+          assert_conditions(identical(unique(own$fold), fit$folds))
+          for (id in fit$folds) {
+            map <- own[own$fold == id, values]
+            assert_conditions(identical(map$score, c(0, calibrator$calibrators[[id]]$knots, 1)),
+                              identical(as.list(map[c("lower", "upper", "probability")]),
+                                        as.list(predict(calibrator$calibrators[[id]], map$score, loss = loss))))
+          }
+        } else {
+          assert_conditions(identical(own$score, c(0, calibrator$knots, 1)),
+                            identical(as.list(own[c("lower", "upper", "probability")]),
+                                      as.list(predict(calibrator, own$score, loss = loss))))
+        }
+      }
+    }
+    # Both diagrams double the grid rows: each row of maps is followed by the
+    # widths of the same subproblems, the short last row padded by one empty
+    # panel. The table does not depend on `which`.
+    drawn <- panels(both <- plot(fit, c("width", "map")))
+    assert_conditions(identical(both, plot(fit)), length(drawn) == 7L,
+                      all(vapply(drawn, identical, TRUE, c(4L, 2L))),
+                      identical(graphics::par("mfrow"), layout))
+  }
+}
+
+# Folds of a subproblem follow the fit even where they occur in another
+# order among its rows.
+cross <- cross_venn_abers(truth, probability, fold = c(1, 1, 3, 2, 2, 1, 3, 3, 2, 1, 2, 3), method = "ovo")
+assert_conditions(!identical(cross$calibrators[[1L]]$folds, cross$folds))
+maps <- plot(cross)
+for (i in seq_along(cross$pairs)) {
+  own <- maps[maps$class_1 == cross$pairs[[i]][1L] & maps$class_2 == cross$pairs[[i]][2L], ]
+  assert_conditions(identical(unique(own$fold), cross$folds))
+}
+
+# Two classes in OvO are a single pair, drawn in the current layout.
+pair <- factor(rep(c("a", "b"), 3), levels = c("a", "b"))
+fit <- venn_abers(pair, cbind(a = c(.7, .4, .6, .3, .5, .2), b = c(.3, .6, .4, .7, .5, .8)), method = "ovo")
+drawn <- panels(maps <- plot(fit))
+assert_conditions(identical(unique(maps[c("class_1", "class_2")]), data.frame(class_1 = "a", class_2 = "b")),
+                  length(drawn) == 1L, identical(drawn[[1L]], layout))
+
+# Graphical options reach every panel, and failures restore the grid.
+fit <- venn_abers(truth, probability, method = "ovr")
+plot(fit, xlim = c(.2, .8), main = "Own title")
+assert_conditions(identical(graphics::par("usr")[1:2], c(.2, .8)))
+error(plot(fit, ylim = "bad"), "ylim")
+assert_conditions(identical(graphics::par("mfrow"), layout))
+
+# Fits without stored subproblem maps stop clearly.
+stored <- "`x` has no stored calibration map (`knots`, `lower`, `upper`); refit it with vennabers 1.0.0."
+old <- fit
+old$calibrators[[2L]]$knots <- NULL
+error(plot(old), stored)
+old$calibrators <- NULL
+error(plot(old), stored)
+old <- cross_venn_abers(truth, probability, fold = fold, method = "ovo")
+old$calibrators[[3L]]$calibrators[[1L]]$upper <- NULL
+error(plot(old, "width"), stored)
 assert_conditions(identical(graphics::par("mfrow"), layout))
 
 testthat::expect_true(TRUE)
