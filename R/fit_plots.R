@@ -53,9 +53,9 @@ plot.vennabers_fit <- function(x, which = "map", loss = x$loss, ...) {
   .plot_fit_panels(tables, .pair_titles(pairs), which, .probability_family(loss), ...)
 }
 
-# The diagrams of a fit diagnosis, always drawn map before width.
-.plot_which <- function(which) {
-  choices <- c("map", "width")
+# The chosen diagrams, always drawn in the order of `choices`: for a fit
+# diagnosis map before width.
+.plot_which <- function(which, choices = c("map", "width")) {
   if (!is.character(which) || !is.vector(which) || !length(which) ||
       anyNA(which) || anyDuplicated(which) || !all(which %in% choices)) {
     stop("`which` must be one or more distinct values of: ",
