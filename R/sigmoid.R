@@ -77,7 +77,7 @@
 
 #' @export
 predict.vennabers_sigmoid <- function(object, new_data, type = "prob", ...) {
-  .integration_dots(...)
+  .validate_dots(...)
   .validate_choice(type, "prob", "type")
   tryCatch({
     x <- if (nrow(new_data)) .sigmoid_input(object$workflow, new_data, object$input, object$classes, "prediction") else numeric()

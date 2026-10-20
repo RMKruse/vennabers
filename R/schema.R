@@ -1,7 +1,7 @@
 #' @export
 venn_abers_schema <- function(data, outcome, classification = "binary", event_level = "first") {
   .schema_data_names(data)
-  .integration_names(outcome, "outcome")
+  .validate_names(outcome, "outcome")
   if (length(outcome) != 1L || !outcome %in% names(data)) {
     stop("`outcome` must name one column in `data`.", call. = FALSE)
   }
@@ -23,7 +23,7 @@ venn_abers_schema <- function(data, outcome, classification = "binary", event_le
       stop("Schema outcome must be a factor with ",
            if (classification == "binary") "exactly two" else "at least two", " levels.", call. = FALSE)
     }
-    .integration_names(levels(y), "class")
+    .validate_names(levels(y), "class")
     if (classification != "binary") event_level <- NULL
   }
   columns <- stats::setNames(sprintf("vaV%04d", seq_along(data)), names(data))
@@ -38,7 +38,7 @@ venn_abers_schema <- function(data, outcome, classification = "binary", event_le
 
 .schema_data_names <- function(data) {
   if (!is.data.frame(data)) stop("`data` must be a data frame.", call. = FALSE)
-  .integration_names(names(data), "input column")
+  .validate_names(names(data), "input column")
 }
 
 .validate_schema <- function(schema) {

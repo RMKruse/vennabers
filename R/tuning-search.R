@@ -7,7 +7,7 @@
     stop(label, " resamples must be a nonempty rsample rset.", call. = FALSE)
   }
   ids <- if ("id2" %in% names(plan)) paste(plan$id, plan$id2, sep = "/") else as.character(plan$id)
-  .integration_names(ids, paste(label, "resample ID"))
+  .validate_names(ids, paste(label, "resample ID"))
   splits <- lapply(seq_len(nrow(plan)), function(i) .split_positions(plan$splits[[i]], data, ids[i]))
   list(rset = plan, positions = stats::setNames(splits, ids))
 }

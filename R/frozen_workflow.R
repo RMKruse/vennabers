@@ -4,7 +4,7 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
                                precision = NULL, loss = "log", m = NULL, epsilon = NULL,
                                schema = NULL) {
   .exact_argument_names()
-  .integration_dots(...)
+  .validate_dots(...)
   .integration_packages()
   explicit <- c(classification = !missing(classification), event_level = !missing(event_level),
                 precision = !missing(precision), loss = !missing(loss), m = !missing(m), epsilon = !missing(epsilon))
@@ -16,7 +16,7 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
   .validate_choice(classification, c("binary", "ovo", "ovr"), "classification")
   .validate_choice(event_level, c("first", "second"), "event_level")
   .validate_choice(loss, c("log", "brier"), "loss")
-  .integration_names(outcome, "outcome")
+  .validate_names(outcome, "outcome")
   if (length(outcome) != 1L) stop("`outcome` must name one column.", call. = FALSE)
   if (!inherits(fitted_workflow, "workflow") || !workflows::is_trained_workflow(fitted_workflow)) {
     stop("`fitted_workflow` must be a fully fitted workflow.", call. = FALSE)
@@ -38,7 +38,7 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
   }
   classes <- if (!regression) levels(targets[[outcome]]) else NULL
   if (!regression) {
-    .integration_names(classes, "frozen class")
+    .validate_names(classes, "frozen class")
     if (length(classes) < 2L || (!multiclass && length(classes) != 2L) || !identical(fit$lvl, classes)) {
       stop("Frozen workflow must retain ", if (multiclass) "at least" else "exactly",
            " two classes in the trained outcome order.", call. = FALSE)
@@ -126,7 +126,7 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
     .schema_encoded_data(data, object$schema, truth = stage == "calibration")
   }
   if (!is.data.frame(data)) stop("Frozen ", stage, " data must be a data frame.", call. = FALSE)
-  if (ncol(data)) .integration_names(names(data), paste("frozen", stage, "input column"))
+  if (ncol(data)) .validate_names(names(data), paste("frozen", stage, "input column"))
   required <- c(object$predictors, if (stage == "calibration") object$outcome)
   absent <- setdiff(required, names(data))
   if (length(absent)) stop("Frozen ", stage, " is missing original column ",
@@ -148,7 +148,7 @@ print.vennabers_frozen <- function(x, ...) {
 
 #' @export
 predict.vennabers_frozen <- function(object, new_data, type = NULL, ..., loss = NULL) {
-  .integration_dots(...)
+  .validate_dots(...)
   .integration_packages()
   regression <- object$parameters$requested$mode == "regression"
   if (is.null(type)) type <- if (regression) "numeric" else "prob"

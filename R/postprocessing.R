@@ -192,7 +192,7 @@ predict.vennabers_isotonic_workflow <- function(object, newdata, type = "numeric
 
 #' @export
 predict.vennabers_ensemble <- function(object, newdata, type = if (is.null(object$classes)) "numeric" else "prob", ...) {
-  .integration_dots(...)
+  .validate_dots(...)
   regression <- is.null(object$classes)
   .validate_choice(type, if (regression) "numeric" else "prob", "type")
   if (!identical(names(object$models), object$inner_folds) || length(object$models) < 2L ||
