@@ -8,7 +8,8 @@
 \method{plot}{cross_venn_abers}(x, which = "map", loss = "log", ...)
 }
 \arguments{
-  \item{x}{A fitted binary \code{venn_abers} or \code{cross_venn_abers} object.}
+  \item{x}{A fitted binary or multiclass \code{venn_abers} or
+  \code{cross_venn_abers} object.}
   \item{which}{A character vector of distinct diagrams from \code{"map"}
   (default), the calibration map, and \code{"width"}, the Venn-Abers width
   \code{upper - lower}. Both draw the map before the width, whatever their
@@ -32,6 +33,12 @@ stored fold IDs. Rows group by fold in stored order, each with its own knots
 and the values of its own fold calibrator, not the aggregated Cross
 probability.
 
+For multiclass fits, the tables of all subproblems are stacked in stored
+order, with identity columns named as in \code{\link{venn_abers_details}}
+after \code{fold} and before the values: \code{class} for one-vs-rest,
+\code{class_1} and \code{class_2} for one-vs-one. Within a Cross
+subproblem, folds follow the stored fold IDs of the fit.
+
 Between neighbouring rows, the map holds the \code{lower} value of the left
 row and the \code{upper} value of the right row, so the width between knots
 exceeds the width at them. The drawn curves follow these values exactly.
@@ -52,7 +59,24 @@ Choosing both diagrams draws them in their own grid of panels and restores
 the previous graphical parameters on exit, also after errors. A single
 diagram uses the current layout. Fits without a stored calibration map
 (\code{knots}, \code{lower}, \code{upper}) are errors; refit them with
-vennabers 1.0.0. Multiclass fits are not supported yet.
+vennabers 1.0.0.
+}
+\section{Multiclass}{
+A multiclass fit draws one panel per subproblem and diagram, titled
+\code{"Calibration map: <class>"} for one-vs-rest and
+\code{"Calibration map: <class_1> vs <class_2>"} for one-vs-one (likewise
+\code{"VA width"}). Each panel shows the map of the subproblem's own binary
+calibrator over its score: the probability of the class for one-vs-rest, and
+the probability of \code{class_2} renormalized within the pair for
+one-vs-one. The final coupling into class probabilities is not drawn. Cross
+fits overlay the fold maps of each subproblem in its panel, each fold in the
+same color across panels.
+
+The panels fill their own grid row by row, nearly square as in
+\code{\link{calibration_plot}}. With both diagrams, each row of maps is
+followed by the widths of the same subproblems. A single panel, as for one
+one-vs-one pair, uses the current layout. Options in \code{...} apply to
+every panel.
 }
 \seealso{
 \code{\link{calibration_plot}} assesses calibration on held-out truth values.
@@ -67,4 +91,13 @@ head(map)
 
 cross <- cross_venn_abers(truth, uncalibrated_probability, fold = rep(1:2, 4))
 plot(cross, loss = "brier")
+
+classes <- c("a", "b", "c")
+class_truth <- factor(rep(classes, 4), levels = classes)
+class_probability <- prop.table(matrix(c(
+  6, 3, 1, 2, 5, 3, 1, 2, 7, 5, 1, 4, 3, 4, 3, 2, 2, 6,
+  4, 4, 2, 1, 6, 3, 3, 3, 4, 5, 3, 2, 2, 7, 1, 2, 2, 6
+), 12, 3, byrow = TRUE, dimnames = list(NULL, classes)), 1)
+ovr <- venn_abers(class_truth, class_probability, method = "ovr")
+head(plot(ovr, which = c("map", "width")))
 }
