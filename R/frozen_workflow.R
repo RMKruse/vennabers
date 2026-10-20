@@ -3,22 +3,15 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
                                classification = "binary", event_level = "first",
                                precision = NULL, loss = "log", m = NULL, epsilon = NULL,
                                schema = NULL) {
-  supplied <- names(sys.call())[-1L]
-  bad <- supplied[nzchar(supplied) & !supplied %in% names(formals(calibrate_workflow))]
-  if (length(bad)) stop("Unknown argument: ", sQuote(bad[1L]), ".", call. = FALSE)
+  .exact_argument_names()
   .integration_dots(...)
   .integration_packages()
-  explicit_classification <- !missing(classification)
-  explicit_event <- !missing(event_level)
+  explicit <- c(classification = !missing(classification), event_level = !missing(event_level),
+                precision = !missing(precision), loss = !missing(loss), m = !missing(m), epsilon = !missing(epsilon))
   if (!is.null(schema)) {
-    .validate_schema(schema)
-    if (!identical(outcome, schema$encoded_outcome) ||
-        explicit_classification && !identical(classification, schema$classification) ||
-        explicit_event && !identical(event_level, schema$event_level)) {
-      stop("Outcome, classification and event_level must agree with `schema`.", call. = FALSE)
-    }
-    if (schema$mode == "classification") classification <- schema$classification
-    if (identical(schema$classification, "binary")) event_level <- schema$event_level
+    options <- .schema_options(schema, outcome, classification, event_level, explicit)
+    classification <- options$classification
+    event_level <- options$event_level
   }
   .validate_choice(classification, c("binary", "ovo", "ovr"), "classification")
   .validate_choice(event_level, c("first", "second"), "event_level")
@@ -37,16 +30,7 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
   mode <- fit$spec$mode
   regression <- mode == "regression"
   multiclass <- !regression && classification != "binary"
-  if (regression && (explicit_classification || explicit_event ||
-                     !missing(precision) || !missing(loss))) {
-    stop("Regression does not accept explicit classification, event_level, precision or loss options.", call. = FALSE)
-  }
-  if (!regression && (!missing(m) || !missing(epsilon))) {
-    stop("`m` and `epsilon` require a regression workflow.", call. = FALSE)
-  }
-  if (multiclass && explicit_event) {
-    stop("`event_level` requires classification = 'binary'.", call. = FALSE)
-  }
+  .validate_task_options(regression, classification, explicit)
   targets <- mold$blueprint$ptypes$outcomes
   if (!identical(names(targets), outcome)) {
     stop("Frozen workflow outcome must be ", paste(sQuote(names(targets)), collapse = ", "),
@@ -89,7 +73,7 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
   effective <- settings
   if (multiclass) effective$event_level <- NULL
   if (regression) effective[c("classification", "event_level", "precision", "loss")] <- NULL
-  event <- if (regression || multiclass) NULL else classes[if (event_level == "first") 1L else 2L]
+  event <- if (regression || multiclass) NULL else .event_class(classes, event_level)
   state <- structure(list(parameters = list(requested = settings, effective = effective),
                           schema = schema, outcome = outcome,
                           predictors = names(mold$blueprint$ptypes$predictors),
@@ -110,12 +94,9 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
          paste(sQuote(classes), collapse = ", "), ".", call. = FALSE)
   }
   if (regression) {
-    moderation <- list()
-    if (!is.null(m)) moderation$m <- m
-    if (!is.null(epsilon)) moderation$epsilon <- epsilon
-    resolved <- do.call(.regression_moderation, c(list(k = nrow(input)), moderation))
+    resolved <- .regression_moderation(nrow(input), m, epsilon)
     prediction <- .base_numeric(fitted_workflow, input, "Frozen calibration")
-    state$calibrator <- do.call(venn_abers_regression, c(list(truth = truth, prediction = prediction), moderation))
+    state$calibrator <- .venn_abers_regression(truth, prediction, m, epsilon)
     state$parameters$effective$m <- resolved$m
     state$parameters$effective$epsilon <- resolved$epsilon
   } else {
@@ -172,11 +153,7 @@ predict.vennabers_frozen <- function(object, new_data, type = NULL, ..., loss = 
   regression <- object$parameters$requested$mode == "regression"
   if (is.null(type)) type <- if (regression) "numeric" else "prob"
   .validate_choice(type, if (regression) "numeric" else c("prob", "class"), "type")
-  if (!missing(loss)) {
-    if (regression) stop("Regression does not accept `loss`.", call. = FALSE)
-    .validate_choice(loss, c("log", "brier"), "loss")
-    object$loss <- loss
-  }
+  if (!missing(loss)) object <- .with_loss(object, loss)
   new_data <- .frozen_data(object, new_data)
   result <- if (regression) tibble::tibble(.pred = predict_vennabers_numeric(object, new_data)) else
     if (type == "class") {

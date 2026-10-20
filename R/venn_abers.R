@@ -102,8 +102,7 @@ calibration_plot <- function(truth, probability, bins = 10, ...) {
     return(invisible(do.call(rbind, summaries)))
   }
   .validate_binary_input(truth, probability)
-  if (!is.numeric(bins) || !is.null(dim(bins)) || length(bins) != 1L || !is.finite(bins) ||
-      bins < 1 || bins != floor(bins)) {
+  if (!.is_count(bins)) {
     stop("`bins` must be one finite whole number of at least 1.", call. = FALSE)
   }
 
@@ -142,13 +141,8 @@ venn_abers <- function(truth, probability, precision = NULL, method = "ovo") {
   }
   if (!missing(method)) stop("`method` requires factor truth and a class matrix.", call. = FALSE)
   .validate_binary_input(truth, probability)
-  if (!is.null(precision)) {
-    if (!is.numeric(precision) || !is.vector(precision) || length(precision) != 1L ||
-        !is.finite(precision) || precision != floor(precision)) {
-      stop("`precision` must be NULL or one finite numeric whole number.", call. = FALSE)
-    }
-    probability <- round(probability, digits = precision)
-  }
+  .validate_precision(precision)
+  if (!is.null(precision)) probability <- round(probability, digits = precision)
 
   ordered <- order(probability, method = "radix")
   probability <- probability[ordered]
@@ -180,6 +174,23 @@ venn_abers <- function(truth, probability, precision = NULL, method = "ovo") {
   }
 }
 
+# One finite whole number in [min, max].
+.is_count <- function(x, min = 1, max = .Machine$integer.max) {
+  is.numeric(x) && is.vector(x) && length(x) == 1L && is.finite(x) &&
+    x == floor(x) && x >= min && x <= max
+}
+
+# One finite number strictly between 0 and 1.
+.is_proportion <- function(x) {
+  is.numeric(x) && is.vector(x) && length(x) == 1L && is.finite(x) && x > 0 && x < 1
+}
+
+.validate_precision <- function(precision) {
+  if (!is.null(precision) && !.is_count(precision, -Inf, Inf)) {
+    stop("`precision` must be NULL or one finite numeric whole number.", call. = FALSE)
+  }
+}
+
 .regularized_probability <- function(lower, upper, loss) {
   if (loss == "brier") upper + (lower^2 - upper^2) / 2 else upper / (1 - lower + upper)
 }
@@ -195,6 +206,9 @@ venn_abers <- function(truth, probability, precision = NULL, method = "ovo") {
   }
   factor(classes[chosen], levels = classes)
 }
+
+# The binary event class: the first or second of the two stored classes.
+.event_class <- function(classes, event_level) classes[if (event_level == "first") 1L else 2L]
 
 # The binary half of the Klassenentscheidung on bare event probabilities.
 .event_chosen <- function(probability) probability >= .5

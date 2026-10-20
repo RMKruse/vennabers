@@ -41,7 +41,7 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
   record(candidate_values, NA_character_)
   structure(list(fitted = fitted, class_levels = levels(y),
     event_class = if (identical(parameters$classification, "binary"))
-      levels(y)[if (parameters$event_level == "first") 1L else 2L]),
+      .event_class(levels(y), parameters$event_level)),
     class = "vennabers_grid_fit")
 }
 

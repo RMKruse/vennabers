@@ -3,9 +3,7 @@
 # predictors, and `predict(state, new_data)` sees the same preparation.
 #' @export
 model_adapter <- function(mode, fit, predict) {
-  supplied <- names(sys.call())[-1L]
-  bad <- supplied[nzchar(supplied) & !supplied %in% names(formals(model_adapter))]
-  if (length(bad)) stop("Unknown argument: ", sQuote(bad[1L]), ".", call. = FALSE)
+  .exact_argument_names()
   if (missing(mode) || missing(fit) || missing(predict)) {
     stop("Supply `mode`, `fit` and `predict`.", call. = FALSE)
   }

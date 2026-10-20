@@ -4,20 +4,27 @@
   }
 }
 
-.regression_moderation <- function(k, m = 1, epsilon = NULL) {
-  if (!missing(m) && !missing(epsilon)) {
-    stop("Supply only one of `m` and `epsilon`.", call. = FALSE)
+# The m and epsilon rules that hold at any calibration size k. `given` flags the
+# requested options (a given NULL is invalid); `tunable` admits tune()
+# placeholders, which calibration selection resolves.
+.validate_moderation <- function(m = NULL, epsilon = NULL, given = c(m = !is.null(m), epsilon = !is.null(epsilon)),
+                                 tunable = FALSE, label = "") {
+  if (all(given)) stop("Supply only one of `m` and `epsilon`.", call. = FALSE)
+  placeholder <- function(x) tunable && !is.null(.tune_id(x))
+  if (given[["m"]] && !placeholder(m) && !.is_count(m)) {
+    stop(label, "`m` must be one positive whole number.", call. = FALSE)
   }
-  requested <- if (!missing(epsilon)) list(epsilon = epsilon) else if (!missing(m)) list(m = m) else list()
-  if (!missing(epsilon)) {
-    .validate_regression_vector(epsilon, "epsilon")
-    if (length(epsilon) != 1L || epsilon <= 0 || epsilon >= 1) {
-      stop("`epsilon` must be one finite numeric value strictly between 0 and 1.", call. = FALSE)
-    }
-    m <- floor(epsilon * (k + 1) / 2)
+  if (given[["epsilon"]] && !placeholder(epsilon) && !.is_proportion(epsilon)) {
+    stop(label, "`epsilon` must be one number strictly between 0 and 1.", call. = FALSE)
   }
-  .validate_regression_vector(m, "m")
-  if (length(m) != 1L || m != floor(m) || m < 1 || m > floor((k - 1) / 2)) {
+}
+
+# NULL options are not requested; m = 1 is the default.
+.regression_moderation <- function(k, m = NULL, epsilon = NULL) {
+  .validate_moderation(m, epsilon)
+  requested <- if (!is.null(epsilon)) list(epsilon = epsilon) else if (!is.null(m)) list(m = m) else list()
+  if (!is.null(epsilon)) m <- floor(epsilon * (k + 1) / 2) else if (is.null(m)) m <- 1
+  if (m < 1 || m > floor((k - 1) / 2)) {
     stop("`m` must be a whole number with 1 <= m <= floor((k - 1) / 2); at least three calibration observations are required.", call. = FALSE)
   }
 
@@ -56,14 +63,18 @@ venn_abers_regression <- function(truth, prediction, ..., m = 1, epsilon = NULL)
   if (length(list(...))) stop("`...` must be empty; unsupported fit argument.", call. = FALSE)
   .validate_regression_vector(truth, "truth")
   .validate_regression_vector(prediction, "prediction")
-  k <- length(truth)
-  if (!k || length(prediction) != k) {
+  if (!length(truth) || length(prediction) != length(truth)) {
     stop("`truth` and `prediction` must have the same nonzero length.", call. = FALSE)
   }
-  options <- list()
-  if (!missing(m)) options["m"] <- list(m)
-  if (!missing(epsilon)) options["epsilon"] <- list(epsilon)
-  moderation <- do.call(.regression_moderation, c(list(k = k), options))
+  # An explicit option counts as given even when NULL; an omitted one is NULL below.
+  given <- c(m = !missing(m), epsilon = !missing(epsilon))
+  .validate_moderation(m, epsilon, given)
+  .venn_abers_regression(truth, prediction, if (given[["m"]]) m, if (given[["epsilon"]]) epsilon)
+}
+
+.venn_abers_regression <- function(truth, prediction, m = NULL, epsilon = NULL) {
+  k <- length(truth)
+  moderation <- .regression_moderation(k, m, epsilon)
   m <- moderation$m
 
   ranked <- sort(as.numeric(truth))

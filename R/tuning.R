@@ -61,8 +61,7 @@
       stop("Supply exactly one of `selection_prop` and `selection_split` for calibration selection.", call. = FALSE)
     }
     if (!is.null(tuning$selection_prop) &&
-        (!is.numeric(tuning$selection_prop) || length(tuning$selection_prop) != 1L ||
-         !is.finite(tuning$selection_prop) || tuning$selection_prop <= 0 || tuning$selection_prop >= 1)) {
+        !.is_proportion(tuning$selection_prop)) {
       stop("`selection_prop` must be one number strictly between 0 and 1.", call. = FALSE)
     }
     if (!is.null(tuning$selection_split) &&
@@ -107,8 +106,7 @@
   .validate_choice(search$method, "bayes", paste0("tuning$", label, "$method"))
   for (name in c("initial", "iter")) {
     value <- search[[name]]
-    if (!is.numeric(value) || length(value) != 1L || !is.finite(value) ||
-        value < 1L || value != floor(value)) {
+    if (!.is_count(value)) {
       stop("`tuning$", label, "$", name, "` must be one positive whole number.", call. = FALSE)
     }
     search[[name]] <- as.integer(value)
@@ -127,8 +125,7 @@
   if (is.null(search$control)) search$control <- tune::control_bayes()
   control <- search$control
   if (!inherits(control, "control_bayes") || !isTRUE(control$save_pred) ||
-      !identical(control$uncertain, Inf) || !is.numeric(control$seed) || length(control$seed) != 1L ||
-      !is.finite(control$seed) || control$seed < 0 || control$seed != floor(control$seed) ||
+      !identical(control$uncertain, Inf) || !.is_count(control$seed, 0, Inf) ||
       !is.numeric(control$no_improve) || length(control$no_improve) != 1L || control$no_improve < 1 ||
       (!is.na(control$time_limit) && (!is.numeric(control$time_limit) || length(control$time_limit) != 1L ||
                                       !is.finite(control$time_limit) || control$time_limit <= 0))) {
@@ -188,8 +185,7 @@
   }
   search$report_metrics <- reports
   grid <- search$grid
-  if (is.numeric(grid) && length(grid) == 1L && is.finite(grid) &&
-      grid == floor(grid) && grid > 0) {
+  if (.is_count(grid)) {
     params <- search$param_info
     if (is.null(params) && label == "model") params <- tune::extract_parameter_set_dials(workflow)
     if (!inherits(params, "parameters") || !setequal(params$id, unname(ids))) {
@@ -220,13 +216,11 @@
   }
   if (label == "calibration") {
     for (option in intersect(c("m", "epsilon"), names(ids))) {
-      value <- grid[[ids[[option]]]]
-      .validate_regression_vector(value, option)
-      if (option == "m" && any(value < 1 | value != floor(value))) {
-        stop("Calibration m grid requires positive whole numbers.", call. = FALSE)
-      }
-      if (option == "epsilon" && any(value <= 0 | value >= 1)) {
-        stop("Calibration epsilon grid requires values strictly between 0 and 1.", call. = FALSE)
+      values <- grid[[ids[[option]]]]
+      # Each row is one candidate; a column that is not a plain numeric vector fails whole.
+      for (value in if (is.numeric(values) && is.vector(values)) values else list(values)) {
+        .validate_moderation(if (option == "m") value, if (option == "epsilon") value,
+                             label = "Calibration grid: ")
       }
     }
     if ("loss" %in% names(ids)) {

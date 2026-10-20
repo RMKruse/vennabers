@@ -15,14 +15,12 @@
     }
   } else if (post$strategy == "holdout") {
     if ("v" %in% names(post)) stop("Postprocessing holdout does not accept v.", call. = FALSE)
-    p <- post$prop
-    if (!is.numeric(p) || !is.vector(p) || length(p) != 1L || !is.finite(p) || p <= 0 || p >= 1) {
+    if (!.is_proportion(post$prop)) {
       stop("`postprocessing$prop` must be one finite numeric P proportion strictly between 0 and 1.", call. = FALSE)
     }
   } else {
     if ("prop" %in% names(post)) stop("Postprocessing ensemble does not accept prop.", call. = FALSE)
-    v <- post$v
-    if (!is.numeric(v) || !is.vector(v) || length(v) != 1L || !is.finite(v) || v < 2 || v != floor(v) || v > .Machine$integer.max) {
+    if (!.is_count(post$v, 2)) {
       stop("`postprocessing$v` must be one whole number of at least two.", call. = FALSE)
     }
   }

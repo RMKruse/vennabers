@@ -10,22 +10,18 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                                 prediction_model = "matched", model_training = "shared",
                                 tuning = NULL, postprocessing = NULL) {
   .integration_dots(...)
-  # Arguments before ... also need exact names (R otherwise partially matches).
-  supplied <- names(sys.call())[-1L]
-  bad <- supplied[nzchar(supplied) & !supplied %in% names(formals(calibrated_workflow))]
-  if (length(bad)) stop("Unknown argument: ", sQuote(bad[1L]), ".", call. = FALSE)
-  explicit_classification <- !missing(classification)
-  explicit_event <- !missing(event_level)
-  explicit_tuning <- !missing(tuning)
+  .exact_argument_names()
+  explicit <- c(predictors = !missing(predictors), method = !missing(method),
+                classification = !missing(classification), event_level = !missing(event_level),
+                calibration_prop = !missing(calibration_prop), v = !missing(v), strata = !missing(strata),
+                splits = !missing(splits), seed = !missing(seed), precision = !missing(precision), loss = !missing(loss),
+                m = !missing(m), epsilon = !missing(epsilon), prediction_model = !missing(prediction_model),
+                model_training = !missing(model_training), tuning = !missing(tuning),
+                postprocessing = !missing(postprocessing))
   if (!is.null(schema)) {
-    .validate_schema(schema)
-    if (!identical(outcome, schema$encoded_outcome) ||
-        explicit_classification && !identical(classification, schema$classification) ||
-        explicit_event && !identical(event_level, schema$event_level)) {
-      stop("Outcome, classification and event_level must agree with `schema`.", call. = FALSE)
-    }
-    if (schema$mode == "classification") classification <- schema$classification
-    if (identical(schema$classification, "binary")) event_level <- schema$event_level
+    options <- .schema_options(schema, outcome, classification, event_level, explicit)
+    classification <- options$classification
+    event_level <- options$event_level
     if (!is.null(predictors) && !setequal(predictors, setdiff(schema$columns, outcome))) {
       stop("Selected predictors must agree with `schema`.", call. = FALSE)
     }
@@ -59,103 +55,15 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
     if (inherits(pre, "recipe") && !is.null(pre$template)) .schema_encoded_data(pre$template, schema, truth = TRUE)
   }
   regression <- mode == "regression"
-  if ((regression || classification == "binary") && !missing(model_training)) {
+  if ((regression || classification == "binary") && explicit[["model_training"]]) {
     stop("`model_training` requires classification = 'ovo' or 'ovr'.", call. = FALSE)
   }
-  if (regression && (explicit_classification || explicit_event ||
-                     !missing(precision) || !missing(loss))) {
-    stop("Regression does not accept explicit classification, event_level, precision or loss options.", call. = FALSE)
-  }
-  if (!regression && (!missing(m) || !missing(epsilon))) {
-    stop("`m` and `epsilon` require a regression base workflow.", call. = FALSE)
-  }
-  if (!is.null(m) && !is.null(epsilon)) stop("Supply only one of `m` and `epsilon`.", call. = FALSE)
-  if (!is.null(m) && is.null(.tune_id(m))) {
-    .validate_regression_vector(m, "m")
-    if (length(m) != 1L || m != floor(m) || m < 1) {
-      stop("`m` must be one positive whole number.", call. = FALSE)
-    }
-  }
-  if (!is.null(epsilon) && is.null(.tune_id(epsilon))) {
-    .validate_regression_vector(epsilon, "epsilon")
-    if (length(epsilon) != 1L || epsilon <= 0 || epsilon >= 1) {
-      stop("`epsilon` must be one finite numeric value strictly between 0 and 1.", call. = FALSE)
-    }
-  }
-  if (classification != "binary" && explicit_event) {
-    stop("`event_level` requires classification = 'binary'.", call. = FALSE)
-  }
-  .validate_choice(event_level, c("first", "second"), "event_level")
-  if (is.null(.tune_id(loss))) .validate_choice(loss, c("log", "brier"), "loss")
-  if (method == "inductive" && !missing(v)) stop("`v` requires method = 'cross'.", call. = FALSE)
-  if (method == "cross" && !missing(calibration_prop)) {
-    stop("`calibration_prop` requires method = 'inductive'.", call. = FALSE)
-  }
-  if (!is.numeric(v) || !is.vector(v) || length(v) != 1L || !is.finite(v) ||
-      v != floor(v) || v < 2 || v > .Machine$integer.max) {
-    stop("`v` must be one finite whole number of at least two folds.", call. = FALSE)
-  }
-  if (!is.numeric(calibration_prop) || !is.vector(calibration_prop) ||
-      length(calibration_prop) != 1L || !is.finite(calibration_prop) ||
-      calibration_prop <= 0 || calibration_prop >= 1) {
-    stop("`calibration_prop` must be one number strictly between 0 and 1.", call. = FALSE)
-  }
-  sized <- .validate_inductive_sizes(training_size, calibration_size)
-  if (sized) {
-    if (method == "cross") stop("`training_size` and `calibration_size` require method = 'inductive'.", call. = FALSE)
-    if (!missing(calibration_prop)) {
-      stop("Supply either `calibration_prop` or `training_size`/`calibration_size`, not both.", call. = FALSE)
-    }
-    if (!is.null(splits)) {
-      stop("Explicit `splits` partition all rows and cannot be combined with `training_size` or `calibration_size`.", call. = FALSE)
-    }
-  }
-  if (!is.null(strata) && !identical(strata, FALSE)) {
-    stop("`strata` must be NULL (classification outcome stratification; none for regression) or FALSE.", call. = FALSE)
-  }
-  if (!is.null(seed) && (!is.numeric(seed) || !is.vector(seed) || length(seed) != 1L ||
-                        !is.finite(seed) || seed != floor(seed) || abs(seed) > .Machine$integer.max)) {
-    stop("`seed` must be NULL or one integer in R's seed range.", call. = FALSE)
-  }
-  if (!is.null(precision) && is.null(.tune_id(precision)) &&
-      (!is.numeric(precision) || !is.vector(precision) ||
-                            length(precision) != 1L || !is.finite(precision) || precision != floor(precision))) {
-    stop("`precision` must be NULL or one finite numeric whole number.", call. = FALSE)
-  }
-  if (!is.null(splits)) {
-    if (pairwise && !is.function(splits) &&
-        (!is.list(splits) || inherits(splits, c("rsplit", "rset", "data.frame")))) {
-      stop("Pairwise `splits` must be a function of local pair data or a named list of pair plans.", call. = FALSE)
-    }
-    if (!pairwise && !inherits(splits, if (method == "cross") "rset" else "rsplit") && !is.function(splits)) {
-      stop("`splits` must be NULL, an IID ", if (method == "cross") "Cross rset" else "holdout rsplit",
-           ", or a function of local data.", call. = FALSE)
-    }
-    if (!missing(calibration_prop) || !missing(v) || !missing(strata)) {
-      stop("Explicit `splits` cannot be combined with `calibration_prop`, `v` or `strata`.", call. = FALSE)
-    }
-  }
+  .validate_calibration_options(regression, classification, event_level, precision, loss, m, epsilon, explicit)
+  sized <- .validate_split_options(method, calibration_prop, training_size, calibration_size, v, strata,
+                                   splits, seed, pairwise, explicit)
   tuning <- .validate_tuning(tuning, workflow, mode, model_training,
                              loss, precision, seed, m, epsilon, postprocessing)
-  if (pairwise && identical(tuning$strategy, "joint") && !is.null(tuning$model) &&
-      !is.null(splits) && !is.function(splits)) {
-    stop("Pairwise joint model selection requires local pair plan providers, not fixed plans.", call. = FALSE)
-  }
-  if (!is.null(tuning$calibration) && !is.null(splits) && !is.function(splits)) {
-    stop("Calibration grid selection requires a local `splits` provider function or NULL.", call. = FALSE)
-  }
-  # Candidate compositions run on resample data, where a static B/P plan cannot bind.
-  if (!is.null(postprocessing$splits) && !is.function(postprocessing$splits) &&
-      (!is.null(tuning$calibration) || (identical(tuning$strategy, "joint") && !is.null(tuning$model)))) {
-    stop("Joint or calibration selection with postprocessing requires a `postprocessing$splits` provider function or prop/v.", call. = FALSE)
-  }
-  # Calibration and joint model candidates are calibrated workflows that resolve
-  # the sizes again on resample data, where only proportions carry over.
-  if (sized && any(c(training_size, calibration_size) >= 1) &&
-      (!is.null(tuning$calibration) || identical(tuning$strategy, "joint") && !is.null(tuning$model))) {
-    stop("Calibration tuning and joint model tuning fit Venn-Abers candidates on resamples; ",
-         "supply `training_size` and `calibration_size` as proportions, not row counts.", call. = FALSE)
-  }
+  .validate_tuning_compatibility(tuning, splits, postprocessing, sized, training_size, calibration_size, pairwise)
   .register_vennabers()
   requested <- list(mode = mode, predictors = predictors, method = method, classification = classification,
                     event_level = event_level, calibration_prop = calibration_prop, v = v,
@@ -165,13 +73,6 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
                     tuning = tuning, postprocessing = postprocessing)
   # Size fields exist only when requested, so default specifications keep their stored shape.
   if (sized) requested[c("training_size", "calibration_size")] <- list(training_size, calibration_size)
-  explicit <- c(predictors = !missing(predictors), method = !missing(method),
-                classification = explicit_classification, event_level = explicit_event,
-                calibration_prop = !missing(calibration_prop), v = !missing(v), strata = !missing(strata),
-                splits = !missing(splits), seed = !missing(seed), precision = !missing(precision), loss = !missing(loss),
-                m = !missing(m), epsilon = !missing(epsilon), prediction_model = !missing(prediction_model),
-                model_training = !missing(model_training), tuning = explicit_tuning,
-                postprocessing = !missing(postprocessing))
   if (sized) explicit[c("training_size", "calibration_size")] <- c(!is.null(training_size), !is.null(calibration_size))
   spec <- parsnip::new_model_spec("vennabers", args = list(), eng_args = NULL,
                                 mode = mode, method = NULL, engine = method)
@@ -185,6 +86,107 @@ calibrated_workflow <- function(workflow, outcome, ..., predictors = NULL,
   # Check schema bindings before workflows::predict() discards input attributes.
   if (!is.null(schema)) class(carrier) <- c("vennabers_workflow", class(carrier))
   carrier
+}
+
+# Arguments before ... also need exact names (R otherwise partially matches).
+.exact_argument_names <- function() {
+  supplied <- names(sys.call(-1L))[-1L]
+  bad <- supplied[nzchar(supplied) & !supplied %in% names(formals(sys.function(-1L)))]
+  if (length(bad)) stop("Unknown argument: ", sQuote(bad[1L]), ".", call. = FALSE)
+}
+
+# Task options that do not fit the base workflow mode or classification. Shared
+# by calibrated_workflow() and calibrate_workflow(); `explicit` flags the
+# options the caller supplied.
+.validate_task_options <- function(regression, classification, explicit) {
+  if (regression && any(explicit[c("classification", "event_level", "precision", "loss")])) {
+    stop("Regression does not accept explicit classification, event_level, precision or loss options.", call. = FALSE)
+  }
+  if (!regression && any(explicit[c("m", "epsilon")])) {
+    stop("`m` and `epsilon` require a regression workflow.", call. = FALSE)
+  }
+  if (!regression && classification != "binary" && explicit[["event_level"]]) {
+    stop("`event_level` requires classification = 'binary'.", call. = FALSE)
+  }
+}
+
+# Single-value calibration options; tune() placeholders are checked by .validate_tuning().
+.validate_calibration_options <- function(regression, classification, event_level, precision, loss,
+                                          m, epsilon, explicit) {
+  .validate_task_options(regression, classification, explicit)
+  .validate_moderation(m, epsilon, tunable = TRUE)
+  .validate_choice(event_level, c("first", "second"), "event_level")
+  if (is.null(.tune_id(loss))) .validate_choice(loss, c("log", "brier"), "loss")
+  if (is.null(.tune_id(precision))) .validate_precision(precision)
+}
+
+# The split plan options; returns whether inductive sizes were requested.
+.validate_split_options <- function(method, calibration_prop, training_size, calibration_size, v, strata,
+                                    splits, seed, pairwise, explicit) {
+  cross <- method == "cross"
+  if (!cross && explicit[["v"]]) stop("`v` requires method = 'cross'.", call. = FALSE)
+  if (cross && explicit[["calibration_prop"]]) {
+    stop("`calibration_prop` requires method = 'inductive'.", call. = FALSE)
+  }
+  if (!.is_count(v, 2)) {
+    stop("`v` must be one finite whole number of at least two folds.", call. = FALSE)
+  }
+  if (!.is_proportion(calibration_prop)) {
+    stop("`calibration_prop` must be one number strictly between 0 and 1.", call. = FALSE)
+  }
+  sized <- .validate_inductive_sizes(training_size, calibration_size)
+  if (sized) {
+    if (cross) stop("`training_size` and `calibration_size` require method = 'inductive'.", call. = FALSE)
+    if (explicit[["calibration_prop"]]) {
+      stop("Supply either `calibration_prop` or `training_size`/`calibration_size`, not both.", call. = FALSE)
+    }
+    if (!is.null(splits)) {
+      stop("Explicit `splits` partition all rows and cannot be combined with `training_size` or `calibration_size`.", call. = FALSE)
+    }
+  }
+  if (!is.null(strata) && !identical(strata, FALSE)) {
+    stop("`strata` must be NULL (classification outcome stratification; none for regression) or FALSE.", call. = FALSE)
+  }
+  if (!is.null(seed) && !.is_count(seed, -.Machine$integer.max)) {
+    stop("`seed` must be NULL or one integer in R's seed range.", call. = FALSE)
+  }
+  if (!is.null(splits)) {
+    if (pairwise && !is.function(splits) &&
+        (!is.list(splits) || inherits(splits, c("rsplit", "rset", "data.frame")))) {
+      stop("Pairwise `splits` must be a function of local pair data or a named list of pair plans.", call. = FALSE)
+    }
+    if (!pairwise && !inherits(splits, if (cross) "rset" else "rsplit") && !is.function(splits)) {
+      stop("`splits` must be NULL, an IID ", if (cross) "Cross rset" else "holdout rsplit",
+           ", or a function of local data.", call. = FALSE)
+    }
+    if (any(explicit[c("calibration_prop", "v", "strata")])) {
+      stop("Explicit `splits` cannot be combined with `calibration_prop`, `v` or `strata`.", call. = FALSE)
+    }
+  }
+  sized
+}
+
+# Calibration and joint model candidates are calibrated workflows fitted again
+# on resample data, so their split plans must be providers or proportions.
+.validate_tuning_compatibility <- function(tuning, splits, postprocessing, sized,
+                                           training_size, calibration_size, pairwise) {
+  resampled <- !is.null(tuning$calibration) || identical(tuning$strategy, "joint") && !is.null(tuning$model)
+  if (pairwise && identical(tuning$strategy, "joint") && !is.null(tuning$model) &&
+      !is.null(splits) && !is.function(splits)) {
+    stop("Pairwise joint model selection requires local pair plan providers, not fixed plans.", call. = FALSE)
+  }
+  if (!is.null(tuning$calibration) && !is.null(splits) && !is.function(splits)) {
+    stop("Calibration grid selection requires a local `splits` provider function or NULL.", call. = FALSE)
+  }
+  # A static B/P plan cannot bind to resample data.
+  if (resampled && !is.null(postprocessing$splits) && !is.function(postprocessing$splits)) {
+    stop("Joint or calibration selection with postprocessing requires a `postprocessing$splits` provider function or prop/v.", call. = FALSE)
+  }
+  # Only proportions carry over when the sizes are resolved again on resample data.
+  if (resampled && sized && any(c(training_size, calibration_size) >= 1)) {
+    stop("Calibration tuning and joint model tuning fit Venn-Abers candidates on resamples; ",
+         "supply `training_size` and `calibration_size` as proportions, not row counts.", call. = FALSE)
+  }
 }
 
 #' @export
@@ -351,7 +353,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
     effective$calibration_prop <- effective$v <- effective$strata <- NULL
   }
   parameters$effective <- effective
-  event <- if (regression || multiclass) NULL else classes[if (settings$event_level == "first") 1L else 2L]
+  event <- if (regression || multiclass) NULL else .event_class(classes, settings$event_level)
   # One local RNG scope includes the resolver, split generation and model learning.
   rng_kind <- RNGkind()
   state <- structure(list(parameters = parameters, schema = parameters$schema, outcome = outcome,
@@ -376,17 +378,12 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   if (identical(settings$model_training, "pairwise")) {
     return(.fit_pairwise(base_workflow, raw, state, tuning_plan))
   }
-  moderation <- list()
-  if (regression) {
-    if (!is.null(settings$m)) moderation$m <- settings$m
-    if (!is.null(settings$epsilon)) moderation$epsilon <- settings$epsilon
-  }
   domain <- list(data = raw, workflow = base_workflow, plan = settings$splits,
     schema = parameters$schema,
     outcome = outcome, strata = effective$strata, classes = classes, event = event, y = y,
     # After calibration selection, the local rows are the final-fit F.
     rows_word = if (is.null(tuning_plan$calibration)) "local rows" else "final-fit F rows")
-  task <- .task_for(settings, moderation)
+  task <- .task_for(settings)
   result <- .fit_domains(list(domain), task, settings, tuning_plan)
   if (regression) {
     parameters$effective$m <- vapply(result$plans[[1L]], function(f) f$moderation$m, 0)
@@ -503,8 +500,7 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
     if (rlang::is_call(size, "tune")) {
       stop("`", name, "` cannot be tuned; supply a fixed proportion or row count.", call. = FALSE)
     }
-    if (!is.numeric(size) || !is.vector(size) || length(size) != 1L || !is.finite(size) ||
-        !(size > 0 && size < 1 || size >= 1 && size == floor(size) && size <= .Machine$integer.max)) {
+    if (!.is_proportion(size) && !.is_count(size)) {
       stop("`", name, "` must be NULL, one proportion strictly between 0 and 1, or one whole row count of at least 1.", call. = FALSE)
     }
   }
@@ -654,11 +650,10 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
 
 # The only binary/multiclass/regression switch. Each task owns its fold checks,
 # held-out truth and base predictions, calibrator fitting and prediction, and
-# the calibration record shape; `moderation` holds the explicitly requested
-# regression m/epsilon. `folds` runs on every planned component before the
-# first recipe/model fit.
-.task_for <- function(settings, moderation = list()) {
-  if (settings$mode == "regression") .regression_task(moderation) else
+# the calibration record shape. `folds` runs on every planned component before
+# the first recipe/model fit.
+.task_for <- function(settings) {
+  if (settings$mode == "regression") .regression_task() else
     if (settings$classification != "binary") .multiclass_task() else .binary_task()
 }
 
@@ -748,12 +743,11 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   },
   record = function(rows, truth, prediction) list(row = rows, truth = truth, probability = prediction))
 
-.regression_task <- function(moderation = list()) list(
+.regression_task <- function() list(
   folds = function(folds, y, settings) {
     for (id in names(folds)) {
       k <- length(folds[[id]]$assessment)
-      folds[[id]]$moderation <- tryCatch(
-        do.call(.regression_moderation, c(list(k = k), moderation)),
+      folds[[id]]$moderation <- tryCatch(.regression_moderation(k, settings$m, settings$epsilon),
         error = function(e) stop(id, " calibration size ", k, ": ", conditionMessage(e), call. = FALSE))
     }
     folds
@@ -762,9 +756,10 @@ fit_vennabers <- function(x, y, base_workflow, outcome, parameters, ...) {
   empty = function(classes) numeric(),
   truth = function(y, assessment, classes, event) y[assessment],
   calibrate = function(records, fold, settings) {
-    do.call(.va, c(list(unlist(lapply(records, `[[`, "truth"), use.names = FALSE),
-                        unlist(lapply(records, `[[`, "prediction"), use.names = FALSE), fold,
-                        inductive = venn_abers_regression, cross = cross_venn_abers_regression), moderation))
+    .va(unlist(lapply(records, `[[`, "truth"), use.names = FALSE),
+        unlist(lapply(records, `[[`, "prediction"), use.names = FALSE), fold,
+        m = settings$m, epsilon = settings$epsilon,
+        inductive = .venn_abers_regression, cross = .cross_venn_abers_regression)
   },
   predict = function(calibrator, points, details, classes, event, loss) {
     calibrated <- stats::predict(calibrator, .va_newdata(calibrator, points, function(p) do.call(cbind, p)))
@@ -941,16 +936,20 @@ predict_vennabers_class <- function(object, new_data) {
 predict._vennabers_fit <- function(object, new_data, type = NULL, opts = list(), ..., loss = NULL) {
   .integration_dots(...)
   if (!is.null(object$fit$schema)) .schema_encoded_data(new_data, object$fit$schema)
-  if (!missing(loss)) {
-    if (object$fit$parameters$requested$mode == "regression") {
-      stop("Regression does not accept `loss`.", call. = FALSE)
-    }
-    .validate_choice(loss, c("log", "brier"), "loss")
-    object$fit$loss <- loss
-  }
+  if (!missing(loss)) object$fit <- .with_loss(object$fit, loss)
   if (!is.null(type)) .validate_choice(type,
     if (object$fit$parameters$requested$mode == "regression") "numeric" else c("prob", "class"), "type")
   .bind_schema(parsnip::predict.model_fit(object, new_data, type = type, opts = opts), object$fit$schema)
+}
+
+# A prediction-time loss replaces the fitted one; regression has none.
+.with_loss <- function(state, loss) {
+  if (state$parameters$requested$mode == "regression") {
+    stop("Regression does not accept `loss`.", call. = FALSE)
+  }
+  .validate_choice(loss, c("log", "brier"), "loss")
+  state$loss <- loss
+  state
 }
 
 #' @export
@@ -963,13 +962,7 @@ venn_abers_details <- function(object, new_data, ..., loss = NULL) {
     stop("`object` must be a fitted calibrated_workflow() or calibrate_workflow().", call. = FALSE)
   }
   if (!frozen && !is.null(state$schema)) .schema_encoded_data(new_data, state$schema)
-  if (!missing(loss)) {
-    if (state$parameters$requested$mode == "regression") {
-      stop("Regression does not accept `loss`.", call. = FALSE)
-    }
-    .validate_choice(loss, c("log", "brier"), "loss")
-    state$loss <- loss
-  }
+  if (!missing(loss)) state <- .with_loss(state, loss)
   predictors <- if (frozen) .frozen_data(state, new_data) else
     hardhat::forge(new_data, blueprint = workflows::extract_mold(object)$blueprint)$predictors
   result <- .integration_prediction(state, predictors, include_details = TRUE)

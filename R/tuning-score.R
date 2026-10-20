@@ -19,11 +19,11 @@
     result <- rlang::inject(metric(frame, truth = !!rlang::sym(outcome), estimate = !!rlang::sym(".pred")))
   } else if (inherits(metric, "class_metric")) {
     frame$.pred_class <- .class_decision(predictions[expected], classes,
-      if (classification == "binary") classes[if (event_level == "first") 1L else 2L])
+      if (classification == "binary") .event_class(classes, event_level))
     result <- rlang::inject(metric(frame, truth = !!rlang::sym(outcome),
                                    estimate = !!rlang::sym(".pred_class"), event_level = event_level))
   } else if (inherits(metric, "prob_metric")) {
-    columns <- if (length(classes) == 2L) expected[if (event_level == "first") 1L else 2L] else expected
+    columns <- if (length(classes) == 2L) .event_class(expected, event_level) else expected
     result <- rlang::inject(metric(frame, truth = !!rlang::sym(outcome),
                                    !!!rlang::syms(columns), event_level = event_level))
   } else stop("Only probability or class metrics are supported for classification tuning.", call. = FALSE)
