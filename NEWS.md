@@ -109,7 +109,7 @@
 - Maintainer decision (2026-10-04): the Tailor multinomial P fit keeps
   probably's fixed limit of 100 `nnet::multinom()` iterations and its complete
   failure with context. This is an accepted limit of the 1.x contract, with no
-  `maxit` option. README, `?calibrated_workflow` and the installed examples
+  `maxit` option. The workflows guide, `?workflow_postprocessing` and the installed examples
   `tailor-multiclass-holdout.R`, `multiclass-ensemble.R` and
   `full-postprocessing.R` describe it: a B engine's `maxit` setting does not
   change the P postprocessor's limit, and numerical VA parity on identical
