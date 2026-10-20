@@ -3,7 +3,7 @@ plot.venn_abers <- function(x, which = "map", loss = "log", ...) {
   which <- .plot_which(which)
   .validate_choice(loss, c("log", "brier"), "loss")
   if (!is.null(x$classes)) return(.plot_multiclass(x, which, loss, ...))
-  .plot_fit_panels(list(.fit_map_table(x, loss)), "", which, loss, ...)
+  .plot_fit_panels(list(.fit_map_table(x, .probability_tables(loss))), "", which, .probability_family(loss), ...)
 }
 
 #' @export
@@ -11,7 +11,17 @@ plot.cross_venn_abers <- function(x, which = "map", loss = "log", ...) {
   which <- .plot_which(which)
   .validate_choice(loss, c("log", "brier"), "loss")
   if (!is.null(x$classes)) return(.plot_multiclass(x, which, loss, ...))
-  .plot_fit_panels(list(.fit_map_table(x, loss)), "", which, loss, ...)
+  .plot_fit_panels(list(.fit_map_table(x, .probability_tables(loss))), "", which, .probability_family(loss), ...)
+}
+
+#' @export
+plot.venn_abers_regression <- function(x, which = "map", ...) {
+  .plot_regression(x, which, ...)
+}
+
+#' @export
+plot.cross_venn_abers_regression <- function(x, which = "map", ...) {
+  .plot_regression(x, which, ...)
 }
 
 # The diagrams of a fit diagnosis, always drawn map before width.
@@ -34,18 +44,18 @@ plot.cross_venn_abers <- function(x, which = "map", loss = "log", ...) {
   if (!all(c("knots", "lower", "upper") %in% names(calibrator))) .stop_stored_map()
 }
 
-# The map table of a binary calibrator, Cross fits leading with their stored
-# fold IDs and stacking the map of every fold calibrator.
-.fit_map_table <- function(x, loss) {
-  if (!inherits(x, "cross_venn_abers")) {
-    .validate_stored_map(x)
-    return(.map_table(x, loss))
-  }
-  if (is.null(x$folds) || length(x$calibrators) != length(x$folds)) .stop_stored_map()
-  for (calibrator in x$calibrators) .validate_stored_map(calibrator)
+# The map table of a binary or regression calibrator, Cross fits leading
+# with their stored fold IDs and stacking the map of every fold calibrator.
+# `map_tables` turns the checked calibrators into one table each.
+.fit_map_table <- function(x, map_tables) {
+  cross <- inherits(x, c("cross_venn_abers", "cross_venn_abers_regression"))
+  if (cross && (is.null(x$folds) || length(x$calibrators) != length(x$folds))) .stop_stored_map()
+  calibrators <- if (cross) x$calibrators else list(x)
+  for (calibrator in calibrators) .validate_stored_map(calibrator)
+  tables <- map_tables(calibrators)
+  if (!cross) return(tables[[1L]])
   tables <- lapply(seq_along(x$folds), function(k) {
-    table <- .map_table(x$calibrators[[k]], loss)
-    data.frame(fold = rep(x$folds[k], nrow(table)), table)
+    data.frame(fold = rep(x$folds[k], nrow(tables[[k]])), tables[[k]])
   })
   do.call(rbind, tables)
 }
@@ -59,7 +69,7 @@ plot.cross_venn_abers <- function(x, which = "map", loss = "log", ...) {
   problems <- if (ovr) as.list(x$classes) else x$pairs
   if (length(x$calibrators) != length(problems)) .stop_stored_map()
   tables <- lapply(seq_along(problems), function(i) {
-    table <- .fit_map_table(x$calibrators[[i]], loss)
+    table <- .fit_map_table(x$calibrators[[i]], .probability_tables(loss))
     if (!is.null(table$fold)) table <- table[order(match(table$fold, x$folds)), ]
     problem <- problems[[i]]
     n <- nrow(table)
@@ -69,22 +79,75 @@ plot.cross_venn_abers <- function(x, which = "map", loss = "log", ...) {
     data.frame(table[lead], identity, table[!lead])
   })
   titles <- vapply(problems, paste, "", collapse = " vs ")
-  .plot_fit_panels(tables, paste0(": ", titles), which, loss, ...)
+  .plot_fit_panels(tables, paste0(": ", titles), which, .probability_family(loss), ...)
 }
 
 # One row per knot plus the range ends, valued by predict() so the knot
 # convention holds exactly.
-.map_table <- function(calibrator, loss) {
-  score <- sort(unique(c(0, calibrator$knots, 1)))
-  map <- stats::predict(calibrator, score, loss = loss)
-  data.frame(score = score, map, width = map$upper - map$lower)
+.probability_tables <- function(loss) {
+  function(calibrators) lapply(calibrators, function(calibrator) {
+    score <- sort(unique(c(0, calibrator$knots, 1)))
+    map <- stats::predict(calibrator, score, loss = loss)
+    data.frame(score = score, map, width = map$upper - map$lower)
+  })
+}
+
+# How the maps of a family are drawn: the point column and its value between
+# knots, the default axes, and the reference lines of the map.
+.probability_family <- function(loss) {
+  list(point = "probability", label = "Regularized probability",
+       between = function(lower, upper, fold) .regularized_probability(lower, upper, loss),
+       axes = list(xlim = c(0, 1), xlab = "Uncalibrated probability"),
+       map = list(ylim = c(0, 1), yaxs = "i", ylab = "Calibrated probability"),
+       reference = function() graphics::abline(a = 0, b = 1, lty = 3, col = "grey60"))
+}
+
+# Regression maps span the knots of all folds with a 5 % margin on each side,
+# or a given `xlim`, keeping the knots within. References mark each `a` and
+# `b`, the bounds of every VA value.
+.plot_regression <- function(x, which, ...) {
+  which <- .plot_which(which)
+  graphical <- list(...)
+  if ("loss" %in% names(graphical)) stop("Regression does not accept `loss`.", call. = FALSE)
+  table <- .fit_map_table(x, function(calibrators) {
+    ends <- graphical[["xlim"]]
+    ends <- if (is.numeric(ends) && length(ends) == 2L && all(is.finite(ends))) sort(ends) else
+      .regression_range(unlist(lapply(calibrators, `[[`, "knots")))
+    lapply(calibrators, function(calibrator) {
+      knots <- calibrator$knots
+      score <- sort(unique(c(ends, knots[knots >= ends[1L] & knots <= ends[2L]])))
+      map <- stats::predict(calibrator, score)
+      data.frame(score = score, map[c("lower", "upper", "prediction")], width = map$upper - map$lower)
+    })
+  })
+  calibrators <- if (inherits(x, "cross_venn_abers_regression")) x$calibrators else list(x)
+  references <- unique(unlist(lapply(calibrators, `[`, c("a", "b"))))
+  family <- list(
+    point = "prediction", label = "Point prediction",
+    between = function(lower, upper, fold) {
+      calibrator <- calibrators[[if (is.null(fold)) 1L else match(fold, x$folds)]]
+      .regression_point(lower, upper, calibrator$a, calibrator$b)
+    },
+    axes = list(xlim = range(table$score), xlab = "Uncalibrated prediction"),
+    map = list(ylim = range(references), ylab = "Calibrated prediction"),
+    reference = function() graphics::abline(h = references, lty = 2, col = "grey60"))
+  .plot_fit_panels(list(table), "", which, family, ...)
+}
+
+# The knot range widened by 5 % of its span on each side, or of the absolute
+# value of a single knot (0.05 at zero), within the finite doubles.
+.regression_range <- function(knots) {
+  ends <- range(knots)
+  margin <- (ends[2L] / 2 - ends[1L] / 2) / 10
+  if (margin == 0) margin <- if (ends[1L] == 0) 1 / 20 else abs(ends[1L]) / 20
+  pmin(pmax(ends + c(-margin, margin), -.Machine$double.xmax), .Machine$double.xmax)
 }
 
 # Draws the chosen diagrams of each map table, one panel each, overlaying fold
 # maps. Tables fill a grid row by row, and below each row of maps follow the
 # widths of the same tables. Returns the stacked tables invisibly whatever
 # `which` holds.
-.plot_fit_panels <- function(tables, titles, which, loss, ...) {
+.plot_fit_panels <- function(tables, titles, which, family, ...) {
   rows <- ceiling(sqrt(length(tables)))
   columns <- ceiling(length(tables) / rows)
   if (length(tables) * length(which) > 1L) {
@@ -94,7 +157,7 @@ plot.cross_venn_abers <- function(x, which = "map", loss = "log", ...) {
   for (start in seq(1L, length(tables), by = columns)) {
     row <- start:min(start + columns - 1L, length(tables))
     for (diagram in which) {
-      for (i in row) .plot_fit_diagram(tables[[i]], titles[i], diagram, loss, ...)
+      for (i in row) .plot_fit_diagram(tables[[i]], titles[i], diagram, family, ...)
       if (diagram != which[length(which)]) for (i in seq_len(columns - length(row))) graphics::plot.new()
     }
   }
@@ -103,50 +166,47 @@ plot.cross_venn_abers <- function(x, which = "map", loss = "log", ...) {
   invisible(table)
 }
 
-.plot_fit_diagram <- function(table, title, diagram, loss, ...) {
+.plot_fit_diagram <- function(table, title, diagram, family, ...) {
   maps <- if (is.null(table$fold)) list(table) else split(table, factor(table$fold, unique(table$fold)))
-  paths <- lapply(maps, .map_paths, loss = loss)
+  paths <- lapply(maps, .map_paths, family = family)
   colors <- if (length(maps) > 1L) grDevices::hcl.colors(length(maps), "Dark 3") else "black"
   width <- max(unlist(lapply(paths, function(path) path$width$y)), .Machine$double.eps)
-  options <- utils::modifyList(list(
-    x = 0:1, y = 0:1, type = "n",
-    xlim = c(0, 1), ylim = c(0, if (diagram == "map") 1 else 1.05 * width),
-    xaxs = "i", yaxs = "i",
-    xlab = "Uncalibrated probability",
-    ylab = if (diagram == "map") "Calibrated probability" else "Upper minus lower",
-    main = paste0(if (diagram == "map") "Calibration map" else "VA width", title)
+  vertical <- if (diagram == "map") family$map else
+    list(ylim = c(0, 1.05 * width), yaxs = "i", ylab = "Upper minus lower")
+  options <- utils::modifyList(c(
+    list(x = 0:1, y = 0:1, type = "n", xaxs = "i"), family$axes, vertical,
+    list(main = paste0(if (diagram == "map") "Calibration map" else "VA width", title))
   ), list(...))
   do.call(graphics::plot, options)
-  if (diagram == "map") graphics::abline(a = 0, b = 1, lty = 3, col = "grey60")
+  if (diagram == "map") family$reference()
   for (k in seq_along(paths)) {
-    curves <- if (diagram == "map") paths[[k]][c("lower", "upper", "probability")] else paths[[k]]["width"]
+    curves <- if (diagram == "map") paths[[k]][c("lower", "upper", family$point)] else paths[[k]]["width"]
     for (curve in names(curves)) {
-      graphics::lines(curves[[curve]], col = colors[k], lty = if (curve == "probability") 2 else 1)
+      graphics::lines(curves[[curve]], col = colors[k], lty = if (curve == family$point) 2 else 1)
     }
   }
-  .fit_legend(diagram, names(maps), colors)
+  .fit_legend(diagram, family$label, names(maps), colors)
 }
 
 # Exact drawing paths of a map table. Between neighbouring rows the lower
 # value of the left row and the upper value of the right row hold, so each
 # curve is constant there and jumps vertically to its value at a knot.
-.map_paths <- function(map, loss) {
+.map_paths <- function(map, family) {
   last <- nrow(map)
   lower <- map$lower[-last]
   upper <- map$upper[-1L]
-  between <- list(lower = lower, upper = upper,
-                  probability = .regularized_probability(lower, upper, loss),
-                  width = upper - lower)
+  between <- list(lower = lower, upper = upper, width = upper - lower)
+  between[[family$point]] <- family$between(lower, upper, map$fold[1L])
   x <- c(rbind(map$score[-last], map$score[-last], map$score[-1L]), map$score[last])
   lapply(stats::setNames(names(between), names(between)), function(curve) {
     list(x = x, y = c(rbind(map[[curve]][-last], between[[curve]], between[[curve]]), map[[curve]][last]))
   })
 }
 
-.fit_legend <- function(diagram, folds, colors) {
+.fit_legend <- function(diagram, point, folds, colors) {
   if (length(folds)) folds <- paste("Fold", folds)
   if (diagram == "map") {
-    labels <- c("VA bounds", "Regularized probability")
+    labels <- c("VA bounds", point)
     graphics::legend("topleft", c(labels, folds), lty = c(1, 2, rep(1, length(folds))),
                      col = c("black", "black", if (length(folds)) colors), bty = "n", cex = .8)
   } else if (length(folds)) {
