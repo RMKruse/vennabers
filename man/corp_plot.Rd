@@ -19,15 +19,18 @@ corp_decomposition_plot(truth, probability, ...)
   \code{\link{venn_abers}}, never the internal pair probabilities.}
   \item{band}{Exactly one of \code{"consistency"} (default),
   \code{"confidence"}, or \code{"none"}: the uncertainty band drawn with the
-  CORP estimate. Bands other than \code{"none"} are not yet available and
-  stop with an error, so the default does too.}
+  CORP estimate: the pointwise consistency band around the diagonal, the
+  approximate pointwise confidence band around the estimate, or none. See
+  the section on uncertainty bands.}
   \item{level}{One number strictly between 0 and 1: the pointwise level of
   the band.}
   \item{replicates}{One finite whole number of at least 1: the resampling
   replicates of the band. \code{replicates * (1 - level) / 2} must be at
   least 1, so that each band quantile has a replicate beyond it.}
   \item{seed}{\code{NULL} or one integer in R's seed range for the band
-  replicates.}
+  replicates. With a seed, the band is reproducible and the caller's random
+  state is left unchanged; without one, the band draws from and advances the
+  global random stream.}
   \item{...}{Base R graphical options passed to \code{plot()} in
   \code{corp_plot()} and to \code{barplot()} in
   \code{corp_decomposition_plot()}, taking precedence over the defaults in
@@ -39,10 +42,12 @@ probability in increasing order and the same columns whatever \code{band}
 holds: \code{probability}, \code{estimate} (the CORP estimate of the
 conditional event probability), \code{count} (the pairs with this
 probability), \code{band_lower} and \code{band_upper} (the band limits),
-\code{valid_replicates} (the replicates the limits rest on), and the
+\code{valid_replicates} (the replicates defined at this probability, which
+the limits rest on), and the
 controls \code{band}, \code{level}, \code{replicates}, and \code{seed}, the
 same in every row. Without a band, \code{band_lower}, \code{band_upper},
-and \code{valid_replicates} are \code{NA}; without a seed, \code{seed} is
+and \code{valid_replicates} are \code{NA}, as they are when the confidence
+band is omitted; without a seed, \code{seed} is
 \code{NA}. The band limits are named apart from the Venn-Abers values
 \code{lower} and \code{upper}, which they are not.
 
@@ -85,12 +90,54 @@ Pairs are assumed independent. Both graphics describe the evaluation pairs
 given, conditional on the fitted calibrator; they make no statement about
 Venn-Abers validity.
 }
+\section{Uncertainty bands}{
+Both bands are computed by resampling as in the \pkg{reliabilitydiag}
+package (version 0.2.1). Each of the \code{replicates} draws the pairs with
+replacement, draws new events from the drawn probabilities themselves
+(consistency band) or from the CORP estimate at them (confidence band), fits
+PAV again with ties pooled, and interpolates that fit linearly at the unique
+probabilities, leaving it missing outside the drawn range. The band limits
+at each probability are the \code{(1 - level) / 2} and
+\code{(1 + level) / 2} quantiles of its valid replicates
+(\code{\link[stats]{quantile}}, type 7), so they lie in \code{[0, 1]} and
+equal probabilities share them. The band is drawn as a translucent grey area
+with a legend naming it; the limits are linearly interpolated between the
+unique probabilities.
+
+The consistency band shows where the CORP estimate of a perfectly
+calibrated forecast with these probabilities would fall; an estimate outside
+it points to miscalibration there. It is a reference region, not a test of
+Venn-Abers validity. The confidence band resamples from the estimate itself
+and is only approximate: the bootstrap of an isotonic fit is not consistent
+for continuous probabilities, so the band claims no nominal coverage. It
+fares better with few distinct probabilities and many pairs at each, as
+Venn-Abers calibrators often produce. At inner probabilities with an
+estimate of exactly 0 or 1, the confidence limits are interpolated linearly
+from the neighbouring probabilities, a heuristic of the reference; at the
+smallest and largest probabilities the band stays narrow there. When the
+pairs (for factor truth, of a class) hold only one outcome, the confidence
+band is omitted with a warning and its limits are \code{NA}; the consistency
+band depends on the probabilities only and is always computed.
+
+Both bands are pointwise at \code{level} for each probability, not
+simultaneous over the curve, and for factor truth they are computed class by
+class without joint coverage across classes. They assume independent pairs;
+dependent data such as time series or clusters need other methods. Small
+assessment sets give wide bands that say little. The band limits are not
+Venn-Abers lower and upper probabilities.
+
+The cost grows with \code{replicates} times the number of pairs, each
+replicate sorting them, and the replicate values at every unique
+probability are held in memory at once.
+}
 \section{Multiclass}{
 Every factor, even with two levels, is evaluated class by class: each class
 against the rest, using its final probability. \code{corp_plot()} draws one
 panel per class, titled \code{"CORP: <class>"}, in its own nearly square grid
 as in \code{\link{calibration_plot}}, and restores the previous graphical
-parameters on exit, also after errors. \code{corp_decomposition_plot()}
+parameters on exit, also after errors. Its bands draw the replicates of the
+classes in turn from one random stream, set once by \code{seed}.
+\code{corp_decomposition_plot()}
 draws one panel of the components grouped side by side, one bar and legend
 entry per class, without a combined value.
 
@@ -117,6 +164,7 @@ fitting <- 1:200
 calibrator <- venn_abers(truth[fitting], score[fitting])
 assessment <- predict(calibrator, score[-fitting])$probability
 
-corp_plot(truth[-fitting], assessment, band = "none")
+corp_plot(truth[-fitting], assessment, seed = 1)
+corp_plot(truth[-fitting], assessment, band = "confidence", replicates = 199, seed = 1)
 corp_decomposition_plot(truth[-fitting], assessment)
 }

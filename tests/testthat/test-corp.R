@@ -144,8 +144,108 @@ for (bad in list(1.5, NA_real_, c(1, 2), "1", .Machine$integer.max + 1, -.Machin
         "`seed` must be NULL or one integer in R's seed range.")
 }
 
-# Bands are not computed yet; both stop clearly, including by default.
-error(corp_plot(c(0, 1), c(.1, .2)), "`band = \"consistency\"` is not available yet; use `band = \"none\"`.")
-error(corp_plot(c(0, 1), c(.1, .2), band = "confidence"),
-      "`band = \"confidence\"` is not available yet; use `band = \"none\"`.")
+# Bands: limits in [0, 1] around the estimate, one row per unique
+# probability, resting on at most `replicates` replicates each.
+warned <- function(expr) {
+  messages <- character()
+  value <- withCallingHandlers(expr, warning = function(w) {
+    messages <<- c(messages, conditionMessage(w))
+    invokeRestart("muffleWarning")
+  })
+  list(value = value, messages = messages)
+}
+bands <- c("band_lower", "band_upper", "valid_replicates")
+set.seed(20261021)
+values <- stats::runif(60)
+events <- stats::rbinom(60, 1, values^2)
+for (band in c("consistency", "confidence")) {
+  for (x in list(values, round(values, 1))) {
+    drawn <- withVisible(corp_plot(events, x, band = band, replicates = 199, seed = 11))
+    curve <- drawn$value
+    assert_conditions(!drawn$visible, identical(names(curve), columns),
+                      identical(curve$probability, sort(unique(x))),
+                      identical(curve$estimate, corp_plot(events, x, band = "none")$estimate),
+                      is.double(curve$band_lower), is.integer(curve$valid_replicates),
+                      !anyNA(curve$band_lower), !anyNA(curve$band_upper),
+                      all(curve$band_lower >= 0), all(curve$band_upper <= 1),
+                      all(curve$band_lower <= curve$band_upper),
+                      all(curve$valid_replicates >= 1L), all(curve$valid_replicates <= 199L),
+                      identical(curve$band, rep(band, nrow(curve))),
+                      identical(curve$replicates, rep(199L, nrow(curve))),
+                      identical(curve$seed, rep(11L, nrow(curve))))
+  }
+}
+# The consistency band surrounds the diagonal; ties pool in every replicate,
+# so a probability drawn in each replicate has all of them valid.
+curve <- corp_plot(events, round(values, 1), replicates = 199, seed = 11)
+inner <- curve$probability > .1 & curve$probability < .9
+assert_conditions(all(curve$band_lower[inner] <= curve$probability[inner]),
+                  all(curve$band_upper[inner] >= curve$probability[inner]),
+                  all(curve$valid_replicates[inner] == 199L))
+
+# The defaults: a consistency band at 0.9 from 1000 replicates.
+curve <- corp_plot(events, values, seed = 3)
+assert_conditions(identical(curve$band, rep("consistency", 60L)), identical(curve$level, rep(.9, 60L)),
+                  identical(curve$replicates, rep(1000L, 60L)), !anyNA(curve$band_lower),
+                  max(curve$valid_replicates) == 1000L)
+
+# Inner probabilities with a confidence estimate of exactly 0 or 1 take limits
+# interpolated linearly from the smallest and largest probability.
+probabilities <- (1:6) / 7
+curve <- corp_plot(c(0, 0, 0, 1, 1, 1), probabilities, band = "confidence", replicates = 199, seed = 5)
+inner <- 2:5
+assert_conditions(identical(curve$estimate, c(0, 0, 0, 1, 1, 1)),
+                  isTRUE(all.equal(curve$band_lower[inner], stats::approx(probabilities[c(1, 6)],
+                    curve$band_lower[c(1, 6)], xout = probabilities[inner])$y)),
+                  isTRUE(all.equal(curve$band_upper[inner], stats::approx(probabilities[c(1, 6)],
+                    curve$band_upper[c(1, 6)], xout = probabilities[inner])$y)))
+
+# A single outcome omits the confidence band with a warning; the consistency
+# band depends on the probabilities only.
+omitted <- warned(corp_plot(c(0, 0, 0), c(.2, .5, .7), band = "confidence", replicates = 199, seed = 1))
+assert_conditions(identical(omitted$messages, "Confidence band omitted: `truth` has only one outcome."),
+                  all(is.na(omitted$value$band_lower)), all(is.na(omitted$value$band_upper)),
+                  all(is.na(omitted$value$valid_replicates)),
+                  identical(omitted$value$band, rep("confidence", 3L)))
+kept <- warned(corp_plot(c(1, 1, 1), c(.2, .5, .7), replicates = 199, seed = 1))
+assert_conditions(length(kept$messages) == 0L, !anyNA(kept$value$band_lower))
+single <- corp_plot(1, .4, replicates = 199, seed = 1)
+assert_conditions(identical(single$valid_replicates, 199L), single$band_lower <= .4, single$band_upper >= .4)
+lonely <- factor(c("a", "a", "b", "b"), levels = classes)
+shares <- cbind(a = c(.6, .5, .3, .2), b = c(.3, .3, .5, .6), c = c(.1, .2, .2, .2))
+omitted <- warned(corp_plot(lonely, shares, band = "confidence", replicates = 199, seed = 1))
+assert_conditions(identical(omitted$messages,
+                            "Confidence band omitted: `truth` has only one outcome for class \"c\"."),
+                  all(is.na(omitted$value$band_lower[omitted$value$class == "c"])),
+                  !anyNA(omitted$value$band_lower[omitted$value$class != "c"]))
+
+# A seed reproduces the band and leaves the caller's random state and RNG
+# kind as they were; one seed covers all classes in turn, so the first class
+# matches its binary call.
+set.seed(99)
+state <- get(".Random.seed", envir = globalenv())
+kind <- RNGkind()
+first <- corp_plot(events, values, replicates = 199, seed = 4)
+assert_conditions(identical(get(".Random.seed", envir = globalenv()), state), identical(RNGkind(), kind),
+                  identical(corp_plot(events, values, replicates = 199, seed = 4), first),
+                  !identical(corp_plot(events, values, replicates = 199, seed = 5)[bands], first[bands]))
+saved <- get(".Random.seed", envir = globalenv())
+rm(".Random.seed", envir = globalenv())
+corp_plot(events, values, replicates = 199, seed = 4)
+absent <- !exists(".Random.seed", envir = globalenv(), inherits = FALSE)
+assign(".Random.seed", saved, envir = globalenv())
+assert_conditions(absent)
+curves <- corp_plot(truth, probability, replicates = 199, seed = 4)
+own <- curves[curves$class == "a", columns]
+rownames(own) <- NULL
+assert_conditions(identical(own, corp_plot(truth == "a", probability[, "a"], replicates = 199, seed = 4)),
+                  identical(graphics::par("mfrow"), layout))
+
+# Without a seed, the band draws from the global stream and advances it, as
+# the seeded call does from set.seed().
+set.seed(4)
+unseeded <- corp_plot(events, values, replicates = 199)
+assert_conditions(!identical(get(".Random.seed", envir = globalenv()), state),
+                  identical(unseeded$seed, rep(NA_integer_, 60L)),
+                  identical(unseeded[bands], first[bands]))
 })
