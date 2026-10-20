@@ -310,3 +310,140 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
 
   testthat::expect_true(TRUE)
 })
+
+testthat::test_that("fit diagnoses of frozen and trained workflows show their VA calibrators", {
+library(vennabers)
+source(system.file("examples", "assertions.R", package = "vennabers"))
+
+packages <- c("parsnip", "workflows", "hardhat", "rsample", "recipes", "nnet",
+              "rlang", "tibble", "withr", "generics", "tidyselect")
+if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
+  error <- function(expr, text) {
+    e <- tryCatch(force(expr), error = identity)
+    if (!inherits(e, "error") || !grepl(text, conditionMessage(e), fixed = TRUE)) {
+      stop("Expected ", text, ": ", if (inherits(e, "error")) conditionMessage(e) else "no error")
+    }
+  }
+  path <- tempfile(fileext = ".pdf")
+  grDevices::pdf(path)
+  layout <- graphics::par("mfrow")
+  # Every new panel records the grid it is drawn in.
+  grids <- list()
+  setHook("plot.new", function() grids[[length(grids) + 1L]] <<- graphics::par("mfrow"))
+  on.exit({ setHook("plot.new", NULL, "replace"); grDevices::dev.off(); unlink(path) })
+  panels <- function(expr) {
+    grids <<- list()
+    force(expr)
+    grids
+  }
+  values <- c("score", "lower", "upper", "probability", "width")
+
+  set.seed(911)
+  d <- data.frame(x = rnorm(180), z = rnorm(180))
+  d$truth <- factor(rep(c("third", "first", "second"), 60), levels = c("third", "first", "second"))
+  d$outcome <- 2 * d$x + d$z + rnorm(180)
+  two <- d[d$truth != "second", ]
+  two$truth <- droplevels(two$truth)
+  logistic <- workflows::workflow() |> workflows::add_formula(truth ~ x + z) |>
+    workflows::add_model(parsnip::logistic_reg(engine = "glm"))
+  multinomial <- workflows::workflow() |> workflows::add_formula(truth ~ x + z) |>
+    workflows::add_model(parsnip::multinom_reg(penalty = .1) |> parsnip::set_engine("nnet", trace = FALSE))
+  linear <- workflows::workflow() |> workflows::add_formula(outcome ~ x + z) |>
+    workflows::add_model(parsnip::linear_reg(engine = "lm"))
+
+  # Frozen fits plot their stored calibrator directly, with the stored loss
+  # as the default; trained fits plot through extract_fit_engine().
+  frozen <- list(
+    binary = calibrate_workflow(generics::fit(logistic, two[1:60, ]), two[61:120, ], "truth", loss = "brier"),
+    ovr = calibrate_workflow(generics::fit(multinomial, d[1:90, ]), d[91:180, ], "truth", classification = "ovr"),
+    ovo = calibrate_workflow(generics::fit(multinomial, d[1:90, ]), d[91:180, ], "truth", classification = "ovo",
+                             loss = "brier"))
+  trained <- list(
+    binary = generics::fit(calibrated_workflow(logistic, "truth", loss = "brier", seed = 7), two),
+    cross = generics::fit(calibrated_workflow(logistic, "truth", method = "cross", v = 3, seed = 7), two),
+    ovr = generics::fit(calibrated_workflow(multinomial, "truth", classification = "ovr", seed = 7), d),
+    ovo = generics::fit(calibrated_workflow(multinomial, "truth", classification = "ovo", method = "cross",
+                                            v = 3, loss = "brier", seed = 7), d))
+  fits <- c(frozen, lapply(trained, workflows::extract_fit_engine))
+  for (k in seq_along(fits)) {
+    fit <- fits[[k]]
+    stored <- fit$loss
+    other <- setdiff(c("log", "brier"), stored)
+    assert_conditions(inherits(fit, "vennabers_fit"), identical(k <= length(frozen), inherits(fit, "vennabers_frozen")),
+                      !identical(plot(fit), plot(fit, loss = other)))
+    drawn <- withVisible(plot(fit, c("width", "map")))
+    assert_conditions(!drawn$visible, identical(drawn$value, plot(fit$calibrator, "map", loss = stored)),
+                      identical(plot(fit, loss = other), plot(fit$calibrator, loss = other)),
+                      identical(graphics::par("mfrow"), layout))
+  }
+
+  # Regression delegates without a loss; passing one is an error.
+  regression <- list(
+    frozen = calibrate_workflow(generics::fit(linear, d[1:90, ]), d[91:180, ], "outcome"),
+    trained = workflows::extract_fit_engine(generics::fit(
+      calibrated_workflow(linear, "outcome", method = "cross", v = 3, seed = 7), d)))
+  for (fit in regression) {
+    assert_conditions(identical(plot(fit, c("map", "width")), plot(fit$calibrator)),
+                      identical(plot(fit, xlim = c(-1, 1)), plot(fit$calibrator, xlim = c(-1, 1))))
+    for (bad in list("log", "brier", NULL)) error(plot(fit, loss = bad), "Regression does not accept `loss`.")
+  }
+
+  # Postprocessing models are source models before the VA calibrator: the
+  # map is that of the stored calibrator.
+  sigmoid <- workflows::extract_fit_engine(generics::fit(calibrated_workflow(logistic, "truth", seed = 7,
+    postprocessing = list(method = "sigmoid", sigmoid_input = "probability", strategy = "holdout", prop = .3)), two))
+  assert_conditions(!is.null(sigmoid$postprocessing), identical(plot(sigmoid), plot(sigmoid$calibrator)))
+
+  # Pairwise fits draw one panel per pair component; `pair_id` leads the
+  # identity columns, each pair's rows are the map of its own calibrator.
+  for (method in c("inductive", "cross")) {
+    cross <- method == "cross"
+    options <- list(logistic, "truth", classification = "ovo", model_training = "pairwise",
+                    method = method, seed = 7)
+    if (cross) options$v <- 3
+    fit <- workflows::extract_fit_engine(generics::fit(do.call(calibrated_workflow, options), d))
+    for (loss in c("log", "brier")) {
+      drawn <- panels(maps <- plot(fit, loss = loss))
+      assert_conditions(identical(names(maps), c("pair_id", if (cross) "fold", "class_1", "class_2", values)),
+                        identical(unique(maps$pair_id), names(fit$pair_models)),
+                        identical(rownames(maps), as.character(seq_len(nrow(maps)))),
+                        length(drawn) == 3L, identical(drawn[[1L]], c(2L, 2L)),
+                        identical(graphics::par("mfrow"), layout))
+      for (part in fit$pair_models) {
+        own <- maps[maps$pair_id == part$pair_id, ]
+        rownames(own) <- NULL
+        assert_conditions(all(own$class_1 == part$class_levels[1L]), all(own$class_2 == part$class_levels[2L]),
+                          identical(own[setdiff(names(own), c("pair_id", "class_1", "class_2"))],
+                                    plot(part$calibrator, loss = loss)))
+      }
+    }
+    assert_conditions(identical(plot(fit), plot(fit, loss = fit$loss)))
+    drawn <- panels(both <- plot(fit, c("width", "map")))
+    assert_conditions(identical(both, plot(fit)), length(drawn) == 7L,
+                      all(vapply(drawn, identical, TRUE, c(4L, 2L))),
+                      identical(graphics::par("mfrow"), layout))
+    error(plot(fit, ylim = "bad"), "ylim")
+    assert_conditions(identical(graphics::par("mfrow"), layout))
+    for (bad in list("hinge", NA_character_)) error(plot(fit, loss = bad), "`loss` must be one of: log, brier.")
+    error(plot(fit, which = "fit"), "`which` must be one or more distinct values of: map, width.")
+    broken <- fit
+    broken$pair_models[[2L]]$calibrator <- NULL
+    error(plot(broken), "`x` must be a fitted calibrated_workflow() or calibrate_workflow().")
+    broken$pair_models <- NULL
+    error(plot(broken), "`x` must be a fitted calibrated_workflow() or calibrate_workflow().")
+  }
+
+  # A fit without a VA calibrator stops clearly.
+  for (fit in c(fits[c(1L, length(frozen) + 2L)], regression)) {
+    broken <- fit
+    broken$calibrator <- NULL
+    error(plot(broken), "`x` must be a fitted calibrated_workflow() or calibrate_workflow().")
+    broken$calibrator <- unclass(fit$calibrator)
+    error(plot(broken), "`x` must be a fitted calibrated_workflow() or calibrate_workflow().")
+  }
+  error(plot(structure(list(), class = "vennabers_fit")),
+        "`x` must be a fitted calibrated_workflow() or calibrate_workflow().")
+})
+
+testthat::expect_true(TRUE)
+})
