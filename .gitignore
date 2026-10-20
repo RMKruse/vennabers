@@ -53,3 +53,7 @@ docs/
 !/tools/build-docs.R
 # Keep the executable XGBoost early-stopping check (xgboost is not in Suggests).
 !/tools/xgboost-early-stopping.R
+
+
+# research folger
+research
