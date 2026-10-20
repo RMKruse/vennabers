@@ -3,6 +3,7 @@
 \alias{plot.cross_venn_abers}
 \alias{plot.venn_abers_regression}
 \alias{plot.cross_venn_abers_regression}
+\alias{plot.vennabers_fit}
 \title{Plot the Calibration Map of a Fitted Venn-Abers Calibrator}
 \usage{
 \method{plot}{venn_abers}(x, which = "map", loss = "log", ...)
@@ -12,11 +13,16 @@
 \method{plot}{venn_abers_regression}(x, which = "map", ...)
 
 \method{plot}{cross_venn_abers_regression}(x, which = "map", ...)
+
+\method{plot}{vennabers_fit}(x, which = "map", loss = x$loss, ...)
 }
 \arguments{
   \item{x}{A fitted binary or multiclass \code{venn_abers} or
   \code{cross_venn_abers} object, or a fitted \code{venn_abers_regression} or
-  \code{cross_venn_abers_regression} object.}
+  \code{cross_venn_abers_regression} object. For \code{plot.vennabers_fit},
+  a frozen fit from \code{\link{calibrate_workflow}} or the engine fit of a
+  trained \code{\link{calibrated_workflow}}, extracted with
+  \code{workflows::extract_fit_engine()}; see the Workflows section.}
   \item{which}{A character vector of distinct diagrams from \code{"map"}
   (default), the calibration map, and \code{"width"}, the Venn-Abers width
   \code{upper - lower}. Both draw the map before the width, whatever their
@@ -24,7 +30,8 @@
   \item{loss}{Exactly \code{"log"} (default) or \code{"brier"}: the
   regularization of the drawn and returned probability, as in
   \code{\link{predict.venn_abers}}. Classification only: regression methods
-  take no \code{loss}, and passing one is an error.}
+  take no \code{loss}, and passing one is an error. For a workflow fit,
+  the default is the \code{loss} stored at fitting.}
   \item{...}{Base R graphical options passed to \code{plot()}, taking
   precedence over the defaults in every panel. For regression, \code{xlim}
   also sets the range of the returned table.}
@@ -52,6 +59,12 @@ For regression, the columns are \code{score}, \code{lower}, \code{upper},
 \code{prediction}, and \code{width}, after \code{fold} for
 \code{cross_venn_abers_regression}, with the values of \code{predict()} at
 \code{score}. The range ends replace 0 and 1; see the Regression section.
+
+For a workflow fit, the table is that of its stored Venn-Abers calibrator.
+A pairwise fit stacks the tables of its pair components in stored order,
+led by the identity columns \code{pair_id}, then \code{fold} for Cross
+fits, then \code{class_1} and \code{class_2}, as in
+\code{\link{venn_abers_details}}.
 
 Between neighbouring rows, the map holds the \code{lower} value of the left
 row and the \code{upper} value of the right row, so the width between knots
@@ -106,6 +119,23 @@ a reference line at each fold's \code{a} and \code{b}, and returns every
 fold map over this shared range. A finite \code{xlim} in \code{...}
 replaces the range: the table then holds its ends and the knots within.
 }
+\section{Workflows}{
+\code{plot()} on a frozen fit from \code{\link{calibrate_workflow}}, and on
+\code{workflows::extract_fit_engine(fit)} for a trained
+\code{\link{calibrated_workflow}}, draws the fit diagnosis of the stored
+Venn-Abers calibrator: binary, multiclass, or regression, inductive or
+Cross, as described above for that calibrator, with the same table. There is
+no method for the workflow itself. Postprocessing models (sigmoid, tailor,
+isotonic, or their ensembles) are source models before the calibrator: the
+map shows the calibrator over their output, not the postprocessing step.
+
+A pairwise fit (\code{model_training = "pairwise"}) draws one panel per pair
+component and diagram, titled \code{"Calibration map: <class_1> vs <class_2>"},
+in a grid as for multiclass fits. Each panel shows the binary calibrator of
+its pair over the probability of \code{class_2} from that pair's own model.
+
+A fit without a stored Venn-Abers calibrator is an error.
+}
 \seealso{
 \code{\link{calibration_plot}} assesses calibration on held-out truth values.
 }
@@ -134,4 +164,17 @@ uncalibrated_prediction <- c(-2, 0, 0, 1, 2, 3, 3, 5, 6, 8)
 regression <- venn_abers_regression(outcome, uncalibrated_prediction)
 head(plot(regression, which = c("map", "width")))
 plot(regression, xlim = c(0, 5))
+if (all(vapply(c("parsnip", "workflows", "hardhat", "rsample", "recipes",
+                "rlang", "tibble", "withr", "generics", "tidyselect"),
+               requireNamespace, logical(1), quietly = TRUE))) {
+  d <- data.frame(x = sin(1:80), truth = factor(rep(c("yes", "no", "no", "yes"), 20)))
+  base <- workflows::workflow() |>
+    workflows::add_formula(truth ~ x) |>
+    workflows::add_model(parsnip::logistic_reg(engine = "glm"))
+  frozen <- calibrate_workflow(generics::fit(base, d[1:40, ]), d[41:80, ], "truth")
+  print(head(plot(frozen)))
+
+  trained <- generics::fit(calibrated_workflow(base, "truth", seed = 42), d)
+  plot(workflows::extract_fit_engine(trained), which = "width")
+}
 }

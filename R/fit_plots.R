@@ -24,6 +24,35 @@ plot.cross_venn_abers_regression <- function(x, which = "map", ...) {
   .plot_regression(x, which, ...)
 }
 
+# Workflow fits show their stored VA calibrators; postprocessing models are
+# source models before them. A shared fit delegates to its one calibrator, a
+# pairwise fit draws one panel per pair component.
+#' @export
+plot.vennabers_fit <- function(x, which = "map", loss = x$loss, ...) {
+  requested <- x$parameters$requested
+  components <- .fit_components(x)
+  calibrator_classes <- c("venn_abers", "cross_venn_abers", "venn_abers_regression", "cross_venn_abers_regression")
+  if (!length(components) ||
+      !all(vapply(components, function(part) inherits(part$calibrator, calibrator_classes), TRUE))) {
+    stop("`x` must be a fitted calibrated_workflow() or calibrate_workflow().", call. = FALSE)
+  }
+  if (identical(requested$mode, "regression")) {
+    if (!missing(loss)) stop("Regression does not accept `loss`.", call. = FALSE)
+    return(plot(x$calibrator, which, ...))
+  }
+  if (!identical(requested$model_training, "pairwise")) return(plot(x$calibrator, which, loss, ...))
+  which <- .plot_which(which)
+  .validate_choice(loss, c("log", "brier"), "loss")
+  .validate_pair_components(x)
+  # `pair_id` leads the identity columns, followed by the fold and the classes.
+  pairs <- lapply(unname(components), `[[`, "class_levels")
+  tables <- lapply(unname(components), function(part) {
+    .identify_map(.fit_map_table(part$calibrator, .probability_tables(loss)), list(pair_id = part$pair_id),
+                  list(class_1 = part$class_levels[1L], class_2 = part$class_levels[2L]))
+  })
+  .plot_fit_panels(tables, .pair_titles(pairs), which, .probability_family(loss), ...)
+}
+
 # The diagrams of a fit diagnosis, always drawn map before width.
 .plot_which <- function(which) {
   choices <- c("map", "width")
@@ -72,15 +101,22 @@ plot.cross_venn_abers_regression <- function(x, which = "map", ...) {
     table <- .fit_map_table(x$calibrators[[i]], .probability_tables(loss))
     if (!is.null(table$fold)) table <- table[order(match(table$fold, x$folds)), ]
     problem <- problems[[i]]
-    n <- nrow(table)
-    identity <- if (ovr) data.frame(class = rep(problem, n)) else
-      data.frame(class_1 = rep(problem[1L], n), class_2 = rep(problem[2L], n))
-    lead <- names(table) == "fold"
-    data.frame(table[lead], identity, table[!lead])
+    .identify_map(table, list(), if (ovr) list(class = problem) else
+      list(class_1 = problem[1L], class_2 = problem[2L]))
   })
-  titles <- vapply(problems, paste, "", collapse = " vs ")
-  .plot_fit_panels(tables, paste0(": ", titles), which, .probability_family(loss), ...)
+  .plot_fit_panels(tables, .pair_titles(problems), which, .probability_family(loss), ...)
 }
+
+# A map table with identity columns around its fold: `outer` before it,
+# `inner` after it, both before the values.
+.identify_map <- function(table, outer, inner) {
+  n <- nrow(table)
+  lead <- names(table) == "fold"
+  data.frame(c(lapply(outer, rep, n), table[lead], lapply(inner, rep, n), table[!lead]))
+}
+
+# Panel title suffixes, ": <class>" or ": <class_1> vs <class_2>".
+.pair_titles <- function(problems) paste0(": ", vapply(problems, paste, "", collapse = " vs "))
 
 # One row per knot plus the range ends, valued by predict() so the knot
 # convention holds exactly.
