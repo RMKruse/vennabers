@@ -1,6 +1,6 @@
 ## Status of this file
 
-Prepared on 2026-10-04 and updated on 2026-10-19 for the planned first CRAN
+Prepared on 2026-10-04 and updated on 2026-10-21 for the planned first CRAN
 submission of vennabers. Nothing has been submitted. So far the package has been checked in only one local
 environment, listed below. All other test environments are still open and must be
 added before submission.
@@ -11,24 +11,30 @@ Run so far:
 
 * Local macOS Tahoe 26.6.2 (arm64, Apple M5 Pro), R 4.6.1 (2026-06-24):
   `R CMD check --as-cran` on the built 1.0.0 tarball from candidate
-  `b32c2915d8c03585fbf1b0c4f6eb4315820ad0c1`, with R's own online checks and all
-  Suggests installed. The short CRAN profile passed all 4,331 expectations,
+  `c7e499de680cd3182a7883eed970490ef3d62b02`, with R's own online checks and all
+  Suggests installed. The short CRAN profile passed all 4,349 expectations,
   without failures, warnings or skips; examples, vignettes and PDF manual passed.
-  Archive SHA-256: `0de85865ad6b8c28a787d6e33c5116c0a47399c252053057771ad774571b10de`.
-  The complete suite passed separately from the same archive: 32,184 expectations
-  in all 108 installed test files, with no failures, errors, warnings or skips.
-  Four local test processes completed in 1,062.5 seconds; BLAS/OpenMP threads
+  Archive SHA-256: `f918ebd079e39f2d96f5c3f381b7314beed8b7943312f6e39059b7ffdc7cf710`.
+  With `NOT_CRAN=true` the same check ran the complete in-check suite: 32,203
+  expectations, no failures, warnings or skips, and the same two NOTEs.
+  The complete suite passed separately from the same archive: 32,203 expectations
+  in all 111 installed test files, with no failures, errors, warnings or skips.
+  Four local test processes completed in 1,176.2 seconds; BLAS/OpenMP threads
   were limited to one. Product HTTP(S) was routed to a dead proxy in that run;
   R's own online checks were separate.
 * The same 1.0.0 archive installed with only base/recommended packages and
   vennabers: manual core, the one-hot class example and all Rd examples
   passed, the optional workflow packages were unavailable and remained
   unloaded, and the workflow entry point returned its missing-package error.
-  All 45 installed example files are covered by the complete suite, 8 core
-  examples, 18 fresh-process standalone tutorials and 2 helpers. The 25
+  All 46 installed example files are covered by the complete suite, 9 core
+  examples (including the calibration graphics), 18 fresh-process standalone
+  tutorials and 2 helpers. The 25
   package-operation checks passed with no warning lines, including
   registration/load orders and the static scan for Python or product network
   calls (zero hits).
+* The earlier candidate `b32c2915d8c03585fbf1b0c4f6eb4315820ad0c1` (archive
+  SHA-256 `0de85865ad6b8c28a787d6e33c5116c0a47399c252053057771ad774571b10de`)
+  passed its local checks before the calibration graphics; it is superseded.
 * The earlier candidate `0b35f3354d18ada96baf4d4f437e593da193d4e8` (archive
   SHA-256 `e73335b8f1a822fa6abed64de77a4ee1aecf1383c6cd65862badfb69eef00183`)
   passed its local checks before the 1.0.0 additions; it is superseded.
@@ -76,17 +82,18 @@ Local macOS arm64, R 4.6.1: 0 errors | 0 warnings | 2 notes
 
 ## Check time
 
-On the previous candidate, the complete tests took 47 CPU minutes (58 minutes
-elapsed) inside the local check, with other jobs running on the same machine.
+On candidate `c7e499d`, the complete tests took 52 CPU minutes (64 minutes
+elapsed) inside the local check with `NOT_CRAN=true`, with other jobs running on
+the same machine for the first 20 minutes.
 The maintainer approved a short CRAN profile on 2026-10-04. The long
 process/worker and integration matrix files listed in `tests/cran-long-tests.txt`
 remain in the source tarball but are excluded from the default CRAN run. `NOT_CRAN=true` enables the complete in-check
 suite; `tools/verify.R` always runs every installed test file locally, with
 bounded parallelism. The 68 long files listed there now include the
-process files of the 1.0.0 additions; 40 files run in the short profile. On
-candidate `b32c291`, the short-profile test process used 84.7 user + 3.0
-system CPU seconds and 87.9 elapsed seconds (the check log rounds this to
-88 seconds). This check included the tests; it did not use
+process files of the 1.0.0 additions; 43 files run in the short profile. On
+candidate `c7e499d`, the short-profile test process used 71.5 user + 2.4
+system CPU seconds and 74.0 elapsed seconds (the check log rounds this to
+74 seconds). This check included the tests; it did not use
 `--no-tests`. The complete local suite remains a separate release gate.
 
 ## Downstream dependencies
