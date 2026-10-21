@@ -66,7 +66,7 @@ The package acceptance tool runs unmapped tutorials in fresh processes and
 checks the core without integration packages and all Rd examples. Its
 `acceptance-v09-example-coverage.csv` maps the larger installed examples to
 their full-suite owners. Therefore run it only after the complete suite passes
-with no skips on this archive. All 45 installed files are accounted for across
+with no skips on this archive. All 46 installed files are accounted for across
 suite, core, helpers and standalone examples.
 
 Run `R CMD check --as-cran /absolute/path/to/vennabers_1.0.0.tar.gz` from a
@@ -90,6 +90,8 @@ All these sources are committed and excluded from the R source package by
 | `acceptance-v09-matrix.R` | 80 original Grid/Bayes cases and 40 targeted postprocessing cases; CLI and optional `MATRIX_ONLY` selection documented in its header |
 | `migration-v09.R` | Migration from the fixed 0.9.0 commit, 22 representative saved-object/refit paths |
 | `xgboost-early-stopping.R` | Real XGBoost early-stopping fits on every local fit; xgboost stays outside `Suggests`, so install it in a throwaway library and pass that after the candidate library |
+| `corp-parity-reliabilitydiag.R` | CORP estimate and both resampling bands of `corp_plot()` against reliabilitydiag 0.2.1 (48 runs); reliabilitydiag stays outside `Suggests`, so pass a throwaway library holding it |
+| `corp-coverage-study.R` and `test-corp-coverage-study.R` | Simulated pointwise coverage of the CORP bands (hard criterion for the consistency band only) and one-call run time and memory; a measurement, not a performance gate |
 | `benchmark-v08.R` | Historical v0.8 measurement source |
 | `benchmark-shared-v09.R` | Shared-capability comparison with seeded identical outer splits |
 | `benchmark-v09.R` | Postprocessing cases, phase timings, heap peaks, RDS sizes and fit/retention counters |
