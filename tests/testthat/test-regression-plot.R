@@ -59,4 +59,6 @@ error(regression_plot(c(1, 2), matrix(1:2)), "`prediction` must be a numeric vec
 error(regression_plot(numeric(), numeric()), "`truth` and `prediction` must have the same nonzero length.")
 error(regression_plot(c(1, 2), 1), "`truth` and `prediction` must have the same nonzero length.")
 assert_conditions(identical(graphics::par("mfrow"), layout))
+
+  testthat::expect_true(TRUE)
 })

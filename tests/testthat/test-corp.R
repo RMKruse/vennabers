@@ -248,4 +248,6 @@ unseeded <- corp_plot(events, values, replicates = 199)
 assert_conditions(!identical(get(".Random.seed", envir = globalenv()), state),
                   identical(unseeded$seed, rep(NA_integer_, 60L)),
                   identical(unseeded[bands], first[bands]))
+
+  testthat::expect_true(TRUE)
 })
