@@ -1,0 +1,203 @@
+# CI matrix from RELEASE-ROADMAP.md, section 3.2: one source package, checked
+# with R CMD check --as-cran on the eight required platform/R combinations,
+# plus R-devel (early warning), the manual core without tidymodels and the
+# declared minimum versions of the optional integration packages.
+name: R-CMD-check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # tests/testthat.R runs the short CRAN test profile unless NOT_CRAN is true.
+  NOT_CRAN: false
+  GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  source:
+    name: Build source package
+    runs-on: ubuntu-24.04
+    outputs:
+      tarball: ${{ steps.build.outputs.tarball }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"all"'
+      - name: Build
+        id: build
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        run: |
+          mkdir source && cd source
+          R CMD build "$GITHUB_WORKSPACE" 2>&1 | tee build.log
+          if grep -E '\b(ERROR|WARNING)\b' build.log; then exit 1; fi
+          tarball=$(ls vennabers_*.tar.gz)
+          sha256sum "$tarball" | tee SHA256SUMS
+          echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: source-package
+          path: ${{ runner.temp }}/source
+
+  check:
+    needs: source
+    name: ${{ matrix.os }} (R ${{ matrix.r }})
+    runs-on: ${{ matrix.os }}
+    # R-devel is an early warning and does not block a release.
+    continue-on-error: ${{ matrix.r == 'devel' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15-intel, macos-15]
+        r: [release, oldrel-1]
+        include:
+          - {os: ubuntu-24.04, r: devel, http-user-agent: release}
+    env:
+      TARBALL: ${{ needs.source.outputs.tarball }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-tinytex@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.r }}
+          http-user-agent: ${{ matrix.http-user-agent }}
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"all"'
+          extra-packages: any::rcmdcheck
+      - uses: actions/download-artifact@v4
+        with:
+          name: source-package
+          path: ${{ runner.temp }}/source
+      - name: Record package versions
+        shell: bash
+        run: Rscript --vanilla tools/ci-environment.R "$RUNNER_TEMP/evidence"
+      - name: Check source package
+        shell: Rscript {0}
+        run: |
+          source <- file.path(Sys.getenv("RUNNER_TEMP"), "source")
+          tarball <- file.path(source, Sys.getenv("TARBALL"))
+          stopifnot(paste0(tools::sha256sum(tarball), "  ", Sys.getenv("TARBALL")) ==
+            readLines(file.path(source, "SHA256SUMS")))
+          rcmdcheck::rcmdcheck(tarball, args = "--as-cran", error_on = "warning",
+            check_dir = file.path(Sys.getenv("RUNNER_TEMP"), "check"))
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: check-${{ matrix.os }}-r-${{ matrix.r }}
+          path: |
+            ${{ runner.temp }}/evidence
+            ${{ runner.temp }}/check/vennabers.Rcheck/00*
+            ${{ runner.temp }}/check/vennabers.Rcheck/tests/*.Rout*
+
+  core:
+    needs: source
+    name: Manual core without tidymodels
+    runs-on: ubuntu-24.04
+    env:
+      TARBALL: ${{ needs.source.outputs.tarball }}
+      _R_CHECK_FORCE_SUGGESTS_: false
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"hard"'
+          extra-packages: any::knitr any::rmarkdown any::testthat any::rcmdcheck
+      - uses: actions/download-artifact@v4
+        with:
+          name: source-package
+          path: ${{ runner.temp }}/source
+      - name: Confirm tidymodels is absent
+        shell: Rscript {0}
+        run: |
+          integration <- c("parsnip", "workflows", "hardhat", "rsample", "recipes",
+            "tailor", "probably", "tune", "dials", "yardstick")
+          present <- integration[vapply(integration, requireNamespace, logical(1), quietly = TRUE)]
+          if (length(present)) stop("Installed integration packages: ", toString(present))
+      - name: Record package versions
+        run: Rscript --vanilla tools/ci-environment.R "$RUNNER_TEMP/evidence"
+      # The vignettes still evaluate optional packages unconditionally (#46);
+      # the PDF manual is checked on the required matrix.
+      - name: Check source package
+        shell: Rscript {0}
+        run: |
+          tarball <- file.path(Sys.getenv("RUNNER_TEMP"), "source", Sys.getenv("TARBALL"))
+          rcmdcheck::rcmdcheck(tarball, args = c("--as-cran", "--ignore-vignettes", "--no-manual"),
+            error_on = "warning", check_dir = file.path(Sys.getenv("RUNNER_TEMP"), "check"))
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: check-core
+          path: |
+            ${{ runner.temp }}/evidence
+            ${{ runner.temp }}/check/vennabers.Rcheck/00*
+            ${{ runner.temp }}/check/vennabers.Rcheck/tests/*.Rout*
+
+  minimum:
+    needs: source
+    name: Minimum integration versions (R oldrel-1)
+    runs-on: ubuntu-24.04
+    env:
+      TARBALL: ${{ needs.source.outputs.tarball }}
+      # The day after the newest declared minimum (recipes 1.4.0) reached CRAN.
+      # Move it forward when DESCRIPTION raises a minimum beyond this date.
+      SNAPSHOT: https://packagemanager.posit.co/cran/__linux__/noble/2026-08-25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: oldrel-1
+          use-public-rspm: false
+      - name: Install pak
+        run: Rscript -e 'install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/stable/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))'
+      - name: Install declared minimum versions
+        run: Rscript --vanilla tools/minimum-dependencies.R "$SNAPSHOT" "$RUNNER_TEMP/evidence"
+      - uses: actions/download-artifact@v4
+        with:
+          name: source-package
+          path: ${{ runner.temp }}/source
+      - name: Record package versions
+        run: Rscript --vanilla tools/ci-environment.R "$RUNNER_TEMP/evidence"
+      - name: Check source package
+        shell: Rscript {0}
+        run: |
+          tarball <- file.path(Sys.getenv("RUNNER_TEMP"), "source", Sys.getenv("TARBALL"))
+          rcmdcheck::rcmdcheck(tarball, args = c("--as-cran", "--no-manual"), error_on = "warning",
+            check_dir = file.path(Sys.getenv("RUNNER_TEMP"), "check"))
+      # The short CRAN profile leaves out most workflow tests; run all of them.
+      - name: Run the complete test suite
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: Rscript --vanilla tools/verify.R 4 "$RUNNER_TEMP/source/$TARBALL"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: check-minimum
+          path: |
+            ${{ runner.temp }}/evidence
+            ${{ runner.temp }}/check/vennabers.Rcheck/00*
+            ${{ runner.temp }}/check/vennabers.Rcheck/tests/*.Rout*
+            ${{ runner.temp }}/vennabers-verify-*/*.log
+            ${{ runner.temp }}/vennabers-verify-*/*.csv
