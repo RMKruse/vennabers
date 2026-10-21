@@ -53,6 +53,8 @@ docs/
 !/tools/build-docs.R
 # Keep the executable XGBoost early-stopping check (xgboost is not in Suggests).
 !/tools/xgboost-early-stopping.R
+# Keep the executable CORP band parity check (reliabilitydiag is not in Suggests).
+!/tools/corp-parity-reliabilitydiag.R
 
 
 # research folger
