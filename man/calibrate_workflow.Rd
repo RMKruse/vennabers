@@ -3,10 +3,16 @@
 \alias{predict.vennabers_frozen}
 \alias{print.vennabers_frozen}
 \title{Calibrate a Frozen Workflow}
-\description{Fit only an Inductive Venn-Abers calibrator on new, separate
-calibration data using the final predictions of an already fitted workflow.
-The complete workflow, including learned preprocessing and any learned
-postprocessor, is retained unchanged.}
+\description{
+Adds an Inductive Venn-Abers calibrator to an already fitted classification or
+regression workflow and fits only that calibrator, on the workflow's final
+predictions; the complete workflow, including learned preprocessing and any
+learned postprocessor, is retained unchanged. It needs the fitted workflow and
+new calibration data that played no part in its training, tuning or selection.
+Choose it when the workflow is final or expensive to refit; use
+\code{\link{calibrated_workflow}} when the package should train the workflow
+and create the calibration split itself.
+}
 \usage{
 calibrate_workflow(fitted_workflow, data_calibration, outcome, ...,
   classification = "binary", event_level = "first", precision = NULL,
@@ -152,7 +158,10 @@ complete prediction path fails on reserved names reports the stage, names and
 underlying cause. The limited binary GLM raw-response probe without a
 postprocessor is not a product fallback; no engine or postprocessor is bypassed.
 }
-\seealso{\link{vennabers_examples} for annotated installed scripts.
+\seealso{\code{vignette("workflows", package = "vennabers")} for frozen
+workflows in context, \code{vignette("method", package = "vennabers")} for the
+theory and its guarantees, and \link{vennabers_examples} for annotated
+installed scripts.
 
 \code{\link{calibrated_workflow}}, \code{\link{venn_abers_details}},
 \code{\link{venn_abers_schema}}, \code{\link{venn_abers}}, \code{\link{venn_abers_regression}}}

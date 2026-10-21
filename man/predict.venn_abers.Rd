@@ -45,8 +45,14 @@ class order, then new-row order. Zero or one
 new rows retain these matrix, factor, list, and table schemas.
 }
 \description{
-Predicts a Venn-Abers interval and regularized event probability while
-preserving the order of \code{newdata}.
+Applies a fitted \code{\link{venn_abers}} calibrator to new uncalibrated
+probabilities from the same model and returns calibrated probabilities or
+predicted classes, preserving the order of \code{newdata}. For binary
+calibration it returns the Venn-Abers interval of two probabilities together
+with the regularized event probability that merges them according to
+\code{loss}; multiclass calibration returns a class-probability matrix. Use
+\code{\link{predict.cross_venn_abers}} for a Cross calibrator, which needs one
+probability column per retained fold model.
 }
 \details{
 Log-loss regularization is \code{upper / (1 - lower + upper)}. Brier
@@ -75,6 +81,13 @@ The endpoints describe only the binary subproblems, not multiclass confidence
 intervals. Binary Brier regularization does not imply optimality for the final
 multiclass Brier score or guarantee improvement in assessment scores.
 }
+\seealso{\code{vignette("method", package = "vennabers")} explains the
+interval and the merger into one probability;
+\code{vignette("manual-calibration", package = "vennabers")} shows prediction
+in a worked example.
+
+\code{\link{venn_abers}}, \code{\link{venn_abers_one_hot}},
+\code{\link{brier_score}}, \code{\link{log_loss}}}
 \examples{
 calibrator <- venn_abers(c(0, 1, 0), c(0.1, 0.2, 0.3))
 predict(calibrator, c(0.05, 0.2, 0.4))

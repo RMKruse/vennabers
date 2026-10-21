@@ -59,9 +59,15 @@ the bounds up to checked numerical roundoff. Row names do not align observations
 calibration map and returns the maps invisibly as a data frame.
 }
 \description{
-Fits one moderated Inductive Venn-Abers regression calibrator per supplied
-calibration fold, then averages complete fold results with equal weights.
-The caller trains and retains the underlying models and chooses all data roles.
+Calibrates the numeric predictions of regression models with a Cross
+Venn-Abers regressor (CVAR): one moderated Inductive Venn-Abers regression
+calibrator per fold, with complete fold results averaged with equal weights.
+It needs the observed outcomes, the out-of-fold predictions of one retained
+model per fold and the fold labels; the caller trains and retains the models
+and chooses all data roles. Choose it over \code{\link{venn_abers_regression}}
+when a single held-out calibration set would cost too much training data, or
+use \code{\link{calibrated_workflow}} with \code{method = "cross"} to let the
+package fit the fold models.
 }
 \details{
 Each fold follows the asymmetric moderation, isotonic endpoints and Formula 6
@@ -108,7 +114,10 @@ computed arithmetic means; no public manual Python CVAR wrapper is claimed.
 See \file{tests/testthat/extdata/cross-regression-reference.md} in the source package for provenance,
 retained reference defects and fixed scale-aware tolerances.
 }
-\seealso{\link{vennabers_examples} for annotated installed scripts.
+\seealso{\code{vignette("method", package = "vennabers")} for the theory and
+its limits, \code{vignette("manual-calibration", package = "vennabers")}
+for a worked introduction, and \link{vennabers_examples} for annotated
+installed scripts.
 
 \code{\link{venn_abers_regression}}}
 \examples{
