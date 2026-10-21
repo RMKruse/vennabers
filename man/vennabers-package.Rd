@@ -68,6 +68,8 @@ numerical parity with the Python reference from R extensions and limitations.
 \seealso{
 \code{browseVignettes("vennabers")}, \code{help(package = "vennabers")}.
 
+Cite the package and the method papers with \code{citation("vennabers")}.
+
 Project: \url{https://github.com/RMKruse/vennabers}
 
 Bug reports: \url{https://github.com/RMKruse/vennabers/issues}

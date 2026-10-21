@@ -108,6 +108,10 @@ Report problems in the [issue tracker](https://github.com/RMKruse/vennabers/issu
 See [CONTRIBUTING](.github/CONTRIBUTING.md) for running the tests and building
 the documentation.
 
+## Citation
+
+Cite the package and the method papers you use with `citation("vennabers")`.
+
 ## References
 
 - Vovk and Petej (2014). Venn-Abers predictors. <doi:10.48550/arXiv.1211.0025>
