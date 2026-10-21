@@ -4,11 +4,14 @@
 \alias{predict.vennabers_workflow}
 \title{Train a Calibrated Classification or Regression Workflow}
 \description{
-Wrap an unfitted tidymodels workflow so that \code{generics::fit()} trains
-preprocessing, models and a Venn-Abers calibrator on separate local splits.
-Use the fitted workflow with \code{predict()} on raw predictors.
-For a step-by-step introduction, start with
-\code{vignette("workflows", package = "vennabers")}.
+Wraps an unfitted tidymodels workflow for classification or regression so that
+\code{generics::fit()} trains preprocessing, models and a Venn-Abers calibrator
+on separate local splits of the same data. It needs the workflow and the
+outcome column; the fitted workflow is then used with \code{predict()} on raw
+predictors. Choose it when the package should fit the model and keep the
+calibration rows out of training; use \code{\link{calibrate_workflow}} for a
+workflow that is already fitted, or \code{\link{venn_abers}} and
+\code{\link{venn_abers_regression}} for predictions computed elsewhere.
 }
 \usage{
 calibrated_workflow(workflow, outcome, ..., predictors = NULL,
@@ -228,8 +231,10 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
   venn_abers_details(fitted, new_data)$details
 }
 }
-\seealso{\link{vennabers_examples} for annotated installed scripts.
-
+\seealso{For a step-by-step introduction, start with
+\code{vignette("workflows", package = "vennabers")};
+\code{vignette("method", package = "vennabers")} explains the theory and its
+guarantees. \link{vennabers_examples} lists annotated installed scripts.
 
 \code{\link{venn_abers}}, \code{\link{cross_venn_abers}},
 \code{\link{venn_abers_schema}}, \code{\link{calibrate_workflow}},

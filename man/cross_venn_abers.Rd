@@ -45,12 +45,21 @@ calibration observations, and the classes for multiclass.
 Predictive models are retained separately by the caller.
 }
 \description{
-Fits Inductive Venn-Abers calibrators per calibration fold and, for
-multiclass, per class pair or class against the rest. Prediction
-combines its results with equal-weight log-loss (default) or Brier aggregation
-to produce a regularized event probability.
+Calibrates binary or multiclass classifier probabilities with a Cross
+Venn-Abers predictor (CVAP): every fold calibrates the model that was trained
+without it, and prediction averages the fold results. It needs the true
+classes, the out-of-fold probabilities of one retained model per fold and the
+fold labels; it fits no models itself. Choose it over
+\code{\link{venn_abers}} when a single held-out calibration set would cost too
+much training data, or use \code{\link{calibrated_workflow}} with
+\code{method = "cross"} to let the package fit the fold models.
 }
 \details{
+The function fits Inductive Venn-Abers calibrators per calibration fold and, for
+multiclass, per class pair or class against the rest. Prediction
+combines their results with equal-weight log-loss (default) or Brier aggregation
+to produce a regularized event probability.
+
 For binary calibration, all three inputs must be vectors of equal, nonzero length with no missing
 values. Names attached to vector elements are not alignment keys: positions
 must refer to the same observation. Invalid types, shapes, nonbinary truth,
@@ -125,7 +134,10 @@ corresponding public manual Cross-multiclass whole-procedure API; numerical
 checks use binary reference components and independent combination. Binary
 diagnostics are not multiclass or aggregate Cross confidence intervals.
 }
-\seealso{\link{vennabers_examples} for annotated installed scripts.
+\seealso{\code{vignette("method", package = "vennabers")} for the theory and
+its guarantees, \code{vignette("manual-calibration", package = "vennabers")}
+for a worked introduction, and \link{vennabers_examples} for annotated
+installed scripts.
 
 \code{\link{predict.cross_venn_abers}},
 \code{\link{print.cross_venn_abers}}, \code{\link{brier_score}},

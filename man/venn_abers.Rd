@@ -46,8 +46,14 @@ subproblems.
 No predictive model or new data are stored.
 }
 \description{
-Fits binary or multiclass Inductive calibration from caller-supplied
-uncalibrated probabilities. No predictive models or data splits are created.
+Turns the uncalibrated probabilities of an already fitted binary or multiclass
+classifier into calibrated probabilities with an Inductive Venn-Abers predictor
+(IVAP). It needs the true classes and the model's probabilities for a separate
+calibration set; it creates neither predictive models nor data splits. Choose
+it when one held-out calibration set is affordable; use
+\code{\link{cross_venn_abers}} when data are scarce and one model per fold can
+be retained, or \code{\link{calibrated_workflow}} to let the package fit the
+model and split the data.
 }
 \details{
 The calibration set must be separate from the fixed predictive model's
@@ -83,7 +89,13 @@ multiclass methods is a deliberate R extension over the examined Python
 Exactly two factor levels also select the
 multiclass matrix contract, with its distinct tie rule and Brier score scale.
 }
-\seealso{\link{vennabers_examples} for annotated installed scripts.}
+\seealso{\code{vignette("method", package = "vennabers")} for the theory and
+its guarantees, \code{vignette("manual-calibration", package = "vennabers")}
+for a worked introduction, and \link{vennabers_examples} for annotated
+installed scripts.
+
+\code{\link{predict.venn_abers}}, \code{\link{cross_venn_abers}},
+\code{\link{venn_abers_regression}}}
 \examples{
 calibrator <- venn_abers(
   truth = c(FALSE, TRUE, FALSE, TRUE),
