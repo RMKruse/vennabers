@@ -24,6 +24,9 @@ data separate from training, selection and calibration.
 
 ## Choose a guide
 
+- [Venn-Abers methods and their guarantees](articles/method.html): start
+  here for what Inductive and Cross Venn-Abers predictors compute, what is
+  guaranteed and what is not, for classification and regression.
 - [Calibrating supplied predictions](articles/manual-calibration.html):
   binary and multiclass classification, regression, Inductive/Cross methods,
   scoring and plots.

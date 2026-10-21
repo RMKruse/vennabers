@@ -18,6 +18,8 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", error = FALSE,
 use only base R and packages included with R: you train the model, supply its
 predictions and keep it for future use. For package-managed training and
 preprocessing, continue with `vignette("workflows", package = "vennabers")`.
+`vignette("method", package = "vennabers")` explains the methods and their
+guarantees.
 
 | Task | Inductive | Cross |
 |:-----|:----------|:------|
