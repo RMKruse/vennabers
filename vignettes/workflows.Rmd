@@ -10,7 +10,20 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", error = FALSE)
+# The code needs optional packages from Suggests; without them it is shown
+# but not run.
+required <- c("parsnip", "workflows", "hardhat", "rsample", "recipes", "rlang",
+              "tibble", "withr", "generics", "tidyselect", "rpart")
+unavailable <- required[!vapply(required, requireNamespace, logical(1),
+                                quietly = TRUE)]
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", error = FALSE,
+                      eval = length(unavailable) == 0)
+```
+
+```{r missing-packages, eval=length(unavailable) > 0, echo=FALSE, results="asis"}
+cat("> **Note:** The code in this vignette was not run because these",
+    "suggested packages are not installed:",
+    paste0("`", unavailable, "`", collapse = ", "), "\n")
 ```
 
 The workflow interfaces retain preprocessing, the predictive model and the
