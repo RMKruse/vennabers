@@ -107,6 +107,6 @@ Tests are in `tests/testthat` of the source package (installed with
 
 ## Open gaps
 
-No known gap remains inside the agreed scope. The platform and benchmark runs
-listed under "Release status" in NEWS are release evidence, not capabilities;
-until they run, this index makes no claim for those platforms.
+No known gap remains inside the agreed scope. Platform checks and benchmark
+runs are release evidence, not capabilities; this index makes no claim for
+any platform.
