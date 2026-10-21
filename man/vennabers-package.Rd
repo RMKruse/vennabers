@@ -48,7 +48,13 @@ for inspection or execution with \code{source()}.
 }
 \section{Assessment and interpretation}{
 Score final classification probabilities with \code{\link{brier_score}} and
-\code{\link{log_loss}}, or inspect them with \code{\link{calibration_plot}}.
+\code{\link{log_loss}}, and assess them on held-out pairs with
+\code{\link{corp_plot}}, \code{\link{corp_decomposition_plot}} or
+\code{\link{calibration_plot}}; assess regression predictions with
+\code{\link{regression_plot}}. \code{\link[=plot.venn_abers]{plot()}} draws
+the fit diagnosis of a fitted calibrator from its stored state, without new
+truth values. \code{vignette("diagnostics", package = "vennabers")} compares
+both kinds of graphics.
 Keep assessment data separate from model training, selection and calibration.
 Manual Cross calibration requires predictions from the corresponding retained
 fold models.

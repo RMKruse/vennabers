@@ -167,8 +167,10 @@ Academy of Sciences}, 118(8), e2016191118.
 }
 \seealso{
 \code{\link{calibration_plot}} for binned reliability diagrams,
-\code{\link{brier_score}} for scores, and \code{\link{plot.venn_abers}} for
-fit diagnoses.
+\code{\link{brier_score}} for scores, \code{\link{regression_plot}} for
+held-out regression predictions, and \code{\link{plot.venn_abers}} for
+fit diagnoses. \code{vignette("diagnostics", package = "vennabers")} compares
+both kinds of graphics.
 }
 \examples{
 set.seed(1)

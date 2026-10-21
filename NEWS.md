@@ -2,6 +2,40 @@
 
 ## Additions
 
+- Add `plot()` methods that draw fit diagnoses of fitted calibrators from
+  their stored state, without new truth values. `which = "map"` (default)
+  draws the calibration map: the lower and upper Venn-Abers values as steps
+  and the regularized probability or regression point as a dashed line.
+  `which = "width"` draws the Venn-Abers width `upper - lower`, which is
+  neither a confidence level nor a nominal coverage. The methods cover binary,
+  one-vs-one and one-vs-rest `venn_abers()` and `cross_venn_abers()` fits (one
+  panel per subproblem, Cross fold maps overlaid), regression calibrators
+  (with reference lines at the moderated truths `a` and `b`), and frozen or
+  trained workflow fits through their stored calibrator
+  (`workflows::extract_fit_engine()`; pairwise fits draw one panel per pair).
+  Each returns a table of the stored knots invisibly, with the values of
+  `predict()`. Fits saved by earlier versions lack the stored map and are
+  errors; refit them. See `?plot.venn_abers`.
+- Add `corp_plot()` and `corp_decomposition_plot()`, assessment graphics for
+  held-out pairs of truth and probability. `corp_plot()` draws the CORP
+  reliability diagram of Dimitriadis, Gneiting and Jordan (2021), an isotonic
+  estimate of the conditional event probability that needs no bins, with a
+  pointwise resampling band: the consistency band (default), an approximate
+  confidence band, or none, at `level = 0.9` with 1000 `replicates`. A `seed`
+  makes the band reproducible and leaves the caller's random stream
+  unchanged. Band limits are not Venn-Abers bounds. In the checked cases,
+  both bands match reliabilitydiag 0.2.1 at the same seed; `PARITY.md` names
+  the check and its exclusions.
+  `corp_decomposition_plot()` splits the Brier score into miscalibration,
+  discrimination and uncertainty. Factor truth is assessed class by class.
+  Both return their plotted values invisibly. `calibration_plot()` is
+  unchanged.
+- Add `regression_plot()`, which draws held-out observed values
+  (`which = "observed"`) or residuals (`which = "residual"`) against
+  regression predictions and returns the pairs invisibly. All graphics use
+  base R only. The guide `vignette("diagnostics", package = "vennabers")` and
+  the installed example `calibration-graphics.R` cover fit diagnoses and
+  assessment graphics.
 - Add `venn_abers_one_hot()`, which represents existing class decisions as a
   double 0/1 matrix with one column per class. It accepts the factor from
   multiclass `predict(type = "class")` or `venn_abers_decode()$class`, the
@@ -60,7 +94,7 @@
   promised for observation weights, offsets or an external `eval_set`. xgboost
   stays outside Suggests; `tools/xgboost-early-stopping.R` runs the real fits.
   See the installed example `engine-options.R`.
-- Publish all 42 standalone examples in four annotated articles with contents
+- Publish all 43 standalone examples in four annotated articles with contents
   lists for manual calibration, workflows, postprocessing and Grid/Bayes
   selection. The articles include the installed script sources without running
   their fits during documentation builds. `?vennabers_examples`, the package
@@ -68,11 +102,12 @@
   through `vignette()` and `browseVignettes()`.
 - Add a package overview at `?vennabers`, project and issue links in package
   metadata, and a pkgdown website configuration with grouped reference topics
-  and all three guides. `tools/build-docs.R` builds the site locally from the
+  and all four guides. `tools/build-docs.R` builds the site locally from the
   source package, excluding internal project notes.
-- Add three executable HTML vignettes covering manual Inductive/Cross binary,
-  OvO/OvR and regression calibration; trainable and frozen workflows; and
-  Grid/Bayes tuning with independent assessment. Register the knitr builder
+- Add four executable HTML vignettes covering manual Inductive/Cross binary,
+  OvO/OvR and regression calibration; fit diagnoses and assessment graphics;
+  trainable and frozen workflows; and Grid/Bayes tuning with independent
+  assessment. Register the knitr builder
   and build the guides into release candidates for access through `vignette()`.
 
 ## Release verification
