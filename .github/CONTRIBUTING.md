@@ -39,8 +39,19 @@ Open `_site/index.html`. The homepage source is `pkgdown/index.md`. The build
 runs the reference examples and guide code against a temporary package
 installation. Generated HTML is excluded from Git and the source package.
 
-The site is not hosted yet. When it is, set `url` in `_pkgdown.yml` and add
-the address to `URL` in `DESCRIPTION`.
+The `pkgdown` workflow runs the same script on every push to `main` and
+publishes the result at <https://rmkruse.github.io/vennabers/>.
+
+## Updating the README
+
+`README.md` is generated. Edit `README.Rmd` and render it against a temporary
+installation of the checkout:
+
+```sh
+Rscript --vanilla tools/build-readme.R
+```
+
+The script also writes the README figures to `man/figures/`. Commit both.
 
 ## Release candidates
 
