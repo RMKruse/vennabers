@@ -9,9 +9,9 @@
 # predictions, venn_abers_details() and, for tuned fits, venn_abers_tuning().
 # Fresh candidate processes then (1) predict from the saved 0.9.0 objects,
 # which must reproduce all three exactly, and (2) refit the same cases, which
-# must also match exactly except for the
-# documented Sigmoid optimizer correction (NEWS): Sigmoid cases carry the
-# direct Sigmoid reference tolerance.
+# must also match exactly except for the documented Sigmoid optimizer
+# correction (tools/NEWS-development.md): Sigmoid cases carry the direct
+# Sigmoid reference tolerance.
 
 migration_cases <- function() {
   library(vennabers)

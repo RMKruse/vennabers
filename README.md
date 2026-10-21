@@ -105,7 +105,7 @@ documented deviations and accepted limits.
 
 From 1.0.0 on, the user-facing functions, their arguments and defaults, and
 their documented output formats stay compatible throughout 1.x. See
-[NEWS](NEWS.md) for the full promise and for migrating from 0.9.0.
+[NEWS](NEWS.md) for the full promise.
 
 ## Contributing
 
