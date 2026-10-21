@@ -201,6 +201,14 @@ for (bad_bins in list(numeric(0), c(1, 2), NA_real_, NaN, Inf, -Inf, 0, -1, 1.5,
   expect_error(calibration_plot(0, .5, bins = bad_bins), "bins")
 }
 
+# 0.9.0 also accepted a count with extra attributes or beyond the integer range.
+for (good_bins in list(structure(2, label = "two"), 3e9)) {
+  expect_identical(
+    calibration_plot(c(0, 1), c(.25, .75), bins = good_bins),
+    data.frame(mean_probability = c(.25, .75), event_rate = c(0, 1), count = c(1L, 1L))
+  )
+}
+
 degenerate_plots <- list(
   expect_no_warning(calibration_plot(1, .5)),
   expect_no_warning(calibration_plot(c(0, 0), c(.1, .9), bins = 1)),
