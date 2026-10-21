@@ -73,8 +73,11 @@ predict(fit, data.frame(x = c(-0.5, 0.5)), type = "prob")
 
 ## Documentation
 
-Start with `?vennabers` for the package overview, then follow the guides:
+Start with `?vennabers` for the package overview and with the method guide,
+then follow the practical guides:
 
+- [Venn-Abers methods and their guarantees](vignettes/method.Rmd):
+  `vignette("method", package = "vennabers")`
 - [Calibrating supplied predictions](vignettes/manual-calibration.Rmd):
   `vignette("manual-calibration", package = "vennabers")`
 - [Training and freezing calibrated workflows](vignettes/workflows.Rmd):

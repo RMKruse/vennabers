@@ -8,6 +8,10 @@ Calibrate binary and multiclass classification probabilities or real-valued
 regression predictions using Inductive or Cross Venn-Abers methods.
 Supply predictions from an existing model, or use optional tidymodels
 workflows to train preprocessing, models and calibrators together.
+
+Start with \code{vignette("method", package = "vennabers")}: it explains what
+Venn-Abers predictors compute, which guarantees the literature gives and which
+it does not, and checks the formulas against the package.
 }
 \section{Calibrating supplied predictions}{
 The manual interfaces require no additional R packages. Use
@@ -19,7 +23,7 @@ For numeric predictions, use \code{\link{venn_abers_regression}} or
 \code{\link{venn_abers_one_hot}} represents class decisions as a 0/1 matrix
 with one column per class.
 
-Start with \code{vignette("manual-calibration", package = "vennabers")}.
+Continue with \code{vignette("manual-calibration", package = "vennabers")}.
 }
 \section{Training and calibrating workflows}{
 Use \code{\link{calibrated_workflow}} with an unfitted tidymodels workflow,
