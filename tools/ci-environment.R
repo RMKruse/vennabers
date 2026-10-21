@@ -6,11 +6,11 @@ record_environment <- function(output) {
   packages <- packages[, c("Package", "Version", "LibPath", "Priority", "Built"), drop = FALSE]
   packages <- packages[order(packages[, "Package"], packages[, "LibPath"]), , drop = FALSE]
   utils::write.csv(packages, file.path(output, "packages.csv"), row.names = FALSE)
-  system <- Sys.info()[c("sysname", "release", "version", "machine")]
+  platform <- Sys.info()[c("sysname", "release", "version", "machine")]
   pandoc <- Sys.which("pandoc")
   pandoc <- if (nzchar(pandoc)) system2(pandoc, "--version", stdout = TRUE)[1] else "pandoc: not found"
   session <- c(capture.output(print(utils::sessionInfo())), "",
-    paste(names(system), system, sep = ": "), "",
+    paste(names(platform), platform, sep = ": "), "",
     capture.output(print(extSoftVersion())), "", pandoc)
   writeLines(session, file.path(output, "session-info.txt"))
   invisible(output)

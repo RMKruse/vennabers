@@ -18,6 +18,7 @@ suggested_packages <- function(description) {
   data.frame(package = package, minimum = sub("^>=\\s*", "", constraint))
 }
 
+# testthat runs the checks; it is no integration package and stays unpinned.
 pinned_minimums <- function(suggests) {
   suggests[!is.na(suggests$minimum) & suggests$package != "testthat", , drop = FALSE]
 }
@@ -29,7 +30,10 @@ minimum_refs <- function(suggests) {
 
 version_mismatches <- function(pins, installed) {
   pins$installed <- unname(installed[pins$package])
-  pins[is.na(pins$installed) | pins$installed != pins$minimum, , drop = FALSE]
+  same <- mapply(function(installed, minimum) {
+    !is.na(installed) && package_version(installed) == package_version(minimum)
+  }, pins$installed, pins$minimum)
+  pins[!same, , drop = FALSE]
 }
 
 if (sys.nframe() == 0L) {
@@ -44,11 +48,11 @@ if (sys.nframe() == 0L) {
   installed <- vapply(pins$package, function(package) {
     as.character(utils::packageVersion(package))
   }, character(1))
-  dir.create(args[2], recursive = TRUE, showWarnings = FALSE)
+  mismatches <- version_mismatches(pins, installed)
   pins$installed <- unname(installed)
+  dir.create(args[2], recursive = TRUE, showWarnings = FALSE)
   write.csv(pins, file.path(args[2], "minimum-dependencies.csv"), row.names = FALSE)
   print(pins, row.names = FALSE)
-  mismatches <- version_mismatches(pins[c("package", "minimum")], installed)
   if (nrow(mismatches)) stop("Installed versions differ from the declared minimums.")
   cat("Declared minimum versions installed.\n")
 }

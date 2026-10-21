@@ -57,11 +57,13 @@ docs/
 # Keep the CORP band coverage and effort study and its checks.
 !/tools/corp-coverage-study.R
 !/tools/test-corp-coverage-study.R
-# Keep the CI helpers for the minimum-version run and the per-run package record.
+# Keep the CI helpers: minimum-version install, package record and source check.
 !/tools/minimum-dependencies.R
 !/tools/test-minimum-dependencies.R
 !/tools/ci-environment.R
 !/tools/test-ci-environment.R
+!/tools/ci-check.R
+!/tools/test-ci-check.R
 
 
 # research folger

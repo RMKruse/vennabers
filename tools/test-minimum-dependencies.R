@@ -27,6 +27,9 @@ stopifnot(identical(mismatches$package, "tibble"), identical(mismatches$installe
 mismatches <- version_mismatches(pins, c(tibble = "3.3.1"))
 stopifnot(identical(mismatches$package, "parsnip"), is.na(mismatches$installed))
 stopifnot(nrow(version_mismatches(pins, c(parsnip = "1.6.0", tibble = "3.3.1"))) == 0L)
+# R normalises "1.0-1" to "1.0.1"; both name the same version.
+hyphenated <- data.frame(package = "ipred", minimum = "0.9-12")
+stopifnot(nrow(version_mismatches(hyphenated, c(ipred = "0.9.12"))) == 0L)
 
 writeLines(c("Package: example", "Suggests: parsnip (== 1.6.0)"), description)
 failed <- tryCatch({ suggested_packages(description); FALSE }, error = function(e) TRUE)
