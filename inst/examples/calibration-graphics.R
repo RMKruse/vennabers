@@ -47,9 +47,9 @@ local({
   stopifnot(identical(unique(fold_maps$fold), c("A", "B", "C")))
 
   # Assessment graphic: the CORP reliability diagram of the held-out pairs.
-  # The default consistency band shows where the estimate of calibrated
-  # probabilities would fall; a seed makes it reproducible without changing
-  # the caller's random stream.
+  # The default consistency band shows where the estimate of perfectly
+  # calibrated probabilities would fall; a seed makes it reproducible without
+  # changing the caller's random stream.
   state <- .Random.seed
   corp <- corp_plot(assessment$truth, probability, seed = 1)
   assert_conditions(
@@ -74,19 +74,20 @@ local({
   # Regression: the map over the uncalibrated prediction with reference lines
   # at the moderated truths a and b, then held-out pairs against the
   # calibrated points.
-  numeric <- data.frame(x = runif(600L, 0, 10))
-  numeric$truth <- numeric$x + sin(numeric$x) + rnorm(600L, sd = 0.5)
-  regression_model <- stats::lm(truth ~ x, data = numeric[1:200, ])
-  regression <- venn_abers_regression(
-    numeric$truth[201:400], predict(regression_model, numeric[201:400, ])
-  )
+  x <- runif(600L, 0, 10)
+  regression_data <- data.frame(x = x, truth = x + sin(x) + rnorm(600L, sd = 0.5))
+  regression_model <- stats::lm(truth ~ x, data = regression_data[1:200, ])
+  uncalibrated <- predict(regression_model, regression_data)
+  regression <- venn_abers_regression(regression_data$truth[201:400],
+                                      uncalibrated[201:400])
   regression_map <- plot(regression, which = c("map", "width"))
   stopifnot(identical(regression_map$width,
                       regression_map$upper - regression_map$lower))
-  point <- predict(regression, predict(regression_model, numeric[401:600, ]))$prediction
-  pairs <- regression_plot(numeric$truth[401:600], point,
-                           which = c("observed", "residual"))
-  stopifnot(identical(pairs$residual, numeric$truth[401:600] - point))
+  point <- predict(regression, uncalibrated[401:600])$prediction
+  held_out_truth <- regression_data$truth[401:600]
+  held_out_pairs <- regression_plot(held_out_truth, point,
+                                    which = c("observed", "residual"))
+  stopifnot(identical(held_out_pairs$residual, held_out_truth - point))
 })
 
 # CORP bands are pointwise resampling bands for the assessment pairs given.

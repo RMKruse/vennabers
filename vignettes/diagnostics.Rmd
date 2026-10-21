@@ -52,8 +52,9 @@ probability <- predict(calibrator, assessment_p)$probability
 
 `plot()` on a fitted calibrator draws its calibration map: the lower and upper
 Venn-Abers values as steps and the regularized probability as a dashed line,
-over the uncalibrated probability on `[0, 1]`. `which = "width"` adds the
-Venn-Abers width `upper - lower` over the same scores.
+over the uncalibrated probability on `[0, 1]`. `which = "width"` draws the
+Venn-Abers width `upper - lower` over the same scores, and
+`which = c("map", "width")` draws both.
 
 ```{r fit-map, fig.height=6, fig.cap="Calibration map and Venn-Abers width of an Inductive calibrator."}
 map <- plot(calibrator, which = c("map", "width"))
@@ -63,8 +64,7 @@ head(map)
 The table has one row per stored knot plus the ends 0 and 1. Its values equal
 `predict()` at `score`, with `loss = "log"` by default; `loss = "brier"` draws
 the Brier-regularized probability instead. The width is neither a confidence
-level nor a nominal coverage. It peaks where the lower and upper maps jump at
-different scores, near steps of the map and in sparse tails.
+level nor a nominal coverage.
 
 A Cross calibrator overlays the map of every fold calibrator in one panel, and
 its table holds one block per fold:
@@ -88,20 +88,20 @@ uncalibrated prediction, with grey dashed lines at the moderated truth values
 
 ```{r fit-regression, fig.cap="Calibration map of a regression calibrator."}
 set.seed(52)
-numeric <- data.frame(x = runif(600, 0, 10))
-numeric$truth <- numeric$x + sin(numeric$x) + rnorm(600, sd = 0.5)
-numeric_model <- lm(truth ~ x, data = numeric[1:200, ])
-regression <- venn_abers_regression(
-  numeric$truth[201:400], predict(numeric_model, numeric[201:400, ])
-)
+x <- runif(600, 0, 10)
+regression_data <- data.frame(x = x, truth = x + sin(x) + rnorm(600, sd = 0.5))
+regression_model <- lm(truth ~ x, data = regression_data[1:200, ])
+uncalibrated <- predict(regression_model, regression_data)
+regression <- venn_abers_regression(regression_data$truth[201:400],
+                                    uncalibrated[201:400])
 regression_map <- plot(regression)
 ```
 
 For workflows, `plot()` also accepts a frozen fit from `calibrate_workflow()`
 and the engine fit of a trained `calibrated_workflow()`, extracted with
 `workflows::extract_fit_engine()`. It draws the stored Venn-Abers calibrator
-with the loss stored at fitting as the default. See `?plot.venn_abers` for every family and
-for fits saved by earlier versions.
+with the loss stored at fitting as the default. See `?plot.venn_abers` for
+every family and for fits saved by earlier versions.
 
 ## Assessment graphics: held-out pairs
 
@@ -123,7 +123,7 @@ estimate of perfectly calibrated probabilities would fall, obtained by
 resampling. An estimate outside it points to miscalibration there. A `seed`
 makes the band reproducible and leaves your random stream unchanged.
 `band = "confidence"` draws an approximate pointwise band around the estimate
-instead, which claims no nominal coverage for continuous probabilities; see
+instead, which claims no nominal coverage; see
 `?corp_plot` for simulated coverage.
 
 ```{r corp-confidence, fig.cap="CORP reliability diagram with the approximate confidence band."}
@@ -175,10 +175,11 @@ points, and with `which = "residual"` the residuals against the same points.
 
 ```{r regression-plot, fig.height=6, fig.cap="Observed values and residuals against calibrated regression points."}
 held_out <- 401:600
-point <- predict(regression, predict(numeric_model, numeric[held_out, ]))
-pairs <- regression_plot(numeric$truth[held_out], point$prediction,
-                         which = c("observed", "residual"))
-head(pairs)
+point <- predict(regression, uncalibrated[held_out])
+held_out_pairs <- regression_plot(regression_data$truth[held_out],
+                                  point$prediction,
+                                  which = c("observed", "residual"))
+head(held_out_pairs)
 ```
 
 It describes the pairs given and does not use the regression bounds `lower`

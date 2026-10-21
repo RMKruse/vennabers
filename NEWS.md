@@ -7,7 +7,7 @@
   draws the calibration map: the lower and upper Venn-Abers values as steps
   and the regularized probability or regression point as a dashed line.
   `which = "width"` draws the Venn-Abers width `upper - lower`, which is
-  neither a confidence level nor a coverage. The methods cover binary,
+  neither a confidence level nor a nominal coverage. The methods cover binary,
   one-vs-one and one-vs-rest `venn_abers()` and `cross_venn_abers()` fits (one
   panel per subproblem, Cross fold maps overlaid), regression calibrators
   (with reference lines at the moderated truths `a` and `b`), and frozen or
@@ -23,8 +23,9 @@
   pointwise resampling band: the consistency band (default), an approximate
   confidence band, or none, at `level = 0.9` with 1000 `replicates`. A `seed`
   makes the band reproducible and leaves the caller's random stream
-  unchanged. Band limits are not Venn-Abers bounds. Both bands match
-  reliabilitydiag 0.2.1 at the same seed; `PARITY.md` names the check.
+  unchanged. Band limits are not Venn-Abers bounds. In the checked cases,
+  both bands match reliabilitydiag 0.2.1 at the same seed; `PARITY.md` names
+  the check and its exclusions.
   `corp_decomposition_plot()` splits the Brier score into miscalibration,
   discrimination and uncertainty. Factor truth is assessed class by class.
   Both return their plotted values invisibly. `calibration_plot()` is
