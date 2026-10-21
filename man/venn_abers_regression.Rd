@@ -76,7 +76,7 @@ guarantee for this particular point merger is asserted.
 
 This manual R entry point is an R extension, not a public manual Python wrapper
 API. Offline fixtures use valid regression components from Python venn-abers
-1.5.4, commit 0e7b4bc575ce230134576ba1c76688d46bf99ac7. Reference lower-bound
+1.5.4, commit \code{0e7b4bc575ce230134576ba1c76688d46bf99ac7}. Reference lower-bound
 defects are checked with reflected upper components and independent isotonic
 calculations; undefined reference point results use the explicit contract above.
 See \file{tests/testthat/extdata/regression-reference.md} in the source package

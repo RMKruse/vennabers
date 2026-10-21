@@ -135,7 +135,7 @@
   Documented formats include prediction columns and types, `type = "details"`
   and `venn_abers_details()` tables, the documented postprocessing records
   and `venn_abers_tuning()` fields. Incompatible changes wait for 2.0.0.
-  New options keep the previous behaviour unless they are enabled explicitly.
+  New options keep the previous behavior unless they are enabled explicitly.
 - Documented bug fixes may still change numerical results; NEWS names each one.
 - The parsnip engine entry points `fit_vennabers()`, `fit_vennabers_proxy()`
   and `predict_vennabers_*()` are exported only for model registration

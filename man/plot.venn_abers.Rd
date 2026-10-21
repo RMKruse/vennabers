@@ -66,7 +66,7 @@ led by the identity columns \code{pair_id}, then \code{fold} for Cross
 fits, then \code{class_1} and \code{class_2}, as in
 \code{\link{venn_abers_details}}.
 
-Between neighbouring rows, the map holds the \code{lower} value of the left
+Between neighboring rows, the map holds the \code{lower} value of the left
 row and the \code{upper} value of the right row, so the width between knots
 exceeds the width at them. The drawn curves follow these values exactly.
 }
@@ -108,7 +108,7 @@ every panel.
 \section{Regression}{
 A regression fit draws the lower and upper Venn-Abers values as steps and the
 point prediction as a dashed line over the uncalibrated prediction, with
-grey dashed reference lines at the moderated truth values \code{a} and
+gray dashed reference lines at the moderated truth values \code{a} and
 \code{b} that bound every Venn-Abers value. The width diagram shows
 \code{upper - lower} in units of the outcome.
 

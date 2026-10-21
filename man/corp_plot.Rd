@@ -100,7 +100,7 @@ probabilities, leaving it missing outside the drawn range. The band limits
 at each probability are the \code{(1 - level) / 2} and
 \code{(1 + level) / 2} quantiles of its valid replicates
 (\code{\link[stats]{quantile}}, type 7), so they lie in \code{[0, 1]} and
-equal probabilities share them. The band is drawn as a translucent grey area
+equal probabilities share them. The band is drawn as a translucent gray area
 with a legend naming it; the limits are linearly interpolated between the
 unique probabilities.
 
@@ -120,7 +120,7 @@ the curve, down to 0.34 just above 0.05 for 1000 uniform probabilities. The
 consistency band held the CORP estimate of calibrated probabilities with
 mean coverage between 0.90 and 0.93 in the same settings. At inner
 probabilities with an estimate of exactly 0 or 1, the confidence limits are
-interpolated linearly from the neighbouring probabilities, a heuristic of
+interpolated linearly from the neighboring probabilities, a heuristic of
 the reference; at the
 smallest and largest probabilities the band stays narrow there. When the
 pairs (for factor truth, of a class) hold only one outcome, the confidence
