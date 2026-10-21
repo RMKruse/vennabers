@@ -55,6 +55,8 @@ it returns a list containing \code{prediction} (that standard data frame) and
 in stored fold order). Zero and one input row retain these schemas; empty
 details retain every fold ID. Outputs are finite and the point lies between
 the bounds up to checked numerical roundoff. Row names do not align observations.
+\code{\link{plot.cross_venn_abers_regression}} draws each fold's stored
+calibration map and returns the maps invisibly as a data frame.
 }
 \description{
 Fits one moderated Inductive Venn-Abers regression calibrator per supplied

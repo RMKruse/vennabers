@@ -100,6 +100,12 @@
   their fits during documentation builds. `?vennabers_examples`, the package
   overview and related function help link to the collections, also available
   through `vignette()` and `browseVignettes()`.
+- Add runnable examples to `?venn_abers_details` and `?venn_abers_tuning`;
+  they run only when the optional tidymodels packages are installed. The
+  return values of `venn_abers()` and `cross_venn_abers()` now name their
+  class, the state they retain and the `predict()`, `plot()` and `print()`
+  methods to use; their list elements stay internal. Regression and workflow
+  pages point to their `plot()` methods.
 - Add a package overview at `?vennabers`, project and issue links in package
   metadata, and a pkgdown website configuration with grouped reference topics
   and all four guides. `tools/build-docs.R` builds the site locally from the

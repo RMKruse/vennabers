@@ -165,6 +165,9 @@ final probabilities, even with two classes. Empty predictions keep the schema wi
 Regression predictions contain a double \code{.pred} column in outcome units.
 Use \code{\link{venn_abers_details}} for bounds, fold identities and source models,
 and \code{\link{venn_abers_tuning}} for selection diagnostics.
+The fitted engine, \code{workflows::extract_fit_engine(fitted)}, is a
+\code{vennabers_fit}: printing it shows source mappings and base-fit counts, and
+\code{\link{plot.vennabers_fit}} draws its stored calibration map.
 }
 \section{Learning path}{
 Start with the binary example below, then follow

@@ -82,7 +82,8 @@ contain row, fold, prediction, lower and upper. IVAR bounds concern regularized
 conditional expectations, not confidence or prediction intervals.
 Zero and one row preserve types and columns; zero rows do not call the base engine.
 Print reports the adoption without base fits, the one retained workflow, the
-number of calibration rows and the Inductive fold-to-model mapping.}
+number of calibration rows and the Inductive fold-to-model mapping.
+\code{\link{plot.vennabers_fit}} draws the stored calibration map.}
 \details{
 Calibration uses the complete public workflow \code{predict(type = "prob")}
 or \code{predict(type = "numeric")} path, including its existing postprocessor

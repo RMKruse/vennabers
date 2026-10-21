@@ -148,3 +148,37 @@ searched.
 \code{shared-multiclass-bayes.R}, \code{pairwise-bayes.R}, \code{regression-bayes.R}
 and \code{postprocessing-bayes.R}, are under
 \code{system.file("examples", package = "vennabers")}.}
+\examples{
+packages <- c("parsnip", "workflows", "recipes", "rsample", "hardhat",
+              "generics", "rlang", "tibble", "tidyselect", "withr",
+              "tune", "dials", "yardstick")
+if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
+  development <- data.frame(
+    x = sin(1:80),
+    truth = factor(rep(c("yes", "no", "no", "yes"), 20),
+                   levels = c("yes", "no"))
+  )
+  base <- workflows::workflow() |>
+    workflows::add_formula(truth ~ x) |>
+    workflows::add_model(parsnip::logistic_reg(engine = "glm"))
+
+  # Choose the regularization loss on a reserved selection share S; the
+  # final calibrator is fitted on the remaining rows F.
+  calibration <- list(method = "grid",
+                      grid = data.frame(va_loss = c("log", "brier")),
+                      resamples = function(d) rsample::vfold_cv(d, v = 2))
+  tuning <- list(strategy = "two_stage", selection_prop = 0.3,
+                 calibration = calibration)
+  specification <- calibrated_workflow(base, outcome = "truth", seed = 42,
+                                       loss = tune::tune("va_loss"),
+                                       tuning = tuning)
+  fitted <- generics::fit(specification, development)
+
+  choices <- venn_abers_tuning(fitted)
+  print(choices$calibration$candidates)
+  print(choices$calibration$selected)
+  # Selection rows never enter the final calibration fit.
+  length(intersect(choices$calibration$selection_rows,
+                   choices$calibration$final_rows))
+}
+}

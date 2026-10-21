@@ -25,7 +25,25 @@ venn_abers(truth, probability, precision = NULL, method = "ovo")
   supplying this argument requires factor truth and a class matrix.}
 }
 \value{
-An opaque object of class \code{"venn_abers"}.
+An S3 object of class \code{"venn_abers"}: a list holding the fitted
+calibration state, from which new probabilities are calibrated without
+refitting. For binary truth it records the sorted unique calibration
+probabilities with their lower and upper Venn-Abers values and the
+calibration and event counts; for factor truth, the class levels, the method
+and one binary calibrator per class pair (OvO) or class (OvR). These list
+elements are internal and not public API. Use the methods instead:
+\itemize{
+\item \code{\link{predict.venn_abers}} returns the lower and upper values with
+the regularized event probability (binary), class probabilities (multiclass),
+class decisions or binary subproblem details, with the loss chosen at
+prediction time.
+\item \code{\link{plot.venn_abers}} draws the stored calibration map and
+returns it invisibly as a data frame.
+\item \code{\link{print.venn_abers}} summarizes the calibration size, events and
+probability knots, or the method, calibration size, classes and number of
+subproblems.
+}
+No predictive model or new data are stored.
 }
 \description{
 Fits binary or multiclass Inductive calibration from caller-supplied

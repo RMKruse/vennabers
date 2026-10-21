@@ -36,6 +36,8 @@ Predict returns a data frame with double columns \code{prediction},
 \code{lower}, \code{upper}, in input order, including for zero or one row.
 All results are finite and the point lies between the bounds up to numerical
 roundoff. Prediction only looks up fitted endpoints and merges them; it trains nothing.
+\code{\link{plot.venn_abers_regression}} draws the stored calibration map and
+returns it invisibly as a data frame.
 }
 \description{
 Calibrates supplied real-valued predictions using asymmetric moderation and

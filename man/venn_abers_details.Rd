@@ -66,3 +66,26 @@ not individual outcome coverage; Cross aggregate bounds are descriptive.
 \link{workflow_training} for the fitted engine's stored state.
 For worked diagnostics, see \code{vignette("workflows", package = "vennabers")}.
 }
+\examples{
+packages <- c("parsnip", "workflows", "recipes", "rsample", "hardhat",
+              "generics", "rlang", "tibble", "tidyselect", "withr")
+if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
+  development <- data.frame(
+    x = sin(1:80),
+    truth = factor(rep(c("yes", "no", "no", "yes"), 20),
+                   levels = c("yes", "no"))
+  )
+  base <- workflows::workflow() |>
+    workflows::add_formula(truth ~ x) |>
+    workflows::add_model(parsnip::logistic_reg(engine = "glm"))
+  specification <- calibrated_workflow(base, outcome = "truth",
+                                       method = "cross", v = 3, seed = 42)
+  fitted <- generics::fit(specification, development)
+  new_data <- data.frame(x = c(-0.5, 0.5))
+
+  # The final probabilities, then one record per new row and Cross fold.
+  result <- venn_abers_details(fitted, new_data)
+  print(result$prediction)
+  result$details
+}
+}

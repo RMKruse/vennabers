@@ -26,9 +26,23 @@ cross_venn_abers(truth, probability, fold, precision = NULL, method = "ovo")
   \code{"ovr"}. Explicit use with binary vector truth is an error.}
 }
 \value{
-An opaque S3 object of class \code{"cross_venn_abers"}, retaining fold
-identities and calibration state for repeated predictions. Internal fields
-are not public API. Predictive models are retained separately by the caller.
+An S3 object of class \code{"cross_venn_abers"}: a list retaining fold
+identities and calibration state for repeated predictions from the matching
+fold models. For binary truth it records the fold IDs in first-observed order,
+the total calibration size and one Inductive \code{venn_abers} calibrator per
+fold; for factor truth, the class levels, the method, the fold IDs and one
+Cross calibrator per class pair (OvO) or class (OvR). These list elements are
+internal and not public API. Use the methods instead:
+\itemize{
+\item \code{\link{predict.cross_venn_abers}} combines the fold calibrators on
+new probabilities from each fold model into regularized probabilities, class
+decisions or per-fold details, with the loss chosen at prediction time.
+\item \code{\link{plot.cross_venn_abers}} draws each fold's stored calibration
+map and returns the maps invisibly as a data frame.
+\item \code{\link{print.cross_venn_abers}} summarizes the number of folds and
+calibration observations, and the classes for multiclass.
+}
+Predictive models are retained separately by the caller.
 }
 \description{
 Fits Inductive Venn-Abers calibrators per calibration fold and, for
