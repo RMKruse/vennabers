@@ -31,6 +31,13 @@ the previous graphical parameters on exit. Graphical options apply to every
 panel; by default its title identifies the class. Bins are equal-width,
 left-closed and right-open, except that the last bin includes one.
 }
+\seealso{
+\code{\link{corp_plot}} for CORP reliability diagrams without bins and with
+uncertainty bands, \code{\link{regression_plot}} for held-out regression
+predictions, and \code{\link{plot.venn_abers}} for fit diagnoses of the
+stored calibration map. \code{vignette("diagnostics", package = "vennabers")}
+compares both kinds of graphics.
+}
 \examples{
 truth <- c(FALSE, TRUE, FALSE, TRUE)
 uncalibrated_probability <- c(0.1, 0.4, 0.35, 0.8)

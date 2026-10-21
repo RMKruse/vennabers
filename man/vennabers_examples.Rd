@@ -2,7 +2,8 @@
 \alias{vennabers_examples}
 \title{Find and Run Venn-Abers Example Scripts}
 \description{
-Annotated example collections cover manual calibration, training and frozen
+Annotated example collections cover manual calibration with its fit
+diagnoses and assessment graphics, training and frozen
 workflows, learned postprocessing, and Grid/Bayes selection. Each collection
 has a contents list with a separate entry for every example script.
 }
@@ -30,7 +31,8 @@ Scripts: \file{binary-options.R},
 \file{cross-multiclass.R},
 \file{one-hot-classes.R},
 \file{inductive-regression.R},
-\file{cross-regression.R}.
+\file{cross-regression.R},
+\file{calibration-graphics.R}.
 }
 \section{training and frozen workflows}{
 \code{vignette("examples-workflows", package = "vennabers")}.

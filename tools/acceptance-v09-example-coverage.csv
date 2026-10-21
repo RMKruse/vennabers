@@ -5,6 +5,7 @@ binary-grid.R,standalone,package standalone example,Binary grid tutorial with lo
 binary-options.R,core,core-without-tidymodels,Manual binary options execute with optional integration packages unavailable.
 calibrated-resampling.R,standalone,package standalone example,Fixed workflow resampling tutorial and outer split audits.
 calibrated-workflow.R,standalone,package standalone example,Installed workflow tutorial including learned preprocessing and assessment.
+calibration-graphics.R,core,core-without-tidymodels,Fit diagnoses and held-out CORP and regression graphics without integration packages.
 check-encoded-evaluation.R,helper,tests/testthat/test-outer-identities.R,Evaluation helper exercised by tests and encoded example callers.
 cross-multiclass.R,core,core-without-tidymodels,Manual Cross multiclass calibration without integration packages.
 cross-regression.R,core,core-without-tidymodels,Manual Cross regression calibration without integration packages.

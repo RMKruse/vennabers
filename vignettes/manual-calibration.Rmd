@@ -93,6 +93,10 @@ and observed event rate within bins; small bins can be noisy.
 calibration_plot(assessment$truth, result$probability, bins = 5)
 ```
 
+Fit diagnoses of the calibrator itself and CORP reliability diagrams with
+uncertainty bands are covered in
+`vignette("diagnostics", package = "vennabers")`.
+
 ## Binary Cross calibration: retain the fold models
 
 Use the first 200 observations as development data, still keeping assessment

@@ -1,6 +1,6 @@
 ---
 title: "Example scripts: manual calibration"
-description: "Binary options, multiclass OvO/OvR, one-hot class decisions and moderated Inductive/Cross regression."
+description: "Binary options, multiclass OvO/OvR, one-hot class decisions, moderated Inductive/Cross regression, fit diagnoses and assessment graphics."
 output:
   rmarkdown::html_vignette:
     toc: true
@@ -12,10 +12,12 @@ vignette: >
 ---
 
 Calibrate supplied predictions with binary or multiclass Inductive/Cross methods,
-or moderated regression. These examples use base R and the installed package.
+or moderated regression, and draw their fit diagnoses and assessment graphics.
+These examples use base R and the installed package.
 
 Start with `vignette("manual-calibration", package = "vennabers")` for the
-step-by-step guide. `?vennabers_examples` indexes all four example collections.
+step-by-step guide and `vignette("diagnostics", package = "vennabers")` for the
+graphics. `?vennabers_examples` indexes all four example collections.
 
 ## Choose an example
 
@@ -27,6 +29,7 @@ step-by-step guide. `?vennabers_examples` indexes all four example collections.
 - [One-hot class decisions](#one-hot-classes)
 - [Inductive regression](#inductive-regression)
 - [Cross regression](#cross-regression)
+- [Fit diagnoses and assessment graphics](#calibration-graphics)
 
 ## Running an example
 
@@ -97,4 +100,11 @@ than the introductory guides.
 `cross-regression.R`: Retain matching fold models and inspect the equal-weight merger of regression points and bounds.
 
 ```{r cross-regression, eval=FALSE, purl=FALSE, code=readLines(system.file("examples", "cross-regression.R", package = "vennabers"))}
+```
+
+## Fit diagnoses and assessment graphics {#calibration-graphics}
+
+`calibration-graphics.R`: Draw the stored calibration map and Venn-Abers width of binary, Cross and regression fits, then assess held-out pairs with a seeded CORP reliability diagram, its Brier decomposition and a regression plot.
+
+```{r calibration-graphics, eval=FALSE, purl=FALSE, code=readLines(system.file("examples", "calibration-graphics.R", package = "vennabers"))}
 ```

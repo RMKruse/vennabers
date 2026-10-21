@@ -44,7 +44,10 @@ regression bounds \code{lower} and \code{upper}, which it does not use.
 \seealso{
 \code{\link{venn_abers_regression}} for regression calibrators,
 \code{\link{plot.venn_abers_regression}} for their fit diagnoses, and
-\code{\link{corp_plot}} for held-out classification probabilities.
+\code{\link{corp_plot}} and \code{\link{calibration_plot}} for held-out
+classification probabilities.
+\code{vignette("diagnostics", package = "vennabers")} compares both kinds of
+graphics.
 }
 \examples{
 set.seed(1)

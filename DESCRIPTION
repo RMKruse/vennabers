@@ -11,7 +11,10 @@ Description: Fits binary Inductive and Cross Venn-Abers calibrators from
     rounding, binary class predictions, and individual fold results.
     Supports manual Inductive and Cross multiclass one-vs-one and one-vs-rest calibration
     with named class probabilities and binary diagnostics. Includes binary and multiclass
-    Brier score, log loss, and base R calibration plots. Fits moderated
+    Brier score and log loss, fit diagnoses that plot stored calibration maps,
+    and CORP reliability diagrams with resampling uncertainty bands as
+    described in Dimitriadis, Gneiting and Jordan (2021)
+    <doi:10.1073/pnas.2016191118>. Fits moderated
     Inductive and Cross regression calibrators from supplied real-valued
     predictions, returning regression bounds and weighted Inductive point
     predictions or equal-weight means of complete fold results. Optional

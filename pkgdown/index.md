@@ -27,6 +27,9 @@ data separate from training, selection and calibration.
 - [Calibrating supplied predictions](articles/manual-calibration.html):
   binary and multiclass classification, regression, Inductive/Cross methods,
   scoring and plots.
+- [Diagnose and assess calibration](articles/diagnostics.html): fit
+  diagnoses of the stored calibration map, CORP reliability diagrams with
+  uncertainty bands, the Brier decomposition and regression assessment plots.
 - [Training and freezing calibrated workflows](articles/workflows.html):
   preprocessing, model training, postprocessing and already fitted workflows.
 - [Tuning and assessing the complete procedure](articles/tuning.html):
@@ -57,7 +60,7 @@ and commands for running the installed originals:
 
 - [Manual calibration](articles/examples-manual.html): binary options,
   multiclass OvO/OvR, one-hot class decisions and regression, including Cross
-  fold matching.
+  fold matching, fit diagnoses and assessment graphics.
 - [Training and frozen workflows](articles/examples-workflows.html): own fit
   and predict functions, fixed engine options, schemas, independent Inductive
   sizes, full-model transfer, pairwise training and adoption of already fitted

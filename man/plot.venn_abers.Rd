@@ -137,7 +137,11 @@ its pair over the probability of \code{class_2} from that pair's own model.
 A fit without a stored Venn-Abers calibrator is an error.
 }
 \seealso{
-\code{\link{calibration_plot}} assesses calibration on held-out truth values.
+Assessment graphics need held-out truth values instead of the stored state:
+\code{\link{corp_plot}} and \code{\link{calibration_plot}} for
+classification probabilities, \code{\link{regression_plot}} for regression
+predictions. \code{vignette("diagnostics", package = "vennabers")} compares
+both kinds of graphics.
 }
 \examples{
 truth <- c(FALSE, TRUE, FALSE, TRUE, TRUE, FALSE, TRUE, TRUE)

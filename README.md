@@ -68,7 +68,8 @@ predict(fit, data.frame(x = c(-0.5, 0.5)), type = "prob")
 | Fit and calibrate a tidymodels workflow | `calibrated_workflow()` |
 | Calibrate an already fitted workflow | `calibrate_workflow()` |
 | Use your own fit and predict functions in a workflow | `model_adapter()` |
-| Score and plot calibration | `brier_score()`, `log_loss()`, `calibration_plot()` |
+| Inspect a fitted calibrator | `plot()` |
+| Score and assess calibration | `brier_score()`, `log_loss()`, `calibration_plot()`, `corp_plot()`, `corp_decomposition_plot()`, `regression_plot()` |
 
 ## Documentation
 
@@ -80,6 +81,8 @@ Start with `?vennabers` for the package overview, then follow the guides:
   `vignette("workflows", package = "vennabers")`
 - [Tuning and assessing the complete procedure](vignettes/tuning.Rmd):
   `vignette("tuning", package = "vennabers")`
+- [Diagnose and assess calibration](vignettes/diagnostics.Rmd):
+  `vignette("diagnostics", package = "vennabers")`
 
 Runnable example scripts for every interface are collected in
 `?vennabers_examples`, and learned postprocessing is covered in
@@ -113,6 +116,8 @@ the documentation.
 - Manokhin (2017). Multi-class probabilistic classification using inductive
   and cross Venn-Abers predictors.
   <https://proceedings.mlr.press/v60/manokhin17a.html>
+- Dimitriadis, Gneiting and Jordan (2021). Stable reliability diagrams for
+  probabilistic classifiers. <doi:10.1073/pnas.2016191118>
 
 ## License
 
