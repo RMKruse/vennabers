@@ -39,7 +39,10 @@ calibration_plot <- function(truth, probability, bins = 10, ...) {
     return(invisible(do.call(rbind, summaries)))
   }
   .validate_binary_input(truth, probability)
-  if (!.is_count(bins)) {
+  # The 0.9.0 rule, looser than .is_count(): attributes and counts beyond the
+  # integer range stay valid.
+  if (!is.numeric(bins) || !is.null(dim(bins)) || length(bins) != 1L ||
+    !is.finite(bins) || bins < 1 || bins != floor(bins)) {
     stop("`bins` must be one finite whole number of at least 1.", call. = FALSE)
   }
 
