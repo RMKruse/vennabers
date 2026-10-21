@@ -17,9 +17,13 @@ stopifnot(identical(suggests$package, c("knitr", "parsnip", "tibble", "testthat"
 stopifnot(identical(suggests$minimum, c(NA, "1.6.0", "3.3.1", "3.0.0")))
 
 # testthat runs the checks; it is no integration package and stays unpinned.
-stopifnot(identical(minimum_refs(suggests), c("knitr", "parsnip@1.6.0", "tibble@3.3.1", "testthat")))
+# Documented transitive pins follow the declared minimums.
+transitive <- data.frame(package = "furrr", minimum = "0.3.1")
+stopifnot(identical(minimum_refs(suggests, transitive),
+  c("knitr", "parsnip@1.6.0", "tibble@3.3.1", "testthat", "furrr@0.3.1")))
 pins <- pinned_minimums(suggests)
 stopifnot(identical(pins$package, c("parsnip", "tibble")))
+stopifnot(identical(pinned_minimums(suggests, transitive)$package, c("parsnip", "tibble", "furrr")))
 
 installed <- c(parsnip = "1.6.0", tibble = "3.3.2")
 mismatches <- version_mismatches(pins, installed)
