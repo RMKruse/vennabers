@@ -18,11 +18,14 @@ two_class_post <- function(strategy) list(method = "tailor_logistic", strategy =
 testthat::test_that("shared two-class Tailor logistic keeps multiclass class and tie rules", {
   for (pkg in c("workflows", "tailor", "probably", "rsample")) testthat::skip_if_not_installed(pkg)
   # Varied B/P rows train both learners; every C row and the new row share x = 0,
-  # so held scores tie and balanced C truth gives exactly one half.
+  # so held scores tie and balanced C truth gives exactly one half. Without an
+  # intercept the base probability at x = 0 is exactly 1/2, which keeps the
+  # Tailor score of one row equal to that of a batch on every BLAS: OpenBLAS
+  # AVX-512 kernels round leftover rows differently from 4-row blocks.
   d <- data.frame(x = c(sin(1:120) * 2, rep(0, 40)), truth = factor(rep(c("z", "a"), 80), levels = c("z", "a")))
   d$x[1:120] <- d$x[1:120] + ifelse(d$truth[1:120] == "a", .5, -.5)
-  base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
-    workflows::add_model(parsnip::logistic_reg(engine = "glm"))
+  base <- workflows::workflow() |> workflows::add_variables(outcomes = truth, predictors = x) |>
+    workflows::add_model(parsnip::logistic_reg(engine = "glm"), formula = truth ~ 0 + x)
   va <- function(data) rsample::make_splits(list(analysis = 1:120, assessment = 121:160), data)
   for (strategy in c("holdout", "ensemble")) {
     post <- list(method = "tailor_logistic", strategy = strategy, splits = if (strategy == "holdout")
