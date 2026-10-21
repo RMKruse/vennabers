@@ -55,6 +55,9 @@ docs/
 !/tools/xgboost-early-stopping.R
 # Keep the executable CORP band parity check (reliabilitydiag is not in Suggests).
 !/tools/corp-parity-reliabilitydiag.R
+# Keep the CORP band coverage and effort study and its checks.
+!/tools/corp-coverage-study.R
+!/tools/test-corp-coverage-study.R
 
 
 # research folger

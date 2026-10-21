@@ -111,9 +111,17 @@ Venn-Abers validity. The confidence band resamples from the estimate itself
 and is only approximate: the bootstrap of an isotonic fit is not consistent
 for continuous probabilities, so the band claims no nominal coverage. It
 fares better with few distinct probabilities and many pairs at each, as
-Venn-Abers calibrators often produce. At inner probabilities with an
-estimate of exactly 0 or 1, the confidence limits are interpolated linearly
-from the neighbouring probabilities, a heuristic of the reference; at the
+Venn-Abers calibrators often produce. In a simulation study at level 0.9
+with 1000 replicates, 1000 runs, and true conditional event probability
+\code{x^2}, its mean pointwise coverage at probabilities between 0.05 and
+0.95 was 0.92 for 100 and 0.88 for 1000 uniform probabilities, and 0.95 and
+0.91 for 100 and 1000 pairs on ten distinct probabilities. It varied along
+the curve, down to 0.34 just above 0.05 for 1000 uniform probabilities. The
+consistency band held the CORP estimate of calibrated probabilities with
+mean coverage between 0.90 and 0.93 in the same settings. At inner
+probabilities with an estimate of exactly 0 or 1, the confidence limits are
+interpolated linearly from the neighbouring probabilities, a heuristic of
+the reference; at the
 smallest and largest probabilities the band stays narrow there. When the
 pairs (for factor truth, of a class) hold only one outcome, the confidence
 band is omitted with a warning and its limits are \code{NA}; the consistency
@@ -127,8 +135,14 @@ assessment sets give wide bands that say little. The band limits are not
 Venn-Abers lower and upper probabilities.
 
 The cost grows with \code{replicates} times the number of pairs, each
-replicate sorting them, and the replicate values at every unique
-probability are held in memory at once.
+replicate sorting and fitting them again. The exact quantiles hold the
+replicate values at every unique probability in memory at once, a matrix of
+unique probabilities by replicates. With the default 1000 replicates and
+100000 continuous probabilities, that matrix takes about 800 MB and the
+call about 2 GB at its peak, and one call takes minutes, the confidence band
+several times longer than the consistency band. Few distinct probabilities
+need far less. For large assessment sets, \code{band = "none"} skips the
+resampling.
 }
 \section{Multiclass}{
 Every factor, even with two levels, is evaluated class by class: each class
