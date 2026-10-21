@@ -1,5 +1,5 @@
+url: https://rmkruse.github.io/vennabers/
 destination: _site
-# Add url when a deployed website address is available.
 
 template:
   bootstrap: 5

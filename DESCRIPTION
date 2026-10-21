@@ -27,7 +27,7 @@ Description: Calibrates the predictions of classification and regression
     installed file PARITY.md separates numerical parity from R extensions
     and documented deviations.
 License: MIT + file LICENSE
-URL: https://github.com/RMKruse/vennabers
+URL: https://rmkruse.github.io/vennabers/, https://github.com/RMKruse/vennabers
 BugReports: https://github.com/RMKruse/vennabers/issues
 Encoding: UTF-8
 Language: en-US

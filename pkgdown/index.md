@@ -1,8 +1,16 @@
 # vennabers
 
+<!-- badges: start -->
+[![CRAN status](https://www.r-pkg.org/badges/version/vennabers)](https://CRAN.R-project.org/package=vennabers)
+[![R-CMD-check](https://github.com/RMKruse/vennabers/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/RMKruse/vennabers/actions/workflows/R-CMD-check.yaml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/license/mit)
+<!-- badges: end -->
+
 Calibrate model predictions in R with Inductive or Cross Venn-Abers methods.
 `vennabers` supports binary and multiclass classification (one-vs-one or
-one-vs-rest), regression, and optional tidymodels workflows.
+one-vs-rest), regression, and optional tidymodels workflows. Start with
+[Venn-Abers methods and their guarantees](articles/method.html) for what the
+predictors compute and what they guarantee.
 
 ## Get started
 
@@ -21,6 +29,14 @@ predict(calibrator, c(0.2, 0.5, 0.9))
 The result contains `lower` and `upper` Venn-Abers bounds and a regularized
 `probability`. The bounds are not confidence intervals. Keep final assessment
 data separate from training, selection and calibration.
+
+A logistic regression that is linear in `x` cannot follow event probabilities
+of `plogis(x^3)`. Calibrated on separate data, its probabilities follow the
+diagonal of the CORP reliability diagram on independent assessment data; the
+[comparison guide](articles/comparison.html) adds Platt scaling and isotonic
+calibration.
+
+![CORP reliability diagrams on the assessment data: the logistic model (left) leaves the consistency band, its Venn-Abers calibration (right) follows the diagonal.](reference/figures/README-corp-1.png)
 
 ## Choose a guide
 
@@ -43,16 +59,22 @@ data separate from training, selection and calibration.
 
 The [package overview](reference/vennabers-package.html) connects the main
 interfaces. Use the [function reference](reference/index.html) for argument
-details and [release notes](news/index.html) for changes and release status.
+details and [release notes](news/index.html) for changes.
 
 ## Installation
 
-The package requires R 4.5 or later. From a local checkout of the
+The package requires R 4.5 or later. Install the released version from CRAN:
+
+```r
+install.packages("vennabers")
+```
+
+Or install the development version from the
 [source repository](https://github.com/RMKruse/vennabers):
 
-```sh
-R CMD build .
-R CMD INSTALL vennabers_1.0.0.tar.gz
+```r
+# install.packages("pak")
+pak::pak("RMKruse/vennabers")
 ```
 
 Manual calibration needs no additional R packages. Workflow integration and

@@ -50,6 +50,7 @@ docs/
 !/tools/test-build-candidate.R
 !/tools/RELEASE.md
 !/tools/build-docs.R
+!/tools/build-readme.R
 # Keep the executable XGBoost early-stopping check (xgboost is not in Suggests).
 !/tools/xgboost-early-stopping.R
 # Keep the executable CORP band parity check (reliabilitydiag is not in Suggests).
