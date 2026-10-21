@@ -104,7 +104,7 @@ their documented output formats stay compatible throughout 1.x. See
 
 ## Contributing
 
-Report problems in the [issue tracker](https://github.com/RMKruse/venn-abers/issues).
+Report problems in the [issue tracker](https://github.com/RMKruse/vennabers/issues).
 See [CONTRIBUTING](.github/CONTRIBUTING.md) for running the tests and building
 the documentation.
 

@@ -12,3 +12,7 @@
 ^_pkgdown\.yml$
 ^_site$
 ^pkgdown$
+^research$
+^\.quarto$
+^\.Rhistory$
+^\.DS_Store$

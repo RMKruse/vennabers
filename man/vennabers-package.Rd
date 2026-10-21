@@ -68,9 +68,9 @@ numerical parity with the Python reference from R extensions and limitations.
 \seealso{
 \code{browseVignettes("vennabers")}, \code{help(package = "vennabers")}.
 
-Project: \url{https://github.com/RMKruse/venn-abers}
+Project: \url{https://github.com/RMKruse/vennabers}
 
-Bug reports: \url{https://github.com/RMKruse/venn-abers/issues}
+Bug reports: \url{https://github.com/RMKruse/vennabers/issues}
 }
 \examples{
 calibrator <- venn_abers(

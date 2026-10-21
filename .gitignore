@@ -26,7 +26,6 @@ renv/python/
 CONTEXT.md
 /tools/*
 .DS_Store
-inst/
 AGENTS.md
 docs/
 # Keep the standard verification command and its scheduling history.

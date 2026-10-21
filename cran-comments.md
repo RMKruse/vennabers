@@ -64,8 +64,8 @@ Local macOS arm64, R 4.6.1: 0 errors | 0 warnings | 2 notes
   New submission
 
   Found the following (possibly) invalid URLs:
-    URL: https://github.com/RMKruse/venn-abers
-    URL: https://github.com/RMKruse/venn-abers/issues
+    URL: https://github.com/RMKruse/vennabers
+    URL: https://github.com/RMKruse/vennabers/issues
       Status: 404
 
   This is a new submission. The repository and issue tracker were not yet

@@ -1,7 +1,7 @@
 # Cross regression reference evidence
 
 CVAR here is the manual R contract from the
-[regression resolution](https://github.com/RMKruse/venn-abers/issues/5#issuecomment-5561777290).
+[regression resolution](https://github.com/RMKruse/vennabers/issues/5#issuecomment-5561777290).
 Python venn-abers 1.5.4 has no corresponding public manual CVAR wrapper.
 The fixture generator uses the same pinned **IVAR components** documented in
 [regression-reference.md](regression-reference.md), followed by independent

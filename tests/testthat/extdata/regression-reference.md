@@ -3,7 +3,7 @@
 Source: [Python venn-abers 1.5.4](https://github.com/ip200/venn-abers/tree/0e7b4bc575ce230134576ba1c76688d46bf99ac7),
 commit `0e7b4bc575ce230134576ba1c76688d46bf99ac7`, source module SHA-256
 `ea7816e8832eef3f0fa129d2bb80dffae4efcb785f37f083fc087136edb720a5`.
-The [agreed regression contract](https://github.com/RMKruse/venn-abers/issues/5#issuecomment-5561777290)
+The [agreed regression contract](https://github.com/RMKruse/vennabers/issues/5#issuecomment-5561777290)
 defines the R interface and numerical exceptions.
 
 `tools/generate-regression-fixtures.py` verifies the source checkout commit,

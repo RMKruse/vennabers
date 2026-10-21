@@ -37,8 +37,8 @@ Description: Fits binary Inductive and Cross Venn-Abers calibrators from
     installed file PARITY.md separates numerical parity from R extensions
     and documented deviations.
 License: MIT + file LICENSE
-URL: https://github.com/RMKruse/venn-abers
-BugReports: https://github.com/RMKruse/venn-abers/issues
+URL: https://github.com/RMKruse/vennabers
+BugReports: https://github.com/RMKruse/vennabers/issues
 Encoding: UTF-8
 Depends: R (>= 4.5.0)
 Suggests:

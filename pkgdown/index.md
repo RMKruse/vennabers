@@ -42,7 +42,7 @@ details and [release notes](news/index.html) for changes and release status.
 ## Installation
 
 The package requires R 4.5 or later. From a local checkout of the
-[source repository](https://github.com/RMKruse/venn-abers):
+[source repository](https://github.com/RMKruse/vennabers):
 
 ```sh
 R CMD build .
@@ -72,7 +72,7 @@ and commands for running the installed originals:
 
 The [example index in the R help](reference/vennabers_examples.html) also lists
 the installed scripts and vignette commands. The
-[parity guide](https://github.com/RMKruse/venn-abers/blob/HEAD/inst/PARITY.md)
+[parity guide](https://github.com/RMKruse/vennabers/blob/HEAD/inst/PARITY.md)
 that separates numerical agreement with the Python reference from R extensions
 and limitations. Report problems in the
-[issue tracker](https://github.com/RMKruse/venn-abers/issues).
+[issue tracker](https://github.com/RMKruse/vennabers/issues).

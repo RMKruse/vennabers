@@ -1,7 +1,7 @@
 # Contributing to vennabers
 
 Report bugs and suggest changes in the
-[issue tracker](https://github.com/RMKruse/venn-abers/issues). For a bug, a
+[issue tracker](https://github.com/RMKruse/vennabers/issues). For a bug, a
 minimal reproducible example and the output of `sessionInfo()` help most.
 
 ## Running the tests
