@@ -4,43 +4,33 @@ Version: 1.0.0
 Authors@R: person("René-M.", "Kruse", email = "rene.marcel.kruse@protonmail.com",
     role = c("aut", "cre", "cph"),
     comment = c(ORCID = "0000-0003-1655-9776"))
-Description: Fits binary Inductive and Cross Venn-Abers calibrators from
-    caller-supplied probabilities. Returns Inductive Venn-Abers intervals
-    and regularized probabilities, or Cross Venn-Abers regularized
-    probabilities using equal-weight aggregation across matched folds.
-    Supports log-loss or Brier regularization, calibration probability
-    rounding, binary class predictions, and individual fold results.
-    Supports manual Inductive and Cross multiclass one-vs-one and one-vs-rest calibration
-    with named class probabilities and binary diagnostics. Includes binary and multiclass
-    Brier score and log loss, fit diagnoses that plot stored calibration maps,
-    and CORP reliability diagrams with resampling uncertainty bands as
-    described in Dimitriadis, Gneiting and Jordan (2021)
-    <doi:10.1073/pnas.2016191118>. Fits moderated
-    Inductive and Cross regression calibrators from supplied real-valued
-    predictions, returning regression bounds and weighted Inductive point
-    predictions or equal-weight means of complete fold results. Optional
-    native 'tidymodels' workflows train complete local preprocessing and
-    models for binary, one-vs-one, one-vs-rest and regression calibration,
-    with Inductive or Cross splits and complete outer resampling, joint or
-    two-stage Grid/Bayes selection, and learned Sigmoid, 'tailor' or
-    reference isotonic postprocessing on separate holdouts or inner ensembles.
-    Inductive training and calibration sizes can be set independently, own
-    model fit and predict functions can serve as workflow models, and class
-    decisions can be represented as one-hot matrices.
-    Venn-Abers predictors are described in Vovk and Petej (2014)
-    <doi:10.48550/arXiv.1211.0025>; Inductive and Cross Venn-Abers
-    predictors in Vovk, Petej and Fedorova (2015)
-    <doi:10.48550/arXiv.1511.00213>. One-vs-one multiclass calibration
-    couples the pairwise Inductive or Cross Venn-Abers probabilities as in
-    Manokhin (2017) <https://proceedings.mlr.press/v60/manokhin17a.html>.
-    This independent R implementation checks its shared core results
-    against reference outputs of the 'Python' package 'venn-abers'; the
+Description: Calibrates the predictions of classification and regression
+    models with Venn-Abers predictors. A Venn-Abers predictor turns the
+    score of any model into a pair of probabilities that contains a
+    calibrated value when the observations are independent and identically
+    distributed (Vovk and Petej, 2014, <doi:10.48550/arXiv.1211.0025>);
+    Inductive and Cross Venn-Abers predictors make this practical for large
+    data sets (Vovk, Petej and Fedorova, 2015,
+    <doi:10.48550/arXiv.1511.00213>). The package serves analysts and
+    researchers who need calibrated probabilities or prediction bounds for
+    binary classification, multiclass classification by one-vs-one coupling
+    (Manokhin, 2017, <https://proceedings.mlr.press/v60/manokhin17a.html>)
+    or one-vs-rest, and regression (Petej and Vovk, 2026,
+    <doi:10.48550/arXiv.2605.06646>). Predictions of an existing model can
+    be calibrated directly, or optional 'tidymodels' workflows fit the
+    model, create the calibration splits and tune the complete procedure.
+    Diagnostics include the Brier score, log loss, plots of fitted
+    calibration maps and reliability diagrams with the CORP (consistent,
+    optimally binned, reproducible and pool-adjacent-violators based) method
+    of Dimitriadis, Gneiting and Jordan (2021) <doi:10.1073/pnas.2016191118>.
+    Core results are checked against the 'Python' package 'venn-abers'; the
     installed file PARITY.md separates numerical parity from R extensions
     and documented deviations.
 License: MIT + file LICENSE
 URL: https://github.com/RMKruse/vennabers
 BugReports: https://github.com/RMKruse/vennabers/issues
 Encoding: UTF-8
+Language: en-US
 Depends: R (>= 4.5.0)
 Suggests:
     knitr,
@@ -64,6 +54,7 @@ Suggests:
     yardstick (>= 1.4.0),
     future (>= 1.67.0),
     rpart,
+    spelling,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/roxygen2/version: 8.1.0

@@ -83,7 +83,7 @@ the folds.
 Multiclass calibrators draw one panel per one-vs-rest class or one-vs-one
 pair, each the map of its own binary subproblem; the final coupling into class
 probabilities is not drawn. Regression calibrators draw the map over the
-uncalibrated prediction, with grey dashed lines at the moderated truth values
+uncalibrated prediction, with gray dashed lines at the moderated truth values
 `a` and `b` that bound every Venn-Abers value:
 
 ```{r fit-regression, fig.cap="Calibration map of a regression calibrator."}
@@ -118,7 +118,7 @@ corp <- corp_plot(assessment$truth, probability, seed = 1)
 head(corp)
 ```
 
-The grey band is the default consistency band at level 0.9: where the CORP
+The gray band is the default consistency band at level 0.9: where the CORP
 estimate of perfectly calibrated probabilities would fall, obtained by
 resampling. An estimate outside it points to miscalibration there. A `seed`
 makes the band reproducible and leaves your random stream unchanged.
