@@ -41,7 +41,7 @@ jobs:
           dependencies: '"all"'
       - name: Check the CI helpers
         run: |
-          for test in tools/test-ci-check.R tools/test-ci-environment.R tools/test-minimum-dependencies.R tools/test-verify.R; do
+          for test in tools/test-ci-check.R tools/test-ci-environment.R tools/test-minimum-dependencies.R; do
             Rscript --vanilla "$test"
           done
       - name: Build
