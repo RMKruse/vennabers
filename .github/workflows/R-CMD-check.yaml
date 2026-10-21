@@ -5,10 +5,13 @@
 # integration packages.
 name: R-CMD-check
 
+# main is the release branch; dev collects feature and fix pull requests.
+# The matrix runs when dev is proposed for or merged into main.
 on:
   push:
-    branches: [main, "v*"]
+    branches: [main]
   pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
