@@ -78,6 +78,8 @@ then follow the practical guides:
 
 - [Venn-Abers methods and their guarantees](vignettes/method.Rmd):
   `vignette("method", package = "vennabers")`
+- [Venn-Abers, Platt and isotonic calibration compared](vignettes/comparison.Rmd):
+  `vignette("comparison", package = "vennabers")`
 - [Calibrating supplied predictions](vignettes/manual-calibration.Rmd):
   `vignette("manual-calibration", package = "vennabers")`
 - [Training and freezing calibrated workflows](vignettes/workflows.Rmd):

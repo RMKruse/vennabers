@@ -23,6 +23,7 @@ articles:
   navbar: ~
   contents:
   - method
+  - comparison
   - manual-calibration
   - diagnostics
   - workflows
