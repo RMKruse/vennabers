@@ -27,6 +27,20 @@ worker and integration matrix files excluded there. Set `NOT_CRAN=true` to run
 the complete suite under `R CMD check`; `tools/verify.R` always runs every
 test file.
 
+## Measuring test coverage
+
+With `covr` and `xml2` installed, run from the repository root:
+
+```sh
+Rscript --vanilla tools/coverage.R 4 /absolute/path/coverage
+```
+
+This runs the complete suite (`NOT_CRAN=true`) against an instrumented
+installation, again across four processes. It prints the total line coverage
+and every R file below 80 %, and writes `cobertura.xml` and `coverage.csv` to
+the given directory. The `test-coverage` workflow runs the same script on
+pushes and pull requests to `main` and uploads the result to Codecov.
+
 ## Building the documentation website
 
 With `pkgdown` and the suggested packages installed:

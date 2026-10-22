@@ -65,6 +65,9 @@ docs/
 !/tools/test-ci-environment.R
 !/tools/ci-check.R
 !/tools/test-ci-check.R
+# Keep the coverage measurement used by the test-coverage workflow.
+!/tools/coverage.R
+!/tools/test-coverage.R
 
 
 # research folger
