@@ -1,6 +1,7 @@
 testthat::test_that("full-multiclass-processes", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
+source("helper-helpers.R")
 packages <- c("workflows", "parsnip", "recipes", "rsample", "nnet")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
   example <- new.env()
@@ -18,6 +19,7 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
   script <- tempfile(fileext = ".R")
   log <- tempfile(fileext = ".log")
   on.exit(unlink(c(saved, script, log)), add = TRUE)
+  workers <- worker_replay_available()
   for (case in example$examples) {
     schema <- case$schema
     fit <- case$fit
@@ -47,7 +49,8 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
     error(calibrated_workflow(case$base, schema$encoded_outcome, schema = schema,
       classification = if (schema$classification == "ovo") "ovr" else "ovo", prediction_model = "full"))
     saveRDS(list(fit = fit, schema = schema, new = new, snapshot = snapshot,
-      expected = snapshot(fit, new, schema)), saved)
+      expected = snapshot(fit, new, schema), replay = if (workers) list(model = case$model,
+        outer = case$outer, evaluation = case$evaluation, schema = schema, new = new)), saved)
     writeLines(c(
       paste0('.libPaths(', paste(deparse(.libPaths()), collapse = ''), ')'),
       'library(vennabers)',
@@ -56,7 +59,9 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
       'trace("prep.recipe", where = asNamespace("recipes"), tracer = quote(stop("Unexpected preprocessing")), print = FALSE)',
       'trace("venn_abers", where = asNamespace("vennabers"), tracer = quote(stop("Unexpected calibrator fit")), print = FALSE)',
       'stopifnot(identical(s$expected, s$snapshot(s$fit, s$new, s$schema)),',
-      '  identical(names(workflows::extract_fit_engine(s$fit)$models), "Full1"))'
+      '  identical(names(workflows::extract_fit_engine(s$fit)$models), "Full1"))',
+      if (workers) worker_replay("yardstick::metric_set(yardstick::brier_class, yardstick::mn_log_loss)",
+        c("vennabers", "stats", "nnet"), c(workflows = "fit.workflow", recipes = "prep.recipe", vennabers = "venn_abers"))
     ), script)
     status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
     if (status != 0L) stop(paste(readLines(log), collapse = "\n"))

@@ -1,4 +1,5 @@
 testthat::test_that("pairwise joint Bayes scores complete coupled predictions", {
+  skip_if_no_integration("tune", "dials")
   data <- iris[iris$Species != "virginica", c("Sepal.Length", "Species")]
   names(data)[2L] <- "truth"
   data$truth <- droplevels(data$truth)
@@ -29,10 +30,7 @@ testthat::test_that("pairwise joint Bayes scores complete coupled predictions", 
   script <- tempfile(fileext = ".R")
   log <- tempfile(fileext = ".log")
   on.exit(unlink(c(script, log)), add = TRUE)
-  root <- getNamespaceInfo(asNamespace("vennabers"), "path")
-  writeLines(c(paste0(".libPaths(", paste(deparse(.libPaths()), collapse = ""), ")"),
-    paste0("if (file.exists(file.path(", deparse(root), ", 'R', 'tuning.R'))) ",
-      "pkgload::load_all(", deparse(root), ", quiet = TRUE) else library(vennabers)"),
+  writeLines(c(installed_vennabers_lines(),
     "library(workflows)",
     paste0("saved <- readRDS(", deparse(path), ")"),
     "stopifnot(venn_abers_tuning(saved$fit)$joint$candidates$status == 'eligible',",
@@ -43,6 +41,7 @@ testthat::test_that("pairwise joint Bayes scores complete coupled predictions", 
 })
 
 testthat::test_that("pairwise Bayes keeps local searches separate from global calibration", {
+  skip_if_no_integration("tune", "dials")
   data <- iris[c("Sepal.Length", "Species")]
   names(data)[2L] <- "truth"
   rownames(data) <- NULL
@@ -110,6 +109,7 @@ testthat::test_that("pairwise Bayes keeps local searches separate from global ca
 })
 
 testthat::test_that("four-class pairwise Bayes uses unequal local plans and a complete global score", {
+  skip_if_no_integration("tune", "dials", "yardstick")
   fourth <- head(iris[iris$Species == "setosa", ], 25L)
   fourth$Sepal.Length <- fourth$Sepal.Length + 1
   fourth$Species <- "fourth"
@@ -155,6 +155,7 @@ testthat::test_that("four-class pairwise Bayes uses unequal local plans and a co
 })
 
 testthat::test_that("four-class model Bayes keeps pair budgets and resamples local", {
+  skip_if_no_integration("tune", "dials", "rpart")
   fourth <- head(iris[iris$Species == "setosa", ], 20L)
   fourth$Sepal.Length <- fourth$Sepal.Length + 1
   fourth$Species <- "fourth"
@@ -195,6 +196,7 @@ testthat::test_that("four-class model Bayes keeps pair budgets and resamples loc
 })
 
 testthat::test_that("a missing pair excludes every global Bayes candidate", {
+  skip_if_no_integration("tune", "dials")
   data <- iris[c("Sepal.Length", "Species")]
   names(data)[2L] <- "truth"
   base <- workflows::workflow() |>
@@ -215,6 +217,7 @@ testthat::test_that("a missing pair excludes every global Bayes candidate", {
 })
 
 testthat::test_that("one partial pair candidate cannot win a complete coupled search", {
+  skip_if_no_integration("tune", "dials")
   pair_bayes_fit <- function(x, y, variant) list(classes = levels(y), variant = variant)
   pair_bayes_prob <- function(object, new_data) {
     p <- stats::plogis(new_data$Sepal.Length / 4 + object$variant / 10)
@@ -266,6 +269,7 @@ testthat::test_that("one partial pair candidate cannot win a complete coupled se
 })
 
 testthat::test_that("pure Grid joint still rejects local model resamples", {
+  skip_if_no_integration("tune")
   data <- iris[c("Sepal.Length", "Species")]
   names(data)[2L] <- "truth"
   base <- workflows::workflow() |>

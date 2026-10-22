@@ -1,6 +1,9 @@
 # Installed example: shared OvO/OvR retains full workflows trained on B, with
 # one Tailor step learned on disjoint P, before VA calibration on held-out C.
 # Choose logistic explicitly for two classes, multinomial for three or more.
+# Multinomial P uses probably/nnet's default 100 iterations, independently of
+# the B engine. Weakly informative probabilities may fail with fold/pair/B/P
+# context, without retry or method switch; postprocessing has no maxit option.
 packages <- c("vennabers", "workflows", "tailor", "probably", "recipes", "nnet", "tune", "yardstick")
 cases <- list()
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {

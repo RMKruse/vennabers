@@ -129,13 +129,15 @@
 }
 
 # The native grid runs serially by resample. Retain only the active data's pair
-# fits and raw predictions; calibration and coupling remain candidate-specific.
+# fits; they read no calibration settings, so every candidate calibrates and
+# couples its own. Cached models memoise their last prediction, which the
+# candidates sharing them repeat on the same assessment rows.
 .fit_pairwise_grid_domains <- function(data, domains, task, settings, tuning_plan) {
   cache <- tuning_plan$pair_cache
   if (!identical(cache$data, data)) {
     cache$entries <- new.env(parent = emptyenv())
     cache$plans <- withr::with_seed(cache$seed,
-      lapply(domains, function(domain) .plan_component(domain, settings)))
+      lapply(domains, function(domain) .plan_component(domain, task, settings)))
     cache$data <- data
   }
   get_fit <- function(domain, role, fit) {
@@ -146,38 +148,26 @@
       before <- tuning_plan$counter$n
       # Each pair/role has its own RNG scope, independent of other grid choices.
       value <- tryCatch(withr::with_seed(cache$seed, fit), error = identity)
-      if (!inherits(value, "error")) value$prediction_cache <- new.env(parent = emptyenv())
       entry <- list(value = value, fits = tuning_plan$counter$n - before)
       cache$entries[[key]] <- entry
     } else cache$reused <- cache$reused + entry$fits
     if (inherits(entry$value, "error")) stop(entry$value)
     entry$value
   }
-  source_settings <- settings
-  source_settings$precision <- NULL
   fitted <- lapply(seq_along(domains), function(i) {
-    domain <- domains[[i]]
-    folds <- cache$plans[[i]]
-    component <- get_fit(domain, "source",
-      .fit_component_sources(folds, domain, task, source_settings, tuning_plan))
-    calibration <- component$calibration
-    component$calibrator <- task$calibrate(lapply(calibration, `[[`, "truth"),
-      lapply(calibration, `[[`, "probability"),
-      lapply(names(folds), function(id) rep(id, length(folds[[id]]$assessment))),
-      folds, settings)
-    component
+    component <- get_fit(domains[[i]], "source", {
+      sources <- .fit_component_sources(cache$plans[[i]], domains[[i]], task, settings, tuning_plan)
+      sources$models <- lapply(sources$models, .memoised_model)
+      sources
+    })
+    .calibrate_component(component, task, settings)
   })
   if (identical(settings$prediction_model, "full")) {
-    fitted <- lapply(seq_along(domains), function(i) {
-      component <- fitted[[i]]
-      full <- get_fit(domains[[i]], "full",
-        .fit_component_full(component, domains[[i]], task, settings, tuning_plan))
-      component$models <- full$models
-      component$sources <- full$sources
-      component$model_selection["Full1"] <- full$model_selection["Full1"]
-      component$prediction_cache <- full$prediction_cache
-      component
-    })
+    fitted <- lapply(seq_along(domains), function(i) .use_full_model(fitted[[i]], get_fit(domains[[i]], "full", {
+      full <- .fit_component_full(domains[[i]], task, settings, tuning_plan, names(fitted[[i]]$postprocessing))
+      full$model <- .memoised_model(full$model)
+      full
+    })))
   }
   fitted <- lapply(fitted, function(component) {
     for (id in names(component$model_selection))
@@ -185,4 +175,19 @@
     component
   })
   list(plans = cache$plans, fitted = fitted)
+}
+
+.memoised_model <- function(model) {
+  structure(model, class = c("vennabers_memoised", class(model)), memo = new.env(parent = emptyenv()))
+}
+
+#' @export
+predict.vennabers_memoised <- function(object, new_data, ...) {
+  memo <- attr(object, "memo")
+  key <- list(new_data, ...)
+  if (!identical(memo$key, key)) {
+    memo$value <- NextMethod()
+    memo$key <- key
+  }
+  memo$value
 }

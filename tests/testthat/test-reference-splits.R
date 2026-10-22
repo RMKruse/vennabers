@@ -151,6 +151,20 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "nnet", "withr", 
                           workflows::extract_recipe(changed_state$models[[1L]])$steps),
                 !identical(state$calibrator, changed_state$calibrator))
       error(generics::fit(make_model(method, prepared), changed), "No prepared plan")
+      # Full transfer keeps the matched held-out values and calibrators; only its
+      # extra Full1 fit learns the complete local domain, changed held truth included.
+      before <- fits
+      full <- lapply(list(development, changed), function(d) workflows::extract_fit_engine(
+        generics::fit(make_model(method, resolve, prediction_model = "full"), d)))
+      engines <- lapply(full, function(s) workflows::extract_fit_engine(s$models$Full1))
+      assert_conditions(fits == before + 2L * (length(state$folds) + 1L),
+                identical(full[[1L]]$calibration, state$calibration), identical(full[[1L]]$calibrator, state$calibrator),
+                identical(full[[2L]]$calibration, changed_state$calibration),
+                identical(full[[2L]]$calibrator, changed_state$calibrator),
+                identical(names(full[[2L]]$models), "Full1"), all(full[[2L]]$sources == "Full1"),
+                identical(engines[[1L]]$x, engines[[2L]]$x), identical(engines[[2L]]$x$id, development$id),
+                identical(as.vector(engines[[2L]]$y), as.vector(changed$truth)),
+                !identical(engines[[1L]]$y, engines[[2L]]$y))
 
       # Complete outer evaluation sees the same locally ordered plan. Changes
       # solely in outer assessment truth cannot affect learned state/predictions.

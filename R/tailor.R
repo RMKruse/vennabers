@@ -31,7 +31,7 @@
   } else {
     .validate_base_probabilities(prediction, nrow(data), classes, "Tailor input")
     prediction <- prediction[paste0(".pred_", classes)]
-    prediction$.pred_class <- factor(classes[max.col(as.matrix(prediction), ties.method = "first")], levels = classes)
+    prediction$.pred_class <- .class_decision(prediction, classes)
     prediction <- prediction[c(".pred_class", paste0(".pred_", classes))]
   }
   prediction
@@ -80,7 +80,7 @@
 
 #' @export
 predict.vennabers_tailor_workflow <- function(object, new_data, type = if (is.null(object$classes)) "numeric" else "class", ...) {
-  .integration_dots(...)
+  .validate_dots(...)
   numeric <- is.null(object$classes)
   .validate_choice(type, if (numeric) "numeric" else c("prob", "class"), "type")
   columns <- if (numeric) ".pred" else if (type == "class") ".pred_class" else paste0(".pred_", object$classes)
@@ -120,7 +120,7 @@ extract_preprocessor.vennabers_tailor_workflow <- function(x, ...) workflows::ex
 
 #' @exportS3Method hardhat::extract_tailor
 extract_tailor.vennabers_tailor_workflow <- function(x, ..., estimated = TRUE) {
-  .integration_dots(...)
+  .validate_dots(...)
   if (!is.logical(estimated) || length(estimated) != 1L || is.na(estimated)) stop("`estimated` must be TRUE or FALSE.", call. = FALSE)
   if (estimated) x$tailor else x$specification
 }

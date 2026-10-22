@@ -122,9 +122,7 @@
   }
   prediction <- if (ovr) points / rowSums(points) else .couple_ovo(points, problems, object$classes)
   dimnames(prediction) <- dimnames(newdata[[1L]])
-  if (type == "class") {
-    return(factor(object$classes[max.col(prediction, ties.method = "first")], levels = object$classes))
-  }
+  if (type == "class") return(.class_decision(prediction, object$classes))
   if (type == "response") return(prediction)
   if (ovr) list(prediction = prediction, classes = do.call(rbind, details)) else
     list(prediction = prediction, pairs = do.call(rbind, details))

@@ -405,7 +405,6 @@ testthat::test_that("a failed final composition fit after Bayes has no fallback 
   for (pkg in c("tune", "tailor", "probably")) testthat::skip_if_not_installed(pkg)
   d <- bayes_binary_data(240L)
   base <- bayes_tuned_base(d)
-  sizes <- integer()
   fit_method <- getS3method("fit", "workflow", envir = asNamespace("generics"))
   registerS3method("fit", "workflow", function(object, data, ...) {
     if (!inherits(workflows::extract_spec_parsnip(object), c("vennabers", "vennabers_grid"))) {
@@ -415,9 +414,247 @@ testthat::test_that("a failed final composition fit after Bayes has no fallback 
     fit_method(object, data, ...)
   }, envir = asNamespace("generics"))
   on.exit(registerS3method("fit", "workflow", fit_method, envir = asNamespace("generics")), add = TRUE)
-  testthat::expect_error(generics::fit(calibrated_workflow(base, "truth", seed = 1,
-    tuning = list(strategy = "two_stage", model = bayes_search(upper = 2L, initial = 2L)),
-    postprocessing = list(method = "sigmoid", sigmoid_input = "probability", strategy = "holdout", prop = .25)), d),
-    "Holdout1 sigmoid.*planned final B failure")
-  testthat::expect_identical(sum(sizes > 120L), 1L)
+  # Only the final B exceeds 120 rows; joint candidates fit inside smaller B.
+  for (strategy in c("two_stage", "joint")) {
+    sizes <- integer()
+    testthat::expect_error(generics::fit(calibrated_workflow(base, "truth", seed = 1,
+      tuning = list(strategy = strategy, model = bayes_search(upper = 2L, initial = 2L)),
+      postprocessing = list(method = "sigmoid", sigmoid_input = "probability", strategy = "holdout", prop = .25)), d),
+      "Holdout1 sigmoid.*planned final B failure")
+    testthat::expect_identical(sum(sizes > 120L), 1L, info = strategy)
+  }
+})
+
+bayes_integer_param <- function(id, upper) dials::new_quant_param(type = "integer", range = c(1L, upper),
+  inclusive = c(TRUE, TRUE), label = stats::setNames(id, id))
+
+# A tied primary metric: every complete candidate scores exactly 0.
+bayes_tied_metric <- function() yardstick::new_numeric_metric(function(data, truth, estimate, ...) {
+  out <- yardstick::rmse(data, {{ truth }}, {{ estimate }}, ...)
+  out$.metric <- "tied"
+  out$.estimate[] <- 0
+  out
+}, direction = "minimize")
+
+testthat::test_that("postprocessed Bayes searches keep S, P and C out with learned recipes and own full searches", {
+  for (pkg in c("tune", "dials", "yardstick", "recipes", "rpart")) testthat::skip_if_not_installed(pkg)
+  d <- withr::with_seed(84, data.frame(x = rnorm(480), truth = rnorm(480)))
+  base <- workflows::workflow() |> workflows::add_recipe(recipes::recipe(truth ~ x, d) |>
+    recipes::step_normalize(x) |> recipes::step_poly(x, degree = tune::tune("degree"))) |>
+    workflows::add_model(parsnip::decision_tree(tree_depth = tune::tune("depth"), min_n = 10) |>
+      parsnip::set_mode("regression") |> parsnip::set_engine("rpart"))
+  # One option split and no option continuation (time_limit after the two
+  # initial points) keep the nested joint compositions affordable; the tied
+  # metric fixes the chosen moderation while S is mutated.
+  one_split <- function(s) rsample::manual_rset(list(rsample::make_splits(list(
+    analysis = seq_len(nrow(s) %/% 2L), assessment = seq.int(nrow(s) %/% 2L + 1L, nrow(s))), s)), "S1")
+  tuning <- list(selection_split = function(d) rsample::make_splits(list(analysis = 1:240, assessment = 241:480), d),
+    model = list(method = "bayes", initial = 3L, iter = 1L, resamples = bayes_plain,
+      param_info = dials::parameters(bayes_integer_param("degree", 2L), bayes_integer_param("depth", 2L)),
+      control = tune::control_bayes(seed = 4, save_pred = TRUE)),
+    calibration = list(method = "bayes", initial = 2L, iter = 1L, primary_metric = bayes_tied_metric(),
+      param_info = dials::parameters(dials::new_quant_param(type = "double", range = c(.3, .4),
+        inclusive = c(TRUE, TRUE), label = c(moderation = "Moderation"))),
+      resamples = one_split, control = tune::control_bayes(seed = 5, save_pred = TRUE, time_limit = 1e-9)))
+  keys <- c("chosen", "selected", "candidates", "scores", "resamples", "steps", "notes", "attempts",
+    "stop_reason", "no_improve", "bayes_seed", "search_seed", "budget", "cost")
+  for (strategy in c("joint", "two_stage")) {
+    spec <- calibrated_workflow(base, "truth", method = "cross", splits = bayes_positional_ensemble,
+      prediction_model = "full", seed = 31, epsilon = tune::tune("moderation"),
+      postprocessing = list(method = "isotonic_numeric", strategy = "ensemble", splits = bayes_positional_ensemble),
+      tuning = c(list(strategy = strategy), tuning))
+    fit <- generics::fit(spec, d)
+    state <- workflows::extract_fit_engine(fit)
+    original <- venn_abers_tuning(fit)
+    testthat::expect_named(original$models, c("first", "second", "Full1"), info = strategy)
+    testthat::expect_identical(original$calibration$chosen, "calibration_001", info = strategy)
+    testthat::expect_identical(original$calibration$candidates$estimate, c(0, 0), info = strategy)
+    for (path in names(original$models)) for (inner in c("first", "second")) {
+      local <- original$models[[path]][[inner]]
+      plan <- state$postprocessing[[path]]$inner_folds[[inner]]
+      info <- paste(strategy, path, inner)
+      testthat::expect_equal(as.data.frame(local$native$splits[[1L]]$data), d[plan$B, ], ignore_attr = TRUE, info = info)
+      # The GP input holds only complete candidates on rows of this B.
+      testthat::expect_identical(sort(unique(tune::collect_predictions(local$native)$.row)), seq_along(plan$B), info = info)
+      testthat::expect_setequal(paste(tune::collect_metrics(local$native)$degree, tune::collect_metrics(local$native)$depth),
+        paste(local$candidates$degree, local$candidates$depth)[local$candidates$status == "eligible"])
+      testthat::expect_identical(plan$selected, local$selected, info = info)
+      testthat::expect_true(local$chosen %in% local$candidates$id[local$candidates$status == "eligible"], info = info)
+      # Joint candidates are fixed compositions without a nested search.
+      testthat::expect_true(all(vapply(unlist(local$decisions, recursive = FALSE), is.null, TRUE)), info = info)
+    }
+    for (inner in c("first", "second")) testthat::expect_equal(
+      rlang::eval_tidy(workflows::extract_spec_parsnip(state$models$Full1$models[[inner]]$workflow)$args$min_n), 10,
+      info = paste(strategy, inner))
+    # S changes the option candidates' own predictions, but no final fit.
+    changed <- d
+    changed$x[241:480] <- changed$x[241:480] + 100
+    changed$truth[241:480] <- changed$truth[241:480] - 100
+    other <- generics::fit(spec, changed)
+    again <- venn_abers_tuning(other)
+    for (n in c(0L, 1L, 7L)) {
+      testthat::expect_identical(predict(other, d[seq_len(n), ]), predict(fit, d[seq_len(n), ]), info = paste(strategy, n))
+      testthat::expect_identical(venn_abers_details(other, d[seq_len(n), ]), venn_abers_details(fit, d[seq_len(n), ]),
+        info = paste(strategy, n))
+    }
+    testthat::expect_false(identical(tune::collect_predictions(again$calibration$native),
+      tune::collect_predictions(original$calibration$native)), info = strategy)
+    for (path in names(original$models)) for (inner in c("first", "second")) testthat::expect_identical(
+      again$models[[path]][[inner]][keys], original$models[[path]][[inner]][keys], info = paste(strategy, path, inner))
+    # P and C of the first Cross fold's first pair lie outside its B, so its
+    # search stays fixed; the full composition's own searches see those rows.
+    plan <- state$postprocessing$first$inner_folds$first
+    changed <- d
+    rows <- c(plan$P, plan$C)
+    changed$x[rows] <- changed$x[rows] + 20
+    changed$truth[rows] <- changed$truth[rows] + 30
+    other <- generics::fit(spec, changed)
+    again <- venn_abers_tuning(other)
+    testthat::expect_identical(workflows::extract_fit_engine(other)$postprocessing$first$inner_folds$first, plan, info = strategy)
+    testthat::expect_identical(again$models$first$first[keys], original$models$first$first[keys], info = strategy)
+    testthat::expect_identical(tune::collect_predictions(again$models$first$first$native),
+      tune::collect_predictions(original$models$first$first$native), info = strategy)
+    for (inner in c("first", "second")) testthat::expect_false(identical(again$models$Full1[[inner]]$scores,
+      original$models$Full1[[inner]]$scores), info = paste(strategy, inner))
+    # Searches that see the changed rows still draw their per-B seeds unchanged.
+    seeds <- function(x) vapply(local_searches(x), `[[`, 1L, "search_seed")
+    testthat::expect_identical(seeds(again), seeds(original), info = strategy)
+  }
+})
+
+testthat::test_that("Bayes excludes incomplete candidates and joint inner ensembles from selection and the GP", {
+  for (pkg in c("tune", "dials", "yardstick", "recipes")) testthat::skip_if_not_installed(pkg)
+  d <- withr::with_seed(8, data.frame(x = rnorm(240), z = rep(1:3, 80), truth = rnorm(240)))
+  # Initial points are degrees 3, 1, 2. With three distinct z values degree 3
+  # cannot be fitted on z in any inner B; on x it fits, but its public
+  # predictions drop a row. The tie behind it goes to the first eligible ID.
+  stub <- new.env()
+  original_predict <- getS3method("predict", "workflow", envir = asNamespace("stats"))
+  registerS3method("predict", "workflow", function(object, new_data, ...) {
+    result <- original_predict(object, new_data, ...)
+    if (identical(stub$term, "x") && !inherits(workflows::extract_spec_parsnip(object), c("vennabers", "vennabers_grid")) &&
+        identical(workflows::extract_preprocessor(object)$steps[[1L]]$degree, 3L)) result <- result[-1L, , drop = FALSE]
+    result
+  }, envir = asNamespace("stats"))
+  on.exit(registerS3method("predict", "workflow", original_predict, envir = asNamespace("stats")), add = TRUE)
+  report <- yardstick::new_numeric_metric(function(...) stop("report unavailable"), "minimize")
+  for (strategy in c("joint", "two_stage")) for (term in c("z", "x")) {
+    stub$term <- term
+    base <- workflows::workflow() |> workflows::add_recipe(recipes::recipe(truth ~ x + z, d) |>
+      recipes::step_poly(!!rlang::sym(term), degree = tune::tune("degree"))) |>
+      workflows::add_model(parsnip::linear_reg(engine = "lm"))
+    fit <- generics::fit(calibrated_workflow(base, "truth", splits = bayes_positional_va, seed = 5,
+      postprocessing = list(method = "isotonic_numeric", strategy = "ensemble", splits = bayes_positional_ensemble),
+      tuning = list(strategy = strategy, model = c(bayes_search(iter = 1L, resamples = bayes_plain),
+        list(primary_metric = bayes_tied_metric(), report_metrics = list(broken = report))))), d)
+    choices <- venn_abers_tuning(fit)$models$Inductive1
+    testthat::expect_named(choices, c("first", "second"))
+    for (inner in names(choices)) {
+      local <- choices[[inner]]
+      info <- paste(strategy, term, inner)
+      testthat::expect_identical(local$candidates$degree, c(3L, 1L, 2L), info = info)
+      testthat::expect_identical(local$candidates$status, c("excluded", "eligible", "eligible"), info = info)
+      testthat::expect_identical(local$chosen, "model_002", info = info)
+      testthat::expect_identical(local$candidates$estimate, c(NA, 0, 0), info = info)
+      testthat::expect_match(local$candidates$reason[1L], "omit, duplicate, or mismatch", info = info)
+      testthat::expect_setequal(tune::collect_metrics(local$native)$degree, c(1L, 2L))
+      # Joint candidates fail inside their nested inner ensemble; two_stage
+      # candidates are raw workflows without inner pairs.
+      notes <- paste(local$notes$note[local$notes$step == "initial"], collapse = " ")
+      testthat::expect_true(nzchar(notes), info = info)
+      testthat::expect_identical(grepl("Inductive1 / first isotonic_numeric", notes, fixed = TRUE), strategy == "joint", info = info)
+      if (term == "z") testthat::expect_match(notes, "must be less than number of unique points", info = info)
+      testthat::expect_match(local$report_metrics[[2L]][[1L]]$broken, "report unavailable", info = info)
+      testthat::expect_identical(local$cost$excluded_candidates, 1L, info = info)
+      # The invalid composition stops at its first inner pair on each resample.
+      testthat::expect_identical(local$cost$observed_base_fits, if (strategy == "joint") 10L else 6L, info = info)
+    }
+    testthat::expect_true(all(is.finite(predict(fit, d[1:7, ])$.pred)), info = paste(strategy, term))
+  }
+})
+
+testthat::test_that("joint Bayes with inner pairs spends budget on failed proposals and keeps global IDs", {
+  for (pkg in c("tune", "dials", "recipes")) testthat::skip_if_not_installed(pkg)
+  # z has four distinct values: every composition with degree >= 4 fails in
+  # an inner pair, whether it is an initial point or a GP proposal.
+  d <- withr::with_seed(8, {
+    x <- rnorm(360)
+    z <- rep(1:4, 90)
+    data.frame(x = x, z = z, truth = x + sin(2 * z) + rnorm(360, sd = .3))
+  })
+  base <- workflows::workflow() |> workflows::add_recipe(recipes::recipe(truth ~ x + z, d) |>
+    recipes::step_poly(z, degree = tune::tune("degree"))) |> workflows::add_model(parsnip::linear_reg(engine = "lm"))
+  run <- function(...) {
+    search <- bayes_search(upper = 8L, initial = 4L, iter = 4L, resamples = bayes_plain, ...)
+    search$control$seed <- 6
+    venn_abers_tuning(generics::fit(calibrated_workflow(base, "truth", splits = bayes_positional_va, seed = 5,
+      postprocessing = list(method = "isotonic_numeric", strategy = "ensemble", splits = bayes_positional_ensemble),
+      tuning = list(strategy = "joint", model = search)), d))
+  }
+  full <- run(no_improve = 10L)
+  for (inner in c("first", "second")) {
+    local <- full$models$Inductive1[[inner]]
+    testthat::expect_identical(local$candidates$degree, c(6L, 3L, 8L, 1L, 2L, 5L, 4L, 7L), info = inner)
+    testthat::expect_identical(local$candidates$id, sprintf("model_%03d", 1:8), info = inner)
+    testthat::expect_identical(local$candidates$status == "eligible", local$candidates$degree < 4L, info = inner)
+    testthat::expect_identical(unname(vapply(local$steps[-1L], `[[`, "", "id")), sprintf("model_%03d", 5:8), info = inner)
+    # tune_bayes drops proposals that fail on every resample; they keep the
+    # inner pair's error and never reach the GP.
+    for (reason in local$candidates$reason[6:8]) {
+      testthat::expect_match(reason, "All resamples failed", info = inner)
+      testthat::expect_match(reason, "Inductive1 / first isotonic_numeric.*must be less than number of unique points", info = inner)
+    }
+    testthat::expect_setequal(tune::collect_metrics(local$native)$degree, c(1L, 2L, 3L))
+    testthat::expect_identical(local$stop_reason, "budget", info = inner)
+    testthat::expect_identical(local$attempts, 8L, info = inner)
+    testthat::expect_identical(local$cost$candidate_evaluations, 16L, info = inner)
+    # An invalid composition stops at its first inner pair; a valid one fits both.
+    testthat::expect_identical(local$cost$observed_base_fits,
+      sum(ifelse(local$candidates$status == "eligible", 4L, 2L)), info = inner)
+  }
+  testthat::expect_identical(full$cost$observed_base_fits,
+    sum(vapply(full$models$Inductive1, function(x) x$cost$observed_base_fits, 1L)) + 2L)
+  # For the first pair, improving step 1 resets no_improve and the failed step 2
+  # stalls; for the second pair, step 1 does not improve.
+  stale <- run(no_improve = 1L)$models$Inductive1
+  testthat::expect_identical(vapply(stale, `[[`, 1L, "attempts"), c(first = 6L, second = 5L))
+  testthat::expect_true(all(vapply(stale, `[[`, "", "stop_reason") == "no_improve"))
+  testthat::expect_identical(stale$first$candidates$status[6L], "excluded")
+  timed <- run(no_improve = 10L, time_limit = 1e-9)$models$Inductive1
+  for (inner in names(timed)) {
+    testthat::expect_identical(timed[[inner]]$stop_reason, "time_limit", info = inner)
+    testthat::expect_identical(timed[[inner]]$attempts, 4L, info = inner)
+    testthat::expect_named(timed[[inner]]$steps, "initial", info = inner)
+  }
+})
+
+testthat::test_that("local Bayes searches stay sequential and in-process under an active parallel plan", {
+  for (pkg in c("tune", "dials", "recipes", "future")) testthat::skip_if_not_installed(pkg)
+  d <- withr::with_seed(8, data.frame(x = rnorm(240), truth = rnorm(240)))
+  base <- workflows::workflow() |> workflows::add_recipe(recipes::recipe(truth ~ x, d) |>
+    recipes::step_poly(x, degree = tune::tune("degree"))) |> workflows::add_model(parsnip::linear_reg(engine = "lm"))
+  spec <- calibrated_workflow(base, "truth", splits = bayes_positional_va, seed = 5,
+    postprocessing = list(method = "isotonic_numeric", strategy = "ensemble", splits = bayes_positional_ensemble),
+    tuning = list(strategy = "joint", model = bayes_search(iter = 1L, resamples = bayes_plain)))
+  keys <- c("chosen", "candidates", "scores", "steps", "notes", "attempts", "stop_reason", "search_seed", "cost")
+  sequential <- local_searches(venn_abers_tuning(generics::fit(spec, d)))
+  # Record what every native search is told about parallelism.
+  allowed <- logical()
+  intercept <- function(name, env = parent.frame()) {
+    original <- getS3method(name, "workflow", envir = asNamespace("tune"))
+    registerS3method(name, "workflow", function(object, ..., control) {
+      allowed <<- c(allowed, control$allow_par)
+      original(object, ..., control = control)
+    }, envir = asNamespace("tune"))
+    withr::defer(registerS3method(name, "workflow", original, envir = asNamespace("tune")), envir = env)
+  }
+  intercept("tune_grid")
+  intercept("tune_bayes")
+  future::plan(future::multisession, workers = 2)
+  on.exit(future::plan(future::sequential), add = TRUE)
+  parallel <- local_searches(venn_abers_tuning(generics::fit(spec, d)))
+  # One initialization and one continuation per local B search, none parallel.
+  testthat::expect_identical(allowed, rep(FALSE, 2L * length(parallel)))
+  # The fit counter lives in this process: a worker fit would be missing here.
+  for (name in names(parallel)) testthat::expect_identical(parallel[[name]][keys], sequential[[name]][keys], info = name)
 })

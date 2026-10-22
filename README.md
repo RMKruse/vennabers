@@ -1,64 +1,79 @@
-# venn-abers
 
-`vennabers` calibrates model predictions in R. It supports binary and multiclass
-classification (one-vs-one or one-vs-rest) and regression, each with Inductive
-or Cross calibration.
+<!-- README.md is generated from README.Rmd with tools/build-readme.R. Edit README.Rmd. -->
 
-You can supply predictions from an existing model or use optional tidymodels
-workflows to fit models and create calibration splits. The package requires
-R 4.5 or later.
+# vennabers
+
+<!-- badges: start -->
+
+[![CRAN
+status](https://www.r-pkg.org/badges/version/vennabers)](https://CRAN.R-project.org/package=vennabers)
+[![R-CMD-check](https://github.com/RMKruse/vennabers/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/RMKruse/vennabers/actions/workflows/R-CMD-check.yaml)
+[![Codecov test
+coverage](https://codecov.io/gh/RMKruse/vennabers/graph/badge.svg)](https://app.codecov.io/gh/RMKruse/vennabers)
+[![License:
+MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/license/mit)
+<!-- badges: end -->
+
+`vennabers` calibrates model predictions in R with Inductive or Cross
+Venn-Abers methods. It supports binary classification, multiclass
+classification (one-vs-one or one-vs-rest) and regression. Start with
+[Venn-Abers methods and their
+guarantees](https://rmkruse.github.io/vennabers/articles/method.html)
+for what the predictors compute and what they guarantee.
+
+You can calibrate predictions from a model you already have, or let
+optional tidymodels workflows fit the model, create the calibration
+splits and tune the complete procedure.
 
 ## Installation
 
-From a local checkout:
+`vennabers` requires R 4.5 or later. Install the released version from
+CRAN:
 
-```sh
-R CMD INSTALL .
+``` r
+install.packages("vennabers")
 ```
 
-The manual calibration functions need no additional R packages. Workflow
-integration uses the optional packages listed in `DESCRIPTION`.
+Or install the development version from GitHub:
 
-## Getting started
+``` r
+# install.packages("pak")
+pak::pak("RMKruse/vennabers")
+```
 
-Fit a binary calibrator with probabilities from a model trained on separate
-data. Then predict calibrated probabilities for new observations:
+Calibrating supplied predictions needs no additional packages. The
+tidymodels workflows and the vignettes use the optional packages listed
+under `Suggests` in `DESCRIPTION`.
 
-```r
+## Example
+
+Fit a calibrator with probabilities from a model trained on separate
+data, then calibrate probabilities for new observations:
+
+``` r
 library(vennabers)
 
 truth <- c(FALSE, TRUE, FALSE, TRUE)
 uncalibrated <- c(0.1, 0.4, 0.35, 0.8)
 calibrator <- venn_abers(truth, uncalibrated)
-prediction <- predict(calibrator, c(0.2, 0.5, 0.9))
 
+prediction <- predict(calibrator, c(0.2, 0.5, 0.9))
 prediction
+#>       lower upper probability
+#> 1 0.0000000   0.5   0.3333333
+#> 2 0.5000000   1.0   0.6666667
+#> 3 0.6666667   1.0   0.7500000
 brier_score(c(FALSE, TRUE, TRUE), prediction$probability)
-log_loss(c(FALSE, TRUE, TRUE), prediction$probability)
+#> [1] 0.09490741
 ```
 
-`prediction` contains `lower` and `upper` Venn-Abers bounds and a regularized
-`probability`. The bounds are not confidence intervals. Keep final assessment
-data separate from model training and calibration.
+`prediction` holds the `lower` and `upper` Venn-Abers bounds and a
+regularized `probability`. The bounds are not confidence intervals.
 
-## Other interfaces
+With tidymodels installed, `calibrated_workflow()` trains a workflow and
+its calibrator together:
 
-| Task | Function |
-| --- | --- |
-| Calibrate binary or multiclass probabilities | `venn_abers()` |
-| Calibrate out-of-fold classification probabilities | `cross_venn_abers()` |
-| Calibrate numeric predictions | `venn_abers_regression()` or `cross_venn_abers_regression()` |
-| Fit and calibrate a tidymodels workflow | `calibrated_workflow()` |
-| Calibrate an already fitted workflow | `calibrate_workflow()` |
-
-For multiclass calibration, pass factor truth and a probability matrix with
-columns named after its levels. Choose `method = "ovo"` (default) or `"ovr"`.
-When supplying probabilities directly, Cross calibration needs predictions
-from the corresponding retained fold models.
-
-Here is a binary workflow that creates its own training and calibration split:
-
-```r
+``` r
 data <- data.frame(
   x = sin(1:80),
   truth = factor(rep(c("yes", "no", "no", "yes"), 20))
@@ -72,126 +87,125 @@ fit <- calibrated_workflow(base, outcome = "truth", seed = 42) |>
 predict(fit, data.frame(x = c(-0.5, 0.5)), type = "prob")
 ```
 
-Use `method = "cross"` for fold-based workflow calibration. See
-`?calibrated_workflow` and `?calibrate_workflow` for split, model and prediction
-options.
+## Calibration at a glance
 
-Binary workflows also support
-`postprocessing = list(method = "sigmoid", strategy = "holdout", prop = .3,
-sigmoid_input = "probability")`. Select `"glm_link"` explicitly for binomial
-GLM logit inputs through the complete workflow and recipe. Sigmoid requires
-both classes in B and P, at least two P rows, and no existing postprocessor.
-It uses sklearn-compatible smoothed targets without a Python runtime dependency.
+A logistic regression that is linear in `x` cannot follow event
+probabilities of `plogis(x^3)`: it ranks cases correctly, but its
+probabilities are off. Venn-Abers calibration on separate calibration
+data corrects them. The CORP reliability diagrams compare both on a
+third, independent assessment set; a well calibrated method follows the
+diagonal inside the gray band.
 
-Binary and shared OvO/OvR workflows can learn Tailor postprocessing on a separate
-holdout before VA calibration. Pass
-`postprocessing = list(method = "tailor_logistic", strategy = "holdout", prop = .3)`;
-Use `tailor_multinomial` instead for shared models with three or more classes;
-two-class OvO/OvR requires `tailor_logistic`. `prop` is the fraction reserved for the postprocessor. Recipe/model training,
-postprocessing, and VA calibration use separate B/P/C portions. This path needs
-the optional `tailor` and `probably` packages and fixed model parameters.
-For binary and shared OvO/OvR classification, choose `strategy = "ensemble", v = 3`
-instead of `strategy = "holdout", prop = .3` to retain three complete B/P pairs.
-The P folds partition the local Q; finished class vectors are averaged with equal
-pair weights before Inductive/Cross VA. Shared two-class models still require
-`tailor_logistic`, and three or more classes require `tailor_multinomial`.
-Pairwise OvO (`model_training = "pairwise"`) supports both holdout and ensemble
-postprocessing with `tailor_logistic` or either Sigmoid input. Each class pair
-is selected before its VA and B/P plans are built. Local complete predictions
-are averaged before binary VA and global OvO coupling. See the
-[installed pairwise example](inst/examples/pairwise-postprocessing.R) for native
-resampling, `last_fit`, and the distinction between class pairs and inner B/P pairs.
-Regression workflows use `method = "tailor_linear"` with `smooth=FALSE`; P needs
-at least three rows and a full-rank intercept/prediction design. Automatic
-regression splits are unstratified. The unchanged IVAR/CVAR kernels consume the
-complete adjusted workflow predictions, using the requested `m` or `epsilon`.
-For numeric reference isotonic calibration, use `method = "isotonic_numeric"`
-with a base workflow without a postprocessor. P needs at least two finite rows;
-ties retain their frequencies, predictions interpolate between fitted supports,
-and extrapolation uses the nearest fitted value. No `tailor` or `probably`
-installation is needed for this method.
-Both numeric methods also accept `strategy = "ensemble", v = 3`: each pair
-keeps its complete B workflow and P postprocessor, and their finished numeric
-predictions are averaged equally before IVAR/CVAR. CVAR bounds remain descriptive
-VA bounds, not confidence or prediction intervals.
+``` r
+set.seed(1)
+simulate <- function(n) {
+  x <- rnorm(n)
+  data.frame(x = x, truth = runif(n) < plogis(x^3))
+}
+training <- simulate(500)
+calibration <- simulate(1000)
+assessment <- simulate(5000)
 
-Set `prediction_model = "full"` with any fixed postprocessing method to train
-one additional complete holdout or ensemble on the permitted fit data, with its
-own B/P splits. Held C predictions and VA calibrators stay unchanged; only the
-additional full composition is retained for prediction. Each inner engine still
-learns only on B. Full Inductive costs 2J pairs; Cross costs (K+1)J, retaining J
-per domain (sum differing local counts). Full-model transfer does not inherit
-split-calibration guarantees automatically. The
-[installed full-postprocessing example](inst/examples/full-postprocessing.R)
-covers all 80 fixed combinations through native evaluation and `last_fit`.
+model <- glm(truth ~ x, family = binomial(), data = training)
+score <- function(data) predict(model, data, type = "response")
+calibrator <- venn_abers(calibration$truth, score(calibration))
+calibrated <- predict(calibrator, score(assessment))$probability
 
-Postprocessing also accepts `tuning` with joint or two-stage Grid selection of
-engine/recipe settings. Each B (every VA source, inner ensemble pair and full
-composition) runs its own local search; P, C, outer assessment and a reserved
-selection share never enter it. Joint scores complete compositions with fixed
-candidate settings, and the first two-stage step scores the raw engine without
-postprocessor or VA. See the
-[installed postprocessing grid example](inst/examples/postprocessing-grid.R).
-Stepwise Bayes selection uses the same local searches; only complete valid
-candidates feed the next GP, and failed or repeated proposals spend budget.
-See the [installed postprocessing Bayes example](inst/examples/postprocessing-bayes.R).
+par(mfrow = c(1, 2))
+corp_plot(assessment$truth, score(assessment), seed = 1,
+          main = "Logistic model")
+corp_plot(assessment$truth, calibrated, seed = 1,
+          main = "Venn-Abers calibrated")
+```
 
-## Supported postprocessing compositions
+<img src="man/figures/README-corp-1.png" alt="Two CORP reliability diagrams. The curve of the logistic model leaves the consistency band at low, middle and high probabilities; the Venn-Abers calibrated curve stays close to the diagonal."  />
 
-Each row runs with holdout or inner ensemble, Inductive or Cross VA, and
-matched or full prediction models: eight fixed compositions per row, 80 in
-total. Every composition also accepts joint or two-stage Grid/Bayes selection
-of engine/recipe settings inside each B.
+`vignette("comparison")` adds Platt scaling and isotonic calibration and
+states what one simulated data set can and cannot show.
 
-| Path | Methods | Compositions |
-| --- | --- | ---: |
-| Binary | Sigmoid (probability or GLM-link input), Tailor logistic | 16 |
-| Pairwise OvO | Sigmoid (either input), Tailor logistic | 16 |
-| Shared OvO, three or more classes | Tailor multinomial | 8 |
-| Shared OvR, three or more classes | Tailor multinomial | 8 |
-| Shared OvO, two classes | Tailor logistic | 8 |
-| Shared OvR, two classes | Tailor logistic | 8 |
-| Regression (IVAR/CVAR) | Reference isotonic, Tailor linear | 16 |
+## Overview
 
-B learns recipe and engine, P learns the postprocessor, and held-out C trains
-the unchanged VA core. Full compositions train an additional B/P holdout or
-ensemble on the permitted final data F. Without tuning, J inner pairs cost J
-(Inductive matched), 2J (Inductive full), KJ (Cross matched with K folds) or
-(K+1)J (Cross full) engine and postprocessor fits per domain and retain J, J,
-KJ or J pairs; class pairs add up. For example, three class pairs, five Cross
-folds and a three-pair ensemble in full mode train 54 engines and 54
-postprocessors and keep nine pairs.
+| Task | Function |
+|----|----|
+| Calibrate binary or multiclass probabilities | `venn_abers()`, `cross_venn_abers()` |
+| Calibrate numeric predictions | `venn_abers_regression()`, `cross_venn_abers_regression()` |
+| Fit and calibrate a tidymodels workflow | `calibrated_workflow()` |
+| Calibrate an already fitted workflow | `calibrate_workflow()` |
+| Use your own fit and predict functions in a workflow | `model_adapter()` |
+| Inspect a fitted calibrator | `plot()` |
+| Score and assess calibration | `brier_score()`, `log_loss()`, `calibration_plot()`, `corp_plot()`, `corp_decomposition_plot()`, `regression_plot()` |
 
-Sigmoid follows the sklearn target smoothing without a Python runtime. Tailor
-methods use the public workflow path with `smooth = FALSE`; reference isotonic
-needs neither `tailor` nor `probably`. These are R extensions of the Python
-reference, which has no tidymodels postprocessing. Out of scope: out-of-fold
-postprocessing followed by a complete engine refit, arbitrary foreign engines
-or Tailor step sequences, further methods and new constructors. Frozen
-workflows (`calibrate_workflow()`) keep their existing contract. Full-model
-transfer does not inherit split-calibration guarantees.
+## Documentation
 
-## Learn more
+The [package website](https://rmkruse.github.io/vennabers/) collects the
+guides, the function reference and the example scripts. Start with
+`?vennabers` for the package overview and with the method guide, then
+follow the practical guides:
 
-- [Binary Cross example](inst/examples/cross-venn-abers.R)
-- [Binary Sigmoid holdout example](inst/examples/sigmoid-holdout.R) with probability and GLM-link inputs
-- [Regression Tailor holdout example](inst/examples/tailor-regression-holdout.R) with IVAR/CVAR and native evaluation
-- [Regression isotonic holdout example](inst/examples/isotonic-regression-holdout.R) with IVAR/CVAR and native evaluation
-- [Regression ensemble example](inst/examples/regression-ensemble.R) with both numeric methods, native evaluation and held-out data checks
-- [Shared multiclass ensemble example](inst/examples/multiclass-ensemble.R) with retained pairs, encoded names and native evaluation
-- [Shared multiclass Tailor holdout example](inst/examples/tailor-multiclass-holdout.R) with encoded names and native evaluation
-- [Binary Tailor holdout example](inst/examples/tailor-holdout.R) with diagnostics, resampling and last_fit
-- [Multiclass example](inst/examples/inductive-ovo.R) and [Cross multiclass example](inst/examples/cross-multiclass.R)
-- [Shared multiclass grid example](inst/examples/shared-multiclass-grid.R) for OvO/OvR and joint/two-stage selection
-- [Shared multiclass Bayes example](inst/examples/shared-multiclass-bayes.R) for complete OvO/OvR matrix selection
-- [Pairwise OvO grid example](inst/examples/pairwise-grid.R) for local pair grids and coupled selection
-- [Pairwise OvO Bayes example](inst/examples/pairwise-bayes.R) for local pair searches and coupled selection
-- [Regression grid example](inst/examples/regression-grid.R) for IVAR/CVAR with joint or two-stage selection
-- [Postprocessing grid example](inst/examples/postprocessing-grid.R) for local B searches with classification and regression postprocessing
-- [Postprocessing Bayes example](inst/examples/postprocessing-bayes.R) for local B Bayes searches with budget and failure records
-- [Regression Bayes example](inst/examples/regression-bayes.R) for IVAR/CVAR with joint or two-stage selection
-- [Regression example](inst/examples/inductive-regression.R) and [Cross regression example](inst/examples/cross-regression.R)
-- [Workflow example](inst/examples/calibrated-workflow.R) and [fitted workflow example](inst/examples/frozen-binary.R)
-- [Release notes](NEWS.md)
+- [Venn-Abers methods and their
+  guarantees](https://rmkruse.github.io/vennabers/articles/method.html):
+  `vignette("method", package = "vennabers")`
+- [Venn-Abers, Platt and isotonic calibration
+  compared](https://rmkruse.github.io/vennabers/articles/comparison.html):
+  `vignette("comparison", package = "vennabers")`
+- [Calibrating supplied
+  predictions](https://rmkruse.github.io/vennabers/articles/manual-calibration.html):
+  `vignette("manual-calibration", package = "vennabers")`
+- [Training and freezing calibrated
+  workflows](https://rmkruse.github.io/vennabers/articles/workflows.html):
+  `vignette("workflows", package = "vennabers")`
+- [Tuning and assessing the complete
+  procedure](https://rmkruse.github.io/vennabers/articles/tuning.html):
+  `vignette("tuning", package = "vennabers")`
+- [Diagnose and assess
+  calibration](https://rmkruse.github.io/vennabers/articles/diagnostics.html):
+  `vignette("diagnostics", package = "vennabers")`
 
-Run `help(package = "vennabers")` for the complete function reference.
+Runnable example scripts for every interface are collected in
+`?vennabers_examples`, and learned postprocessing is covered in
+`?workflow_postprocessing`.
+
+## Relationship to Python venn-abers
+
+This is an independent R implementation. Its shared core results are
+checked against reference outputs of the Python package
+[venn-abers](https://github.com/ip200/venn-abers).
+[`PARITY.md`](https://github.com/RMKruse/vennabers/blob/HEAD/inst/PARITY.md)
+separates numerical parity from R extensions, documented deviations and
+accepted limits.
+
+## Stability
+
+From 1.0.0 on, the user-facing functions, their arguments and defaults,
+and their documented output formats stay compatible throughout 1.x. See
+[NEWS](https://rmkruse.github.io/vennabers/news/index.html) for the full
+promise.
+
+## Contributing
+
+Report problems in the [issue
+tracker](https://github.com/RMKruse/vennabers/issues). See
+[CONTRIBUTING](https://github.com/RMKruse/vennabers/blob/HEAD/.github/CONTRIBUTING.md)
+for running the tests and building the documentation.
+
+## Citation
+
+Cite the package and the method papers you use with
+`citation("vennabers")`.
+
+## References
+
+- Vovk and Petej (2014). Venn-Abers predictors.
+  <doi:10.48550/arXiv.1211.0025>
+- Vovk, Petej and Fedorova (2015). Large-scale probabilistic predictors
+  with and without guarantees of validity.
+  <doi:10.48550/arXiv.1511.00213>
+- Manokhin (2017). Multi-class probabilistic classification using
+  inductive and cross Venn-Abers predictors.
+  <https://proceedings.mlr.press/v60/manokhin17a.html>
+- Dimitriadis, Gneiting and Jordan (2021). Stable reliability diagrams
+  for probabilistic classifiers. <doi:10.1073/pnas.2016191118>
+
+## License
+
+MIT

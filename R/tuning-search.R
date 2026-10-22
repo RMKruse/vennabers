@@ -7,7 +7,7 @@
     stop(label, " resamples must be a nonempty rsample rset.", call. = FALSE)
   }
   ids <- if ("id2" %in% names(plan)) paste(plan$id, plan$id2, sep = "/") else as.character(plan$id)
-  .integration_names(ids, paste(label, "resample ID"))
+  .validate_names(ids, paste(label, "resample ID"))
   splits <- lapply(seq_len(nrow(plan)), function(i) .split_positions(plan$splits[[i]], data, ids[i]))
   list(rset = plan, positions = stats::setNames(splits, ids))
 }
@@ -40,8 +40,20 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
   }, error = function(e) record(candidate_values, conditionMessage(e)))
   record(candidate_values, NA_character_)
   structure(list(fitted = fitted, class_levels = levels(y),
-    event_level = parameters$event_level, classification = parameters$classification),
+    event_class = if (identical(parameters$classification, "binary"))
+      .event_class(levels(y), parameters$event_level)),
     class = "vennabers_grid_fit")
+}
+
+# A candidate is a plain base fit or a nested calibrated fit.
+.predict_fit.vennabers_grid_fit <- function(object, new_data) {
+  if (inherits(object$fitted, "vennabers_fit")) {
+    if (!is.null(object$fitted$schema)) .schema_encoded_data(new_data, object$fitted$schema)
+    return(.predict_fit(object$fitted, new_data))
+  }
+  classes <- object$class_levels
+  if (is.null(classes)) return(stats::predict(object$fitted, new_data, type = "numeric"))
+  stats::predict(object$fitted, new_data, type = "prob")[paste0(".pred_", classes)]
 }
 
 .bayes_proxy_workflow <- function(data, outcome, event_level, classification,
@@ -233,20 +245,29 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
   do.call(rbind, c(list(.note_rows()), notes))
 }
 
+# Keep parameter columns distinct from candidate metadata.
+.bayes_candidate_columns <- function(values) {
+  names(values) <- make.unique(c("id", "status", "estimate", "reason", names(values)), sep = "_")[-seq_len(4L)]
+  values
+}
+
 # A proposal dropped by tune_bayes has no native scores; it is excluded as a whole.
 .excluded_candidates <- function(values, reason, plans) {
+  parameters <- values
+  values <- .bayes_candidate_columns(values)
   values$id <- rep(NA_character_, nrow(values))
   values$status <- rep("excluded", nrow(values))
   values$estimate <- rep(NA_real_, nrow(values))
   values$reason <- rep(reason, nrow(values))
   missing <- stats::setNames(rep(NA_real_, length(plans)), names(plans))
   empty <- stats::setNames(vector("list", length(plans)), names(plans))
-  list(candidates = values, scores = rep(list(missing), nrow(values)),
+  list(candidates = values, values = parameters, scores = rep(list(missing), nrow(values)),
        report_metrics = rep(list(empty), nrow(values)), decisions = rep(list(empty), nrow(values)))
 }
 
 .append_history <- function(history, scored) {
   history$candidates <- rbind(history$candidates, scored$candidates)
+  history$values <- rbind(history$values, scored$values)
   for (part in c("scores", "report_metrics", "decisions")) history[[part]] <- c(history[[part]], scored[[part]])
   history
 }
@@ -256,7 +277,7 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
 }
 
 .stable_bayes_ids <- function(scored, ids, label, known = character()) {
-  keys <- .candidate_key(scored$candidates[unname(ids)])
+  keys <- .candidate_key(scored$values[unname(ids)])
   for (key in keys) if (!key %in% names(known)) known[key] <- sprintf("%s_%03d", label, length(known) + 1L)
   current <- unname(known[keys])
   scored$candidates$id <- current
@@ -274,7 +295,7 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
 .bayes_ledger <- function(scored, initial, notes, ids, label, direction) {
   identified <- .stable_bayes_ids(scored, ids, label)
   scored <- identified$scored
-  values <- scored$candidates[scored$eligible, unname(ids), drop = FALSE]
+  values <- scored$values[scored$eligible, unname(ids), drop = FALSE]
   list(history = scored, known = identified$known, ids = ids, label = label, direction = direction,
        values = values, native = tune::filter_parameters(initial, parameters = values),
        steps = list(initial = scored$candidates), notes = notes,
@@ -331,7 +352,7 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
     ledger$stale <- ledger$stale + 1L
     return(ledger)
   }
-  ledger$values <- rbind(ledger$values, scored$candidates[eligible, unname(ledger$ids), drop = FALSE])
+  ledger$values <- rbind(ledger$values, scored$values[eligible, unname(ledger$ids), drop = FALSE])
   ledger$native <- tune::filter_parameters(step$result, parameters = ledger$values)
   estimate <- .bayes_best(scored$candidates$estimate[eligible], ledger$direction)
   improved <- if (ledger$direction == "minimize") estimate < ledger$best else estimate > ledger$best
@@ -374,10 +395,12 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
     grid = initial_grid, param_info = params, metrics = native_metrics, control = grid_control))), error = identity)
   if (inherits(initial, "error")) stop("Native ", label, " Bayes initialization failed: ", conditionMessage(initial), call. = FALSE)
   score <- function(result, values) {
-    candidates <- values
+    candidates <- .bayes_candidate_columns(values)
     candidates$id <- sprintf("%s_%03d", label, seq_len(nrow(candidates)))
-    .score_tuning_candidates(search, result, data, plans, outcome, event_level, classification,
+    scored <- .score_tuning_candidates(search, result, data, plans, outcome, event_level, classification,
       candidates, values, counter, initial_fits, budget)
+    scored$values <- values
+    scored
   }
   scored <- score(initial, as.data.frame(initial_grid))
   required <- nrow(params) + 1L
@@ -427,7 +450,7 @@ fit_vennabers_proxy <- function(x, y, outcome, parameters, ...) {
   history <- ledger$history
   valid <- ledger$native
   eligible <- which(history$candidates$status == "eligible")
-  values <- history$candidates[eligible, unname(search$ids), drop = FALSE]
+  values <- history$values[eligible, unname(search$ids), drop = FALSE]
   pick <- if (direction == "minimize") which.min(history$candidates$estimate[eligible]) else
     which.max(history$candidates$estimate[eligible])
   best <- eligible[pick]

@@ -32,4 +32,10 @@ testthat::test_that("outer identity audit requires exact (id, id2, .row, .config
   unextracted <- result
   unextracted$.extracts <- NULL
   testthat::expect_error(checker$check_outer_identities(unextracted, outer, 1L))
+  missing_fit <- result
+  missing_fit$.extracts[[3L]]$.extracts[1L] <- list(NULL)
+  expect_rejected(missing_fit)
+  wrong_extract_config <- result
+  wrong_extract_config$.extracts[[3L]]$.config <- "pre0_mod1_post0"
+  expect_rejected(wrong_extract_config)
 })

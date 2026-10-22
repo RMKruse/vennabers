@@ -274,3 +274,26 @@ if (all(vapply(c("parsnip", "workflows", "rsample", "recipes", "withr"),
 
   testthat::expect_true(TRUE)
 })
+
+testthat::test_that("an oversized fold count names the rows it splits", {
+  skip_if_no_integration("tune", "yardstick")
+  d <- withr::with_seed(3, data.frame(x = stats::rnorm(120), truth = factor(rep(c("yes", "no", "maybe"), 40))))
+  base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
+    workflows::add_model(parsnip::multinom_reg(engine = "nnet"))
+  binary <- d[d$truth != "maybe", ]
+  binary$truth <- droplevels(binary$truth)
+  binary_base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
+    workflows::add_model(parsnip::logistic_reg(engine = "glm"))
+  testthat::expect_error(generics::fit(calibrated_workflow(binary_base, "truth", method = "cross", v = 81), binary),
+    "^`v` cannot exceed the number of local rows; the fold count is not reduced\\.$")
+  testthat::expect_error(generics::fit(calibrated_workflow(base, "truth", classification = "ovo", method = "cross",
+    model_training = "pairwise", v = 81), d),
+    "^pair_1 Cross: `v` cannot exceed the number of local pair rows; the fold count is not reduced\\.$")
+  # After calibration selection, the shared split runs on the final-fit F.
+  ten <- function(data) rsample::make_splits(list(analysis = 1:10, assessment = 11:nrow(data)), data)
+  testthat::expect_error(generics::fit(calibrated_workflow(binary_base, "truth", method = "cross", v = 11,
+    loss = tune::tune("va_loss"), tuning = list(strategy = "joint", selection_split = ten,
+      calibration = list(method = "grid", grid = data.frame(va_loss = c("log", "brier")),
+        resamples = function(data) rsample::vfold_cv(data, v = 2)))), binary),
+    "^`v` cannot exceed the number of final-fit F rows; the fold count is not reduced\\.$")
+})

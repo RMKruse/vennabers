@@ -1,6 +1,7 @@
 testthat::test_that("pairwise-processes", {
 library(vennabers)
 source(system.file("examples", "assertions.R", package = "vennabers"))
+source("helper-helpers.R")
 packages <- c("workflows", "parsnip", "recipes", "rsample")
 if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) for (example_name in c("pairwise-inductive.R", "pairwise-cross.R")) local({
   example <- new.env()
@@ -54,8 +55,11 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) for (ex
     script <- tempfile(fileext = ".R")
     log <- tempfile(fileext = ".log")
     on.exit(unlink(c(saved, script, log)), add = TRUE)
+    workers <- !is.null(objects$outer) && worker_replay_available()
     saveRDS(list(fit = fit, schema = schema, new = new, snapshot = snapshot,
-      expected = snapshot(fit, new, schema)), saved)
+      expected = snapshot(fit, new, schema), replay = if (workers) list(
+        model = objects[[if (mode == "full") "full_model" else "model"]], outer = objects$outer,
+        evaluation = if (mode == "matched") objects$result, schema = schema, new = new)), saved)
     writeLines(c(
       paste0('.libPaths(', paste(deparse(.libPaths()), collapse = ''), ')'),
       'library(vennabers)',
@@ -63,7 +67,9 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) for (ex
       'trace("fit.workflow", where = asNamespace("workflows"), tracer = quote(stop("Unexpected model fit")), print = FALSE)',
       'trace("prep.recipe", where = asNamespace("recipes"), tracer = quote(stop("Unexpected preprocessing")), print = FALSE)',
       'trace("venn_abers", where = asNamespace("vennabers"), tracer = quote(stop("Unexpected calibrator fit")), print = FALSE)',
-      'stopifnot(identical(s$expected, s$snapshot(s$fit, s$new, s$schema)))'
+      'stopifnot(identical(s$expected, s$snapshot(s$fit, s$new, s$schema)))',
+      if (workers) worker_replay("yardstick::metric_set(yardstick::brier_class, yardstick::mn_log_loss)",
+        c("vennabers", "stats"), c(workflows = "fit.workflow", recipes = "prep.recipe", vennabers = "venn_abers"))
     ), script)
     status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
     if (status != 0L) stop(paste(readLines(log), collapse = "\n"))

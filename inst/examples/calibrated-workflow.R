@@ -20,16 +20,18 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) local({
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
   calibrated <- calibrated_workflow(base, outcome = "truth", seed = 42)
   fitted <- generics::fit(calibrated, development)
-  probability <- predict(fitted, assessment, type = "prob")
-  class <- predict(fitted, assessment, type = "class")
-  details <- venn_abers_details(fitted, assessment)
+  # Prediction needs predictors only; assessment truth is used later for scoring.
+  new_data <- assessment["x"]
+  probability <- predict(fitted, new_data, type = "prob")
+  class <- predict(fitted, new_data, type = "class")
+  details <- venn_abers_details(fitted, new_data)
   state <- workflows::extract_fit_engine(fitted)
   assert_conditions(identical(probability, details$prediction), nrow(class) == 50L,
             length(state$models) == 1L, state$event_class == "yes",
             state$folds$Inductive1$training_size + state$folds$Inductive1$calibration_size == 200L)
   # Prediction-time loss changes neither the fitted model nor its stored default.
-  brier <- predict(fitted, assessment, type = "prob", loss = "brier")
-  stopifnot(identical(brier, venn_abers_details(fitted, assessment, loss = "brier")$prediction),
+  brier <- predict(fitted, new_data, type = "prob", loss = "brier")
+  stopifnot(identical(brier, venn_abers_details(fitted, new_data, loss = "brier")$prediction),
             workflows::extract_fit_engine(fitted)$loss == "log")
   print(head(probability))
   print(head(details$details))

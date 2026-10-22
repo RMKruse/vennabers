@@ -1,4 +1,4 @@
-# After package installation: Rscript examples/cross-multiclass.R
+# After package installation: Rscript inst/examples/cross-multiclass.R
 library(vennabers)
 
 # Precomputed out-of-fold probabilities from two retained multiclass models.

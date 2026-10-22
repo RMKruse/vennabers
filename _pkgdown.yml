@@ -1,0 +1,72 @@
+url: https://rmkruse.github.io/vennabers/
+destination: _site
+
+template:
+  bootstrap: 5
+
+# Multiclass fit diagnoses draw up to four rows of panels in the reference
+# examples; the default aspect ratio 0.618 leaves too little height for them.
+figures:
+  fig.asp: 0.8
+
+development:
+  mode: unreleased
+
+home:
+  title: Venn-Abers calibration for R
+  description: >
+    Calibrate binary, multiclass and regression predictions with Inductive
+    or Cross Venn-Abers methods and optional tidymodels workflows.
+
+articles:
+- title: Guides
+  navbar: ~
+  contents:
+  - method
+  - comparison
+  - manual-calibration
+  - diagnostics
+  - workflows
+  - tuning
+- title: Example scripts
+  navbar: Examples
+  contents:
+  - examples-manual
+  - examples-workflows
+  - examples-postprocessing
+  - examples-tuning
+
+reference:
+- title: Package overview
+- contents:
+  - vennabers-package
+  - vennabers_examples
+- title: Calibrate supplied predictions
+- contents:
+  - venn_abers
+  - cross_venn_abers
+  - venn_abers_regression
+  - cross_venn_abers_regression
+  - predict.venn_abers
+  - predict.cross_venn_abers
+- title: Train and calibrate workflows
+- contents:
+  - calibrated_workflow
+  - calibrate_workflow
+  - model_adapter
+  - local_calibration_splits
+  - venn_abers_schema
+  - workflow_training
+  - workflow_postprocessing
+  - venn_abers_tuning
+  - venn_abers_details
+- title: Assess and inspect calibration
+- contents:
+  - brier_score
+  - calibration_plot
+  - corp_plot
+  - regression_plot
+  - plot.venn_abers
+  - venn_abers_one_hot
+  - print.venn_abers
+  - print.cross_venn_abers

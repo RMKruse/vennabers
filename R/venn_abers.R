@@ -41,99 +41,6 @@
   result
 }
 
-.valid_probability <- function(x) {
-  is.vector(x) && is.numeric(x) && all(is.finite(x) & x >= 0 & x <= 1)
-}
-
-.validate_binary_input <- function(truth, probability) {
-  if (!is.vector(truth) || !(is.logical(truth) || is.numeric(truth)) ||
-      anyNA(truth) || any(!is.finite(truth)) || any(!truth %in% c(0, 1))) {
-    stop("`truth` must be a logical or numeric vector containing only 0 and 1.", call. = FALSE)
-  }
-  if (!length(truth)) {
-    stop("`truth` must be non-empty.", call. = FALSE)
-  }
-  if (!.valid_probability(probability)) {
-    stop("`probability` must be a numeric vector of finite values between 0 and 1.", call. = FALSE)
-  }
-  if (length(probability) != length(truth)) {
-    stop("`probability` must have the same length as `truth`.", call. = FALSE)
-  }
-}
-
-#' @export
-brier_score <- function(truth, probability) {
-  if (is.factor(truth)) {
-    probability <- .validate_multiclass_input(truth, probability)
-    probability[cbind(seq_along(truth), as.integer(truth))] <-
-      probability[cbind(seq_along(truth), as.integer(truth))] - 1
-    return(mean(rowSums(probability^2)))
-  }
-  .validate_binary_input(truth, probability)
-  mean((truth - probability)^2)
-}
-
-#' @export
-log_loss <- function(truth, probability) {
-  if (is.factor(truth)) {
-    probability <- .validate_multiclass_input(truth, probability)
-    return(-mean(log(probability[cbind(seq_along(truth), as.integer(truth))])))
-  }
-  .validate_binary_input(truth, probability)
-  -mean(ifelse(truth == 1, log(probability), log1p(-probability)))
-}
-
-#' @export
-calibration_plot <- function(truth, probability, bins = 10, ...) {
-  if (is.factor(truth)) {
-    probability <- .validate_multiclass_input(truth, probability)
-    classes <- levels(truth)
-    old <- graphics::par(no.readonly = TRUE)
-    on.exit(graphics::par(old))
-    rows <- ceiling(sqrt(length(classes)))
-    graphics::par(mfrow = c(rows, ceiling(length(classes) / rows)))
-    summaries <- lapply(classes, function(class) {
-      options <- utils::modifyList(list(main = paste("Calibration:", class)), list(...))
-      summary <- do.call(calibration_plot, c(list(
-        truth = truth == class, probability = probability[, class], bins = bins
-      ), options))
-      data.frame(class = factor(rep(class, nrow(summary)), levels = classes), summary)
-    })
-    return(invisible(do.call(rbind, summaries)))
-  }
-  .validate_binary_input(truth, probability)
-  if (!is.numeric(bins) || !is.null(dim(bins)) || length(bins) != 1L || !is.finite(bins) ||
-      bins < 1 || bins != floor(bins)) {
-    stop("`bins` must be one finite whole number of at least 1.", call. = FALSE)
-  }
-
-  upper_break <- ceiling(probability * bins)
-  bin <- pmin(pmax(upper_break + (probability >= upper_break / bins), 1), bins)
-  observations <- split(seq_along(probability), bin)
-  summary <- data.frame(
-    mean_probability = vapply(observations, function(i) mean(probability[i]), 0),
-    event_rate = vapply(observations, function(i) mean(truth[i]), 0),
-    count = vapply(observations, length, 0L),
-    row.names = NULL
-  )
-
-  options <- utils::modifyList(list(
-    type = "o",
-    xlim = c(0, 1),
-    ylim = c(0, 1),
-    xaxs = "i",
-    yaxs = "i",
-    xlab = "Mean predicted probability",
-    ylab = "Observed event rate",
-    main = "Calibration plot"
-  ), list(...))
-  options$x <- summary$mean_probability
-  options$y <- summary$event_rate
-  do.call(graphics::plot, options)
-  graphics::abline(a = 0, b = 1, lty = 2)
-  invisible(summary)
-}
-
 #' @export
 venn_abers <- function(truth, probability, precision = NULL, method = "ovo") {
   .validate_choice(method, c("ovo", "ovr"), "method")
@@ -142,13 +49,8 @@ venn_abers <- function(truth, probability, precision = NULL, method = "ovo") {
   }
   if (!missing(method)) stop("`method` requires factor truth and a class matrix.", call. = FALSE)
   .validate_binary_input(truth, probability)
-  if (!is.null(precision)) {
-    if (!is.numeric(precision) || !is.vector(precision) || length(precision) != 1L ||
-        !is.finite(precision) || precision != floor(precision)) {
-      stop("`precision` must be NULL or one finite numeric whole number.", call. = FALSE)
-    }
-    probability <- round(probability, digits = precision)
-  }
+  .validate_precision(precision)
+  if (!is.null(precision)) probability <- round(probability, digits = precision)
 
   ordered <- order(probability, method = "radix")
   probability <- probability[ordered]
@@ -173,16 +75,27 @@ venn_abers <- function(truth, probability, precision = NULL, method = "ovo") {
   )
 }
 
-.validate_choice <- function(value, choices, argument) {
-  if (!is.character(value) || !is.vector(value) || length(value) != 1L ||
-      is.na(value) || !value %in% choices) {
-    stop("`", argument, "` must be one of: ", paste(choices, collapse = ", "), ".", call. = FALSE)
-  }
-}
-
 .regularized_probability <- function(lower, upper, loss) {
   if (loss == "brier") upper + (lower^2 - upper^2) / 2 else upper / (1 - lower + upper)
 }
+
+# The Klassenentscheidung on `prob` columns in `classes` order: with an `event`,
+# the binary event at a probability of at least 0.5; without one, the first
+# stored class among the highest probabilities.
+.class_decision <- function(prob, classes, event = NULL) {
+  prob <- as.matrix(prob)
+  chosen <- if (is.null(event)) max.col(prob, ties.method = "first") else {
+    at <- match(event, classes)
+    ifelse(.event_chosen(prob[, at]), at, 3L - at)
+  }
+  factor(classes[chosen], levels = classes)
+}
+
+# The binary event class: the first or second of the two stored classes.
+.event_class <- function(classes, event_level) classes[if (event_level == "first") 1L else 2L]
+
+# The binary half of the Klassenentscheidung on bare event probabilities.
+.event_chosen <- function(probability) probability >= .5
 
 #' @export
 predict.venn_abers <- function(object, newdata, ..., loss = "log", type = "response") {
@@ -199,7 +112,7 @@ predict.venn_abers <- function(object, newdata, ..., loss = "log", type = "respo
   lower <- object$lower[findInterval(newdata, object$knots) + 1L]
   upper <- object$upper[findInterval(newdata, object$knots, left.open = TRUE) + 1L]
   probability <- .regularized_probability(lower, upper, loss)
-  if (type == "class") return(probability >= .5)
+  if (type == "class") return(.event_chosen(probability))
   data.frame(
     lower = lower,
     upper = upper,

@@ -1,17 +1,25 @@
 \name{calibrate_workflow}
 \alias{calibrate_workflow}
 \alias{predict.vennabers_frozen}
+\alias{print.vennabers_frozen}
 \title{Calibrate a Frozen Workflow}
-\description{Fit only an Inductive Venn-Abers calibrator on new, separate
-calibration data using the final predictions of an already fitted workflow.
-The complete workflow, including learned preprocessing and any learned
-postprocessor, is retained unchanged.}
+\description{
+Adds an Inductive Venn-Abers calibrator to an already fitted classification or
+regression workflow and fits only that calibrator, on the workflow's final
+predictions; the complete workflow, including learned preprocessing and any
+learned postprocessor, is retained unchanged. It needs the fitted workflow and
+new calibration data that played no part in its training, tuning or selection.
+Choose it when the workflow is final or expensive to refit; use
+\code{\link{calibrated_workflow}} when the package should train the workflow
+and create the calibration split itself.
+}
 \usage{
 calibrate_workflow(fitted_workflow, data_calibration, outcome, ...,
   classification = "binary", event_level = "first", precision = NULL,
   loss = "log", m = NULL, epsilon = NULL, schema = NULL)
 \method{predict}{vennabers_frozen}(object, new_data, type = NULL, ...,
   loss = NULL)
+\method{print}{vennabers_frozen}(x, ...)
 }
 \arguments{
 \item{fitted_workflow}{A fully fitted classification or regression workflow. Single
@@ -52,7 +60,7 @@ With a schema, explicitly encode calibration and prediction data using
 Omitted classification and binary event options inherit the schema; explicit
 options must agree. The workflow mode, input columns, class order and ordered
 factor status must match. A schema does not rename an existing workflow.}
-\item{object}{A fitted predictor returned by \code{calibrate_workflow()}.}
+\item{object, x}{A fitted predictor returned by \code{calibrate_workflow()}.}
 \item{new_data}{A data frame in the learned input format. The outcome is not
 needed and, if present, is removed before the original workflow predicts.}
 \item{type}{NULL selects \code{"prob"} for classification and \code{"numeric"} for
@@ -69,7 +77,8 @@ metadata, calibration size, requested/effective \code{parameters}, and relevant
 R, package and engine \code{versions}. No additional complete copy of new raw
 calibration data is stored; data already retained by the original workflow remain.
 Prediction returns a tibble with named \code{.pred_<class>} probabilities in
-trained class order, or a factor \code{.pred_class}. The event wins at probability
+trained class order, or a factor \code{.pred_class}, ordered exactly when the
+trained outcome is ordered. The event wins at probability
 0.5 in binary calibration. OvO/OvR ties choose the first stored level.
 Regression returns one double \code{.pred} column.
 \code{venn_abers_details()} returns the same prediction table and binary
@@ -77,7 +86,10 @@ lower/upper bounds and points with row, Inductive fold and event identity;
 OvO/OvR add class-pair or class-against-rest identities. Regression details
 contain row, fold, prediction, lower and upper. IVAR bounds concern regularized
 conditional expectations, not confidence or prediction intervals.
-Zero and one row preserve types and columns; zero rows do not call the base engine.}
+Zero and one row preserve types and columns; zero rows do not call the base engine.
+Print reports the adoption without base fits, the one retained workflow, the
+number of calibration rows and the Inductive fold-to-model mapping.
+\code{\link{plot.vennabers_fit}} draws the stored calibration map.}
 \details{
 Calibration uses the complete public workflow \code{predict(type = "prob")}
 or \code{predict(type = "numeric")} path, including its existing postprocessor
@@ -94,16 +106,32 @@ The user is responsible for keeping the new calibration data outside all earlier
 model, preprocessing, postprocessing and parameter-selection data. Assessment
 data must also be separate from calibration and selection. This history is not
 automatically verified. Frozen adoption is an R extension, neither Cross
-calibration nor full-model transfer.
+calibration nor full-model transfer. \code{\link{calibrated_workflow}} is the
+separate path that trains new base workflows on its own split.
+
+Native \code{fit_resamples()} and \code{last_fit()} evaluate the base workflow
+itself. Their fitted workflows, from \code{tune::extract_workflow()} or saved
+extracts, can be adopted with calibration rows outside both their analysis and
+assessment data; the adoption then learns only the calibrator. The returned
+predictor is not itself a \code{tune} input.
+
+To choose between the Log and Brier rules after adoption, compare
+\code{predict(fitted, validation, type = "prob", loss = ...)} with yardstick
+metrics on separate, previously unused validation rows, then pass the chosen
+\code{loss} explicitly when predicting. Neither the workflow nor the calibrator
+is refitted, and no further helper is needed. Validation rows remain selection
+data; final assessment uses other rows. Automatic search with new training
+belongs to \code{calibrated_workflow()} tuning.
 
 \code{saveRDS()} and \code{readRDS()} preserve prediction and diagnostics without
 learning for the tested GLM, multinomial and linear workflows, including recipes
-and Tailor. Required
+and Tailor, in fresh R processes and parallel workers. Required
 packages must be available in the new R process. Engines with external resources
 retain their own storage contracts; no universal portability is promised.
 The integration dependencies are optional; manual cores work without them.
 The installed \code{examples/frozen-binary.R} demonstrates earlier model/recipe
-and postprocessor learning, separate calibration and independent assessment.
+and postprocessor learning, separate calibration, the loss-only choice on
+validation rows and independent assessment.
 \code{examples/frozen-multiclass-regression.R} demonstrates learned multinomial
 and linear postprocessing with OvO/OvR and IVAR. The original workflow must
 support the requested batch size: for example, the tested probably 1.2.0
@@ -130,7 +158,12 @@ complete prediction path fails on reserved names reports the stage, names and
 underlying cause. The limited binary GLM raw-response probe without a
 postprocessor is not a product fallback; no engine or postprocessor is bypassed.
 }
-\seealso{\code{\link{calibrated_workflow}}, \code{\link{venn_abers_details}},
+\seealso{\code{vignette("workflows", package = "vennabers")} for frozen
+workflows in context, \code{vignette("method", package = "vennabers")} for the
+theory and its guarantees, and \link{vennabers_examples} for annotated
+installed scripts.
+
+\code{\link{calibrated_workflow}}, \code{\link{venn_abers_details}},
 \code{\link{venn_abers_schema}}, \code{\link{venn_abers}}, \code{\link{venn_abers_regression}}}
 \examples{
 if (all(vapply(c("parsnip", "workflows", "hardhat", "rsample", "recipes",

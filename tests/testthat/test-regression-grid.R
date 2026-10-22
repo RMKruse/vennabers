@@ -89,7 +89,9 @@ testthat::test_that("regression grids preserve scales and zero targets with expl
         resamples = withr::with_seed(7, rsample::vfold_cv(data[41:80, ], v = 2))))
     fitted <- generics::fit(calibrated_workflow(base, "truth", method = "cross", splits = folds,
       epsilon = tune::tune("level"), tuning = config, seed = 8), data)
-    result <- venn_abers_details(fitted, data)
+    # Training rows are calibration scores, where the last bit of a prediction can depend
+    # on the batch size (OpenBLAS) and differently at each scale; predict unseen rows.
+    result <- venn_abers_details(fitted, data.frame(x = sin((seq_len(80) + .5) / 7)))
     values <- cbind(result$prediction$.pred, result$aggregate$lower, result$aggregate$upper)
     if (scale == 1) reference <- values
     expected <- scale * reference
@@ -379,9 +381,86 @@ testthat::test_that("regression selection stays inside outer training and surviv
   testthat::expect_error(generics::fit(calibrated_workflow(tuned, "truth", tuning = bad, seed = 17), data), "binding")
 })
 
+testthat::test_that("Grid and Bayes searches exclude S and each fold's held calibration rows", {
+  testthat::skip_if_not_installed("tune")
+  data <- withr::with_seed(84, data.frame(x = stats::rnorm(480), truth = stats::rnorm(480)))
+  base <- workflows::workflow() |> workflows::add_recipe(recipes::recipe(truth ~ x, data) |>
+    recipes::step_normalize(x) |> recipes::step_poly(x, degree = tune::tune("degree"))) |>
+    workflows::add_model(parsnip::linear_reg(engine = "lm"))
+  for (search in c("grid", "bayes")) for (strategy in c("joint", "two_stage")) {
+    tuning <- list(strategy = strategy,
+      selection_split = function(d) rsample::make_splits(list(analysis = 1:240, assessment = 241:480), d),
+      model = list(method = "grid", grid = data.frame(degree = 1:2),
+        resamples = function(d) rsample::vfold_cv(d, v = 2)),
+      calibration = list(method = "grid", grid = data.frame(moderation = .3),
+        resamples = function(d) rsample::vfold_cv(d, v = 2)))
+    if (search == "bayes") {
+      params <- function(id, range, type) dials::parameters(dials::new_quant_param(
+        type = type, range = range, inclusive = c(TRUE, TRUE), label = stats::setNames(id, id)))
+      tuning$model <- list(method = "bayes", initial = 2L, iter = 1L,
+        param_info = params("degree", c(1L, 2L), "integer"),
+        resamples = function(d) rsample::vfold_cv(d, v = 2),
+        control = tune::control_bayes(seed = 4, save_pred = TRUE))
+      # A tied selection metric fixes the chosen option while S is mutated.
+      fixed <- yardstick::new_numeric_metric(function(data, truth, estimate, ...) {
+        out <- yardstick::rmse(data, {{ truth }}, {{ estimate }}, ...)
+        out$.metric <- "fixed"
+        out$.estimate[] <- 0
+        out
+      }, direction = "minimize")
+      tuning$calibration <- list(method = "bayes", initial = 2L, iter = 1L,
+        param_info = params("moderation", c(.3, .4), "double"), primary_metric = fixed,
+        resamples = function(d) rsample::vfold_cv(d, v = 2),
+        control = tune::control_bayes(seed = 5, save_pred = TRUE, time_limit = 1e-9))
+    }
+    # Bind the same row roles in every local candidate, regardless of its size.
+    splits <- function(d) {
+      half <- seq_len(nrow(d) %/% 2L)
+      rsample::manual_rset(lapply(list(half, setdiff(seq_len(nrow(d)), half)), function(rows)
+        rsample::make_splits(list(analysis = setdiff(seq_len(nrow(d)), rows), assessment = rows), d)),
+        c("left", "right"))
+    }
+    model <- calibrated_workflow(base, "truth", method = "cross", splits = splits,
+      prediction_model = "full", epsilon = tune::tune("moderation"), tuning = tuning, seed = 31)
+    fit <- generics::fit(model, data)
+    diagnostic <- venn_abers_tuning(fit)
+    if (search == "bayes") {
+      testthat::expect_identical(diagnostic$calibration$chosen, "calibration_001")
+      testthat::expect_identical(diagnostic$calibration$candidates$estimate, c(0, 0))
+    }
+    changed <- data
+    changed$x[241:480] <- changed$x[241:480] + 100
+    changed$truth[241:480] <- changed$truth[241:480] - 100
+    other <- generics::fit(model, changed)
+    testthat::expect_identical(venn_abers_details(fit, data[1:7, ]), venn_abers_details(other, data[1:7, ]))
+    for (id in names(diagnostic$models)) {
+      original <- diagnostic$models[[id]]
+      mutated <- venn_abers_tuning(other)$models[[id]]
+      testthat::expect_identical(original$candidates, mutated$candidates)
+      testthat::expect_identical(original$selected, mutated$selected)
+      training_rows <- if (id == "Full1") 1:240 else diagnostic$fit_roles[[id]]$analysis
+      testthat::expect_equal(as.data.frame(original$native$splits[[1L]]$data), data[training_rows, ], ignore_attr = TRUE)
+    }
+    # C changes the calibrator and the sibling/full searches, but its own B
+    # search (including learned preprocessing and nested candidates) is fixed.
+    changed <- data
+    changed$x[1:120] <- changed$x[1:120] + 20
+    changed$truth[1:120] <- changed$truth[1:120] + 30
+    other <- generics::fit(model, changed)
+    original <- diagnostic$models$left
+    mutated <- venn_abers_tuning(other)$models$left
+    testthat::expect_identical(original$candidates, mutated$candidates)
+    testthat::expect_identical(tune::collect_predictions(original$native), tune::collect_predictions(mutated$native))
+    testthat::expect_false(identical(workflows::extract_fit_engine(fit)$calibration$left,
+      workflows::extract_fit_engine(other)$calibration$left))
+    testthat::expect_false(identical(diagnostic$models$Full1$candidates,
+      venn_abers_tuning(other)$models$Full1$candidates))
+  }
+})
+
 testthat::test_that("moderation metadata cannot overwrite regression outcome names", {
   testthat::skip_if_not_installed("tune")
-  for (option in c("m", "epsilon")) {
+  for (search in c("grid", "bayes")) for (option in c("m", "epsilon")) {
     data <- data.frame(x = sin(seq_len(120) / 7))
     data[[option]] <- 3 * data$x + cos(seq_len(nrow(data)))
     base <- workflows::workflow() |> workflows::add_formula(stats::reformulate("x", option)) |>
@@ -391,10 +470,22 @@ testthat::test_that("moderation metadata cannot overwrite regression outcome nam
         calibration = list(method = "grid", grid = data.frame(status = if (option == "m") 1 else .5),
           resamples = function(d) rsample::vfold_cv(d, v = 2))))
     args[[option]] <- tune::tune("status")
+    if (search == "bayes") args$tuning$calibration <- list(method = "bayes", initial = 2L, iter = 2L,
+      param_info = dials::parameters(dials::new_quant_param(
+        type = if (option == "m") "integer" else "double",
+        range = if (option == "m") c(1L, 2L) else c(.3, .4), inclusive = c(TRUE, TRUE),
+        label = c(status = "Moderation"))), resamples = function(d) rsample::vfold_cv(d, v = 2),
+      control = tune::control_bayes(seed = 4, save_pred = TRUE))
     fitted <- generics::fit(do.call(calibrated_workflow, args, quote = TRUE), data)
     selected <- venn_abers_tuning(fitted)$calibration
     predictions <- tune::collect_predictions(selected$native)
-    testthat::expect_identical(selected$candidates$status, "eligible")
+    testthat::expect_true(all(selected$candidates$status == "eligible"))
+    if (search == "bayes") {
+      testthat::expect_true(is.numeric(selected$selected$status))
+      testthat::expect_true(selected$selected$status %in% selected$candidates$status_1)
+      testthat::expect_false(anyDuplicated(selected$candidates$id) > 0L)
+      testthat::expect_setequal(selected$candidates$status_1, tune::collect_metrics(selected$native)$status)
+    }
     testthat::expect_equal(predictions[[option]], data[[option]][selected$selection_rows][predictions$.row])
     testthat::expect_true(paste0("va_", option) %in% names(predictions))
   }

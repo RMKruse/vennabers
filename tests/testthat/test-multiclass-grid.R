@@ -1,5 +1,5 @@
 testthat::test_that("shared multiclass calibration grid scores complete final matrices", {
-  testthat::skip_if_not_installed("tune")
+  skip_if_no_integration("tune", "yardstick", "nnet")
   data <- iris
   names(data)[5L] <- "truth"
   base <- workflows::workflow() |>
@@ -48,7 +48,7 @@ testthat::test_that("shared multiclass calibration grid scores complete final ma
 })
 
 testthat::test_that("shared multiclass model grids choose local Cross and full settings", {
-  testthat::skip_if_not_installed("tune")
+  skip_if_no_integration("tune", "nnet")
   data <- iris
   names(data)[5L] <- "truth"
   recipe <- recipes::recipe(truth ~ ., data) |>
@@ -98,6 +98,7 @@ testthat::test_that("shared multiclass model grids choose local Cross and full s
 })
 
 testthat::test_that("pairwise tuning remains explicit in multiclass search", {
+  skip_if_no_integration("tune", "nnet")
   data <- iris
   names(data)[5L] <- "truth"
   base <- workflows::workflow() |>
@@ -113,7 +114,7 @@ testthat::test_that("pairwise tuning remains explicit in multiclass search", {
 })
 
 testthat::test_that("two and four class grids retain the multiclass core contract", {
-  testthat::skip_if_not_installed("tune")
+  skip_if_no_integration("tune", "yardstick", "nnet")
   fourth <- iris[iris$Species == "setosa", ]
   fourth$Sepal.Length <- fourth$Sepal.Length + 1.2
   fourth$Species <- "fourth"

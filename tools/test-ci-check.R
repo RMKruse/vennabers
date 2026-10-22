@@ -1,0 +1,18 @@
+# Small runnable check: Rscript --vanilla tools/test-ci-check.R
+script <- sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE))
+source(file.path(dirname(normalizePath(script)), "ci-check.R"))
+source <- tempfile("ci-check-")
+dir.create(source)
+tarball <- file.path(source, "example_1.0.0.tar.gz")
+writeLines("archive", tarball)
+# The format sha256sum writes: hash, two spaces, file name.
+writeLines(paste0(tools::sha256sum(tarball), "  example_1.0.0.tar.gz"), file.path(source, "SHA256SUMS"))
+stopifnot(identical(verified_tarball(source), normalizePath(tarball)))
+writeLines("changed", tarball)
+failed <- tryCatch({ verified_tarball(source); FALSE }, error = function(e) TRUE)
+stopifnot(failed)
+writeLines("second", file.path(source, "other_1.0.0.tar.gz"))
+failed <- tryCatch({ verified_tarball(source); FALSE }, error = function(e) TRUE)
+stopifnot(failed)
+unlink(source, recursive = TRUE)
+cat("CI check source verification passed.\n")
