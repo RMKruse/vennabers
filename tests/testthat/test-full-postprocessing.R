@@ -184,7 +184,8 @@ testthat::test_that("C can change F but never its original Q fits, while F B and
     if (strategy == "ensemble") diagnostic <- diagnostic$inner_folds[[1]]
     for (role in c("B", "P")) for (column in c("x", "truth")) {
       changed <- d; rows <- diagnostic[[role]]
-      if (column == "x") changed$x[rows] <- changed$x[rows] * 2 + .3 else
+      # Not affine: step_normalize, estimated on B, would absorb an affine change of all B rows.
+      if (column == "x") changed$x[rows] <- exp(changed$x[rows]) else
         if (numeric) changed$truth[rows] <- changed$truth[rows] + 3 else
           changed$truth[rows] <- ifelse(changed$truth[rows] == "a", "b", "a")
       after <- fit(changed)

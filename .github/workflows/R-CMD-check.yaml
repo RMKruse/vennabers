@@ -76,9 +76,10 @@ jobs:
       - uses: actions/checkout@v6
       - uses: r-lib/actions/setup-pandoc@v2
       - uses: r-lib/actions/setup-tinytex@v2
-      # Fonts and styles of the PDF manual that TinyTeX leaves out.
+      # Fonts, styles and the index program of the PDF manual that TinyTeX
+      # leaves out. Without makeindex, Rd2pdf fails on Windows and R-devel.
       - name: Install LaTeX packages
-        run: tlmgr install inconsolata cm-super ec rsfs jknapltx times
+        run: tlmgr install inconsolata cm-super ec rsfs jknapltx times makeindex
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: ${{ matrix.r }}
@@ -115,6 +116,8 @@ jobs:
           path: |
             ${{ runner.temp }}/evidence
             ${{ runner.temp }}/check/vennabers.Rcheck/00*
+            ${{ runner.temp }}/check/vennabers.Rcheck/Rdlatex.log
+            ${{ runner.temp }}/check/vennabers.Rcheck/vennabers-manual.*
             ${{ runner.temp }}/check/vennabers.Rcheck/tests/*.Rout*
             ${{ runner.temp }}/vennabers-verify-*/*.log
             ${{ runner.temp }}/vennabers-verify-*/*.csv
