@@ -2,11 +2,9 @@
 # covr by tools/coverage.R and uploaded to Codecov for the README badge.
 name: test-coverage
 
-# Same triggers as R-CMD-check: dev proposed for or merged into main.
+# Same triggers as R-CMD-check: only on main, when dev is merged into it.
 on:
   push:
-    branches: [main]
-  pull_request:
     branches: [main]
   workflow_dispatch:
 
@@ -15,7 +13,7 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 env:
   GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -42,10 +40,9 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
         run: Rscript --vanilla tools/coverage.R 4 "$RUNNER_TEMP/coverage"
-      # Pull requests from forks have no token; only fail without one there.
       - uses: codecov/codecov-action@v7
         with:
-          fail_ci_if_error: ${{ github.event_name != 'pull_request' || secrets.CODECOV_TOKEN != '' }}
+          fail_ci_if_error: true
           files: ${{ runner.temp }}/coverage/cobertura.xml
           plugins: noop
           disable_search: true

@@ -6,11 +6,9 @@
 name: R-CMD-check
 
 # main is the release branch; dev collects feature and fix pull requests.
-# The matrix runs when dev is proposed for or merged into main.
+# The matrix runs only on main: when dev is merged into it, or by hand.
 on:
   push:
-    branches: [main]
-  pull_request:
     branches: [main]
   workflow_dispatch:
 
@@ -20,7 +18,7 @@ permissions:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   # Release-branch runs are evidence; let them finish.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 env:
   # tests/testthat.R runs the short CRAN test profile unless NOT_CRAN is true;
