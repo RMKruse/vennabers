@@ -1,0 +1,27 @@
+# main is the release branch and only takes code from dev. The ruleset on
+# main requires this check, so a pull request from any other branch or fork
+# cannot be merged.
+name: main-source-branch
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited]
+
+permissions: {}
+
+jobs:
+  source-is-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require dev of this repository as the source branch
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPO: ${{ github.repository }}
+        run: |
+          if [ "$HEAD_REF" != "dev" ] || [ "$HEAD_REPO" != "$BASE_REPO" ]; then
+            echo "::error::main only accepts pull requests from $BASE_REPO:dev, not $HEAD_REPO:$HEAD_REF."
+            exit 1
+          fi
+          echo "Source is $HEAD_REPO:$HEAD_REF."
