@@ -17,11 +17,15 @@ ensemble_multiclass_plan <- function(data) {
   rsample::manual_rset(lapply(held, function(p) rsample::make_splits(
     list(analysis = setdiff(seq_len(nrow(data)), p), assessment = p), data)), c("small", "medium", "large"))
 }
+# Training rows are calibration scores, where the last bit of a prediction can depend on
+# the batch size (OpenBLAS) and move a Venn-Abers step; compare predictions on unseen rows.
+ensemble_multiclass_unseen <- function(data) data[c("x", "z", "w")] + .01
 
 testthat::test_that("shared ensembles average vectors before binary VA and multiclass merging", {
   for (pkg in c("workflows", "tailor", "probably", "rsample", "recipes", "nnet")) testthat::skip_if_not_installed(pkg)
   for (k in 2:4) {
     d <- ensemble_multiclass_data(k); base <- ensemble_multiclass_base(d)
+    unseen <- ensemble_multiclass_unseen(d)
     classes <- levels(d$truth)
     method <- if (k == 2L) "logistic" else "multinomial"
     probability <- function(model, data) {
@@ -56,8 +60,8 @@ testthat::test_that("shared ensembles average vectors before binary VA and multi
             tailor::adjust_probability_calibration(method = method, smooth = FALSE)),
             d[p$B, ], data_calibration = d[p$P, ])
           calibration[[j]] <- probability(ref, d[p$C, ])
-          predictions[[j]] <- probability(ref, d)
-          testthat::expect_lte(max(abs(predictions[[j]] - probability(ensemble$models[[j]], d))), 1e-10)
+          predictions[[j]] <- probability(ref, unseen)
+          testthat::expect_lte(max(abs(predictions[[j]] - probability(ensemble$models[[j]], unseen))), 1e-10)
         }
         # Complete vectors, equal weights even though P sizes differ.
         held[[id]] <- Reduce(`+`, calibration) / 3
@@ -65,7 +69,7 @@ testthat::test_that("shared ensembles average vectors before binary VA and multi
         sizes <- vapply(plans, `[[`, 1L, "P_size")
         weighted <- Reduce(`+`, Map(`*`, predictions, sizes / sum(sizes)))
         testthat::expect_gt(max(abs(new[[id]] - weighted)), 1e-6)
-        testthat::expect_lte(max(abs(new[[id]] - probability(ensemble, d))), 1e-10)
+        testthat::expect_lte(max(abs(new[[id]] - probability(ensemble, unseen))), 1e-10)
         testthat::expect_lte(max(abs(held[[id]] - state$calibration[[id]]$probability)), 1e-10)
         truth[[id]] <- d$truth[plans[[1]]$C]; ids[[id]] <- rep(id, length(truth[[id]]))
       }
@@ -75,14 +79,14 @@ testthat::test_that("shared ensembles average vectors before binary VA and multi
       for (loss in c("log", "brier")) {
         input <- if (va == "cross") new else new[[1]]
         expected <- predict(core, input, loss = loss)
-        actual <- venn_abers_details(fit, d[c("x", "z", "w")], loss = loss)
+        actual <- venn_abers_details(fit, unseen, loss = loss)
         testthat::expect_lte(max(abs(as.matrix(actual$prediction) - expected)), 1e-10)
-        testthat::expect_identical(actual$prediction, predict(fit, d[c("x", "z", "w")], type = "prob", loss = loss))
-        testthat::expect_identical(predict(fit, d, type = "class", loss = loss)$.pred_class,
+        testthat::expect_identical(actual$prediction, predict(fit, unseen, type = "prob", loss = loss))
+        testthat::expect_identical(predict(fit, unseen, type = "class", loss = loss)$.pred_class,
           predict(core, input, type = "class", loss = loss))
         testthat::expect_true(all(vapply(actual$details$inner_fold, identical, logical(1), c("small", "medium", "large"))))
         for (n in 0:1) {
-          small <- venn_abers_details(fit, d[seq_len(n), c("x", "z", "w")], loss = loss)
+          small <- venn_abers_details(fit, unseen[seq_len(n), ], loss = loss)
           testthat::expect_identical(nrow(small$prediction), n)
           testthat::expect_identical(names(small$details), names(actual$details))
           if (n) testthat::expect_lte(max(abs(as.matrix(small$prediction) - expected[1, , drop = FALSE])), 1e-10)
@@ -136,11 +140,12 @@ testthat::test_that("shared ensembles count complete fits and predictions and al
     testthat::expect_identical(audit$post, count)
     state <- workflows::extract_fit_engine(fit)
     testthat::expect_output(print(state), paste0("Models per nonempty prediction: ", count))
-    expected <- predict(fit, d, type = "prob")
+    unseen <- ensemble_multiclass_unseen(d)
+    expected <- predict(fit, unseen, type = "prob")
     registerS3method("predict", "workflow", predict_method, envir = asNamespace("stats"))
-    for (n in c(0L, 1L, nrow(d))) {
+    for (n in c(0L, 1L, nrow(unseen))) {
       audit$predictions <- audit$tailor <- 0L
-      result <- predict(fit, d[seq_len(n), c("x", "z", "w")], type = "prob")
+      result <- predict(fit, unseen[seq_len(n), ], type = "prob")
       testthat::expect_identical(audit$predictions, if (n) count else 0L)
       testthat::expect_identical(audit$tailor, if (n) count else 0L)
       testthat::expect_equal(result, expected[seq_len(n), ], tolerance = 1e-10)

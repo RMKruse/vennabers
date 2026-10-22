@@ -89,7 +89,9 @@ testthat::test_that("regression grids preserve scales and zero targets with expl
         resamples = withr::with_seed(7, rsample::vfold_cv(data[41:80, ], v = 2))))
     fitted <- generics::fit(calibrated_workflow(base, "truth", method = "cross", splits = folds,
       epsilon = tune::tune("level"), tuning = config, seed = 8), data)
-    result <- venn_abers_details(fitted, data)
+    # Training rows are calibration scores, where the last bit of a prediction can depend
+    # on the batch size (OpenBLAS) and differently at each scale; predict unseen rows.
+    result <- venn_abers_details(fitted, data.frame(x = sin((seq_len(80) + .5) / 7)))
     values <- cbind(result$prediction$.pred, result$aggregate$lower, result$aggregate$upper)
     if (scale == 1) reference <- values
     expected <- scale * reference
