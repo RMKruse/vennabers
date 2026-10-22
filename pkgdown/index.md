@@ -3,6 +3,7 @@
 <!-- badges: start -->
 [![CRAN status](https://www.r-pkg.org/badges/version/vennabers)](https://CRAN.R-project.org/package=vennabers)
 [![R-CMD-check](https://github.com/RMKruse/vennabers/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/RMKruse/vennabers/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/RMKruse/vennabers/graph/badge.svg)](https://app.codecov.io/gh/RMKruse/vennabers)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/license/mit)
 <!-- badges: end -->
 
