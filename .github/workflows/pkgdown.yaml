@@ -1,0 +1,56 @@
+# Builds the pkgdown site with tools/build-docs.R and publishes it on GitHub
+# Pages at the url in _pkgdown.yml. The repository's Pages source must be set
+# to "GitHub Actions".
+name: pkgdown
+
+# main is the release branch; the site follows what is merged there.
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+      # The guides and reference examples run the optional integrations.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"all"'
+          extra-packages: any::pkgdown any::pkgbuild
+      - name: Build site
+        run: Rscript --vanilla tools/build-docs.R
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

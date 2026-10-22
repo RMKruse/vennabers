@@ -1,4 +1,4 @@
-# After package installation: Rscript examples/inductive-ovo.R
+# After package installation: Rscript inst/examples/inductive-ovo.R
 library(vennabers)
 
 # Illustrative caller-supplied outputs from one already fixed multiclass model.

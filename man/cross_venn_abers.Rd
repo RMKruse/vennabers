@@ -26,17 +26,40 @@ cross_venn_abers(truth, probability, fold, precision = NULL, method = "ovo")
   \code{"ovr"}. Explicit use with binary vector truth is an error.}
 }
 \value{
-An opaque S3 object of class \code{"cross_venn_abers"}, retaining fold
-identities and calibration state for repeated predictions. Internal fields
-are not public API. Predictive models are retained separately by the caller.
+An S3 object of class \code{"cross_venn_abers"}: a list retaining fold
+identities and calibration state for repeated predictions from the matching
+fold models. For binary truth it records the fold IDs in first-observed order,
+the total calibration size and one Inductive \code{venn_abers} calibrator per
+fold; for factor truth, the class levels, the method, the fold IDs and one
+Cross calibrator per class pair (OvO) or class (OvR). These list elements are
+internal and not public API. Use the methods instead:
+\itemize{
+\item \code{\link{predict.cross_venn_abers}} combines the fold calibrators on
+new probabilities from each fold model into regularized probabilities, class
+decisions or per-fold details, with the loss chosen at prediction time.
+\item \code{\link{plot.cross_venn_abers}} draws each fold's stored calibration
+map and returns the maps invisibly as a data frame.
+\item \code{\link{print.cross_venn_abers}} summarizes the number of folds and
+calibration observations, and the classes for multiclass.
+}
+Predictive models are retained separately by the caller.
 }
 \description{
-Fits Inductive Venn-Abers calibrators per calibration fold and, for
-multiclass, per class pair or class against the rest. Prediction
-combines its results with equal-weight log-loss (default) or Brier aggregation
-to produce a regularized event probability.
+Calibrates binary or multiclass classifier probabilities with a Cross
+Venn-Abers predictor (CVAP): every fold calibrates the model that was trained
+without it, and prediction averages the fold results. It needs the true
+classes, the out-of-fold probabilities of one retained model per fold and the
+fold labels; it fits no models itself. Choose it over
+\code{\link{venn_abers}} when a single held-out calibration set would cost too
+much training data, or use \code{\link{calibrated_workflow}} with
+\code{method = "cross"} to let the package fit the fold models.
 }
 \details{
+The function fits Inductive Venn-Abers calibrators per calibration fold and, for
+multiclass, per class pair or class against the rest. Prediction
+combines their results with equal-weight log-loss (default) or Brier aggregation
+to produce a regularized event probability.
+
 For binary calibration, all three inputs must be vectors of equal, nonzero length with no missing
 values. Names attached to vector elements are not alignment keys: positions
 must refer to the same observation. Invalid types, shapes, nonbinary truth,
@@ -111,7 +134,12 @@ corresponding public manual Cross-multiclass whole-procedure API; numerical
 checks use binary reference components and independent combination. Binary
 diagnostics are not multiclass or aggregate Cross confidence intervals.
 }
-\seealso{\code{\link{predict.cross_venn_abers}},
+\seealso{\code{vignette("method", package = "vennabers")} for the theory and
+its guarantees, \code{vignette("manual-calibration", package = "vennabers")}
+for a worked introduction, and \link{vennabers_examples} for annotated
+installed scripts.
+
+\code{\link{predict.cross_venn_abers}},
 \code{\link{print.cross_venn_abers}}, \code{\link{brier_score}},
 \code{\link{log_loss}}, \code{\link{calibration_plot}}}
 \examples{

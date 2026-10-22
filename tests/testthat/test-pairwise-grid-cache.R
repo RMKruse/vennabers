@@ -29,8 +29,9 @@ testthat::test_that("joint Cartesian grids fit each pair candidate once per resa
   testthat::expect_equal(tune::collect_predictions(selection$joint$native),
     tune::collect_predictions(reference$native))
   testthat::expect_equal(predict(fitted, data, type = "prob"), predict(uncached, data, type = "prob"))
-  testthat::expect_true(all(vapply(workflows::extract_fit_engine(fitted)$pair_models,
-    function(component) is.null(component$prediction_cache), TRUE)))
+  # Memoised grid models never reach the final fit.
+  testthat::expect_false(any(vapply(workflows::extract_fit_engine(fitted)$pair_models,
+    function(component) any(vapply(component$models, inherits, TRUE, "vennabers_memoised")), TRUE)))
 })
 
 testthat::test_that("Cross full grids reuse raw predictions across calibration choices", {
@@ -51,12 +52,13 @@ testthat::test_that("Cross full grids reuse raw predictions across calibration c
     prediction_model = "full", loss = tune::tune("va_loss"), precision = tune::tune("rounding"),
     tuning = config, seed = 19), data))
   predictions <- 0L
-  base_probability <- vennabers:::.base_probability
-  fitted <- testthat::with_mocked_bindings(fit(),
-    .base_probability = function(...) {
-      predictions <<- predictions + 1L
-      base_probability(...)
-    }, .package = "vennabers")
+  original_predict <- getS3method("predict", "workflow", envir = asNamespace("stats"))
+  registerS3method("predict", "workflow", function(object, ...) {
+    predictions <<- predictions + 1L
+    original_predict(object, ...)
+  }, envir = asNamespace("stats"))
+  fitted <- tryCatch(fit(), finally = registerS3method("predict", "workflow", original_predict,
+    envir = asNamespace("stats")))
   selection <- venn_abers_tuning(fitted)$joint
   testthat::expect_equal(selection$cost$observed_base_fits, 12L)
   testthat::expect_equal(predictions, 19L)

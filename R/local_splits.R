@@ -2,7 +2,7 @@
 # classes are deliberately absent; column types/attributes and row order remain.
 .local_split_data <- function(data, columns) {
   if (!is.data.frame(data)) stop("Split data binding must be a data frame.", call. = FALSE)
-  .integration_names(names(data), "split data column")
+  .validate_names(names(data), "split data column")
   if (!all(columns %in% names(data))) {
     stop("Split data binding is missing selected raw columns: ",
          paste(setdiff(columns, names(data)), collapse = ", "), ".", call. = FALSE)
@@ -44,7 +44,7 @@
       !identical(sort(names(splits)), c("id", "splits")) || nrow(splits) < 2L) {
     stop("`splits` must supply a simple Cross IID rset with at least two folds and only splits/id columns; repeated, group and time plans are unsupported.", call. = FALSE)
   }
-  .integration_names(splits$id, "fold ID")
+  .validate_names(splits$id, "fold ID")
   folds <- lapply(seq_len(nrow(splits)), function(i) {
     split <- splits$splits[[i]]
     if (!inherits(split, "rsplit") || !all(class(split) %in% c("rsplit", "vfold_split"))) {
@@ -63,7 +63,7 @@
 #' @export
 local_calibration_splits <- function(splits, columns) {
   .integration_packages()
-  .integration_names(columns, "selected raw column")
+  .validate_names(columns, "selected raw column")
   if (!is.list(splits) || inherits(splits, c("rsplit", "rset")) || !length(splits)) {
     stop("`splits` must be a nonempty list of prepared Inductive rsplit or Cross rset objects.", call. = FALSE)
   }

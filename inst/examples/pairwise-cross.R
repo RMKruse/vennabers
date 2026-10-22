@@ -93,8 +93,9 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
       all(abs(as.matrix(predictions[names(native$prediction)]) - as.matrix(native$prediction)) <= 1e-10))
     cat("Outer resampling base fits:", nrow(outer) * cost, "; last_fit base fits:", cost, "\n")
   }
-  # All 12 complete workflows/calibrators remain stored. Nonempty predict calls
-  # each model exactly once and never learns; empty inputs call no models.
+  # Matched: all 12 complete workflows/calibrators remain stored. Nonempty
+  # predict calls each model exactly once and never learns; empty inputs call
+  # no models.
   # Outer assessment outcomes enter only evaluation, never the local pair plans.
   # One-sided calibration folds are valid when their complements train and return
   # valid two-class probabilities. Every row is assessed once within each pair.
@@ -118,11 +119,14 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     cat(mode, "Brier:", brier_score(truth, probability),
         "log loss:", log_loss(truth, probability), "\n")
   }
-  cat("Full transfer: 15 base fits, 3 retained models and 3 predictions per nonempty batch.\n")
+  # Fifteen base fits (3 + 4 + 5 sources, three Full1); only the Full1 workflows
+  # remain, each predicting once per nonempty batch. The printed slot map sends
+  # every held-out calibrator to its pair's Full1.
+  print(full_state)
   # Each pair source is named pair_N/Full1; pair_id + fold identifies its
   # calibrator. Source workflows are discarded after all full fits succeed.
   # No in-sample recalibration or pooling occurs. Outer assessment stays excluded.
   # Matching-model guarantees do not automatically transfer to the new model;
-  # neither coverage nor improved quality is promised. Settings are fixed:
-  # automatic local selection is deferred to v0.8.
+  # neither coverage nor improved quality is promised. Settings are fixed here;
+  # pairwise-grid.R and pairwise-bayes.R show automatic local selection.
 }

@@ -46,7 +46,8 @@ required even for non-shuffled folds; these are not forward validation.
 See the executable installed \code{examples/calibrated-resampling.R} and
 \code{examples/reference-splits.R}.}
 \examples{
-if (all(vapply(c("rsample", "parsnip", "workflows", "withr"),
+if (all(vapply(c("parsnip", "workflows", "hardhat", "rsample", "recipes",
+                "rlang", "tibble", "withr", "generics", "tidyselect"),
                requireNamespace, logical(1), quietly = TRUE))) {
   data <- data.frame(x = 1:20, truth = factor(rep(c("yes", "no"), 10)))
   split <- withr::with_seed(42, rsample::initial_split(data))

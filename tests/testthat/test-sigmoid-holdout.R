@@ -1,5 +1,5 @@
 testthat::test_that("binary sigmoid holdouts use the complete recipe and both input types", {
-  for (pkg in c("workflows", "recipes", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration()
   d <- data.frame(x = sin(1:160), truth = factor(rep(c("a", "b", "b", "a"), 40)))
   base <- workflows::workflow() |> workflows::add_recipe(
     recipes::recipe(truth ~ x, d) |> recipes::step_normalize(x)) |>
@@ -28,7 +28,7 @@ testthat::test_that("binary sigmoid holdouts use the complete recipe and both in
 })
 
 testthat::test_that("identical sigmoid inputs match sklearn, including rare and constant P", {
-  for (pkg in c("workflows", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration()
   reference <- read.csv(testthat::test_path("extdata", "sigmoid-reference.csv"))
   original <- getS3method("predict", "workflow", envir = asNamespace("workflows"))
   # Fix the public base prediction boundary to the exact Python reference inputs.
@@ -59,7 +59,7 @@ testthat::test_that("identical sigmoid inputs match sklearn, including rare and 
 })
 
 testthat::test_that("sigmoid accepts a stationary fit whose line search stops at machine precision", {
-  for (pkg in c("workflows", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration()
   # Pairwise P inputs from the v0.9 tuning acceptance: with sklearn's ftol,
   # L-BFGS-B ends in ABNORMAL_TERMINATION_IN_LNSRCH at the optimum.
   p <- read.csv(testthat::test_path("extdata", "sigmoid-line-search.csv"))
@@ -90,8 +90,38 @@ testthat::test_that("sigmoid accepts a stationary fit whose line search stops at
   testthat::expect_lte(max(abs(actual - expected)), 1e-7)
 })
 
+testthat::test_that("a line-search stop is kept only at a stationary point; other stops fail", {
+  skip_if_no_integration()
+  d <- data.frame(x = sin(1:80), truth = factor(rep(c("a", "b", "b", "a"), 20)))
+  base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
+    workflows::add_model(parsnip::logistic_reg(engine = "glm"))
+  original_optim <- stats::optim
+  # The optimizer's own result, reported as ABNORMAL_TERMINATION_IN_LNSRCH (52).
+  fit_after_stop <- function(spec, shift) testthat::with_mocked_bindings(
+    workflows::extract_fit_engine(generics::fit(spec, d))$postprocessing[[1]],
+    optim = function(...) {
+      result <- original_optim(...)
+      result$par <- result$par + shift
+      result$convergence <- 52L
+      result
+    }, .package = "stats")
+  for (input in c("probability", "glm_link")) {
+    spec <- calibrated_workflow(base, "truth", seed = 24,
+      postprocessing = list(method = "sigmoid", strategy = "holdout", prop = .3, sigmoid_input = input))
+    converged <- workflows::extract_fit_engine(generics::fit(spec, d))$postprocessing[[1]]
+    kept <- fit_after_stop(spec, c(0, 0))
+    testthat::expect_identical(kept$coefficients, converged$coefficients)
+    testthat::expect_true(kept$converged)
+    # Away from the optimum, or at a nonfinite point, the same stop is nonconvergence.
+    for (shift in list(c(.05, 0), c(0, -.05), c(NaN, 0))) {
+      testthat::expect_error(fit_after_stop(spec, shift), "Inductive1 / Holdout1 sigmoid.*P fit did not converge",
+        info = paste(input, toString(shift)))
+    }
+  }
+})
+
 testthat::test_that("sigmoid rejects incompatible workflows and invalid local learning inputs", {
-  for (pkg in c("workflows", "rsample", "tailor")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration("tailor")
   d <- data.frame(x = sin(1:80), truth = factor(rep(c("a", "b"), 40)))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))
@@ -135,7 +165,7 @@ testthat::test_that("sigmoid rejects incompatible workflows and invalid local le
 })
 
 testthat::test_that("both events and VA methods preserve sigmoid maps, options and data roles", {
-  for (pkg in c("workflows", "recipes", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration()
   d <- data.frame(x = sin(1:160), truth = factor(rep(c("b", "a", "a", "b"), 40), levels = c("b", "a")))
   base <- workflows::workflow() |> workflows::add_recipe(
     recipes::recipe(truth ~ x, d) |> recipes::step_normalize(x)) |>
@@ -200,7 +230,7 @@ testthat::test_that("both events and VA methods preserve sigmoid maps, options a
 })
 
 testthat::test_that("sigmoid learns once on B/P and predicts once per nonempty source batch", {
-  for (pkg in c("workflows", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration()
   d <- data.frame(x = sin(1:80), truth = factor(rep(c("a", "b", "b", "a"), 20)))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
     workflows::add_model(parsnip::logistic_reg(engine = "glm"))

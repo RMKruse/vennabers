@@ -1,5 +1,5 @@
 testthat::test_that("numeric isotonic holdout preserves tie weights and interpolates the complete workflow", {
-  for (pkg in c("workflows", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration()
   d <- data.frame(x = c(1:6, 0, 0, 1, 2, 3, 4, 1:8),
                   truth = c(1:6, 10, 0, 1, 8, 6, 7, 1:8))
   base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
@@ -43,7 +43,7 @@ testthat::test_that("numeric isotonic holdout preserves tie weights and interpol
 })
 
 testthat::test_that("isotonic accepts two P rows, one support and arbitrary numeric scales", {
-  for (pkg in c("workflows", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration()
   for (scale in c(1e-9, 1, 1e9)) {
     d <- data.frame(x = c(1:6, 0, 0, 1:8), truth = c(1:6, 2, 8, 1:8) * scale)
     base <- workflows::workflow() |> workflows::add_formula(truth ~ x) |>
@@ -60,7 +60,7 @@ testthat::test_that("isotonic accepts two P rows, one support and arbitrary nume
 })
 
 testthat::test_that("CVAR consumes separately learned isotonic workflow outputs", {
-  for (pkg in c("workflows", "rsample")) testthat::skip_if_not_installed(pkg)
+  skip_if_no_integration()
   close <- function(actual, expected, scale) testthat::expect_true(all(
     abs(actual - expected) <= 1e-10 * scale + 1e-10 * abs(expected)))
   for (scale in c(1e-9, 1, 1e9)) for (option in list(list(m = 1), list(epsilon = .5))) {

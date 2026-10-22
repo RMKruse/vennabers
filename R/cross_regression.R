@@ -7,15 +7,17 @@ cross_venn_abers_regression <- function(truth, prediction, fold, ..., m = 1, eps
     stop("`truth` and `prediction` must have the same nonzero length.", call. = FALSE)
   }
   fold <- .calibration_folds(fold, length(truth))
-  # Forward only explicit options, preserving IVAR's missing-argument contract.
-  options <- list()
-  if (!missing(m)) options["m"] <- list(m)
-  if (!missing(epsilon)) options["epsilon"] <- list(epsilon)
+  # Explicit options follow the venn_abers_regression() contract.
+  given <- c(m = !missing(m), epsilon = !missing(epsilon))
+  .validate_moderation(m, epsilon, given)
+  .cross_venn_abers_regression(truth, prediction, fold, if (given[["m"]]) m, if (given[["epsilon"]]) epsilon)
+}
+
+.cross_venn_abers_regression <- function(truth, prediction, fold, m = NULL, epsilon = NULL) {
   identities <- unique(fold)
   calibrators <- lapply(identities, function(id) {
     rows <- fold == id
-    tryCatch(do.call(venn_abers_regression,
-                     c(list(truth = truth[rows], prediction = prediction[rows]), options)),
+    tryCatch(.venn_abers_regression(truth[rows], prediction[rows], m, epsilon),
              error = function(error) stop("Fold ", sQuote(id), ": ", conditionMessage(error), call. = FALSE))
   })
   names(calibrators) <- identities

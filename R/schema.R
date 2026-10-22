@@ -1,7 +1,7 @@
 #' @export
 venn_abers_schema <- function(data, outcome, classification = "binary", event_level = "first") {
   .schema_data_names(data)
-  .integration_names(outcome, "outcome")
+  .validate_names(outcome, "outcome")
   if (length(outcome) != 1L || !outcome %in% names(data)) {
     stop("`outcome` must name one column in `data`.", call. = FALSE)
   }
@@ -23,7 +23,7 @@ venn_abers_schema <- function(data, outcome, classification = "binary", event_le
       stop("Schema outcome must be a factor with ",
            if (classification == "binary") "exactly two" else "at least two", " levels.", call. = FALSE)
     }
-    .integration_names(levels(y), "class")
+    .validate_names(levels(y), "class")
     if (classification != "binary") event_level <- NULL
   }
   columns <- stats::setNames(sprintf("vaV%04d", seq_along(data)), names(data))
@@ -32,13 +32,13 @@ venn_abers_schema <- function(data, outcome, classification = "binary", event_le
                  original_columns = names(data), columns = columns, class_levels = levels(y),
                  classes = classes, ordered = is.ordered(y), mode = if (regression) "regression" else "classification",
                  classification = classification, event_level = event_level,
-                 event_class = if (!is.null(event_level)) levels(y)[if (event_level == "first") 1L else 2L]),
+                 event_class = if (!is.null(event_level)) .event_class(levels(y), event_level)),
             class = "vennabers_schema")
 }
 
 .schema_data_names <- function(data) {
   if (!is.data.frame(data)) stop("`data` must be a data frame.", call. = FALSE)
-  .integration_names(names(data), "input column")
+  .validate_names(names(data), "input column")
 }
 
 .validate_schema <- function(schema) {
@@ -65,10 +65,24 @@ venn_abers_schema <- function(data, outcome, classification = "binary", event_le
     if (schema$classification == "binary") {
       if (length(schema$class_levels) != 2L ||
           !identical(schema$event_level, "first") && !identical(schema$event_level, "second")) invalid()
-      if (!identical(schema$event_class, schema$class_levels[if (schema$event_level == "first") 1L else 2L])) invalid()
+      if (!identical(schema$event_class, .event_class(schema$class_levels, schema$event_level))) invalid()
     } else if (!is.null(schema$event_level) || !is.null(schema$event_class)) invalid()
   }
   invisible(schema)
+}
+
+# A schema fixes the encoded outcome, and the classification and event level it
+# was built with; explicit options must agree with it. Returns both options.
+.schema_options <- function(schema, outcome, classification, event_level, explicit) {
+  .validate_schema(schema)
+  if (!identical(outcome, schema$encoded_outcome) ||
+      explicit[["classification"]] && !identical(classification, schema$classification) ||
+      explicit[["event_level"]] && !identical(event_level, schema$event_level)) {
+    stop("Outcome, classification and event_level must agree with `schema`.", call. = FALSE)
+  }
+  if (schema$mode == "classification") classification <- schema$classification
+  if (identical(schema$classification, "binary")) event_level <- schema$event_level
+  list(classification = classification, event_level = event_level)
 }
 
 .schema_binding <- function(x, schema) {

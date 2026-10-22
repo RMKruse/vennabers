@@ -1,7 +1,7 @@
 # Cross regression reference evidence
 
 CVAR here is the manual R contract from the
-[regression resolution](https://github.com/RMKruse/venn-abers/issues/5#issuecomment-5561777290).
+[regression resolution](https://github.com/RMKruse/vennabers/issues/5#issuecomment-5561777290).
 Python venn-abers 1.5.4 has no corresponding public manual CVAR wrapper.
 The fixture generator uses the same pinned **IVAR components** documented in
 [regression-reference.md](regression-reference.md), followed by independent
@@ -16,6 +16,12 @@ The Cross environment JSON records actual Python/dependency versions, seed,
 reference method, counts, and SHA-256 hashes of the four CSV files.
 Normal tests use only the installed R package and saved data, without Python
 or networking.
+
+Generator version: `cbd2729:tools/generate-regression-fixtures.py` in this
+repository's Git history. The Cross CSVs are unchanged from
+`cbd2729:inst/extdata`; their exact hashes are recorded in
+`cross-regression-environment.json`. The generator is currently git-ignored;
+restoring reproducible release tooling belongs to ticket 19.
 
 There are 80 cases: four deterministic and 16 random cases (seed 20260908),
 each in ordinary, small, large and shifted outcome scales. They contain 220
@@ -57,3 +63,7 @@ opposite-signed folds at magnitudes 1e16 and 1e308 across all six permutations
 restoration. The installed fold-model example checks training exclusion,
 reconstruction and RMSE/MAE on separate assessment data. Its help example and
 the package acceptance gate execute it against the installed artifact.
+Independent tied-score calculations additionally verify epsilon=.5 on five
+and eight rows (effective m=1 and m=2), complete fold results and their separate
+means. Numeric 0/1 outcomes are checked through actual regression points and
+bounds, including their unequal-fold aggregate.

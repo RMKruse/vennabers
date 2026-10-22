@@ -6,8 +6,9 @@ stopifnot(identical(
   sort(getNamespaceExports("vennabers")),
   sort(c("venn_abers", "venn_abers_regression", "cross_venn_abers_regression",
          "cross_venn_abers", "brier_score", "log_loss", "calibration_plot",
-         "venn_abers_schema", "venn_abers_encode", "venn_abers_decode",
-         "calibrated_workflow", "calibrate_workflow", "local_calibration_splits", "venn_abers_details", "venn_abers_tuning", "fit_vennabers",
+         "corp_plot", "corp_decomposition_plot", "regression_plot",
+         "venn_abers_schema", "venn_abers_encode", "venn_abers_decode", "venn_abers_one_hot",
+         "calibrated_workflow", "calibrate_workflow", "model_adapter", "local_calibration_splits", "venn_abers_details", "venn_abers_tuning", "fit_vennabers",
          "fit_vennabers_proxy",
          "predict_vennabers_prob", "predict_vennabers_class", "predict_vennabers_numeric"))
 ))
@@ -198,6 +199,14 @@ stopifnot(
 
 for (bad_bins in list(numeric(0), c(1, 2), NA_real_, NaN, Inf, -Inf, 0, -1, 1.5, TRUE, "2", list(2), matrix(2))) {
   expect_error(calibration_plot(0, .5, bins = bad_bins), "bins")
+}
+
+# 0.9.0 also accepted a count with extra attributes or beyond the integer range.
+for (good_bins in list(structure(2, label = "two"), 3e9)) {
+  expect_identical(
+    calibration_plot(c(0, 1), c(.25, .75), bins = good_bins),
+    data.frame(mean_probability = c(.25, .75), event_rate = c(0, 1), count = c(1L, 1L))
+  )
 }
 
 degenerate_plots <- list(

@@ -398,3 +398,106 @@ testthat::test_that("pairwise joint calibration selection and GLM-link Sigmoid w
   }
   testthat::expect_true(all(is.finite(as.matrix(predict(fitted, d, type = "prob")))))
 })
+
+testthat::test_that("postprocessed Grid searches exclude S and held P/C predictors with learned recipes", {
+  for (pkg in c("tune", "recipes", "rpart")) testthat::skip_if_not_installed(pkg)
+  d <- withr::with_seed(84, data.frame(x = rnorm(480), truth = rnorm(480)))
+  base <- workflows::workflow() |> workflows::add_recipe(recipes::recipe(truth ~ x, d) |>
+    recipes::step_normalize(x) |> recipes::step_poly(x, degree = tune::tune("degree"))) |>
+    workflows::add_model(parsnip::decision_tree(tree_depth = tune::tune("depth"), min_n = 10) |>
+      parsnip::set_mode("regression") |> parsnip::set_engine("rpart"))
+  keys <- c("chosen", "selected", "candidates", "scores", "resamples", "search_seed", "budget", "cost")
+  for (strategy in c("joint", "two_stage")) {
+    spec <- calibrated_workflow(base, "truth", method = "cross", splits = positional_ensemble,
+      prediction_model = "full", seed = 31, epsilon = tune::tune("moderation"),
+      postprocessing = list(method = "isotonic_numeric", strategy = "ensemble", splits = positional_ensemble),
+      tuning = list(strategy = strategy,
+        selection_split = function(d) rsample::make_splits(list(analysis = 1:240, assessment = 241:480), d),
+        model = list(method = "grid", grid = data.frame(degree = 1:2, depth = 1:2), resamples = unstratified_selection),
+        calibration = list(method = "grid", grid = data.frame(moderation = .3), resamples = unstratified_selection)))
+    fit <- generics::fit(spec, d)
+    state <- workflows::extract_fit_engine(fit)
+    original <- venn_abers_tuning(fit)
+    testthat::expect_named(original$models, c("first", "second", "Full1"))
+    changed <- d
+    changed$x[241:480] <- changed$x[241:480] + 100
+    changed$truth[241:480] <- changed$truth[241:480] - 100
+    other <- generics::fit(spec, changed)
+    for (n in c(0L, 1L, 7L)) {
+      testthat::expect_identical(predict(other, d[seq_len(n), ]), predict(fit, d[seq_len(n), ]), info = paste(strategy, n))
+      testthat::expect_identical(venn_abers_details(other, d[seq_len(n), ]), venn_abers_details(fit, d[seq_len(n), ]),
+        info = paste(strategy, n))
+    }
+    testthat::expect_false(identical(venn_abers_tuning(other)$calibration$scores, original$calibration$scores), info = strategy)
+    for (path in names(original$models)) for (inner in c("first", "second")) {
+      local <- original$models[[path]][[inner]]
+      plan <- state$postprocessing[[path]]$inner_folds[[inner]]
+      testthat::expect_identical(venn_abers_tuning(other)$models[[path]][[inner]][keys], local[keys], info = paste(strategy, path, inner))
+      testthat::expect_equal(as.data.frame(local$native$splits[[1L]]$data), d[plan$B, ], ignore_attr = TRUE)
+      testthat::expect_identical(plan$selected, local$selected)
+      testthat::expect_true(all(vapply(unlist(local$decisions, recursive = FALSE), is.null, TRUE)))
+    }
+    for (inner in c("first", "second")) testthat::expect_equal(
+      rlang::eval_tidy(workflows::extract_spec_parsnip(state$models$Full1$models[[inner]]$workflow)$args$min_n), 10)
+    # In a Cross/full ensemble, P_first belongs to another B; its own search
+    # must remain unchanged while those sibling and full searches see the data.
+    for (role in c("P", "C")) {
+      changed <- d
+      rows <- state$postprocessing$first$inner_folds$first[[role]]
+      changed$x[rows] <- changed$x[rows] + 20
+      changed$truth[rows] <- changed$truth[rows] + 30
+      other <- generics::fit(spec, changed)
+      again <- venn_abers_tuning(other)
+      testthat::expect_identical(workflows::extract_fit_engine(other)$postprocessing$first$inner_folds$first,
+        state$postprocessing$first$inner_folds$first, info = paste(strategy, role))
+      testthat::expect_identical(again$models$first$first[keys], original$models$first$first[keys], info = paste(strategy, role))
+      testthat::expect_identical(tune::collect_predictions(again$models$first$first$native),
+        tune::collect_predictions(original$models$first$first$native), info = paste(strategy, role))
+      full_inner <- if (role == "P") "first" else "second"
+      testthat::expect_false(identical(again$models$Full1[[full_inner]]$scores,
+        original$models$Full1[[full_inner]]$scores), info = paste(strategy, role))
+    }
+  }
+})
+
+testthat::test_that("Grid excludes incomplete inner ensembles, isolates reports and keeps stable ties", {
+  for (pkg in c("tune", "recipes")) testthat::skip_if_not_installed(pkg)
+  d <- withr::with_seed(8, data.frame(x = rnorm(240), truth = rnorm(240)))
+  base <- workflows::workflow() |> workflows::add_recipe(recipes::recipe(truth ~ x, d) |>
+    recipes::step_poly(x, degree = tune::tune("degree"))) |>
+    workflows::add_model(parsnip::linear_reg(engine = "lm"))
+  # Degree 100 cannot be fitted in any inner B; degree 2 fits but its public
+  # predictions drop a row. Either way the invalid candidate comes first, so
+  # the exact tie behind it must still go to the first eligible Grid ID.
+  original_predict <- getS3method("predict", "workflow", envir = asNamespace("stats"))
+  registerS3method("predict", "workflow", function(object, new_data, ...) {
+    result <- original_predict(object, new_data, ...)
+    if (!inherits(workflows::extract_spec_parsnip(object), c("vennabers", "vennabers_grid")) &&
+        identical(workflows::extract_preprocessor(object)$steps[[1L]]$degree, 2L)) result <- result[-1L, , drop = FALSE]
+    result
+  }, envir = asNamespace("stats"))
+  on.exit(registerS3method("predict", "workflow", original_predict, envir = asNamespace("stats")), add = TRUE)
+  report <- yardstick::new_numeric_metric(function(...) stop("report unavailable"), "minimize")
+  for (strategy in c("joint", "two_stage")) for (invalid in c(100L, 2L)) {
+    fit <- generics::fit(calibrated_workflow(base, "truth", splits = positional_va, seed = 5,
+      postprocessing = list(method = "isotonic_numeric", strategy = "ensemble", splits = positional_ensemble),
+      tuning = list(strategy = strategy, model = list(method = "grid",
+        grid = data.frame(degree = c(invalid, 1L, 1L)), resamples = unstratified_selection,
+        report_metrics = list(broken = report)))), d)
+    choices <- venn_abers_tuning(fit)$models$Inductive1
+    testthat::expect_named(choices, c("first", "second"))
+    for (local in choices) {
+      testthat::expect_identical(local$candidates$status, c("excluded", "eligible", "eligible"))
+      testthat::expect_identical(local$chosen, "model_002")
+      testthat::expect_identical(local$candidates$estimate[2L], local$candidates$estimate[3L])
+      testthat::expect_true(is.na(local$candidates$estimate[1L]))
+      testthat::expect_match(local$candidates$reason[1L], "omit, duplicate, or mismatch")
+      # Joint candidates run the whole inner ensemble; two_stage the raw workflow.
+      notes <- paste(tune::collect_notes(local$native)$note, collapse = " ")
+      if (strategy == "joint") testthat::expect_match(notes, "first isotonic_numeric") else testthat::expect_true(nzchar(notes))
+      testthat::expect_match(local$report_metrics[[2L]][[1L]]$broken, "report unavailable")
+      testthat::expect_identical(local$cost$excluded_candidates, 1L)
+    }
+    testthat::expect_true(all(is.finite(predict(fit, d[1:7, ])$.pred)))
+  }
+})

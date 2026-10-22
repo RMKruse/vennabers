@@ -21,6 +21,39 @@ for (method in c("ovo", "ovr")) {
   close(predict(fit, x, loss = "brier"), matrix(c(27, 37) / 64, 1))
 }
 
+# Scores and plots consume each finished matrix, including two-class
+# multiclass's unhalved Brier scale. These constants come from the counts
+# above: pooled bounds (1/5, 2/5) versus singleton/three-row fold bounds.
+local({
+  path <- tempfile(fileext = ".pdf")
+  grDevices::pdf(path)
+  on.exit({ grDevices::dev.off(); unlink(path) })
+  expected <- list(
+    inductive = list(log = c(1/3, 2/3, 7/18, log(3) - 3 * log(2)/4),
+                     brier = c(17/50, 33/50, 489/1250, -(log(17/50) + 3 * log(33/50))/4)),
+    cross = list(log = c(sqrt(2) - 1, 2 - sqrt(2), (15 - 10 * sqrt(2))/2,
+                        -(log(sqrt(2) - 1) + 3 * log(2 - sqrt(2)))/4),
+                 brier = c(27/64, 37/64, 889/2048, -(log(27/64) + 3 * log(37/64))/4))
+  )
+  for (method in c("ovo", "ovr")) {
+    fits <- list(inductive = venn_abers(truth, p, method = method),
+                 cross = cross_venn_abers(truth, p, fold, method = method))
+    newdata <- list(inductive = p[, rev(classes)], cross = list(B = p[, rev(classes)], A = p))
+    for (family in names(fits)) for (loss in c("log", "brier")) {
+      oracle <- expected[[family]][[loss]]
+      probability <- predict(fits[[family]], newdata[[family]], loss = loss)
+      close(probability, matrix(rep(oracle[1:2], each = 4), 4))
+      close(brier_score(truth, probability), oracle[3L])
+      close(log_loss(truth, probability), oracle[4L])
+      groups <- calibration_plot(truth, probability[, rev(classes)], bins = 2)
+      stopifnot(identical(as.character(groups$class), classes))
+      close(groups$mean_probability, oracle[1:2])
+      close(groups$event_rate, c(1/4, 3/4))
+      close(groups$count, c(4, 4))
+    }
+  }
+})
+
 # Independent reconstruction: public binary IVAP fits (already checked against
 # pinned Python fixtures), geometric means, and odds-form OvO coupling. This is
 # component parity, not a claim of a public manual Python Cross-multiclass API.

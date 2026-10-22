@@ -3,27 +3,20 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
                                classification = "binary", event_level = "first",
                                precision = NULL, loss = "log", m = NULL, epsilon = NULL,
                                schema = NULL) {
-  supplied <- names(sys.call())[-1L]
-  bad <- supplied[nzchar(supplied) & !supplied %in% names(formals(calibrate_workflow))]
-  if (length(bad)) stop("Unknown argument: ", sQuote(bad[1L]), ".", call. = FALSE)
-  .integration_dots(...)
+  .exact_argument_names()
+  .validate_dots(...)
   .integration_packages()
-  explicit_classification <- !missing(classification)
-  explicit_event <- !missing(event_level)
+  explicit <- c(classification = !missing(classification), event_level = !missing(event_level),
+                precision = !missing(precision), loss = !missing(loss), m = !missing(m), epsilon = !missing(epsilon))
   if (!is.null(schema)) {
-    .validate_schema(schema)
-    if (!identical(outcome, schema$encoded_outcome) ||
-        explicit_classification && !identical(classification, schema$classification) ||
-        explicit_event && !identical(event_level, schema$event_level)) {
-      stop("Outcome, classification and event_level must agree with `schema`.", call. = FALSE)
-    }
-    if (schema$mode == "classification") classification <- schema$classification
-    if (identical(schema$classification, "binary")) event_level <- schema$event_level
+    options <- .schema_options(schema, outcome, classification, event_level, explicit)
+    classification <- options$classification
+    event_level <- options$event_level
   }
   .validate_choice(classification, c("binary", "ovo", "ovr"), "classification")
   .validate_choice(event_level, c("first", "second"), "event_level")
   .validate_choice(loss, c("log", "brier"), "loss")
-  .integration_names(outcome, "outcome")
+  .validate_names(outcome, "outcome")
   if (length(outcome) != 1L) stop("`outcome` must name one column.", call. = FALSE)
   if (!inherits(fitted_workflow, "workflow") || !workflows::is_trained_workflow(fitted_workflow)) {
     stop("`fitted_workflow` must be a fully fitted workflow.", call. = FALSE)
@@ -37,16 +30,7 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
   mode <- fit$spec$mode
   regression <- mode == "regression"
   multiclass <- !regression && classification != "binary"
-  if (regression && (explicit_classification || explicit_event ||
-                     !missing(precision) || !missing(loss))) {
-    stop("Regression does not accept explicit classification, event_level, precision or loss options.", call. = FALSE)
-  }
-  if (!regression && (!missing(m) || !missing(epsilon))) {
-    stop("`m` and `epsilon` require a regression workflow.", call. = FALSE)
-  }
-  if (multiclass && explicit_event) {
-    stop("`event_level` requires classification = 'binary'.", call. = FALSE)
-  }
+  .validate_task_options(regression, classification, explicit)
   targets <- mold$blueprint$ptypes$outcomes
   if (!identical(names(targets), outcome)) {
     stop("Frozen workflow outcome must be ", paste(sQuote(names(targets)), collapse = ", "),
@@ -54,7 +38,7 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
   }
   classes <- if (!regression) levels(targets[[outcome]]) else NULL
   if (!regression) {
-    .integration_names(classes, "frozen class")
+    .validate_names(classes, "frozen class")
     if (length(classes) < 2L || (!multiclass && length(classes) != 2L) || !identical(fit$lvl, classes)) {
       stop("Frozen workflow must retain ", if (multiclass) "at least" else "exactly",
            " two classes in the trained outcome order.", call. = FALSE)
@@ -89,7 +73,7 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
   effective <- settings
   if (multiclass) effective$event_level <- NULL
   if (regression) effective[c("classification", "event_level", "precision", "loss")] <- NULL
-  event <- if (regression || multiclass) NULL else classes[if (event_level == "first") 1L else 2L]
+  event <- if (regression || multiclass) NULL else .event_class(classes, event_level)
   state <- structure(list(parameters = list(requested = settings, effective = effective),
                           schema = schema, outcome = outcome,
                           predictors = names(mold$blueprint$ptypes$predictors),
@@ -110,12 +94,9 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
          paste(sQuote(classes), collapse = ", "), ".", call. = FALSE)
   }
   if (regression) {
-    moderation <- list()
-    if (!is.null(m)) moderation$m <- m
-    if (!is.null(epsilon)) moderation$epsilon <- epsilon
-    resolved <- do.call(.regression_moderation, c(list(k = nrow(input)), moderation))
+    resolved <- .regression_moderation(nrow(input), m, epsilon)
     prediction <- .base_numeric(fitted_workflow, input, "Frozen calibration")
-    state$calibrator <- do.call(venn_abers_regression, c(list(truth = truth, prediction = prediction), moderation))
+    state$calibrator <- .venn_abers_regression(truth, prediction, m, epsilon)
     state$parameters$effective$m <- resolved$m
     state$parameters$effective$epsilon <- resolved$epsilon
   } else {
@@ -145,7 +126,7 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
     .schema_encoded_data(data, object$schema, truth = stage == "calibration")
   }
   if (!is.data.frame(data)) stop("Frozen ", stage, " data must be a data frame.", call. = FALSE)
-  if (ncol(data)) .integration_names(names(data), paste("frozen", stage, "input column"))
+  if (ncol(data)) .validate_names(names(data), paste("frozen", stage, "input column"))
   required <- c(object$predictors, if (stage == "calibration") object$outcome)
   absent <- setdiff(required, names(data))
   if (length(absent)) stop("Frozen ", stage, " is missing original column ",
@@ -155,20 +136,31 @@ calibrate_workflow <- function(fitted_workflow, data_calibration, outcome, ...,
 }
 
 #' @export
+print.vennabers_frozen <- function(x, ...) {
+  cat("Venn-Abers inductive calibrated predictor\n")
+  cat("Frozen workflow adopted unchanged\n")
+  cat("Base fits:", 0L, "\n")
+  cat("Models per nonempty prediction:", length(x$models), "\n")
+  cat("Calibration rows:", x$calibration_size, "(new data; only the calibrator learned)", "\n")
+  for (id in names(x$sources)) cat(" ", id, "->", x$sources[[id]], "\n")
+  invisible(x)
+}
+
+#' @export
 predict.vennabers_frozen <- function(object, new_data, type = NULL, ..., loss = NULL) {
-  .integration_dots(...)
+  .validate_dots(...)
   .integration_packages()
   regression <- object$parameters$requested$mode == "regression"
   if (is.null(type)) type <- if (regression) "numeric" else "prob"
   .validate_choice(type, if (regression) "numeric" else c("prob", "class"), "type")
-  if (!missing(loss)) {
-    if (regression) stop("Regression does not accept `loss`.", call. = FALSE)
-    .validate_choice(loss, c("log", "brier"), "loss")
-    object$loss <- loss
-  }
+  if (!missing(loss)) object <- .with_loss(object, loss)
   new_data <- .frozen_data(object, new_data)
   result <- if (regression) tibble::tibble(.pred = predict_vennabers_numeric(object, new_data)) else
-    if (type == "class") tibble::tibble(.pred_class = predict_vennabers_class(object, new_data)) else
-      predict_vennabers_prob(object, new_data)
+    if (type == "class") {
+      # Keep the ordered status of the stored workflow's trained outcome.
+      target <- workflows::extract_mold(object$models[[1L]])$blueprint$ptypes$outcomes[[object$outcome]]
+      decision <- predict_vennabers_class(object, new_data)
+      tibble::tibble(.pred_class = factor(decision, levels = levels(decision), ordered = is.ordered(target)))
+    } else predict_vennabers_prob(object, new_data)
   .bind_schema(result, object$schema)
 }

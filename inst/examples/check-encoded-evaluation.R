@@ -25,7 +25,8 @@ check_outer_identities <- function(result, outer, metrics) {
     all(scores$.config == "pre0_mod0_post0"))
   collected <- as.data.frame(tune::collect_extracts(result))
   position <- match(key(outer, ids), key(collected, ids))
-  assert_conditions(nrow(collected) == nrow(outer), !anyNA(position))
+  assert_conditions(nrow(collected) == nrow(outer), !anyNA(position),
+    all(collected$.config == "pre0_mod0_post0"), all(lengths(collected$.extracts) > 0L))
   invisible(list(predictions = native, metrics = scores, extracts = collected$.extracts[position]))
 }
 check_encoded_evaluation <- function(result, outer, schema) {

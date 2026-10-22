@@ -18,15 +18,12 @@
     if (!inherits(metric, "numeric_metric")) stop("Regression tuning requires a numeric metric.", call. = FALSE)
     result <- rlang::inject(metric(frame, truth = !!rlang::sym(outcome), estimate = !!rlang::sym(".pred")))
   } else if (inherits(metric, "class_metric")) {
-    event <- classes[if (event_level == "first") 1L else 2L]
-    other <- setdiff(classes, event)
-    frame$.pred_class <- if (classification == "binary")
-      factor(ifelse(predictions[[paste0(".pred_", event)]] >= .5, event, other), levels = classes) else
-      factor(classes[max.col(as.matrix(predictions[expected]), ties.method = "first")], levels = classes)
+    frame$.pred_class <- .class_decision(predictions[expected], classes,
+      if (classification == "binary") .event_class(classes, event_level))
     result <- rlang::inject(metric(frame, truth = !!rlang::sym(outcome),
                                    estimate = !!rlang::sym(".pred_class"), event_level = event_level))
   } else if (inherits(metric, "prob_metric")) {
-    columns <- if (length(classes) == 2L) expected[if (event_level == "first") 1L else 2L] else expected
+    columns <- if (length(classes) == 2L) .event_class(expected, event_level) else expected
     result <- rlang::inject(metric(frame, truth = !!rlang::sym(outcome),
                                    !!!rlang::syms(columns), event_level = event_level))
   } else stop("Only probability or class metrics are supported for classification tuning.", call. = FALSE)

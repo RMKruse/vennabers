@@ -1,6 +1,7 @@
 # Installed examples: shared OvO/OvR and regression, Inductive and Cross.
 source(system.file("examples", "check-encoded-evaluation.R", package = "vennabers"), local = TRUE)
-if (all(vapply(c("vennabers", "workflows", "recipes", "rsample", "tune", "yardstick", "nnet"),
+if (all(vapply(c("parsnip", "workflows", "hardhat", "rsample", "recipes", "rlang", "tibble",
+                 "withr", "generics", "tidyselect", "tune", "yardstick", "nnet"),
                requireNamespace, logical(1), quietly = TRUE))) {
   examples <- list()
   for (classification in c("ovo", "ovr", "regression")) {

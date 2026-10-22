@@ -19,6 +19,11 @@ Regenerate in the pinned environment from the checkout:
 python tools/generate-binary-options-fixtures.py
 ```
 
+The original generator is preserved at Git commit `37f3def` as
+`tools/generate-binary-options-fixtures.py`; its original output directory
+was `inst/extdata`. The unchanged fixtures now live in `tests/testthat/extdata`.
+Generator/tool restoration for a fresh checkout belongs to v1.0 ticket 19.
+
 The generator drives the actual `VennAbersCV.predict_proba` model-backed
 classification merger with table predictors, matched fold models,
 `cv_ensemble=True`, and explicit precision/loss. One-fold reductions of that
@@ -34,6 +39,17 @@ fold columns, and check finite probabilities and ordered endpoints. Separate
 hand-worked cases check Brier points `3/8`, `1/2`, `5/8`, and equal-weight
 aggregation `79/144` from unequal calibration folds. Existing v0.1/v0.2
 reference cases and log-space underflow regressions remain in the suite.
+
+The public binary-options tests additionally reverse truth and probabilities
+to select either original class as the event, for both losses and all four
+precision settings. Unrounded endpoints use the pinned example; Brier points
+and the single balanced knots after rounding are independently hand-worked.
+At negative precision both orientations round to zero, so calibrated results
+need not be complements. Classes are checked against the expected points,
+including an exact 0.5. A 1,024-fold public Cross check uses constant nine-row
+folds: `(9/10, 1)` gives Log `10/11` and Brier `181/200`; `(0, 1/10)` gives
+Log `1/11` and Brier `19/200`. These exact reductions check underflow stability
+through the installed public API without using the defective Python products.
 
 ## Deliberate parity boundaries
 

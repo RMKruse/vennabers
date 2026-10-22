@@ -92,9 +92,10 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
       nrow(metrics) == 2L, all(is.finite(metrics$.estimate)),
       all(abs(as.matrix(predictions[names(native$prediction)]) - as.matrix(native$prediction)) <= 1e-10))
   }
-  # P = K*(K-1)/2 pairs cost P base fits and P predictions per nonempty batch.
-  # No extra shared model or OvR ensemble is trained. All P recipes/calibrators
-  # remain available; predict never learns. A row may belong to several pairs.
+  # Matched: P = K*(K-1)/2 pairs cost P base fits and P predictions per nonempty
+  # batch. No extra shared model or OvR ensemble is trained. All P recipes and
+  # calibrators remain available; predict never learns. A row may belong to
+  # several pairs.
   # Outer assessment labels never reach these local fits or calibration plans.
   # Prepared outer plans can use local_calibration_splits() over all local pairs;
   # a development-wide plan cannot be reused on a smaller outer analysis domain.
@@ -119,11 +120,14 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
     cat(mode, "Brier:", brier_score(truth, probability),
         "log loss:", log_loss(truth, probability), "\n")
   }
-  cat("Full transfer: 6 base fits, 3 retained models and 3 predictions per nonempty batch.\n")
+  # Six base fits (three sources, three Full1); only the Full1 workflows remain,
+  # each predicting once per nonempty batch. The printed slot map sends every
+  # held-out calibrator to its pair's Full1.
+  print(full_state)
   # Each pair source is named pair_N/Full1; pair_id + fold identifies its
   # calibrator. Source workflows are discarded after all full fits succeed.
   # No in-sample recalibration or pooling occurs. Outer assessment stays excluded.
   # Matching-model guarantees do not automatically transfer to the new model;
-  # neither coverage nor improved quality is promised. Settings are fixed:
-  # automatic local selection is deferred to v0.8.
+  # neither coverage nor improved quality is promised. Settings are fixed here;
+  # pairwise-grid.R and pairwise-bayes.R show automatic local selection.
 }

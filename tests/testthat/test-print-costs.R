@@ -26,6 +26,16 @@ if (all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) {
         any(grepl(paste("Models per nonempty prediction:", multiple * expected$retained[i]), output, fixed = TRUE)),
         any(grepl(paste("Stored calibration rows:", (if (path == "pairwise") 2 else 1) * expected$calibration[i]), output, fixed = TRUE)))
     }
+    # A frozen fit adopts one complete workflow; only its calibrator learns.
+    if (path == "pairwise") next
+    frozen <- generics::fit(base, data[1:60, ])
+    adopted <- do.call(calibrate_workflow, c(list(frozen, data[61:120, ], "truth"),
+      if (path %in% c("ovo", "ovr")) list(classification = path)))
+    output <- capture.output(shown <- withVisible(print(adopted)))
+    stopifnot(identical(output, c("Venn-Abers inductive calibrated predictor",
+      "Frozen workflow adopted unchanged", "Base fits: 0 ", "Models per nonempty prediction: 1 ",
+      "Calibration rows: 60 (new data; only the calibrator learned) ", "  Inductive1 -> Inductive1 ")),
+      identical(shown, list(value = adopted, visible = FALSE)))
   }
 }
 

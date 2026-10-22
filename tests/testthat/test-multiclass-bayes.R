@@ -1,4 +1,5 @@
 testthat::test_that("shared multiclass Bayes selects complete calibrated matrices", {
+  skip_if_no_integration("tune", "dials", "nnet")
   data <- iris
   names(data)[5L] <- "truth"
   base <- workflows::workflow() |>
@@ -26,6 +27,7 @@ testthat::test_that("shared multiclass Bayes selects complete calibrated matrice
 })
 
 testthat::test_that("two and four classes retain shared Bayes matrix paths", {
+  skip_if_no_integration("tune", "dials", "nnet")
   fourth <- iris[iris$Species == "setosa", ]
   fourth$Sepal.Length <- fourth$Sepal.Length + 1.2
   fourth$Species <- "fourth"
@@ -64,6 +66,7 @@ testthat::test_that("two and four classes retain shared Bayes matrix paths", {
 })
 
 testthat::test_that("shared OvR Bayes calibration keeps matrix scores and saved predictions", {
+  skip_if_no_integration("tune", "dials", "yardstick", "nnet")
   data <- iris
   names(data)[5L] <- "truth"
   base <- workflows::workflow() |>
@@ -108,10 +111,7 @@ testthat::test_that("shared OvR Bayes calibration keeps matrix scores and saved 
   expected <- predict(fitted, data[1:3, ], type = "prob")
   saveRDS(list(fit = fitted, new = data[1:3, ], expected = expected), saved)
   testthat::expect_identical(predict(readRDS(saved)$fit, data[1:3, ], type = "prob"), expected)
-  root <- getNamespaceInfo(asNamespace("vennabers"), "path")
-  writeLines(c(paste0(".libPaths(", paste(deparse(.libPaths()), collapse = ""), ")"),
-    paste0("if (file.exists(file.path(", deparse(root), ", 'R', 'tuning.R'))) ",
-      "pkgload::load_all(", deparse(root), ", quiet = TRUE) else library(vennabers)"),
+  writeLines(c(installed_vennabers_lines(),
     "library(workflows)",
     paste0("saved <- readRDS(", deparse(saved), ")"),
     "stopifnot(identical(predict(saved$fit, saved$new, type = 'prob'), saved$expected),",
@@ -123,6 +123,7 @@ testthat::test_that("shared OvR Bayes calibration keeps matrix scores and saved 
 })
 
 testthat::test_that("two-stage Cross Bayes chooses its full model independently", {
+  skip_if_no_integration("tune", "dials", "nnet")
   data <- iris
   names(data)[5L] <- "truth"
   base <- workflows::workflow() |>
@@ -164,6 +165,7 @@ testthat::test_that("two-stage Cross Bayes chooses its full model independently"
 })
 
 testthat::test_that("shared Bayes rejects a search with no complete initial matrices", {
+  skip_if_no_integration("tune", "dials")
   data <- iris
   names(data)[5L] <- "truth"
   base <- workflows::workflow() |>
@@ -181,6 +183,7 @@ testthat::test_that("shared Bayes rejects a search with no complete initial matr
 })
 
 testthat::test_that("shared Bayes excludes incomplete fold and row candidates", {
+  skip_if_no_integration("tune", "dials")
   data <- data.frame(x = seq_len(90), truth = factor(rep(c("a", "b", "c"), 30)))
   multi_fit <- function(x, y, variant) {
     if (variant == 1L && nrow(x) < 30L) stop("planned fold failure")

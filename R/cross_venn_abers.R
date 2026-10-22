@@ -13,6 +13,7 @@ cross_venn_abers <- function(truth, probability, fold, precision = NULL, method 
     rows <- fold == id
     venn_abers(truth[rows], probability[rows], precision = precision)
   })
+  names(calibrators) <- identities
   structure(
     list(folds = identities, calibrators = calibrators, observations = length(truth)),
     class = "cross_venn_abers"
@@ -72,7 +73,7 @@ predict.cross_venn_abers <- function(object, newdata, ..., loss = "log", type = 
   } else {
     .cross_probability(lower, upper)
   }
-  if (type == "class") return(probability >= .5)
+  if (type == "class") return(.event_chosen(probability))
   prediction <- data.frame(probability = probability)
   if (type == "response") return(prediction)
   list(

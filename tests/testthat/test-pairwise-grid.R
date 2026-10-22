@@ -285,3 +285,32 @@ testthat::test_that("pairwise grid diagnostics and schema survive RDS restore", 
   decoded <- venn_abers_decode(predict(restored, data, type = "prob"), schema)
   testthat::expect_identical(colnames(decoded$probability), levels(original$truth))
 })
+
+testthat::test_that("joint pairwise grids generated from dials sizes match explicit grids", {
+  skip_if_no_integration("dials")
+  data <- iris
+  names(data)[5L] <- "truth"
+  base <- workflows::workflow() |>
+    workflows::add_recipe(recipes::recipe(truth ~ Sepal.Length, data) |>
+      recipes::step_poly(Sepal.Length, degree = tune::tune("degree"))) |>
+    workflows::add_model(parsnip::logistic_reg(engine = "glm"))
+  folds <- function(d) rsample::vfold_cv(d, v = 2, strata = truth, pool = 0)
+  explicit <- list(strategy = "joint", selection_prop = .6,
+    model = list(method = "grid", grid = data.frame(degree = c(1L, 2L))),
+    calibration = list(method = "grid", grid = data.frame(va_loss = c("log", "brier")),
+      resamples = folds))
+  generated <- explicit
+  generated$model <- list(method = "grid", grid = 2L, param_info = dials::parameters(dials::new_quant_param(
+    type = "integer", range = c(1L, 2L), inclusive = c(TRUE, TRUE), label = c(degree = "Degree"))))
+  generated$calibration$grid <- 2L
+  generated$calibration$param_info <- dials::parameters(dials::new_qual_param(
+    type = "character", values = c("log", "brier"), label = c(va_loss = "Loss")))
+  select <- function(config) venn_abers_tuning(suppressWarnings(generics::fit(calibrated_workflow(base, "truth",
+    classification = "ovo", model_training = "pairwise",
+    loss = tune::tune("va_loss"), tuning = config, seed = 19), data)))$joint
+  reference <- select(explicit)
+  selection <- select(generated)
+  # Two degrees for each of the three pairs, crossed with two losses.
+  testthat::expect_equal(nrow(selection$candidates), 16L)
+  testthat::expect_equal(sort(selection$candidates$estimate), sort(reference$candidates$estimate))
+})

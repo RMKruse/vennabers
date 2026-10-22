@@ -54,10 +54,18 @@ The points use the chosen loss; endpoints do not change with loss. Zero or
 one new row retains matrix, factor, and detail-table types and mappings.
 }
 \description{
-Matches new-observation columns to their fold calibrators by identity and
-combines the resulting IVAP results using the chosen equal-weight aggregation.
+Applies a fitted \code{\link{cross_venn_abers}} calibrator to new observations
+and returns calibrated probabilities, predicted classes or per-fold details.
+It needs the new probabilities from every retained fold model, as one named
+column per fold (binary) or one named class matrix per fold (multiclass), with
+the same observation in each row. Use \code{\link{predict.venn_abers}} for an
+Inductive calibrator, which needs only the probabilities of a single model.
 }
 \details{
+New-observation columns are matched to their fold calibrators by identity, and
+the resulting IVAP results are combined using the chosen equal-weight
+aggregation.
+
 Character fold identities match literally. Numeric fitting IDs match their
 Base R character representations. Missing, extra, duplicate, empty, or absent
 column names fail the entire call, as do invalid probability values and
@@ -98,6 +106,13 @@ coupling or OvR normalization as described in \code{\link{cross_venn_abers}}.
 Reconstruct the final matrix from these per-fold diagnostics; there is no
 average of already coupled/normalized multiclass fold predictions.
 }
+\seealso{\code{vignette("method", package = "vennabers")} explains the Cross
+merger and the limits of its guarantees;
+\code{vignette("manual-calibration", package = "vennabers")} shows matched
+fold-model columns in a worked example.
+
+\code{\link{cross_venn_abers}}, \code{\link{venn_abers_one_hot}},
+\code{\link{brier_score}}, \code{\link{log_loss}}}
 \examples{
 calibrator <- cross_venn_abers(c(0, 1, 0, 1), c(.1, .8, .2, .9), c(1, 1, 2, 2))
 newdata <- cbind("1" = c(.2, .8), "2" = c(.3, .7))

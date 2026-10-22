@@ -67,3 +67,30 @@ testthat::test_that("outer parallel workers reproduce sequential tuned postproce
   status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)), stdout = log, stderr = log)
   testthat::expect_equal(status, 0L, info = paste(readLines(log), collapse = "\n"))
 })
+
+testthat::test_that("postprocessed Grid ensembles preserve complete searches and costs on outer workers", {
+  for (pkg in c("tune", "yardstick", "future", "withr", "recipes", "rpart", "tailor", "probably")) testthat::skip_if_not_installed(pkg)
+  source("helper-helpers.R")
+  # Nested joint ensembles need B large enough for a nonconstant tree and
+  # full-rank Tailor P; a small constant-tree fixture correctly fails instead.
+  data <- withr::with_seed(81, {
+    x <- rnorm(1920)
+    data.frame(x = x, truth = 3 * x + rnorm(1920, sd = .5))
+  })
+  base <- workflows::workflow() |> workflows::add_recipe(recipes::recipe(truth ~ x, data) |>
+    recipes::step_normalize(x) |> recipes::step_poly(x, degree = tune::tune("degree"))) |>
+    workflows::add_model(parsnip::decision_tree(tree_depth = tune::tune("depth"), min_n = 10) |>
+      parsnip::set_mode("regression") |> parsnip::set_engine("rpart"))
+  outer <- withr::with_seed(82, rsample::vfold_cv(data, v = 2, repeats = 2))
+  saved <- tempfile(fileext = ".rds")
+  on.exit(unlink(saved), add = TRUE)
+  for (method in c("isotonic_numeric", "tailor_linear")) for (strategy in c("joint", "two_stage")) {
+    model <- calibrated_workflow(base, "truth", method = "cross", v = 2, prediction_model = "full", seed = 31,
+      tuning = list(strategy = strategy, model = list(method = "grid", grid = data.frame(degree = 1:2, depth = 1:2),
+        resamples = function(d) rsample::vfold_cv(d, v = 2))),
+      postprocessing = list(method = method, strategy = "ensemble", v = 2))
+    saveRDS(list(snapshot = postprocessing_replay_snapshot, replay = list(model = model, outer = outer, new = data[1:7, ], schema = NULL)), saved)
+    run_guarded_replay(saved, "yardstick::metric_set(yardstick::rmse)", c("vennabers", "rpart", "probably"),
+      info = paste(method, strategy))
+  }
+})

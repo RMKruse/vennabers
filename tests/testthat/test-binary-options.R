@@ -147,3 +147,65 @@ expect_error(predict(cross_fit, cross_input, precision = 2), "...")
 
   testthat::expect_true(TRUE)
 })
+
+testthat::test_that("either binary class can be the event before calibration rounding", {
+  truth <- c(0, 1, 0, 1)
+  probability <- c(.2, .2, .4, .4)
+  newdata <- c(0, .2, .3, .4, 1)
+  # Unrounded endpoints from the pinned Python example in test-venn-abers.R.
+  lower <- c(0, 1 / 3, 1 / 3, 2 / 5, 2 / 5)
+  upper <- c(3 / 5, 3 / 5, 2 / 3, 2 / 3, 1)
+  points <- list(log = c(3 / 8, 9 / 19, 1 / 2, 10 / 19, 5 / 8),
+                 brier = c(21 / 50, 107 / 225, 1 / 2, 118 / 225, 29 / 50))
+  for (precision in list(NULL, 0, 2, -1)) {
+    for (event in c(1, 0)) {
+      y <- truth == event
+      p <- if (event == 1) probability else 1 - probability
+      x <- if (event == 1) newdata else 1 - newdata
+      expected_lower <- if (event == 1) lower else 1 - upper
+      expected_upper <- if (event == 1) upper else 1 - lower
+      expected_points <- if (event == 1) points else lapply(points, function(p) 1 - p)
+      if (!is.null(precision) && precision <= 0) {
+        # Rounding makes one balanced knot: zero, or one for event 0 at precision 0.
+        at_knot <- if (precision == 0 && event == 0) x == 1 else x == 0
+        below <- precision == 0 & event == 0 & !at_knot
+        expected_lower <- ifelse(below, 0, 2 / 5)
+        expected_upper <- ifelse(at_knot | below, 3 / 5, 1)
+        expected_points <- list(log = ifelse(at_knot, 1 / 2, ifelse(below, 3 / 8, 5 / 8)),
+                                brier = ifelse(at_knot, 1 / 2, ifelse(below, 21 / 50, 29 / 50)))
+      }
+      fit <- vennabers::venn_abers(y, p, precision)
+      cross <- vennabers::cross_venn_abers(rep(y, 2), rep(p, 2),
+                                         rep(c("A", "B"), each = 4), precision)
+      for (loss in c("log", "brier")) {
+        actual <- predict(fit, x, loss = loss)
+        testthat::expect_lte(max(abs(actual$lower - expected_lower)), 1e-10)
+        testthat::expect_lte(max(abs(actual$upper - expected_upper)), 1e-10)
+        testthat::expect_lte(max(abs(actual$probability - expected_points[[loss]])), 1e-10)
+        testthat::expect_identical(predict(fit, x, loss = loss, type = "class"),
+                                   expected_points[[loss]] >= .5)
+        details <- predict(cross, cbind(B = x, A = x), loss = loss, type = "details")
+        testthat::expect_lte(max(abs(details$prediction$probability - expected_points[[loss]])), 1e-10)
+        testthat::expect_lte(max(abs(details$folds$lower - rep(expected_lower, 2))), 1e-10)
+        testthat::expect_lte(max(abs(details$folds$upper - rep(expected_upper, 2))), 1e-10)
+        testthat::expect_identical(predict(cross, cbind(A = x, B = x), loss = loss, type = "class"),
+                                   expected_points[[loss]] >= .5)
+      }
+    }
+  }
+})
+
+testthat::test_that("many-fold public Cross prediction stays stable for either event", {
+  ids <- paste0("fold_", seq_len(1024))
+  for (event in c(TRUE, FALSE)) {
+    fit <- vennabers::cross_venn_abers(rep(event, 9 * length(ids)), rep(.5, 9 * length(ids)),
+                                      rep(ids, each = 9))
+    input <- matrix(.5, 1, length(ids), dimnames = list(NULL, rev(ids)))
+    # Identical folds have (9/10, 1) or (0, 1/10); products underflow.
+    expected <- if (event) c(log = 10 / 11, brier = 181 / 200) else c(log = 1 / 11, brier = 19 / 200)
+    for (loss in names(expected)) {
+      testthat::expect_lte(abs(predict(fit, input, loss = loss)$probability - expected[[loss]]), 1e-10)
+      testthat::expect_identical(predict(fit, input, loss = loss, type = "class"), event)
+    }
+  }
+})
