@@ -28,9 +28,7 @@ Pairwise OvO training supports matched/full Inductive and Cross calibration.
 Binary, shared OvO/OvR, pairwise OvO and regression paths support joint or
 two-stage Grid and Bayes selection, and learned postprocessing. Shared multiclass
 training does not establish complete Python training parity.
-\code{system.file("PARITY.md", package = "vennabers")} separates numerical
-parity, training/data parity, R extensions and reference deviations;
-the installed \code{NEWS.md} states the 1.x compatibility promise.
+The installed \code{NEWS.md} states the 1.x compatibility promise.
 }
 \section{Preprocessing and calibration splits}{
 All learned preprocessing belongs in the base workflow; the outer Variables

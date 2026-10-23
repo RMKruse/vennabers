@@ -66,8 +66,6 @@ fold models.
 Classification bounds are Venn-Abers probability bounds, not confidence
 intervals. Regression bounds concern regularized conditional expectations,
 not individual outcome coverage; Cross aggregate bounds are descriptive.
-The installed \code{system.file("PARITY.md", package = "vennabers")} separates
-numerical parity with the Python reference from R extensions and limitations.
 }
 \seealso{
 \code{browseVignettes("vennabers")}, \code{help(package = "vennabers")}.
