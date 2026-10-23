@@ -23,7 +23,6 @@ Description: Calibrates the predictions of classification and regression
     calibration maps and reliability diagrams with the CORP (consistent,
     optimally binned, reproducible and pool-adjacent-violators based) method
     of Dimitriadis, Gneiting and Jordan (2021) <doi:10.1073/pnas.2016191118>.
-    Core results are checked against the 'Python' package 'venn-abers'.
 License: MIT + file LICENSE
 URL: https://rmkruse.github.io/vennabers/, https://github.com/RMKruse/vennabers
 BugReports: https://github.com/RMKruse/vennabers/issues
