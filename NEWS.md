@@ -73,9 +73,6 @@ Initial CRAN release.
 - Guides on the method and its guarantees, manual calibration, workflows,
   tuning, diagnostics and a comparison with Platt and isotonic calibration,
   plus four collections of the installed examples (`browseVignettes("vennabers")`).
-- The installed `PARITY.md` (`system.file("PARITY.md", package = "vennabers")`)
-  separates numerical parity with the 'Python' package 'venn-abers' 1.5.4 from
-  R extensions, documented deviations and accepted limits.
 - `citation("vennabers")` lists the package and the method papers.
 
 ## Compatibility promise

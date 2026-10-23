@@ -100,8 +100,5 @@ and commands for running the installed originals:
   multiclass, pairwise and regression searches, including postprocessing.
 
 The [example index in the R help](reference/vennabers_examples.html) also lists
-the installed scripts and vignette commands. The
-[parity guide](https://github.com/RMKruse/vennabers/blob/HEAD/inst/PARITY.md)
-that separates numerical agreement with the Python reference from R extensions
-and limitations. Report problems in the
+the installed scripts and vignette commands. Report problems in the
 [issue tracker](https://github.com/RMKruse/vennabers/issues).

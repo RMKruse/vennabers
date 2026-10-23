@@ -27,8 +27,7 @@ result is never reduced to a vector. A missing decision gives a row of \code{NA}
 The ones follow the existing tie rules: a binary probability of exactly 0.5 is
 the event, and a multiclass tie keeps the first stored level, also with exactly
 two classes. The Python reference facade breaks a binary tie towards the first
-sorted class instead; \code{system.file("PARITY.md", package = "vennabers")}
-records this difference.
+sorted class instead.
 
 Ordered factors only set the column order. Schema-encoded \code{.pred_class}
 columns keep their encoded classes as column names; pass
