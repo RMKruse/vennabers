@@ -1,100 +1,41 @@
-## Status of this file
-
-Prepared on 2026-10-04 and updated on 2026-10-21 for the planned first CRAN
-submission of vennabers. Nothing has been submitted. So far the package has been checked in only one local
-environment, listed below. All other test environments are still open and must be
-added before submission.
-
 ## Test environments
 
-Run so far:
-
-* Local macOS Tahoe 26.6.2 (arm64, Apple M5 Pro), R 4.6.1 (2026-06-24):
-  `R CMD check --as-cran` on the built 1.0.0 tarball from candidate
-  `c7e499de680cd3182a7883eed970490ef3d62b02`, with R's own online checks and all
-  Suggests installed. The short CRAN profile passed all 4,349 expectations,
-  without failures, warnings or skips; examples, vignettes and PDF manual passed.
-  Archive SHA-256: `f918ebd079e39f2d96f5c3f381b7314beed8b7943312f6e39059b7ffdc7cf710`.
-  With `NOT_CRAN=true` the same check ran the complete in-check suite: 32,203
-  expectations, no failures, warnings or skips, and the same two NOTEs.
-  The complete suite passed separately from the same archive: 32,203 expectations
-  in all 111 installed test files, with no failures, errors, warnings or skips.
-  Four local test processes completed in 1,176.2 seconds; BLAS/OpenMP threads
-  were limited to one. Product HTTP(S) was routed to a dead proxy in that run;
-  R's own online checks were separate.
-* The same 1.0.0 archive installed with only base/recommended packages and
-  vennabers: manual core, the one-hot class example and all Rd examples
-  passed, the optional workflow packages were unavailable and remained
-  unloaded, and the workflow entry point returned its missing-package error.
-  All 46 installed example files are covered by the complete suite, 9 core
-  examples (including the calibration graphics), 18 fresh-process standalone
-  tutorials and 2 helpers. The 25
-  package-operation checks passed with no warning lines, including
-  registration/load orders and the static scan for Python or product network
-  calls (zero hits).
-* The earlier candidate `b32c2915d8c03585fbf1b0c4f6eb4315820ad0c1` (archive
-  SHA-256 `0de85865ad6b8c28a787d6e33c5116c0a47399c252053057771ad774571b10de`)
-  passed its local checks before the calibration graphics; it is superseded.
-* The earlier candidate `0b35f3354d18ada96baf4d4f437e593da193d4e8` (archive
-  SHA-256 `e73335b8f1a822fa6abed64de77a4ee1aecf1383c6cd65862badfb69eef00183`)
-  passed its local checks before the 1.0.0 additions; it is superseded.
-* The preceding metadata candidate on the same machine with
-  `_R_CHECK_DEPENDS_ONLY_=true`: Status OK. Tests that
-  need the optional workflow packages skip.
-* The preceding metadata candidate on the same machine, with only R's
-  base-priority packages and vennabers installed
-  (no Suggests and no recommended packages): the manual calibration examples and all
-  Rd examples run. Workflow integration, tuning and Tailor postprocessing stop
-  with an error that names the missing package.
-
-Still open:
-
-* Linux x86_64, Windows x86_64, macOS x86_64 and macOS arm64, each on the current
-  (4.6) and previous (4.5) R minor series.
-* R-devel (Linux, and win-builder).
-* A Linux run with the declared minimum versions of the optional packages.
-* A Linux run without the optional workflow packages.
+* win-builder: R-release (4.6.1) and R-devel
+* mac-builder: macOS arm64, R 4.6.1 patched
+* R-hub: Linux, Windows, macOS x86_64 and arm64 (R-devel); Ubuntu R-release
+  and R-next; gcc-asan, clang-asan, clang-ubsan, ATLAS, MKL and nosuggests
+* GitHub Actions: Ubuntu 24.04, Windows Server 2025, macOS 15 x86_64 and
+  arm64, each with R-release and R-oldrel-1; Ubuntu with R-devel; Ubuntu with
+  the declared minimum versions of the suggested packages; Ubuntu without the
+  suggested modelling packages
+* Local: macOS 26 arm64, R 4.6.1
 
 ## R CMD check results
 
-Local macOS arm64, R 4.6.1: 0 errors | 0 warnings | 2 notes
+0 errors | 0 warnings | 1 note
 
 * checking CRAN incoming feasibility ... NOTE
-  Maintainer: 'René-M. Kruse <rene.marcel.kruse@protonmail.com>'
   New submission
 
-  Found the following (possibly) invalid URLs:
-    URL: https://github.com/RMKruse/vennabers
-    URL: https://github.com/RMKruse/vennabers/issues
-      Status: 404
+  Possibly misspelled words in DESCRIPTION:
+    Abers, Brier, Dimitriadis, Fedorova, Gneiting, Manokhin, Petej, Vovk,
+    multiclass
 
-  This is a new submission. The repository and issue tracker were not yet
-  public when this local check ran. They must resolve before submission, and
-  this NOTE must then be rechecked rather than explained.
+  This is a new submission. The flagged words are spelled correctly: "Venn-Abers"
+  is the name of the method, Vovk, Petej, Fedorova, Manokhin, Dimitriadis and
+  Gneiting are authors of the cited references, "Brier" refers to the Brier
+  score, and "multiclass" is the standard term for classification with more
+  than two classes.
 
-* checking HTML version of manual ... NOTE
-  Skipping checking HTML validation: 'tidy' doesn't look like recent enough
-  HTML Tidy.
+This is the win-builder result. R-hub and mac-builder report no notes;
+GitHub Actions and the local check report no errors or warnings.
 
-  This NOTE comes from the local machine: its HTML Tidy is the 2006 build that
-  ships with macOS. The Rd files pass all other Rd checks, and the PDF manual
-  builds.
+## Notes for the reviewer
 
-## Check time
-
-On candidate `c7e499d`, the complete tests took 52 CPU minutes (64 minutes
-elapsed) inside the local check with `NOT_CRAN=true`, with other jobs running on
-the same machine for the first 20 minutes.
-The maintainer approved a short CRAN profile on 2026-10-04. The long
-process/worker and integration matrix files listed in `tests/cran-long-tests.txt`
-remain in the source tarball but are excluded from the default CRAN run. `NOT_CRAN=true` enables the complete in-check
-suite; `tools/verify.R` always runs every installed test file locally, with
-bounded parallelism. The 68 long files listed there now include the
-process files of the 1.0.0 additions; 43 files run in the short profile. On
-candidate `c7e499d`, the short-profile test process used 71.5 user + 2.4
-system CPU seconds and 74.0 elapsed seconds (the check log rounds this to
-74 seconds). This check included the tests; it did not use
-`--no-tests`. The complete local suite remains a separate release gate.
+To keep the check time short, `tests/testthat.R` skips the long-running
+process, worker and integration test files listed in
+`tests/cran-long-tests.txt` unless `NOT_CRAN=true`. The complete suite runs in
+the GitHub Actions matrix and locally before each release.
 
 ## Downstream dependencies
 
