@@ -243,7 +243,7 @@ pairwise training, ensembles and full-model transfer multiply the work.
 
 Runnable larger examples are installed with the package:
 
-```{r further-examples}
+```{r further-examples, eval=FALSE}
 system.file("examples", c("regression-grid.R", "shared-multiclass-grid.R",
   "pairwise-grid.R", "postprocessing-grid.R", "postprocessing-bayes.R"),
   package = "vennabers")
