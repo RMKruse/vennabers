@@ -17,3 +17,4 @@
 ^\.Rhistory$
 ^\.DS_Store$
 ^README\.Rmd$
+^RELEASE-ROADMAP-1\.x\.md$

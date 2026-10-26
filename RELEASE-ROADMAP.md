@@ -1,5 +1,7 @@
 # Release-Roadmap für vennabers: v0.3 bis v1.0
 
+Die Planung ab 1.1 steht in [RELEASE-ROADMAP-1.x.md](RELEASE-ROADMAP-1.x.md); dieses Dokument bleibt die historische Planung bis 1.0.
+
 Stand: 7. September 2026. Dieses Dokument hält die im Live-Gespräch bestätigten Entscheidungen und die daraus zusammengestellten abschließenden Release-Definitionen fest.
 
 **Planungsstatus:** Abgeschlossen. Release-Zuordnung, allgemeine Reifekriterien, CI-Matrix, rollierende R-Untergrenze, Abhängigkeitsprüfung, Performance-Messregel, konkrete Benchmarkfälle und CRAN-Vorbereitung sind bestätigt. Die fachlichen Verträge sind in den verlinkten abgeschlossenen Entscheidungstickets festgelegt. Diese Release-Synthese ordnet sie verbindlich zu; es verbleibt keine bekannte offene Planungsentscheidung für dieses Ziel.

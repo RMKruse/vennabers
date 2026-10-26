@@ -112,3 +112,22 @@ product correction creates a new candidate identity: rebuild, list affected
 behaviour/platform/performance evidence, and rerun it before release. Old green
 runs cannot certify changed code. This local build does not complete any of
 the later platform or Linux benchmark gates.
+
+## Minor checkpoint (1.x)
+
+Before each 1.x minor candidate, record in the release log
+(`RELEASE-ROADMAP-1.x.md` §9.1):
+
+1. New releases of the main reference and of every procedure reference: adopt
+   each new capability as a new ticket (never in the current minor) or record
+   that it is not adopted. Changed values keep the pin and become a D entry
+   and a 2.0 candidate. Only this record blocks the release.
+2. Rerun the counter-comparison scripts under `tools/` against current
+   releases; otherwise note "last checked with version X".
+3. Recheck preprint validity statements and update their labels in the help
+   pages and `inst/PARITY.md` once they are peer reviewed.
+4. From 1.2 on, review the weekly CI run against tidymodels `main` and file
+   breaks of the fenced internals as tickets.
+
+Also run the archive comparison against the previous CRAN release
+(`RELEASE-ROADMAP-1.x.md` §3.2) on every CI platform.
