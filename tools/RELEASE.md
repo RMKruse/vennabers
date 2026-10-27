@@ -130,4 +130,70 @@ Before each 1.x minor candidate, record in the release log
    breaks of the fenced internals as tickets.
 
 Also run the archive comparison against the previous CRAN release
-(`RELEASE-ROADMAP-1.x.md` §3.2) on every CI platform.
+(`RELEASE-ROADMAP-1.x.md` §3.2) on every CI platform; see below.
+
+## Archive comparison (1.x)
+
+Release fidelity: with the same scores, labels, options and fold assignments,
+a 1.x candidate must reproduce the previous release bit for bit on the same
+platform and R version. Run this for every 1.x minor and patch, after the
+complete suite passes, from a checkout of the candidate:
+
+```sh
+Rscript --vanilla tools/test-archive-comparison.R
+Rscript --vanilla tools/archive-comparison.R <previous> /absolute/path/to/vennabers_1.1.0.tar.gz /absolute/path/to/temporary-out-dir
+```
+
+`<previous>` is a CRAN version such as `1.0.0` (CRAN archive, or
+`src/contrib` while it is the current release), a source tarball URL, or a
+local source tarball. While 1.0.0 is not on CRAN, pass the durable candidate
+`vennabers_1.0.0.tar.gz` of commit `71f1041`. The tool installs both versions
+into their own libraries under the output directory; parsnip, workflows,
+hardhat, rsample, tibble and generics come from the caller's libraries. It is
+not part of `R CMD check`.
+
+A fresh process per version runs the catalog in
+`archive-comparison-cases.R`: every manual kernel (binary, OvO and OvR, each
+Inductive and Cross, with and without `precision`; IVAR and CVAR with default,
+`m` and `epsilon` moderation), predicted with both losses, as classes and with
+details, and one workflow per target (binary, OvO, OvR, regression). Workflow
+cases start at the handover of the scores: a `model_adapter()` returns fixed
+score columns and explicit splits fix the folds, so engine fits and
+dependencies stay outside the comparison. Each case records its predictions,
+`venn_abers_details()` (workflows), `print()` output, warnings, errors and
+stored object fields. Stored fields leave out recorded package versions,
+parsnip's engine fit timings (`elapsed`), functions and environments; these
+differ between releases or processes without a changed result.
+
+The two records are compared with `identical(num.eq = FALSE, single.NA =
+FALSE)`, so a single changed bit counts. The output directory holds
+`comparison.csv` (one row per case and output, with the first difference) and
+`summary.md` (platform, R version, both vennabers versions and sources,
+integration package versions, and each difference with both values to 17
+significant digits). The tool prints the summary and exits with status 1 on
+any difference. Keep only the summary in the release log and remove the
+directory afterwards.
+
+On CI, start the `archive-comparison` workflow by hand on the candidate ref
+(it must also exist on `main` to be offered). It runs the eight required
+platform/R combinations and adds each summary to the job summary. Leave
+`previous` at the CRAN version, or set `previous_ref` (for example the
+`v1.0.0` tag) to build the previous release from Git while it is not on CRAN:
+
+```sh
+gh workflow run archive-comparison.yaml --ref v1.1.0 -f previous_ref=v1.0.0
+```
+
+The CI job builds both packages without vignettes or manual; only R code and
+data enter the comparison.
+
+**Extending the catalog.** An option omitted from a call takes its default in
+both versions, so the existing cases already cover the default of every new
+option. Each minor adds its new options' defaults as explicit calls: add a
+case with a new name whose `new_options` lists them, as
+`list(fit = list(option = default), predict = list(option = default))`. The
+candidate passes them, the previous release (which lacks them) does not. If a
+stored field records that an option was passed explicitly, compare the
+outputs and justify the expected field difference in the release log. Never
+edit an existing case; the only exception is a documented defect correction
+under §3.2, which adjusts the affected case with its reason.
