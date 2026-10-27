@@ -68,6 +68,10 @@ docs/
 # Keep the coverage measurement used by the test-coverage workflow.
 !/tools/coverage.R
 !/tools/test-coverage.R
+# Keep the archive comparison against the previous release and its case catalog.
+!/tools/archive-comparison.R
+!/tools/archive-comparison-cases.R
+!/tools/test-archive-comparison.R
 
 
 # research folger

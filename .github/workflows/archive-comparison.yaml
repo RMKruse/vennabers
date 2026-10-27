@@ -1,0 +1,103 @@
+# Archive comparison from RELEASE-ROADMAP-1.x.md, section 3.2: the previous
+# release against this ref's source package, on the eight required
+# platform/R combinations of R-CMD-check. Release acceptance only; started by
+# hand, never by a push.
+name: archive-comparison
+
+on:
+  workflow_dispatch:
+    inputs:
+      previous:
+        description: Previous release as a CRAN version or a source tarball URL
+        default: "1.0.0"
+      previous_ref:
+        description: Git ref to build the previous release from instead, while it is not on CRAN
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  source:
+    name: Build source packages
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+      - name: Check the archive comparison helper
+        run: Rscript --vanilla tools/test-archive-comparison.R
+      # Only R code and data enter the comparison; vignettes and the manual
+      # are not built.
+      - name: Build
+        env:
+          PREVIOUS_REF: ${{ inputs.previous_ref }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/source/candidate" "$RUNNER_TEMP/source/previous"
+          cd "$RUNNER_TEMP/source/candidate"
+          R CMD build --no-build-vignettes --no-manual "$GITHUB_WORKSPACE"
+          if [ -n "$PREVIOUS_REF" ]; then
+            mkdir "$RUNNER_TEMP/previous-checkout"
+            git -C "$GITHUB_WORKSPACE" archive "$PREVIOUS_REF" | tar -x -C "$RUNNER_TEMP/previous-checkout"
+            cd "$RUNNER_TEMP/source/previous"
+            R CMD build --no-build-vignettes --no-manual "$RUNNER_TEMP/previous-checkout"
+          fi
+          cd "$RUNNER_TEMP/source"
+          sha256sum */vennabers_*.tar.gz | tee SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: archive-source-packages
+          path: ${{ runner.temp }}/source
+
+  compare:
+    needs: source
+    name: ${{ matrix.os }} (R ${{ matrix.r }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15-intel, macos-15]
+        r: [release, oldrel-1]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.r }}
+          use-public-rspm: true
+      # The workflow cases need the integration packages, not the rest of Suggests.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"hard"'
+          extra-packages: any::parsnip any::workflows any::rsample any::hardhat any::tibble any::generics
+      - uses: actions/download-artifact@v4
+        with:
+          name: archive-source-packages
+          path: ${{ runner.temp }}/source
+      - name: Compare with the previous release
+        shell: bash
+        working-directory: ${{ runner.temp }}/source
+        env:
+          PREVIOUS: ${{ inputs.previous }}
+        run: |
+          previous="$PREVIOUS"
+          for tarball in previous/vennabers_*.tar.gz; do
+            if [ -e "$tarball" ]; then previous="$tarball"; fi
+          done
+          set -o pipefail
+          Rscript --vanilla "$GITHUB_WORKSPACE/tools/archive-comparison.R" "$previous" candidate/vennabers_*.tar.gz \
+            "$RUNNER_TEMP/archive" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: archive-${{ matrix.os }}-r-${{ matrix.r }}
+          path: |
+            ${{ runner.temp }}/archive/*.md
+            ${{ runner.temp }}/archive/*.csv
+            ${{ runner.temp }}/archive/*.log
