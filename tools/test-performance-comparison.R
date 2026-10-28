@@ -63,14 +63,52 @@ parsed <- pc_parse_args(c("--parts", "new", "--quick", "p.tar.gz", "c.tar.gz", "
 stopifnot(identical(parsed$parts, "new"), isTRUE(parsed$quick), identical(parsed$out, "out"),
   isFALSE(pc_parse_args(c("--parts", "new", "p", "c", "d", "o"))$quick),
   identical(pc_parse_args(c("--summarize", "out")), list(summarize = TRUE, out = "out")),
-  grepl("part 'performance' (ticket 10, #87)", error_of(pc_parse_args(c("p", "c", "d", "o"))), fixed = TRUE),
+  identical(pc_parse_args(c("--parts", "performance,new", "p", "c", "d", "o"))$parts, c("new", "performance")),
+  !grepl("performance", error_of(pc_parse_args(c("p", "c", "d", "o")))),
   grepl("part 'v09' (ticket 11, #88)", error_of(pc_parse_args(c("p", "c", "d", "o"))), fixed = TRUE),
   grepl("part 'shared' (ticket 11, #88)", error_of(pc_parse_args(c("--parts", "shared,new", "p", "c", "d", "o"))),
         fixed = TRUE),
   grepl("Unknown part", error_of(pc_parse_args(c("--parts", "old", "p", "c", "d", "o")))),
   grepl("Usage", error_of(pc_parse_args(c("--parts", "new", "p", "c", "d")))),
   grepl("Usage", error_of(pc_parse_args(c("--parts", "new", "--fast", "p", "c", "d", "o")))),
-  identical(names(pc_unbuilt(pc_parts)), c("performance", "shared", "v09")))
+  identical(names(pc_unbuilt(pc_parts)), c("shared", "v09")))
+
+# Part performance: performance.R takes the starter's libraries, candidate
+# first; outside Linux x86_64 it gets --smoke, and --quick changes nothing.
+context <- function(linux, quick = FALSE) {
+  list(previous_lib = "/o/previous-lib", candidate_lib = "/o/candidate-lib", deps = "/deps", dir = "/o/performance",
+       quick = quick, linux_x86_64 = linux, tools = "/t", previous_version = "1.0.0")
+}
+mac <- pc_performance_command(context(FALSE))
+linux <- pc_performance_command(context(TRUE))
+stopifnot(identical(mac$args, c("--vanilla", shQuote("/t/performance.R"), shQuote("/o/candidate-lib"),
+                                shQuote("/o/previous-lib"), shQuote("/o/performance/output"),
+                                "--previous-version", "1.0.0", "--smoke")),
+  identical(mac$env, paste0("R_LIBS=", shQuote(paste("/o/candidate-lib", "/deps", sep = .Platform$path.sep)))),
+  identical(linux$args, mac$args[-length(mac$args)]), identical(linux$env, mac$env),
+  identical(pc_performance_command(context(TRUE, quick = TRUE)), linux),
+  identical(pc_performance_command(context(FALSE, quick = TRUE)), mac),
+  identical(pc_performance_failed(c("Release evidence: FALSE ", "current binary_inductive ", "current 3_cross_ovo ",
+                                    "Error: Command failed; see /o/current-3_cross_ovo-process.log")), "3_cross_ovo"),
+  identical(pc_performance_failed("Error: OUTPUT must be empty."), character()))
+
+# Its reader takes the single values per iteration from <release>-<case>-runs.csv
+# in plan order, without the warm-up; the process peak counts once per case.
+examples <- file.path(tools, "performance-comparison-examples")
+long <- read_part_performance(file.path(examples, "performance"))
+peaks <- long[long$metric == "process_peak_bytes", ]
+workflow <- long[long$case == "workflow_binary_inductive", ]
+stopifnot(identical(names(long), c("part", pc_long_columns)), identical(unique(long$part), "performance"),
+  identical(unique(long$case), c("workflow_binary_inductive", "binary_inductive")),
+  identical(nrow(long), 4L * (10L * 3L + 1L)), identical(sort(unique(long$run)), 1:3),
+  identical(unique(long$library), c("previous", "candidate")),
+  identical(peaks$value, c(3e8, 4e8, 1.5e8, 1.51e8)), all(is.na(peaks$run)), identical(unique(peaks$unit), "bytes"),
+  identical(workflow$value[workflow$library == "candidate" & workflow$metric == "fit_seconds"], c(0.25, 0.26, 0.27)),
+  identical(workflow$value[workflow$library == "previous" & workflow$metric == "retained_models"], c(1, 1, 1)),
+  identical(unique(long$unit[long$metric %in% c("fit_count", "retained_models", "outer_fit_count")]), "count"),
+  identical(unique(long$unit[endsWith(long$metric, "_seconds")]), "seconds"),
+  identical(unique(long$unit[long$metric == "rds_bytes"]), "bytes"),
+  identical(nrow(read_part_performance(tempfile())), 0L))
 
 # Sizes: --quick divides the rows by 100; the CVAR prediction keeps 1e4 calibration rows.
 quick <- v11_sizes(pc_new_cases, quick = TRUE)
@@ -104,7 +142,6 @@ stopifnot(identical(plan$case, tiny$case), identical(plan$rows, as.integer(tiny$
 unlink(dir, recursive = TRUE)
 
 # --summarize on example raw outputs of part new rebuilds the summary byte for byte.
-examples <- file.path(tools, "performance-comparison-examples")
 summarize_copy <- function(edit = function(out) NULL) {
   out <- tempfile()
   dir.create(out)
@@ -156,5 +193,32 @@ stopifnot("**Smoke run – not a measurement**" %in% summary,
   all(is.na(utils::read.csv(file.path(smoke, "comparison.csv"), na.strings = "")$flag)),
   "- Failed: new (cases: ivap-1e7, ivar-1e7)" %in% summary,
   identical(pc_read_keys(file.path(smoke, "run.csv"))$exit_new, "1"))
-unlink(c(out, smoke), recursive = TRUE)
+# --summarize over parts new and performance: the historical part shows its
+# count and only its flagged rows.
+both <- summarize_copy(function(out) {
+  run <- pc_read_keys(file.path(out, "run.csv"))
+  run$parts <- "new,performance"
+  pc_write_keys(run, file.path(out, "run.csv"))
+})
+run <- pc_read_keys(file.path(both, "run.csv"))
+comparison <- utils::read.csv(file.path(both, "comparison.csv"), na.strings = "")
+historical <- comparison[comparison$part == "performance", ]
+flagged <- historical[!is.na(historical$flag), ]
+summary <- readLines(file.path(both, "summary.md"))
+stopifnot(identical(run$exit_performance, "0"), identical(run$wall_seconds_performance, "444"),
+  identical(run$wall_seconds_total, "1200"),
+  identical(unique(utils::read.csv(file.path(both, "measurements.csv"))$part), c("new", "performance")),
+  identical(unique(historical$case), c("workflow_binary_inductive", "binary_inductive")),
+  identical(flagged$metric, c("fit_seconds", "process_peak_bytes", "outer_fit_count")),
+  identical(flagged$flag, c("> 1.10", "> 1.10", "counters differ")),
+  all(flagged$case == "workflow_binary_inductive"),
+  identical(historical$note[historical$case == "binary_inductive" & historical$metric == "predict_seconds"], "below 10 ms"),
+  "**Not acceptance evidence (macOS arm64, parts: new,performance)**" %in% summary,
+  any(grepl("Wall time: new 0:12:30 (exit 0), performance 0:07:24 (exit 0); total 0:20:00", summary, fixed = TRUE)),
+  "- performance: 2 cases, 1 flagged" %in% summary,
+  "| performance | `workflow_binary_inductive` | fit_seconds | 0.210 s | 0.260 s | 1.24 | > 1.10 |" %in% summary,
+  "| performance | `workflow_binary_inductive` | process_peak_bytes | 286.1 MiB | 381.5 MiB | 1.33 | > 1.10 |" %in% summary,
+  "| performance | `workflow_binary_inductive` | outer_fit_count | 3 | 3 | – | counters differ |" %in% summary,
+  identical(length(grep("^\\| `", summary)), 9L))
+unlink(c(out, smoke, both), recursive = TRUE)
 cat("Performance comparison checks passed.\n")

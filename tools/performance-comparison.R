@@ -44,8 +44,6 @@ pc_placeholder <- function(part, ticket) {
   structure(function(...) stop("Part '", part, "' is not built yet (", ticket, ").", call. = FALSE),
             placeholder = ticket)
 }
-run_part_performance <- pc_placeholder("performance", "ticket 10, #87")
-read_part_performance <- pc_placeholder("performance", "ticket 10, #87")
 run_part_shared <- pc_placeholder("shared", "ticket 11, #88")
 read_part_shared <- pc_placeholder("shared", "ticket 11, #88")
 run_part_v09 <- pc_placeholder("v09", "ticket 11, #88")
@@ -285,10 +283,71 @@ read_part_new <- function(dir) {
   data.frame(part = rep("new", nrow(long)), long)
 }
 
+# Part performance: tools/performance.R (v0.3-v0.7) in library mode, the
+# candidate first as the script expects. It refuses measurements outside
+# Linux x86_64, so other platforms get --smoke; --quick changes nothing here.
+pc_performance_command <- function(context) {
+  list(args = c("--vanilla", shQuote(file.path(context$tools, "performance.R")), shQuote(context$candidate_lib),
+                shQuote(context$previous_lib), shQuote(file.path(context$dir, "output")),
+                "--previous-version", context$previous_version, if (!context$linux_x86_64) "--smoke"),
+       env = paste0("R_LIBS=", shQuote(paste(context$candidate_lib, context$deps, sep = .Platform$path.sep))))
+}
+
+# performance.R stops at the first failure; its log names each case before it starts.
+pc_performance_failed <- function(lines) {
+  started <- grep("^(current|previous) \\S+ ?$", lines, value = TRUE)
+  if (length(started)) trimws(sub("^\\S+ ", "", started[[length(started)]])) else character()
+}
+
+run_part_performance <- function(context) {
+  command <- pc_performance_command(context)
+  log <- file.path(context$dir, "part.log")
+  status <- system2(file.path(R.home("bin"), "Rscript"), command$args, stdout = log, stderr = log, env = command$env)
+  list(exit = status, failed_cases = if (status != 0L && file.exists(log)) pc_performance_failed(readLines(log)) else character())
+}
+
+pc_performance_seconds <- c("fit_seconds", "predict_seconds", "outer_seconds", "schema_seconds", "encode_seconds",
+                            "decode_seconds")
+pc_performance_counters <- c("fit_count", "retained_models", "outer_fit_count")
+
+# The single values per iteration from <release>-<case>-runs.csv, in plan
+# order, previous before candidate (current). Iteration 0 is the warm-up. The
+# script records times it does not measure as 0. One process per case and
+# library makes its peak one value with an empty run.
+read_part_performance <- function(dir) {
+  output <- file.path(dir, "output")
+  files <- list.files(output, pattern = "^(current|previous)-.+-runs\\.csv$")
+  release <- sub("^(current|previous)-.*$", "\\1", files)
+  case <- sub("^(current|previous)-(.+)-runs\\.csv$", "\\2", files)
+  plan <- file.path(output, "plan.csv")
+  cases <- unique(c(if (file.exists(plan)) utils::read.csv(plan)$case, case))
+  metrics <- c(pc_performance_seconds, "rds_bytes", pc_performance_counters)
+  units <- ifelse(metrics %in% pc_performance_seconds, "seconds", ifelse(metrics == "rds_bytes", "bytes", "count"))
+  long <- lapply(order(match(case, cases), match(release, c("previous", "current"))), function(i) {
+    runs <- utils::read.csv(file.path(output, files[[i]]))
+    runs <- runs[runs$iteration > 0L, ]
+    library <- if (release[[i]] == "current") "candidate" else "previous"
+    values <- do.call(rbind, lapply(seq_along(metrics), function(m) {
+      data.frame(case = rep(case[[i]], nrow(runs)), library = library, run = runs$iteration, metric = metrics[[m]],
+                 value = as.numeric(runs[[metrics[[m]]]]), unit = units[[m]])
+    }))
+    peak <- unique(runs$process_peak_bytes)
+    if (length(peak) > 1L) stop(files[[i]], " has more than one process peak.", call. = FALSE)
+    rbind(values, if (length(peak)) data.frame(case = case[[i]], library = library, run = NA_integer_,
+                                               metric = "process_peak_bytes", value = peak, unit = "bytes"))
+  })
+  long <- do.call(rbind, c(list(pc_empty_long()[-1L]), long))
+  data.frame(part = rep("performance", nrow(long)), long)
+}
+
 pc_mib <- function(x) ifelse(is.na(x), "–", sprintf("%.1f", x / 1048576))
 pc_seconds <- function(x) ifelse(is.na(x), "–", sprintf("%.3f", x))
 pc_ratio <- function(x) ifelse(is.na(x), "–", sprintf("%.2f", x))
 pc_count <- function(x) ifelse(is.na(x), "–", formatC(x, format = "d", big.mark = ","))
+pc_value <- function(x, unit) {
+  ifelse(is.na(x), "–", ifelse(unit == "seconds", paste(pc_seconds(x), "s"),
+                               ifelse(unit == "bytes", paste(pc_mib(x), "MiB"), pc_count(x))))
+}
 pc_clock <- function(seconds) {
   if (is.null(seconds) || !nzchar(seconds)) return("–")
   s <- round(as.numeric(seconds))
@@ -352,8 +411,8 @@ pc_summary <- function(run, comparison, plan) {
       if (nrow(flagged)) c("", "| Part | Case | Metric | Previous | Candidate | Ratio | Flag |",
         "| --- | --- | --- | ---: | ---: | ---: | --- |",
         sprintf("| %s | `%s` | %s | %s | %s | %s | %s |", flagged$part, flagged$case, flagged$metric,
-                format(flagged$median_previous), format(flagged$median_candidate), pc_ratio(flagged$ratio),
-                flagged$flag)))
+                pc_value(flagged$median_previous, flagged$unit), pc_value(flagged$median_candidate, flagged$unit),
+                pc_ratio(flagged$ratio), flagged$flag)))
   }
   c("# Performance comparison",
     "",
@@ -448,6 +507,7 @@ pc_main <- function(args, tools) {
     message("Running part ", part, " ...")
     result <- tryCatch(pc_part_function("run", part)(list(
       previous_lib = libs[["previous"]], candidate_lib = libs[["candidate"]], deps = deps, dir = dir,
+      previous_version = archives$previous$version,
       quick = options$quick, linux_x86_64 = identical(kind$linux_x86_64, "TRUE"), tools = tools)),
       error = function(e) {
         message("Part ", part, " failed: ", conditionMessage(e))
