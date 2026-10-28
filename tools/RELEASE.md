@@ -91,7 +91,7 @@ All these sources are committed and excluded from the R source package by
 | `migration-v09.R` | Migration from the fixed 0.9.0 commit, 22 representative saved-object/refit paths |
 | `xgboost-early-stopping.R` | Real XGBoost early-stopping fits on every local fit; xgboost stays outside `Suggests`, so install it in a throwaway library and pass that after the candidate library |
 | `corp-parity-reliabilitydiag.R` | Counter-comparison of the CORP estimate and both resampling bands of `corp_plot()` with reliabilitydiag 0.2.1 (48 runs); reliabilitydiag stays outside `Suggests`, so pass a throwaway library holding it |
-| `counter-comparison.sh` and its `counter-comparison-*` sources | Counter-comparison with MAPIE and calibrated-explanations; see "Counter-comparisons (1.x)" |
+| `counter-comparison.sh` and its `counter-comparison-*` sources | Counter-comparison with MAPIE, calibrated-explanations and fast-ivap (ptocca/VennABERS); see "Counter-comparisons (1.x)" |
 | `corp-coverage-study.R` and `test-corp-coverage-study.R` | Simulated pointwise coverage of the CORP bands (hard criterion for the consistency band only) and one-call run time and memory; a measurement, not a performance gate |
 | `benchmark-v08.R` | Historical v0.8 measurement source |
 | `benchmark-shared-v09.R` | Shared-capability comparison with seeded identical outer splits |
@@ -156,17 +156,30 @@ Rscript --vanilla tools/corp-parity-reliabilitydiag.R /absolute/path/to/temporar
   `counter-comparison-mapie-ce.py`. The output directory receives
   `summary.csv`, `causes.csv`, `examples.json`, their `-mapie-patched`
   variants and both environment records.
+- The same run compares fast-ivap, the binary IVAP from `ptocca/VennABERS`,
+  through `counter-comparison-fast-ivap.py` on the binary fixtures and the
+  constructed edge sets of `counter-comparison-inputs.R`, again with the main
+  reference as a control. It writes `summary-fast-ivap.csv`,
+  `examples-fast-ivap.json` and `python-environment-fast-ivap.json`; its
+  subsets split the rows by the position of the new score, by labels and by
+  ties.
 - Read `causes.csv` first: every row must report 0 unexplained differences.
   The control's largest difference in `summary.csv` must stay at rounding
   level. The patched run retrofits the main reference's upper tail value into
   MAPIE; with the 1.6.0 defect, only the 0.575 rounding row remains there.
+  In `summary-fast-ivap.csv`, `n_over_tol` must be 0 in every row; with
+  fast-ivap 1.1.0, only its Cross Log merge is not bitwise equal to
+  vennabers, by at most `1.67e-16`.
 - To check newer releases, raise the pins in
   `counter-comparison-requirements.txt` (keep `venn-abers==1.5.4`), rerun, and
   update versions, commits, module hashes, results and dates in
   `inst/PARITY.md`. A new difference is explained there, never hidden by a
-  tolerance; a proven reference defect becomes a D entry.
+  tolerance; a proven reference defect becomes a D entry. For fast-ivap,
+  also set `FAST_IVAP_COMMIT` and `FAST_IVAP_MODULE_SHA256` in
+  `counter-comparison-fast-ivap.py` to the commit of the release tag and the
+  hashes of its files; the script stops when the installed modules differ.
   `test-counter-comparison.R` checks that the pins in the requirements, the
-  Python script and `inst/PARITY.md` agree.
+  Python scripts and `inst/PARITY.md` agree.
 - `corp-parity-reliabilitydiag.R` keeps its own throwaway library holding
   reliabilitydiag and its imports (see its header).
 

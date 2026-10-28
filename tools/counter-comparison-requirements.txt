@@ -1,10 +1,12 @@
 # Python environment of the counter-comparisons (tools/counter-comparison.sh),
 # Python 3.12. venn-abers stays at the main reference 1.5.4; update the
 # compared packages at each minor checkpoint and record the run in
-# inst/PARITY.md, "Counter-comparisons".
+# inst/PARITY.md, "Counter-comparisons". fast-ivap is pinned by commit and
+# module hashes in counter-comparison-fast-ivap.py as well.
 calibrated-explanations==1.0.2
 cloudpickle==3.1.2
 crepes==0.9.1
+fast-ivap==1.1.0
 joblib==1.6.0
 mapie==1.6.0
 narwhals==2.27.1

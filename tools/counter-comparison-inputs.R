@@ -10,6 +10,11 @@
 # - vb-binary-inductive.csv, vb-binary-cross.csv, vb-multiclass.csv,
 #   vb-multiclass-parts.csv: the vennabers results for precision NULL, 0, 2,
 #   -1 and 4, both losses and class decisions;
+# - edge-input-calibration.csv, edge-input-new.csv, vb-binary-edge.csv: 13
+#   constructed binary calibration sets (ties, one label only, one score, a
+#   single point, scores at 0 and 1) whose new scores are every calibration
+#   score, the midpoints between them and points outside their range, with
+#   the vennabers results for precision NULL;
 # - vennabers-environment.txt.
 # Run from anywhere; the libraries are optional and put before the site
 # library, for example one holding the package built from this checkout:
@@ -86,6 +91,51 @@ cross <- do.call(rbind, lapply(precisions, function(setting) do.call(rbind, lapp
 }))))
 write_hex(cross, "vb-binary-cross.csv")
 
+# Binary edge sets, precision NULL only. Seeded draws give labels that follow
+# the score; the rest is fixed by hand.
+RNGkind("Mersenne-Twister", "Inversion", "Rejection")
+set.seed(20261028)
+draw <- function(n, digits = NA, low = 0, high = 1) {
+  score <- runif(n, low, high)
+  if (!is.na(digits)) score <- round(score, digits)
+  list(truth = rbinom(n, 1, score), score = score)
+}
+edge_sets <- list(
+  ties_1_digit = draw(60, 1),
+  ties_2_digits = draw(2000, 2),
+  ties_3_digits = draw(500, 3),
+  distinct = draw(40),
+  narrow_range = draw(30, NA, 0.4, 0.6),
+  label_0_only = list(truth = rep(0, 25), score = round(runif(25), 2)),
+  label_1_only = list(truth = rep(1, 25), score = round(runif(25), 2)),
+  single_0 = list(truth = 0, score = 0.3),
+  single_1 = list(truth = 1, score = 0.7),
+  one_score = list(truth = rep(0:1, 5), score = rep(0.5, 10)),
+  two_scores = list(truth = c(0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1), score = rep(c(0.25, 0.75), each = 6)),
+  bounds = list(truth = c(0, 1, 0, 1, 0, 1, 1, 0), score = c(0, 0, 0.2, 0.5, 0.5, 0.8, 1, 1)),
+  reversed = list(truth = rep(1:0, each = 10), score = (1:20) / 21)
+)
+edge_new <- function(score) {
+  s <- sort(unique(score))
+  mid <- (s[-1] + s[-length(s)]) / 2
+  sort(unique(c(0, 0.5, 1, s, mid, s[1] / 2, (s[length(s)] + 1) / 2)))
+}
+for (name in names(edge_sets)) edge_sets[[name]]$new <- edge_new(edge_sets[[name]]$score)
+write_hex(do.call(rbind, lapply(names(edge_sets), function(name) with(edge_sets[[name]],
+  data.frame(key = name, row = seq_along(truth), truth = as.double(truth), score = score)))),
+  "edge-input-calibration.csv")
+write_hex(do.call(rbind, lapply(names(edge_sets), function(name)
+  data.frame(key = name, row = seq_along(edge_sets[[name]]$new), score = edge_sets[[name]]$new))),
+  "edge-input-new.csv")
+write_hex(do.call(rbind, lapply(names(edge_sets), function(name) with(edge_sets[[name]], {
+  fit <- venn_abers(truth, score)
+  log <- predict(fit, new, loss = "log")
+  data.frame(key = name, row = seq_along(new), lower = log$lower, upper = log$upper, log = log$probability,
+             brier = predict(fit, new, loss = "brier")$probability,
+             class_log = as.integer(predict(fit, new, loss = "log", type = "class")),
+             class_brier = as.integer(predict(fit, new, loss = "brier", type = "class")))
+}))), "vb-binary-edge.csv")
+
 # Manual multiclass OvO and OvR, Inductive and Cross. Matrices are padded to
 # four columns so that every case fits one table.
 mc_cal <- fixture("ovo-calibration.csv")
@@ -154,4 +204,5 @@ write_hex(do.call(rbind, mc_parts), "vb-multiclass-parts.csv")
 
 writeLines(c(R.version.string, paste("vennabers", packageVersion("vennabers"), "from", find.package("vennabers")),
              paste("platform", R.version$platform)), file.path(out, "vennabers-environment.txt"))
-cat(sprintf("%d binary calibration sets, %d multiclass cases written to %s\n", length(sets), length(mc_inputs_cal), out))
+cat(sprintf("%d binary calibration sets, %d edge sets, %d multiclass cases written to %s\n", length(sets),
+            length(edge_sets), length(mc_inputs_cal), out))

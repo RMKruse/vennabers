@@ -9,9 +9,10 @@
 # Needs R, network access to PyPI and either uv or python3.12. Python runs only
 # in a temporary virtual environment from tools/counter-comparison-requirements.txt,
 # removed together with the large intermediate files (about 15 MB) on exit.
-# <out> receives the summaries, the cause checks and both environments; the
+# <out> receives the summaries, the cause checks and the environments; the
 # comparison with MAPIE's core patched to the main reference's upper tail
-# (suffix -mapie-patched) diagnoses the cause of MAPIE's differences.
+# (suffix -mapie-patched) diagnoses the cause of MAPIE's differences. fast-ivap
+# (ptocca/VennABERS) writes its own files with the suffix -fast-ivap.
 set -eu
 if [ "$#" -lt 1 ]; then
   echo "Usage: tools/counter-comparison.sh <out> [<library> ...]" >&2
@@ -39,4 +40,5 @@ Rscript --vanilla "$tools/counter-comparison-inputs.R" "$work/data" "$@"
 cp "$work/data/vennabers-environment.txt" "$out/"
 "$work/venv/bin/python" -I "$tools/counter-comparison-mapie-ce.py" "$work/data" "$out"
 "$work/venv/bin/python" -I "$tools/counter-comparison-mapie-ce.py" "$work/data" "$out" --mapie-patched
+"$work/venv/bin/python" -I "$tools/counter-comparison-fast-ivap.py" "$work/data" "$out"
 echo "Results in $out"
