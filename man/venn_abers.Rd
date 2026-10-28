@@ -89,6 +89,22 @@ multiclass methods is a deliberate R extension over the examined Python
 Exactly two factor levels also select the
 multiclass matrix contract, with its distinct tie rule and Brier score scale.
 }
+\section{Large calibration sets}{
+Fit time grows roughly linearly with the number of knots, the distinct
+calibration probabilities. Rows sharing a probability are pooled before the
+isotonic scans, so many rows with few distinct values fit quickly, while
+continuous scores make every row a knot. The fitted object grows the same way.
+Multiclass fits repeat this for every pair (OvO) or class (OvR).
+
+\code{precision} reduces the knots: \code{precision = d} leaves at most
+\eqn{10^d + 1} of them for nonnegative \eqn{d}, and a negative value leaves
+one. This is not a pure speed-up. Rounding pools neighbouring probabilities
+and so changes the fitted calibration itself, while new probabilities stay
+unrounded at prediction. Treat it as a modelling choice and assess the result
+on held-out data, for example with \code{\link{brier_score}} or
+\code{\link{log_loss}}. No fixed run time is implied; it depends on the
+hardware and the R build.
+}
 \seealso{\code{vignette("method", package = "vennabers")} for the theory and
 its guarantees, \code{vignette("manual-calibration", package = "vennabers")}
 for a worked introduction, and \link{vennabers_examples} for annotated

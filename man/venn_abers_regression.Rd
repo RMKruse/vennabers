@@ -60,6 +60,9 @@ logical values, matrices, lists, classed vectors, missing/nonfinite values,
 length mismatches and invalid options are rejected. Inputs are never rounded,
 clipped or silently removed. Tied predictions and new predictions beyond the
 calibration prediction range are supported.
+Fit time grows roughly linearly with the number of distinct calibration
+predictions, as described under \emph{Large calibration sets} in
+\code{\link{venn_abers}}; there is no rounding option to reduce them.
 
 For sorted outcomes \eqn{y_{(1)},\ldots,y_{(k)}}, set \eqn{a=y_{(m)}} and
 \eqn{b=y_{(k-m+1)}}. The lower calibration replaces outcomes below \eqn{a}
