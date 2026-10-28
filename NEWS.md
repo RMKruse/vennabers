@@ -9,6 +9,13 @@
   more memory: with one million rows and five folds, the peak process memory
   of `predict()` rises by about a third.
 
+## Documentation
+
+- `?venn_abers` has a new section "Large calibration sets": fit time grows
+  linearly with the distinct calibration probabilities, and `precision`
+  reduces them at the cost of changing the calibration itself. The regression
+  calibrators refer to it.
+
 # vennabers 1.0.0
 
 Initial CRAN release.

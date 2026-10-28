@@ -91,6 +91,9 @@ regression. Factors, logical values, lists, classed vectors, matrices at fit,
 nonfinite values and mismatched lengths are rejected. No values are rounded,
 clipped or silently dropped. Ties and new scores outside calibration ranges
 are supported. Predict trains nothing and accepts no new moderation options.
+Fit time grows roughly linearly with the distinct calibration predictions of
+each fold, as described under \emph{Large calibration sets} in
+\code{\link{venn_abers}}.
 
 The theoretical setting assumes IID observations and a base procedure fixed
 independently of its calibration observations. Every observation in a fold
