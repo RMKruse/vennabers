@@ -1,0 +1,3 @@
+"case","calibration","prediction","classes","folds","method","loss","precision","m","epsilon","previous_supported","input_sha256"
+"workflow_binary_inductive",2000,500,2,1,"binary","log",NA,NA,NA,TRUE,"c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3"
+"binary_inductive",100000,100000,2,1,"binary","log",NA,NA,NA,TRUE,"d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4"

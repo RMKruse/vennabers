@@ -368,9 +368,56 @@ takes about 20 seconds and the measurement run about 27 minutes.
 
 ### Part performance
 
-Not built yet: [ticket 10](https://github.com/RMKruse/vennabers/issues/87)
-brings back `performance.R` (v0.3-v0.7). Until then the starter rejects
-`--parts performance`.
+`performance.R` runs the 64 cases of the v0.3-v0.7 suite (IVAP, CVAP,
+multiclass, regression and the workflow, encoding, frozen, full and pairwise
+paths) on both libraries. Their generators, seeds, models, options, measured
+windows, counters and contract checks are those of v0.7; only the call and
+the process handling changed. The starter runs it as
+
+```sh
+R_LIBS=<out>/candidate-lib:<deps-lib> Rscript --vanilla tools/performance.R \
+  <out>/candidate-lib <out>/previous-lib <out>/performance/output --previous-version <previous> [--smoke]
+```
+
+in library mode: it takes the installed libraries and checks that the
+previous library has the previous archive's version. A 1.x candidate runs
+every v0.7 case on both libraries (`previous_supported` is `TRUE`), each case
+and library in one fresh process under `/usr/bin/time` with one warm-up and
+three measured runs, followed by a restore check in another fresh process.
+The parent writes the inputs once as RDS with their SHA-256 in `plan.csv`.
+
+The reader takes the single values per iteration from
+`<release>-<case>-runs.csv` (`current` is the candidate), without the warm-up
+(iteration 0): `fit_seconds`, `predict_seconds`, `outer_seconds`,
+`schema_seconds`, `encode_seconds`, `decode_seconds`, `rds_bytes`, the
+counters `fit_count`, `retained_models` and `outer_fit_count`, and the process
+peak once per case and library. The script records phases a case does not
+run as 0; the reader drops them as the measuring process decides them from
+the case's input: `outer_seconds` only for workflows that are not frozen,
+`schema_seconds`, `encode_seconds` and `decode_seconds` only for encoded
+cases. The script's own `medians.csv` and `comparison.csv` (with its flat
+status `requires regression review`) stay in `performance/output` and are
+not read.
+
+Historical quirks, the same for both libraries and therefore kept:
+
+- all candidate cases run first, then all previous cases, not interleaved
+  per case;
+- there is no `gc()` heap;
+- the script refuses measurements outside Linux x86_64, so there the starter
+  passes `--smoke`. The cases and sizes are the same; only the script's own
+  label changes.
+
+There is no smaller size: under `--quick` `performance.R` runs in full, and
+only the starter's summary drops the flags. A failure stops the script at
+that case; the summary names it, and the part has to be repeated as a
+partial run.
+
+On a Mac (Apple M5 Pro, 1.0.0 against itself) part performance takes about
+13 minutes, with or without `--quick`. Against itself, single
+workflow fits and outer resampling of 0.04-0.3 s can pass the 1.10 flag
+(the candidate block runs first); counters, RDS sizes and process peaks
+match.
 
 ### Part shared
 
