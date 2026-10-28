@@ -90,7 +90,8 @@ All these sources are committed and excluded from the R source package by
 | `acceptance-v09-matrix.R` | 80 original Grid/Bayes cases and 40 targeted postprocessing cases; CLI and optional `MATRIX_ONLY` selection documented in its header |
 | `migration-v09.R` | Migration from the fixed 0.9.0 commit, 22 representative saved-object/refit paths |
 | `xgboost-early-stopping.R` | Real XGBoost early-stopping fits on every local fit; xgboost stays outside `Suggests`, so install it in a throwaway library and pass that after the candidate library |
-| `corp-parity-reliabilitydiag.R` | CORP estimate and both resampling bands of `corp_plot()` against reliabilitydiag 0.2.1 (48 runs); reliabilitydiag stays outside `Suggests`, so pass a throwaway library holding it |
+| `corp-parity-reliabilitydiag.R` | Counter-comparison of the CORP estimate and both resampling bands of `corp_plot()` with reliabilitydiag 0.2.1 (48 runs); reliabilitydiag stays outside `Suggests`, so pass a throwaway library holding it |
+| `counter-comparison.sh` and its `counter-comparison-*` sources | Counter-comparison with MAPIE and calibrated-explanations; see "Counter-comparisons (1.x)" |
 | `corp-coverage-study.R` and `test-corp-coverage-study.R` | Simulated pointwise coverage of the CORP bands (hard criterion for the consistency band only) and one-call run time and memory; a measurement, not a performance gate |
 | `benchmark-v08.R` | Historical v0.8 measurement source |
 | `benchmark-shared-v09.R` | Shared-capability comparison with seeded identical outer splits |
@@ -123,7 +124,8 @@ Before each 1.x minor candidate, record in the release log
    that it is not adopted. Changed values keep the pin and become a D entry
    and a 2.0 candidate. Only this record blocks the release.
 2. Rerun the counter-comparison scripts under `tools/` against current
-   releases; otherwise note "last checked with version X".
+   releases (see "Counter-comparisons (1.x)" below); otherwise note "last
+   checked with version X".
 3. Recheck preprint validity statements and update their labels in the help
    pages and `inst/PARITY.md` once they are peer reviewed.
 4. From 1.2 on, review the weekly CI run against tidymodels `main` and file
@@ -131,6 +133,42 @@ Before each 1.x minor candidate, record in the release log
 
 Also run the archive comparison against the previous CRAN release
 (`RELEASE-ROADMAP-1.x.md` §3.2) on every CI platform; see below.
+
+## Counter-comparisons (1.x)
+
+Counter-comparisons check other Venn-Abers software on identical arrays; they
+are not binding and never block a release (`inst/PARITY.md`,
+"Counter-comparisons"). Each one is re-run at the minor checkpoint, from the
+repository root and without building the package archive:
+
+```sh
+R CMD INSTALL -l /absolute/path/to/temporary-library .
+Rscript --vanilla tools/test-counter-comparison.R /absolute/path/to/temporary-library
+tools/counter-comparison.sh /absolute/path/to/temporary-out-dir /absolute/path/to/temporary-library
+Rscript --vanilla tools/corp-parity-reliabilitydiag.R /absolute/path/to/temporary-library <reliabilitydiag-library>
+```
+
+- `counter-comparison.sh` compares MAPIE and calibrated-explanations, with the
+  main reference `venn-abers` 1.5.4 as a control, in under a minute. It needs
+  network access to PyPI and `uv` or `python3.12`. Python runs only in a
+  temporary virtual environment from `counter-comparison-requirements.txt`;
+  the R side is `counter-comparison-inputs.R`, the Python side
+  `counter-comparison-mapie-ce.py`. The output directory receives
+  `summary.csv`, `causes.csv`, `examples.json`, their `-mapie-patched`
+  variants and both environment records.
+- Read `causes.csv` first: every row must report 0 unexplained differences.
+  The control's largest difference in `summary.csv` must stay at rounding
+  level. The patched run retrofits the main reference's upper tail value into
+  MAPIE; with the 1.6.0 defect, only the 0.575 rounding row remains there.
+- To check newer releases, raise the pins in
+  `counter-comparison-requirements.txt` (keep `venn-abers==1.5.4`), rerun, and
+  update versions, commits, module hashes, results and dates in
+  `inst/PARITY.md`. A new difference is explained there, never hidden by a
+  tolerance; a proven reference defect becomes a D entry.
+  `test-counter-comparison.R` checks that the pins in the requirements, the
+  Python script and `inst/PARITY.md` agree.
+- `corp-parity-reliabilitydiag.R` keeps its own throwaway library holding
+  reliabilitydiag and its imports (see its header).
 
 ## Archive comparison (1.x)
 
