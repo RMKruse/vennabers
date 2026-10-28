@@ -41,6 +41,12 @@
   result
 }
 
+# Events per run of tied scores. rowsum() is exact here because the summands
+# are 0/1, so it matches the 1.0 per-run sum() bit for bit (ADR 0002).
+.event_sums <- function(truth, lengths) {
+  as.vector(rowsum(truth, rep.int(seq_along(lengths), lengths), reorder = FALSE))
+}
+
 #' @export
 venn_abers <- function(truth, probability, precision = NULL, method = "ovo") {
   .validate_choice(method, c("ovo", "ovr"), "method")
@@ -56,9 +62,7 @@ venn_abers <- function(truth, probability, precision = NULL, method = "ovo") {
   probability <- probability[ordered]
   truth <- as.numeric(truth[ordered])
   runs <- rle(probability)
-  ends <- cumsum(runs$lengths)
-  starts <- c(1L, ends[-length(ends)] + 1L)
-  events <- vapply(seq_along(starts), function(i) sum(truth[starts[i]:ends[i]]), 0)
+  events <- .event_sums(truth, runs$lengths)
   weight <- as.numeric(runs$lengths)
 
   upper <- .upper_scan(weight, events)

@@ -95,6 +95,9 @@ venn_abers_regression <- function(truth, prediction, ..., m = 1, epsilon = NULL)
     span <- b / divisor - a / divisor
     lower_truth <- (lower_truth / divisor - a / divisor) / span
     upper_truth <- (upper_truth / divisor - a / divisor) / span
+    # Keep sum() per run, not rowsum(): on x86_64 sum() accumulates in 80-bit
+    # long double and rowsum() does not, which would break release fidelity
+    # (ADR 0002).
     lower_sum <- vapply(seq_along(starts), function(i) sum(lower_truth[starts[i]:ends[i]]), 0)
     upper_sum <- vapply(seq_along(starts), function(i) sum(upper_truth[starts[i]:ends[i]]), 0)
     weight <- as.numeric(runs$lengths)
