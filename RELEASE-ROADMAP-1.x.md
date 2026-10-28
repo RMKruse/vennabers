@@ -178,8 +178,11 @@ Prüfwerkzeuge für die Releasetreue an und baut die Paritätsdokumentation um.
 
 1. **Leistungspaket** (ADR 0002):
    - `.cross()` inline in `.upper_scan()` (Scans 3,8–3,9× schneller);
-   - `rowsum()` nur für die binären 0/1-Summen. Die Regression behält
-     `vapply(sum)`, weil `sum()` auf x86_64 mit 80 Bit summiert;
+   - Differenzen kumulierter Summen nur für die binären 0/1-Summen (exakt,
+     weil alle Teilsummen ganze Zahlen sind; `rowsum()` brachte im Fit
+     nichts, v1.1-Ticket 04). Die Regression behält `vapply(sum)`, weil
+     kumulierte Summen dort jede Teilsumme runden und `sum()` auf x86_64 mit
+     80 Bit summiert;
    - vektorisierte CVAR-Mittelung (`.regression_mean_rows()`) für
      `predict.cross_venn_abers_regression()` und die Mittelung der inneren
      Regressionsensembles in `R/postprocessing.R`. Nicht endliche Zeilen
@@ -211,7 +214,7 @@ kompilierter Code.
 
 1. Archivvergleich gegen 1.0.0 und Fallkatalog anlegen.
 2. Testorakel der alten Kerne einziehen.
-3. `.cross()` inline, dann `rowsum()` binär, dann die vektorisierte
+3. `.cross()` inline, dann kumulierte Summen binär, dann die vektorisierte
    CVAR-Mittelung, jeweils mit Orakel.
 4. Hilfeabschnitt zu großen Kalibrierungsbeständen.
 5. PARITY-Umbau, Skripte nach `tools/`, `ptocca`-Abgleich.
@@ -231,7 +234,7 @@ Mittelung der inneren Regressionsensembles (P); indirekt alle Wege.
   - IVAP und IVAR mit 1e6 und 1e7 stetigen Knoten;
   - CVAP und CVAR mit 1e6;
   - CVAR-Vorhersage mit 1e5 und 1e6 Zeilen, mit Prozessspitze;
-  - ein Bindungsfall, damit `rowsum()` dort nicht spürbar verliert;
+  - ein Bindungsfall, damit die binären Summen dort nicht spürbar verlieren;
   - die ganze Suite v0.3–v0.9.
 - Gegenvergleiche ausgeführt und dokumentiert, Skripte unter `tools/`
   lauffähig ohne Paket-Build.
