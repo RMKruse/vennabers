@@ -41,10 +41,11 @@
   result
 }
 
-# Events per run of tied scores. rowsum() is exact here because the summands
-# are 0/1, so it matches the 1.0 per-run sum() bit for bit (ADR 0002).
+# Events per run of tied scores as differences of cumulative sums. With 0/1
+# summands every partial sum is an integer below 2^53, so the differences match
+# the 1.0 per-run sum() bit for bit (ADR 0002).
 .event_sums <- function(truth, lengths) {
-  as.vector(rowsum(truth, rep.int(seq_along(lengths), lengths), reorder = FALSE))
+  diff(c(0, cumsum(truth)[cumsum(lengths)]))
 }
 
 #' @export
