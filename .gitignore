@@ -55,6 +55,12 @@ docs/
 !/tools/xgboost-early-stopping.R
 # Keep the executable CORP band parity check (reliabilitydiag is not in Suggests).
 !/tools/corp-parity-reliabilitydiag.R
+# Keep the counter-comparisons with other Venn-Abers software (inst/PARITY.md) and their check.
+!/tools/counter-comparison.sh
+!/tools/counter-comparison-inputs.R
+!/tools/counter-comparison-mapie-ce.py
+!/tools/counter-comparison-requirements.txt
+!/tools/test-counter-comparison.R
 # Keep the CORP band coverage and effort study and its checks.
 !/tools/corp-coverage-study.R
 !/tools/test-corp-coverage-study.R
