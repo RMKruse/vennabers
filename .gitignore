@@ -59,6 +59,7 @@ docs/
 !/tools/counter-comparison.sh
 !/tools/counter-comparison-inputs.R
 !/tools/counter-comparison-mapie-ce.py
+!/tools/counter-comparison-fast-ivap.py
 !/tools/counter-comparison-requirements.txt
 !/tools/test-counter-comparison.R
 # Keep the CORP band coverage and effort study and its checks.

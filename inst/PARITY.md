@@ -194,6 +194,66 @@ on 2026-10-25 with vennabers 1.0.0 gave identical results.
   `method = "ovr"` with `normalization = "simplex"`. At a point of exactly 0.5
   vennabers chooses the event.
 
+### fast-ivap (ptocca/VennABERS)
+
+- **Version:** fast-ivap 1.1.0, tag `v1.1.0` of the repository
+  `ptocca/VennABERS`, commit `d3d19a647f39f3556fcb11bdd01ff428b8a6287c`, wheel
+  from PyPI; module SHA-256
+  `3d1fb85989ddc4523709e6292ae5bf568a6c1c3868d51df3ba99580fad57c703`
+  (`fast_ivap/_api.py`),
+  `6172a4dedf429862893484f0e179736adaa9e8d9900c721b3b40c32047eabdba`
+  (`fast_ivap/_reference.py`) and
+  `9075dda6e9bf36ed3506e82620316ffceb9c245d357a601dbff95b9ac8da444a`
+  (`fast_ivap/sklearn.py`), identical to the files of that commit; the
+  compiled core comes from the wheel. MIT licence (Paolo Toccaceli, Royal
+  Holloway, University of London); installed only in the temporary
+  environment, no code is taken over. Last checked on 2026-10-28 with the
+  vennabers 1.1 development sources, R 4.6.1 and Python 3.12 (NumPy 2.5.4) on
+  macOS arm64, by `tools/counter-comparison-fast-ivap.py`.
+- **Why:** the only Venn-Abers implementation that does not derive from the
+  main reference. It follows Vovk, Petej and Fedorova (2015), Algorithms 1 and
+  2, and obtains the lower value by symmetry; until 0.2 it was the original
+  `VennABERS.py`, rewritten as the package fast-ivap in 1.0.0.
+- **Compared:** `IVAP` with the compiled and the pure-Python backend,
+  `sklearn.VennAbersCalibrator`, and Cross as one `IVAP` per fold merged
+  along the folds by `merge_log_minimax()` or `merge_brier()`; lower and upper
+  values, Log and Brier points, class decisions; against vennabers with
+  `precision = NULL`. Inputs are the 707 binary calibration sets of the
+  fixtures above with 17,444 new rows (821 new scores equal to a calibration
+  score, 2,129 below and 2,312 above all of them; 100 sets with label 0 only,
+  98 with label 1 only; 8,637 rows of sets with tied scores), the 105 Cross
+  cases (2,520 rows), and 13 constructed sets with 2,732 calibration and 1,316
+  new rows: ties at one, two and three decimals, label 0 only, label 1 only,
+  a single calibration point of either label, one and two distinct scores,
+  scores at 0 and 1, labels falling with the score and a narrow score range,
+  each with every calibration score, the midpoints between them and points
+  outside their range as new scores.
+- **Result:** Inductive matches bitwise in all 18,760 rows with both backends,
+  and so does the calibrator in its 13,828 rows with both labels, including
+  class decisions: it chooses the event at a Log point of at least 0.5, as
+  vennabers does. This holds for new scores equal to, below and above the
+  calibration scores, for one label only and for ties. Cross Brier matches
+  bitwise. Cross Log differs in 1,044 of 2,520 rows by at most `1.67e-16`:
+  fast-ivap computes `GM(p1) / (GM(1 - p0) + GM(p1))` with geometric means,
+  vennabers the algebraically equal
+  `plogis(mean(log(upper)) - mean(log1p(-lower)))`; the values per fold are
+  bitwise equal. Maximum absolute difference `1.67e-16` at tolerance `1e-10`.
+  As a control, the main reference matches vennabers on the same arrays,
+  including the constructed sets, within `2.22e-16`.
+- **Not comparable:** `precision`, since fast-ivap does not round; the
+  calibrator on sets with one label only, which it rejects (`IVAP` accepts
+  them); Brier class decisions, for which fast-ivap has no rule; Venn
+  categories (`predict_blocks()`, `block_sums()`) and the multiclass Venn
+  predictors built on them, which vennabers does not offer.
+- **Switching:** `IVAP().fit(scores, labels).predict_p0_p1(new)` corresponds
+  to the lower and upper values of `predict(venn_abers(truth, probability),
+  new)`, `predict_proba()` to the Log point and `merge_brier()` to
+  `loss = "brier"`; Cross is `cross_venn_abers()` with the same folds.
+  fast-ivap takes any finite scores, vennabers probabilities in `[0, 1]`.
+  By fast-ivap's changelog, versions up to 0.2 were wrong for a new score
+  equal to a calibration score and for the upper value above all calibration
+  scores; vennabers agrees with 1.0.0 and later.
+
 ### reliabilitydiag
 
 - **Version:** reliabilitydiag 0.2.1 from CRAN, with dplyr 1.2.1 and tibble
