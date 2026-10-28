@@ -1,7 +1,3 @@
-.cross <- function(x, y, a, b, c) {
-  (x[b] - x[a]) * (y[c] - y[b]) - (y[b] - y[a]) * (x[c] - x[b])
-}
-
 .upper_scan <- function(weight, events, upper = 1) {
   k <- length(weight)
   x <- c(-1, 0, cumsum(weight))
@@ -10,9 +6,18 @@
   stack[1:2] <- 1:2
   size <- 2L
 
+  # The cross products are written out inline; a helper call per turn costs
+  # about 4x. Same operations in the same order, so results stay bit-identical.
   for (i in seq_len(k)) {
     point <- i + 2L
-    while (size > 1L && .cross(x, y, stack[size - 1L], stack[size], point) <= 0) {
+    point_x <- x[point]
+    point_y <- y[point]
+    while (size > 1L) {
+      a <- stack[size - 1L]
+      b <- stack[size]
+      b_x <- x[b]
+      b_y <- y[b]
+      if ((b_x - x[a]) * (point_y - b_y) - (b_y - y[a]) * (point_x - b_x) > 0) break
       size <- size - 1L
     }
     size <- size + 1L
@@ -29,10 +34,18 @@
     point <- i + 1L
     x[point] <- x[i] + x[i + 2L] - x[point]
     y[point] <- y[i] + y[i + 2L] - y[point]
-    if (.cross(x, y, top, next_top, point) >= 0) next
+    point_x <- x[point]
+    point_y <- y[point]
+    if ((x[next_top] - x[top]) * (point_y - y[next_top]) -
+        (y[next_top] - y[top]) * (point_x - x[next_top]) >= 0) next
 
     size <- size - 1L
-    while (size > 1L && .cross(x, y, point, stack[size], stack[size - 1L]) <= 0) {
+    while (size > 1L) {
+      b <- stack[size]
+      c <- stack[size - 1L]
+      b_x <- x[b]
+      b_y <- y[b]
+      if ((b_x - point_x) * (y[c] - b_y) - (b_y - point_y) * (x[c] - b_x) > 0) break
       size <- size - 1L
     }
     size <- size + 1L
