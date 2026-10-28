@@ -378,9 +378,11 @@ The reader takes the single values per iteration from
 (iteration 0): `fit_seconds`, `predict_seconds`, `outer_seconds`,
 `schema_seconds`, `encode_seconds`, `decode_seconds`, `rds_bytes`, the
 counters `fit_count`, `retained_models` and `outer_fit_count`, and the process
-peak once per case and library. Times a case does not have (outer
-resampling, schema, encoding) are recorded as 0; they get no ratio and no
-flag. The script's own `medians.csv` and `comparison.csv` (with its flat
+peak once per case and library. The script records phases a case does not
+run as 0; the reader drops them as the measuring process decides them from
+the case's input: `outer_seconds` only for workflows that are not frozen,
+`schema_seconds`, `encode_seconds` and `decode_seconds` only for encoded
+cases. The script's own `medians.csv` and `comparison.csv` (with its flat
 status `requires regression review`) stay in `performance/output` and are
 not read.
 

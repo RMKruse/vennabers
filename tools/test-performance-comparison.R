@@ -64,7 +64,7 @@ stopifnot(identical(parsed$parts, "new"), isTRUE(parsed$quick), identical(parsed
   isFALSE(pc_parse_args(c("--parts", "new", "p", "c", "d", "o"))$quick),
   identical(pc_parse_args(c("--summarize", "out")), list(summarize = TRUE, out = "out")),
   identical(pc_parse_args(c("--parts", "performance,new", "p", "c", "d", "o"))$parts, c("new", "performance")),
-  !grepl("performance", error_of(pc_parse_args(c("p", "c", "d", "o")))),
+  !grepl("part 'performance'", error_of(pc_parse_args(c("p", "c", "d", "o"))), fixed = TRUE),
   grepl("part 'v09' (ticket 11, #88)", error_of(pc_parse_args(c("p", "c", "d", "o"))), fixed = TRUE),
   grepl("part 'shared' (ticket 11, #88)", error_of(pc_parse_args(c("--parts", "shared,new", "p", "c", "d", "o"))),
         fixed = TRUE),
@@ -75,22 +75,33 @@ stopifnot(identical(parsed$parts, "new"), isTRUE(parsed$quick), identical(parsed
 
 # Part performance: performance.R takes the starter's libraries, candidate
 # first; outside Linux x86_64 it gets --smoke, and --quick changes nothing.
-context <- function(linux, quick = FALSE) {
+part_context <- function(linux, quick = FALSE) {
   list(previous_lib = "/o/previous-lib", candidate_lib = "/o/candidate-lib", deps = "/deps", dir = "/o/performance",
        quick = quick, linux_x86_64 = linux, tools = "/t", previous_version = "1.0.0")
 }
-mac <- pc_performance_command(context(FALSE))
-linux <- pc_performance_command(context(TRUE))
+mac <- pc_performance_command(part_context(FALSE))
+linux <- pc_performance_command(part_context(TRUE))
 stopifnot(identical(mac$args, c("--vanilla", shQuote("/t/performance.R"), shQuote("/o/candidate-lib"),
                                 shQuote("/o/previous-lib"), shQuote("/o/performance/output"),
                                 "--previous-version", "1.0.0", "--smoke")),
   identical(mac$env, paste0("R_LIBS=", shQuote(paste("/o/candidate-lib", "/deps", sep = .Platform$path.sep)))),
   identical(linux$args, mac$args[-length(mac$args)]), identical(linux$env, mac$env),
-  identical(pc_performance_command(context(TRUE, quick = TRUE)), linux),
-  identical(pc_performance_command(context(FALSE, quick = TRUE)), mac),
+  identical(pc_performance_command(part_context(TRUE, quick = TRUE)), linux),
+  identical(pc_performance_command(part_context(FALSE, quick = TRUE)), mac),
   identical(pc_performance_failed(c("Release evidence: FALSE ", "current binary_inductive ", "current 3_cross_ovo ",
                                     "Error: Command failed; see /o/current-3_cross_ovo-process.log")), "3_cross_ovo"),
   identical(pc_performance_failed("Error: OUTPUT must be empty."), character()))
+
+# A case has only the phases its input runs: outer resampling for unfrozen
+# workflows, schema and encoding with a schema.
+applicable <- function(...) pc_performance_metrics(list(...))
+core <- c("fit_seconds", "predict_seconds", "rds_bytes", pc_performance_counters)
+stopifnot(identical(applicable(method = "binary"), core),
+  identical(applicable(integration = TRUE), c(core[1:2], "outer_seconds", core[-(1:2)])),
+  identical(applicable(integration = TRUE, frozen = TRUE), core),
+  identical(applicable(integration = TRUE, frozen = TRUE, schema = list(outcome = "truth")),
+            c(core[1:2], "schema_seconds", "encode_seconds", "decode_seconds", core[-(1:2)])),
+  identical(length(applicable(integration = TRUE, schema = list())), 10L))
 
 # Its reader takes the single values per iteration from <release>-<case>-runs.csv
 # in plan order, without the warm-up; the process peak counts once per case.
@@ -100,7 +111,9 @@ peaks <- long[long$metric == "process_peak_bytes", ]
 workflow <- long[long$case == "workflow_binary_inductive", ]
 stopifnot(identical(names(long), c("part", pc_long_columns)), identical(unique(long$part), "performance"),
   identical(unique(long$case), c("workflow_binary_inductive", "binary_inductive")),
-  identical(nrow(long), 4L * (10L * 3L + 1L)), identical(sort(unique(long$run)), 1:3),
+  identical(nrow(long), 2L * (7L * 3L + 1L) + 2L * (6L * 3L + 1L)), identical(sort(unique(long$run)), 1:3),
+  identical(unique(workflow$metric), c(applicable(integration = TRUE), "process_peak_bytes")),
+  !any(c("outer_seconds", "schema_seconds") %in% long$metric[long$case == "binary_inductive"]),
   identical(unique(long$library), c("previous", "candidate")),
   identical(peaks$value, c(3e8, 4e8, 1.5e8, 1.51e8)), all(is.na(peaks$run)), identical(unique(peaks$unit), "bytes"),
   identical(workflow$value[workflow$library == "candidate" & workflow$metric == "fit_seconds"], c(0.25, 0.26, 0.27)),
@@ -213,6 +226,7 @@ stopifnot(identical(run$exit_performance, "0"), identical(run$wall_seconds_perfo
   identical(flagged$flag, c("> 1.10", "> 1.10", "counters differ")),
   all(flagged$case == "workflow_binary_inductive"),
   identical(historical$note[historical$case == "binary_inductive" & historical$metric == "predict_seconds"], "below 10 ms"),
+  identical(sum(!is.na(historical$note)), 1L),
   "**Not acceptance evidence (macOS arm64, parts: new,performance)**" %in% summary,
   any(grepl("Wall time: new 0:12:30 (exit 0), performance 0:07:24 (exit 0); total 0:20:00", summary, fixed = TRUE)),
   "- performance: 2 cases, 1 flagged" %in% summary,
@@ -220,5 +234,15 @@ stopifnot(identical(run$exit_performance, "0"), identical(run$wall_seconds_perfo
   "| performance | `workflow_binary_inductive` | process_peak_bytes | 286.1 MiB | 381.5 MiB | 1.33 | > 1.10 |" %in% summary,
   "| performance | `workflow_binary_inductive` | outer_fit_count | 3 | 3 | – | counters differ |" %in% summary,
   identical(length(grep("^\\| `", summary)), 9L))
-unlink(c(out, smoke, both), recursive = TRUE)
+# Without part new the table of the nine new cases stays, empty.
+alone <- summarize_copy(function(out) {
+  run <- pc_read_keys(file.path(out, "run.csv"))
+  run$parts <- "performance"
+  pc_write_keys(run, file.path(out, "run.csv"))
+  unlink(file.path(out, "new"), recursive = TRUE)
+})
+summary <- readLines(file.path(alone, "summary.md"))
+stopifnot("- performance: 2 cases, 1 flagged" %in% summary,
+  identical(length(grep("^\\| `[^`]+` \\| – \\| – \\| – \\|", summary)), 9L))
+unlink(c(out, smoke, both, alone), recursive = TRUE)
 cat("Performance comparison checks passed.\n")

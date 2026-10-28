@@ -1,6 +1,6 @@
 # Separate from package checks. Part performance of tools/performance-comparison.R
 # (see tools/RELEASE.md); the v0.3-v0.7 cases are unchanged. Library mode:
-#   Rscript tools/performance.R CURRENT-LIBRARY PREVIOUS-LIBRARY OUTPUT [--smoke] [--previous-version VERSION]
+#   Rscript --vanilla tools/performance.R CURRENT-LIBRARY PREVIOUS-LIBRARY OUTPUT [--previous-version VERSION] [--smoke]
 # Dependencies come from R_LIBS. A 1.x candidate runs all v0.7 cases on both
 # libraries, needs --previous-version and uses one process per case and library.
 local({
@@ -165,7 +165,7 @@ local({
   previous_version <- if (is.na(at)) NULL else args[at + 1L]
   if (!is.na(at)) args <- args[-c(at, at + 1L)]
   if (length(args) != 3L || identical(previous_version, NA_character_)) {
-    stop("Usage: Rscript tools/performance.R CURRENT-LIBRARY PREVIOUS-LIBRARY OUTPUT [--smoke] [--previous-version VERSION]")
+    stop("Usage: Rscript tools/performance.R CURRENT-LIBRARY PREVIOUS-LIBRARY OUTPUT [--previous-version VERSION] [--smoke]")
   }
   linux <- Sys.info()[["sysname"]] == "Linux"
   if (!(linux && R.version$arch == "x86_64") && !smoke) stop("Release measurements require Linux x86_64. Use --smoke for non-release validation.")
@@ -446,7 +446,7 @@ local({
       prefix <- file.path(output, paste(release, id, sep = "-"))
       worker <- c(shQuote(rscript), "--vanilla", shQuote(script), "--case",
                   shQuote(file.path(output, paste0(id, "-input.rds"))), shQuote(lib), shQuote(prefix), version)
-      # v0.7 uses a fresh process for EVERY warmup/measurement, on both artifacts;
+      # v0.7 uses a fresh process for EVERY warmup/measurement, on both libraries;
       # 1.x one process per case and library for warm-up and measurements.
       batches <- if (v07 && !v1) as.list(0:3) else list(NULL)
       measured_runs <- list()

@@ -306,30 +306,43 @@ run_part_performance <- function(context) {
   list(exit = status, failed_cases = if (status != 0L && file.exists(log)) pc_performance_failed(readLines(log)) else character())
 }
 
-pc_performance_seconds <- c("fit_seconds", "predict_seconds", "outer_seconds", "schema_seconds", "encode_seconds",
-                            "decode_seconds")
 pc_performance_counters <- c("fit_count", "retained_models", "outer_fit_count")
+pc_performance_units <- c(stats::setNames(rep("seconds", 6L), pc_metrics[endsWith(pc_metrics, "_seconds")]),
+                          rds_bytes = "bytes", stats::setNames(rep("count", 3L), pc_performance_counters))
+
+# The metrics a case has, decided from its input as the measuring process does:
+# outer resampling only for unfrozen workflows, schema and encoding only with a
+# schema. The script records the phases a case skips as 0; they get no row.
+pc_performance_metrics <- function(input) {
+  has <- c(outer_seconds = isTRUE(input$integration) && !isTRUE(input$frozen),
+           schema_seconds = !is.null(input$schema), encode_seconds = !is.null(input$schema),
+           decode_seconds = !is.null(input$schema))
+  metrics <- names(pc_performance_units)
+  metrics[!metrics %in% names(has) | metrics %in% names(has)[has]]
+}
 
 # The single values per iteration from <release>-<case>-runs.csv, in plan
-# order, previous before candidate (current). Iteration 0 is the warm-up. The
-# script records times it does not measure as 0. One process per case and
-# library makes its peak one value with an empty run.
+# order, previous before candidate (current). Iteration 0 is the warm-up. One
+# process per case and library makes its peak one value with an empty run.
 read_part_performance <- function(dir) {
   output <- file.path(dir, "output")
-  files <- list.files(output, pattern = "^(current|previous)-.+-runs\\.csv$")
-  release <- sub("^(current|previous)-.*$", "\\1", files)
-  case <- sub("^(current|previous)-(.+)-runs\\.csv$", "\\2", files)
+  files <- list.files(output)
+  parsed <- regmatches(files, regexec("^(current|previous)-(.+)-runs\\.csv$", files))
+  files <- files[lengths(parsed) == 3L]
+  release <- vapply(parsed[lengths(parsed) == 3L], `[[`, "", 2L)
+  case <- vapply(parsed[lengths(parsed) == 3L], `[[`, "", 3L)
   plan <- file.path(output, "plan.csv")
   cases <- unique(c(if (file.exists(plan)) utils::read.csv(plan)$case, case))
-  metrics <- c(pc_performance_seconds, "rds_bytes", pc_performance_counters)
-  units <- ifelse(metrics %in% pc_performance_seconds, "seconds", ifelse(metrics == "rds_bytes", "bytes", "count"))
+  metrics <- lapply(stats::setNames(nm = unique(case)), function(id) {
+    pc_performance_metrics(readRDS(file.path(output, paste0(id, "-input.rds"))))
+  })
   long <- lapply(order(match(case, cases), match(release, c("previous", "current"))), function(i) {
     runs <- utils::read.csv(file.path(output, files[[i]]))
     runs <- runs[runs$iteration > 0L, ]
     library <- if (release[[i]] == "current") "candidate" else "previous"
-    values <- do.call(rbind, lapply(seq_along(metrics), function(m) {
-      data.frame(case = rep(case[[i]], nrow(runs)), library = library, run = runs$iteration, metric = metrics[[m]],
-                 value = as.numeric(runs[[metrics[[m]]]]), unit = units[[m]])
+    values <- do.call(rbind, lapply(metrics[[case[[i]]]], function(metric) {
+      data.frame(case = rep(case[[i]], nrow(runs)), library = library, run = runs$iteration, metric = metric,
+                 value = as.numeric(runs[[metric]]), unit = pc_performance_units[[metric]])
     }))
     peak <- unique(runs$process_peak_bytes)
     if (length(peak) > 1L) stop(files[[i]], " has more than one process peak.", call. = FALSE)
@@ -366,7 +379,7 @@ pc_new_table <- function(comparison, plan) {
     }
     time <- c("fit_seconds", "predict_seconds")
     heap <- c("fit_heap_bytes", "predict_heap_bytes")
-    planned <- plan[plan$case == case, ]
+    planned <- plan[plan$case == case, , drop = FALSE]
     flagged <- unique(metric_label[values$metric[nzchar(values$flag)]])
     notes <- unique(values$note[nzchar(values$note)])
     flag <- paste(c(if (length(flagged)) sprintf("> 1.10 (%s)", paste(flagged, collapse = ", ")), notes),
