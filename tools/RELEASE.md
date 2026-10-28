@@ -400,6 +400,12 @@ only the starter's summary drops the flags. A failure stops the script at
 that case; the summary names it, and the part has to be repeated as a
 partial run.
 
+On a Mac (Apple M5 Pro, 1.0.0 against itself) part performance takes about
+13 minutes, with or without `--quick`. Against itself, single
+workflow fits and outer resampling of 0.04-0.3 s can pass the 1.10 flag
+(the candidate block runs first); counters, RDS sizes and process peaks
+match.
+
 ### Part shared
 
 Not built yet: [ticket 11](https://github.com/RMKruse/vennabers/issues/88)
