@@ -197,3 +197,138 @@ stored field records that an option was passed explicitly, compare the
 outputs and justify the expected field difference in the release log. Never
 edit an existing case; the only exception is a documented defect correction
 under §3.2, which adjusts the affected case with its reason.
+
+## Performance comparison (1.x)
+
+Each 1.x minor compares its candidate with the previous release in fresh
+single-threaded processes (`RELEASE-ROADMAP-1.x.md` §3.4 and §4,
+`RELEASE-ROADMAP.md` §3.5). Run it from a checkout of the candidate:
+
+```sh
+Rscript --vanilla tools/test-performance-comparison.R
+Rscript --vanilla tools/performance-comparison.R [--parts new,performance,shared,v09] [--quick] \
+  /absolute/path/to/vennabers_1.0.0.tar.gz /absolute/path/to/vennabers_1.1.0.tar.gz <deps-lib> <out>
+Rscript --vanilla tools/performance-comparison.R --summarize <out>
+```
+
+`<out>` must be empty or missing. Put it under
+`venn-abers-candidates/<version>-<commit>/`, never in `.scratch`; the input
+RDS files of part new alone take about 0.5 GB. The starter installs both
+archives once into `<out>` and records their SHA-256. A probe process with
+`R_LIBS=<lib>:<deps-lib>` must then load vennabers from that library in the
+archive's version; every part runs with that `R_LIBS`. `<deps-lib>` supplies
+everything else (on a Mac the site library will do) and is listed in
+`packages.csv`.
+
+On Linux the process peak comes from GNU time (`/usr/bin/time -v`, Debian
+and Ubuntu package `time`); the starter stops at once if it is missing. macOS
+uses its own `/usr/bin/time -l`.
+
+**Run kinds.** A run records three properties in `run.csv`: the platform
+(Linux x86_64 or not, detected by the starter), the scope (all parts, the
+default, or a *partial run* with `--parts`) and the size (measurement size or
+a *smoke run* with `--quick`). Only Linux x86_64 with all parts at
+measurement size is a *reference run* and acceptance evidence; partial runs
+are never combined into one. A smoke run passes every path of the starter in
+little time, typically before the run on the Linux reference machine. There
+is no time budget or limit; the starter records the wall time per part and in
+total. Parts that later tickets still have to build are rejected before
+anything starts, also by the default of all parts.
+
+The parts run serially. A failed part does not stop the others; the summary
+names failed parts and cases, and the starter then exits with status 1.
+Repeat a failed part as a partial run into a new directory.
+
+**Outputs.** Besides the raw outputs in one directory per part, `<out>` holds:
+
+- `measurements.csv`: single values in long form
+  (`part, case, library, run, metric, value, unit`), runs 1-3 without the
+  warm-up. Metrics have canonical names in seconds and bytes (`fit_seconds`,
+  `predict_seconds`, `fit_heap_bytes`, `rds_bytes`, `process_peak_bytes`, ...);
+  counters keep their part's name with unit `count`. The process peak covers
+  warm-up and measured runs together and has an empty `run`.
+- `comparison.csv`: one row per part, case and metric with both medians
+  (computed from the single values), `ratio` (candidate/previous, empty when
+  the previous median is 0), `flag` and `note`.
+- `run.csv`: the run header as key-value pairs: run kind, start and end in
+  UTC, CPU, cores, RAM, OS, R, BLAS/LAPACK, thread variables, both archives
+  with file, version and SHA-256, and per part wall time, exit code and failed
+  cases. The starter writes it before measuring and adds the derived fields
+  afterwards.
+- `packages.csv`: name and version of every package in `<deps-lib>`.
+- `summary.md`: the short report.
+
+`flag` is `> 1.10` for a time with ratio above 1.10 and at least 0.01 s
+difference of the medians, or for a peak, heap or RDS size with ratio above
+1.10 and at least 1 MiB difference; `counters differ` when a counter is not
+equal between the libraries. `note` is `below 10 ms` when the previous time
+median is below 0.01 s. A smoke run has no flags. Flags never fail a run;
+release acceptance investigates and justifies each one.
+
+`summary.md` starts with `Smoke run – not a measurement`,
+`Not acceptance evidence (<platform>, parts: ...)` or `Reference run`, then
+environment, wall times and failures. It always shows the full table of the
+nine new cases (rows and knots from the plan; time, process peak, heap and RDS
+size of the fit cases), and from the historical parts only the flagged rows
+with a count per part. Copy it unchanged to `.scratch/<version>/`; the other
+files stay in `<out>`.
+
+`--summarize <out>` rebuilds `measurements.csv`, `comparison.csv`,
+`summary.md` and the derived fields of `run.csv` from the raw outputs and the
+run header. It never measures and never changes the run kind.
+
+### Part new
+
+`benchmark-v11.R` measures the nine performance cases of 1.1, each on both
+libraries, previous before candidate:
+
+| Case | Call | Measured window |
+| --- | --- | --- |
+| `ivap-1e6`, `ivap-1e7` | `venn_abers()` | fit |
+| `ivar-1e6`, `ivar-1e7` | `venn_abers_regression()` | fit |
+| `cvap-1e6` | `cross_venn_abers()`, 5 folds | fit |
+| `cvar-1e6` | `cross_venn_abers_regression()`, 5 folds | fit |
+| `cvar-predict-1e5`, `cvar-predict-1e6` | `predict()` of a CVAR with 1e4 calibration rows, 5 folds, `m = 1` | prediction of 1e5 or 1e6 new rows × 5 folds |
+| `ivap-ties-1e7` | `venn_abers()`, scores rounded to 3 digits (997 distinct values) | fit |
+
+The parent process writes one input RDS per case with fixed seeds (1001 for
+the fits, 1801 for the CVAR prediction; generators of the 1.1 kernel
+research) and `plan.csv` with rows, knots (`length(unique(score))` of the
+input) and SHA-256. It stops if a continuous case does not have one distinct
+score per row. Each case and library then runs in a fresh process under
+`/usr/bin/time`, which checks the library and the input's SHA-256, makes one
+warm-up and three measured runs and records per run the time, the `gc()` heap
+peak and, for fits, the RDS size of the model. The CVAR prediction fits its
+model in the same process outside the measured window and checks
+`nrow(prediction) == n_new`. `--quick` divides all sizes by 100 (the CVAR
+prediction keeps its model and predicts 1e3 or 1e4 rows) and makes one
+measured run; the plan checks are the same. A failed case is listed in
+`new/failed-cases.txt` and does not stop the others.
+
+Single cases can be rerun directly with the installed libraries of a run:
+
+```sh
+Rscript --vanilla tools/benchmark-v11.R [--quick] --cases ivap-1e7,cvar-predict-1e6 \
+  <out>/previous-lib <out>/candidate-lib <deps-lib> <new-dir>
+```
+
+On a Mac (Apple M5 Pro, 1.0.0 against itself) the smoke run of part new
+takes about 20 seconds and the measurement run about 27 minutes.
+
+### Part performance
+
+Not built yet: [ticket 10](https://github.com/RMKruse/vennabers/issues/87)
+brings back `performance.R` (v0.3-v0.7). Until then the starter rejects
+`--parts performance`.
+
+### Part shared
+
+Not built yet: [ticket 11](https://github.com/RMKruse/vennabers/issues/88)
+runs `benchmark-shared-v09.R` (v0.8) through `run-benchmarks-v09.sh`. Until
+then the starter rejects `--parts shared`.
+
+### Part v09
+
+Not built yet: [ticket 11](https://github.com/RMKruse/vennabers/issues/88)
+runs `benchmark-v09.R` through `run-benchmarks-v09.sh`. Until then the
+starter rejects `--parts v09`.
