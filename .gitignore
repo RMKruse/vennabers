@@ -79,7 +79,7 @@ docs/
 !/tools/archive-comparison.R
 !/tools/archive-comparison-cases.R
 !/tools/test-archive-comparison.R
-# Keep the performance comparison against the previous release, its parts new and performance, and its examples.
+# Keep the performance comparison against the previous release, its parts and its examples.
 !/tools/performance-comparison.R
 !/tools/benchmark-v11.R
 !/tools/performance.R

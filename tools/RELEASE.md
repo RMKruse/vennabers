@@ -96,7 +96,7 @@ All these sources are committed and excluded from the R source package by
 | `benchmark-v08.R` | Historical v0.8 measurement source |
 | `benchmark-shared-v09.R` | Shared-capability comparison with seeded identical outer splits |
 | `benchmark-v09.R` | Postprocessing cases, phase timings, heap peaks, RDS sizes and fit/retention counters |
-| `run-benchmarks-v09.sh` / `summarize-benchmarks-v09.R` | Historical serial **macOS** runner (`/usr/bin/time -l`) and summary; preserve its v0.8/v0.9 protocol |
+| `run-benchmarks-v09.sh` / `summarize-benchmarks-v09.R` | Serial runner of the v0.8/v0.9 cases on both libraries (`previous`/`candidate`), `/usr/bin/time -l` on macOS and `-v` on Linux, exit 1 on a failed case, quick mode `BENCH_QUICK=1`; parts shared and v09 of the performance comparison. The historical Markdown summary reads only the old v0.8/candidate layout; preserve the cases' protocol |
 
 These are reusable inputs, not a claim that the later Linux benchmark matrix
 is complete. Tickets 27–29 supply that matrix and Linux RSS measurement with
@@ -283,8 +283,7 @@ measurement size is a *reference run* and acceptance evidence; partial runs
 are never combined into one. A smoke run passes every path of the starter in
 little time, typically before the run on the Linux reference machine. There
 is no time budget or limit; the starter records the wall time per part and in
-total. Parts that later tickets still have to build are rejected before
-anything starts, also by the default of all parts.
+total.
 
 The parts run serially. A failed part does not stop the others; the summary
 names failed parts and cases, and the starter then exits with status 1.
@@ -419,14 +418,63 @@ workflow fits and outer resampling of 0.04-0.3 s can pass the 1.10 flag
 (the candidate block runs first); counters, RDS sizes and process peaks
 match.
 
+### Parts shared and v09
+
+`run-benchmarks-v09.sh` runs both parts, each case and library in one fresh
+single-threaded process under `/usr/bin/time` (`-l` on macOS, `-v` on Linux),
+previous before candidate per case. The starter calls it once per part from
+the repository root, with its own `Rscript` first on `PATH`:
+
+```sh
+BENCH_QUICK=0|1 sh tools/run-benchmarks-v09.sh <out>/candidate-lib <out>/previous-lib <deps-lib> \
+  <out>/<part>/output shared|v09
+```
+
+The runner starts every process with `R_LIBS=<lib>:<deps-lib>` and writes
+`<part>-<library>-<case>.rds`, `.time` and `.log` per case into the output
+directory and one `done` or `FAILED` line per process into the part's
+`part.log`. A failed case does not stop the others; the runner then exits
+with status 1 and the summary names the case. `BENCH_QUICK=1` (set by
+`--quick`) makes one measured run (`BENCH_REPS=1`) and skips the tuned cases:
+the six Grid/Bayes cases of part shared and `tuned-ensemble-full` of part v09.
+
+The readers take the single values per run from each RDS and the process
+peak from the `.time` file (bytes on macOS, kilobytes in GNU time) once per
+case and library, with an empty `run`. `summarize-benchmarks-v09.R` is not
+used. The measurement scripts are those of v0.9, unchanged: each process
+generates its data itself, from fixed seeds and only with `stats` and
+`rsample` from the same `<deps-lib>`, without vennabers code, so the data are
+the same for both libraries; there is no input RDS with a checksum.
+The starter clears `BENCH_REPS` and `BENCH_ROWS` from its environment, so a
+run at measurement size always uses the scripts' defaults.
+
+On a Mac (Apple M5 Pro, 1.0.0 against itself) the smoke run of both parts
+takes about 3 minutes and part v09 at measurement size about 7 minutes.
+Against itself, single fit times of about 0.2 s can pass the 1.10 flag;
+counters, heaps and RDS sizes match and process peaks stay within 1 %.
+
 ### Part shared
 
-Not built yet: [ticket 11](https://github.com/RMKruse/vennabers/issues/88)
-runs `benchmark-shared-v09.R` (v0.8) through `run-benchmarks-v09.sh`. Until
-then the starter rejects `--parts shared`.
+`benchmark-shared-v09.R` runs the v0.8 cases: IVAP with 1e5
+calibration and 1e5 new rows, and the binary, pairwise, OvO, OvR and
+regression workflows with fixed models plus Grid and Bayes tuning for binary,
+pairwise and regression (12 cases). Metrics: `fit_seconds`,
+`predict_seconds`, `outer_seconds` (not for IVAP), `rds_bytes` (the script's
+`bytes`), the counters `base_fits` and `retained` (not for IVAP) and the
+process peak. There is no heap. The six tuned cases take most of the time:
+on a Mac about 72 minutes for both libraries in measurement size.
 
 ### Part v09
 
-Not built yet: [ticket 11](https://github.com/RMKruse/vennabers/issues/88)
-runs `benchmark-v09.R` through `run-benchmarks-v09.sh`. Until then the
-starter rejects `--parts v09`.
+`benchmark-v09.R` runs the v0.9 postprocessing cases: binary,
+pairwise, OvO and regression, each with holdout or ensemble postprocessing
+and a matched or full prediction model, plus `tuned-ensemble-full` (17
+cases). Metrics: `fit_seconds`, `predict_seconds`, `outer_seconds`, the
+`gc()` heap per phase converted from MiB (`fit_heap_bytes`,
+`predict_heap_bytes`, `outer_heap_bytes`), `rds_bytes`, the counters
+`composition_base_fits`, `postprocessor_fits`, `retained_pairs` and, for the
+tuned case only, `tuning_observed_base_fits`, and the process peak.
+
+Single cases can be rerun directly through the measurement script, with
+`R_LIBS=<out>/<library>-lib:<deps-lib>` and `/usr/bin/time` as in the
+script's header.

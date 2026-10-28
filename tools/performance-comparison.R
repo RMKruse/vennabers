@@ -38,24 +38,7 @@ pc_metrics <- c("fit_seconds", "predict_seconds", "outer_seconds", "schema_secon
 
 pc_long_columns <- c("case", "library", "run", "metric", "value", "unit")
 
-# Parts that later tickets build. Their start function and reader fail with
-# the ticket that builds them; the starter rejects them before it starts.
-pc_placeholder <- function(part, ticket) {
-  structure(function(...) stop("Part '", part, "' is not built yet (", ticket, ").", call. = FALSE),
-            placeholder = ticket)
-}
-run_part_shared <- pc_placeholder("shared", "ticket 11, #88")
-read_part_shared <- pc_placeholder("shared", "ticket 11, #88")
-run_part_v09 <- pc_placeholder("v09", "ticket 11, #88")
-read_part_v09 <- pc_placeholder("v09", "ticket 11, #88")
-
 pc_part_function <- function(kind, part) get(paste0(kind, "_part_", part), mode = "function")
-
-# The requested parts that are still placeholders, named by part.
-pc_unbuilt <- function(parts) {
-  tickets <- vapply(parts, function(part) attr(pc_part_function("run", part), "placeholder") %||% NA_character_, "")
-  tickets[!is.na(tickets)]
-}
 
 pc_usage <- paste(
   "Usage: Rscript --vanilla tools/performance-comparison.R [--parts new,performance,shared,v09] [--quick]",
@@ -82,11 +65,6 @@ pc_parse_args <- function(args) {
     }
   }
   if (any(startsWith(args, "--")) || length(args) != 4L) stop(pc_usage, call. = FALSE)
-  unbuilt <- pc_unbuilt(pc_parts[pc_parts %in% parts])
-  if (length(unbuilt)) {
-    stop("Not built yet: ", paste(sprintf("part '%s' (%s)", names(unbuilt), unbuilt), collapse = ", "),
-         ". Pass --parts with built parts only, such as --parts new.", call. = FALSE)
-  }
   list(summarize = FALSE, parts = pc_parts[pc_parts %in% parts], quick = quick, previous = args[[1L]],
        candidate = args[[2L]], deps = args[[3L]], out = args[[4L]])
 }
@@ -351,6 +329,88 @@ read_part_performance <- function(dir) {
   })
   long <- do.call(rbind, c(list(pc_empty_long()[-1L]), long))
   data.frame(part = rep("performance", nrow(long)), long)
+}
+
+# Parts shared (v0.8) and v09: tools/run-benchmarks-v09.sh with only the
+# part's cases, run from the repository root with this R's Rscript first on
+# PATH. The runner sets R_LIBS=<lib>:<deps-lib> per case; BENCH_QUICK=1 makes
+# one measured run and skips the tuned cases.
+pc_runner_command <- function(context, part) {
+  list(args = c(shQuote(file.path(context$tools, "run-benchmarks-v09.sh")), shQuote(context$candidate_lib),
+                shQuote(context$previous_lib), shQuote(context$deps), shQuote(file.path(context$dir, "output")), part),
+       env = c(paste0("PATH=", shQuote(paste(R.home("bin"), Sys.getenv("PATH"), sep = .Platform$path.sep))),
+               paste0("BENCH_QUICK=", if (context$quick) 1L else 0L)))
+}
+
+# The cases of `part` in the runner's log, in order, from its done and FAILED lines.
+pc_runner_cases <- function(lines, part, status = c("done", "FAILED")) {
+  pattern <- sprintf("^(%s) %s-(previous|candidate)-(.+)$", paste(status, collapse = "|"), part)
+  unique(sub(pattern, "\\3", grep(pattern, lines, value = TRUE)))
+}
+
+pc_run_runner <- function(context, part) {
+  # The measurement size is the scripts' default, whatever the calling shell set.
+  Sys.unsetenv(c("BENCH_REPS", "BENCH_ROWS"))
+  command <- pc_runner_command(context, part)
+  log <- file.path(context$dir, "part.log")
+  owd <- setwd(dirname(context$tools))
+  on.exit(setwd(owd))
+  status <- system2("sh", command$args, stdout = log, stderr = log, env = command$env)
+  list(exit = status, failed_cases = if (file.exists(log)) pc_runner_cases(readLines(log), part, "FAILED") else character())
+}
+
+run_part_shared <- function(context) pc_run_runner(context, "shared")
+run_part_v09 <- function(context) pc_run_runner(context, "v09")
+
+# The single values of each case and library from <part>-<library>-<case>.rds
+# in log order, previous before candidate, with `values` mapping one measured
+# run to named metrics; NA and NULL values are phases or counters the case does
+# not have. The process peak comes from the case's .time file with an empty run.
+pc_read_runner <- function(dir, part, values) {
+  output <- file.path(dir, "output")
+  files <- list.files(output)
+  parsed <- regmatches(files, regexec(sprintf("^%s-(previous|candidate)-(.+)\\.rds$", part), files))
+  files <- files[lengths(parsed) == 3L]
+  library <- vapply(parsed[lengths(parsed) == 3L], `[[`, "", 2L)
+  case <- vapply(parsed[lengths(parsed) == 3L], `[[`, "", 3L)
+  log <- file.path(dir, "part.log")
+  cases <- unique(c(if (file.exists(log)) pc_runner_cases(readLines(log), part), sort(case)))
+  long <- lapply(order(match(case, cases), match(library, c("previous", "candidate"))), function(i) {
+    runs <- lapply(readRDS(file.path(output, files[[i]]))$repetitions, function(run) {
+      value <- values(run)
+      value[!is.na(value)]
+    })
+    metrics <- unique(unlist(lapply(runs, names)))
+    rows <- do.call(rbind, lapply(metrics, function(metric) {
+      data.frame(case = case[[i]], library = library[[i]], run = seq_along(runs), metric = metric,
+                 value = vapply(runs, function(run) run[[metric]], 0),
+                 unit = if (endsWith(metric, "_seconds")) "seconds" else if (endsWith(metric, "_bytes")) "bytes" else "count")
+    }))
+    time <- file.path(output, sub("\\.rds$", ".time", files[[i]]))
+    peak <- if (file.exists(time)) pc_parse_time(readLines(time, warn = FALSE)) else NA_real_
+    rbind(rows, if (!is.na(peak)) data.frame(case = case[[i]], library = library[[i]], run = NA_integer_,
+                                             metric = "process_peak_bytes", value = peak, unit = "bytes"))
+  })
+  long <- do.call(rbind, c(list(pc_empty_long()[-1L]), long))
+  data.frame(part = rep(part, nrow(long)), long)
+}
+
+# benchmark-shared-v09.R: no heap; IVAP has no outer resampling and no counters.
+read_part_shared <- function(dir) {
+  pc_read_runner(dir, "shared", function(run) {
+    unlist(list(fit_seconds = run$fit, predict_seconds = run$predict, outer_seconds = run$outer,
+                rds_bytes = run$bytes, base_fits = run$base_fits, retained = run$retained))
+  })
+}
+
+# benchmark-v09.R: the heap per phase in MiB becomes bytes; the tuning counter
+# exists only for the tuned case.
+read_part_v09 <- function(dir) {
+  pc_read_runner(dir, "v09", function(run) {
+    unlist(c(list(fit_seconds = run$fit, predict_seconds = run$predict, outer_seconds = run$outer,
+                  fit_heap_bytes = run$fit_heap_mib * 1048576, predict_heap_bytes = run$predict_heap_mib * 1048576,
+                  outer_heap_bytes = run$outer_heap_mib * 1048576, rds_bytes = run$rds_bytes), run$counters))
+  })
 }
 
 pc_mib <- function(x) ifelse(is.na(x), "–", sprintf("%.1f", x / 1048576))

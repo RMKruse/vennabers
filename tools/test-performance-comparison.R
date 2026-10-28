@@ -58,25 +58,22 @@ stopifnot(identical(kind("Linux", "x86_64", pc_parts, FALSE)$reference, "TRUE"),
   identical(kind("Linux", "x86_64", pc_parts, TRUE)$size, "quick"),
   identical(pc_headline(kind("Linux", "x86_64", pc_parts, TRUE)), "Smoke run – not a measurement"))
 
-# Arguments: unbuilt parts are rejected up front, also by the default.
+# Arguments: parts run in their fixed order, all by default.
 parsed <- pc_parse_args(c("--parts", "new", "--quick", "p.tar.gz", "c.tar.gz", "deps", "out"))
 stopifnot(identical(parsed$parts, "new"), isTRUE(parsed$quick), identical(parsed$out, "out"),
   isFALSE(pc_parse_args(c("--parts", "new", "p", "c", "d", "o"))$quick),
   identical(pc_parse_args(c("--summarize", "out")), list(summarize = TRUE, out = "out")),
   identical(pc_parse_args(c("--parts", "performance,new", "p", "c", "d", "o"))$parts, c("new", "performance")),
-  !grepl("part 'performance'", error_of(pc_parse_args(c("p", "c", "d", "o"))), fixed = TRUE),
-  grepl("part 'v09' (ticket 11, #88)", error_of(pc_parse_args(c("p", "c", "d", "o"))), fixed = TRUE),
-  grepl("part 'shared' (ticket 11, #88)", error_of(pc_parse_args(c("--parts", "shared,new", "p", "c", "d", "o"))),
-        fixed = TRUE),
+  identical(pc_parse_args(c("p", "c", "d", "o"))$parts, pc_parts),
+  identical(pc_parse_args(c("--parts", "v09,shared", "--quick", "p", "c", "d", "o"))$parts, c("shared", "v09")),
   grepl("Unknown part", error_of(pc_parse_args(c("--parts", "old", "p", "c", "d", "o")))),
   grepl("Usage", error_of(pc_parse_args(c("--parts", "new", "p", "c", "d")))),
-  grepl("Usage", error_of(pc_parse_args(c("--parts", "new", "--fast", "p", "c", "d", "o")))),
-  identical(names(pc_unbuilt(pc_parts)), c("shared", "v09")))
+  grepl("Usage", error_of(pc_parse_args(c("--parts", "new", "--fast", "p", "c", "d", "o")))))
 
 # Part performance: performance.R takes the starter's libraries, candidate
 # first; outside Linux x86_64 it gets --smoke, and --quick changes nothing.
-part_context <- function(linux, quick = FALSE) {
-  list(previous_lib = "/o/previous-lib", candidate_lib = "/o/candidate-lib", deps = "/deps", dir = "/o/performance",
+part_context <- function(linux, quick = FALSE, part = "performance") {
+  list(previous_lib = "/o/previous-lib", candidate_lib = "/o/candidate-lib", deps = "/deps", dir = file.path("/o", part),
        quick = quick, linux_x86_64 = linux, tools = "/t", previous_version = "1.0.0")
 }
 mac <- pc_performance_command(part_context(FALSE))
@@ -122,6 +119,101 @@ stopifnot(identical(names(long), c("part", pc_long_columns)), identical(unique(l
   identical(unique(long$unit[endsWith(long$metric, "_seconds")]), "seconds"),
   identical(unique(long$unit[long$metric == "rds_bytes"]), "bytes"),
   identical(nrow(read_part_performance(tempfile())), 0L))
+
+# run-benchmarks-v09.sh, with a stub Rscript that fails the candidate's
+# pairwise-fixed: each part runs only its cases, previous before candidate;
+# BENCH_QUICK=1 sets BENCH_REPS=1 and skips the tuned cases; a failed case
+# makes the exit status 1; /usr/bin/time reports the process peak.
+stub <- tempfile()
+dir.create(stub)
+writeLines(c("#!/bin/sh", 'echo "$R_LIBS ${BENCH_REPS:-unset} $*"',
+             'case "$R_LIBS $*" in cand:*" pairwise fixed "*) exit 3 ;; esac'), file.path(stub, "Rscript"))
+Sys.chmod(file.path(stub, "Rscript"), "755")
+runner <- function(part, quick) {
+  out <- tempfile()
+  lines <- suppressWarnings(system2("sh", c(shQuote(file.path(tools, "run-benchmarks-v09.sh")), "cand", "prev", "deps",
+                                            shQuote(out), part), stdout = TRUE, stderr = TRUE,
+    env = c(paste0("PATH=", shQuote(paste(stub, Sys.getenv("PATH"), sep = ":"))), paste0("BENCH_QUICK=", quick))))
+  list(lines = as.vector(lines), status = attr(lines, "status") %||% 0L, out = out)
+}
+labels <- function(part, cases) paste0(part, "-", c("previous", "candidate"), "-", rep(cases, each = 2L))
+fixed <- c("ivap-fixed", "binary-fixed", "pairwise-fixed", "ovo-fixed", "ovr-fixed", "regression-fixed")
+v09 <- paste0(rep(c("binary", "pairwise", "ovo", "regression"), each = 4L), "-",
+              rep(c("holdout", "ensemble"), each = 2L), "-", c("matched", "full"))
+shared_quick <- runner("shared", 1)
+shared_full <- runner("shared", 0)
+v09_quick <- runner("v09", 1)
+v09_full <- runner("v09", 0)
+expected <- paste("done", labels("shared", fixed))
+expected[expected == "done shared-candidate-pairwise-fixed"] <- "FAILED shared-candidate-pairwise-fixed"
+stopifnot(identical(shared_quick$lines, expected), identical(shared_quick$status, 1L),
+  identical(length(shared_full$lines), 24L), identical(shared_full$status, 1L),
+  identical(sum(grepl("-(grid|bayes)$", shared_full$lines)), 12L),
+  identical(v09_quick$lines, paste("done", labels("v09", v09))), identical(v09_quick$status, 0L),
+  identical(v09_full$lines, paste("done", labels("v09", c(v09, "tuned-ensemble-full")))), identical(v09_full$status, 0L),
+  identical(readLines(file.path(shared_quick$out, "shared-previous-binary-fixed.log")),
+            paste("prev:deps 1 tools/benchmark-shared-v09.R binary fixed",
+                  file.path(shared_quick$out, "shared-previous-binary-fixed.rds"))),
+  identical(sub("^(\\S+) \\S+ ", "\\1 ", readLines(file.path(v09_full$out, "v09-candidate-tuned-ensemble-full.log"))),
+            paste("cand:deps tools/benchmark-v09.R tuned ensemble full",
+                  file.path(v09_full$out, "v09-candidate-tuned-ensemble-full.rds"))),
+  !is.na(pc_parse_time(readLines(file.path(v09_quick$out, "v09-candidate-ovo-holdout-full.time")))),
+  grepl("Unknown part", paste(runner("new", 0)$lines, collapse = " ")))
+unlink(c(stub, shared_quick$out, shared_full$out, v09_quick$out, v09_full$out), recursive = TRUE)
+
+# The starter runs the runner from the repository root with its own Rscript
+# first on PATH, only the part's cases, and BENCH_QUICK under --quick.
+command <- pc_runner_command(part_context(FALSE, part = "shared"), "shared")
+stopifnot(identical(command$args, c(shQuote("/t/run-benchmarks-v09.sh"), shQuote("/o/candidate-lib"),
+                                    shQuote("/o/previous-lib"), shQuote("/deps"), shQuote("/o/shared/output"),
+                                    "shared")),
+  identical(command$env, c(paste0("PATH=", shQuote(paste(R.home("bin"), Sys.getenv("PATH"), sep = .Platform$path.sep))),
+                           "BENCH_QUICK=0")),
+  identical(pc_runner_command(part_context(TRUE, quick = TRUE, part = "v09"), "v09")$env[[2L]], "BENCH_QUICK=1"),
+  identical(pc_runner_command(part_context(TRUE, part = "v09"), "v09")$args[[6L]], "v09"),
+  identical(pc_runner_cases(c("done shared-previous-binary-grid", "FAILED shared-candidate-binary-grid",
+                              "FAILED shared-previous-ovo-fixed", "FAILED shared-candidate-ovo-fixed",
+                              "FAILED v09-candidate-ovo-holdout-full", "Unknown part: x"), "shared", "FAILED"),
+            c("binary-grid", "ovo-fixed")),
+  identical(pc_runner_cases(c("done v09-previous-tuned-ensemble-full", "FAILED v09-candidate-binary-holdout-full"),
+                            "v09"), c("tuned-ensemble-full", "binary-holdout-full")))
+
+# Readers of parts shared and v09: the single values of each case and library
+# from its RDS, in log order; the process peak from its .time file (BSD bytes
+# or GNU kilobytes) once per case and library; no row for a phase or counter
+# the case does not have.
+shared <- read_part_shared(file.path(examples, "shared"))
+ivap <- shared[shared$case == "ivap-fixed", ]
+grid <- shared[shared$case == "binary-grid", ]
+stopifnot(identical(names(shared), c("part", pc_long_columns)), identical(unique(shared$part), "shared"),
+  identical(unique(shared$case), c("ivap-fixed", "binary-grid")), identical(unique(shared$library), c("previous", "candidate")),
+  identical(unique(grid$metric), c("fit_seconds", "predict_seconds", "outer_seconds", "rds_bytes", "base_fits",
+                                   "retained", "process_peak_bytes")),
+  identical(unique(ivap$metric), c("fit_seconds", "predict_seconds", "rds_bytes", "process_peak_bytes")),
+  identical(nrow(shared), 2L * (3L * 3L + 1L) + 2L * (6L * 3L + 1L)),
+  identical(grid$value[grid$library == "candidate" & grid$metric == "fit_seconds"], c(1.3, 1.25, 1.2)),
+  identical(grid$run[grid$library == "candidate" & grid$metric == "fit_seconds"], 1:3),
+  identical(grid$value[grid$metric == "process_peak_bytes"], c(314572800, 1536 * 1024 * 200)),
+  all(is.na(shared$run[shared$metric == "process_peak_bytes"])),
+  identical(unique(shared$unit[shared$metric %in% c("base_fits", "retained")]), "count"),
+  identical(unique(shared$unit[shared$metric == "rds_bytes"]), "bytes"),
+  identical(nrow(read_part_shared(tempfile())), 0L))
+v09_long <- read_part_v09(file.path(examples, "v09"))
+holdout <- v09_long[v09_long$case == "binary-holdout-matched", ]
+tuned <- v09_long[v09_long$case == "tuned-ensemble-full", ]
+v09_counters <- c("composition_base_fits", "postprocessor_fits", "retained_pairs")
+stopifnot(identical(names(v09_long), c("part", pc_long_columns)), identical(unique(v09_long$part), "v09"),
+  identical(unique(v09_long$case), c("binary-holdout-matched", "tuned-ensemble-full")),
+  identical(unique(holdout$metric), c("fit_seconds", "predict_seconds", "outer_seconds", "fit_heap_bytes",
+                                      "predict_heap_bytes", "outer_heap_bytes", "rds_bytes", v09_counters,
+                                      "process_peak_bytes")),
+  identical(unique(tuned$metric), c(unique(holdout$metric)[1:10], "tuning_observed_base_fits", "process_peak_bytes")),
+  identical(holdout$value[holdout$library == "previous" & holdout$metric == "fit_heap_bytes"], c(50.3, 50.4, 50.3) * 1048576),
+  identical(unique(v09_long$unit[endsWith(v09_long$metric, "_heap_bytes")]), "bytes"),
+  identical(unique(v09_long$unit[v09_long$metric %in% c(v09_counters, "tuning_observed_base_fits")]), "count"),
+  identical(tuned$value[tuned$metric == "tuning_observed_base_fits"], c(16, 16, 16, 20, 20, 20)),
+  identical(holdout$value[holdout$metric == "process_peak_bytes"], c(2e8, 2048 * 1024 * 100)),
+  identical(nrow(read_part_v09(tempfile())), 0L))
 
 # Sizes: --quick divides the rows by 100; the CVAR prediction keeps 1e4 calibration rows.
 quick <- v11_sizes(pc_new_cases, quick = TRUE)
@@ -234,6 +326,28 @@ stopifnot(identical(run$exit_performance, "0"), identical(run$wall_seconds_perfo
   "| performance | `workflow_binary_inductive` | process_peak_bytes | 286.1 MiB | 381.5 MiB | 1.33 | > 1.10 |" %in% summary,
   "| performance | `workflow_binary_inductive` | outer_fit_count | 3 | 3 | – | counters differ |" %in% summary,
   identical(length(grep("^\\| `", summary)), 9L))
+# --summarize over all parts: shared and v09 show their counts, flagged rows
+# and failed cases like part performance.
+all_parts <- summarize_copy(function(out) {
+  run <- pc_read_keys(file.path(out, "run.csv"))
+  run$parts <- paste(pc_parts, collapse = ",")
+  pc_write_keys(run, file.path(out, "run.csv"))
+})
+run <- pc_read_keys(file.path(all_parts, "run.csv"))
+measurements <- utils::read.csv(file.path(all_parts, "measurements.csv"), na.strings = "")
+comparison <- utils::read.csv(file.path(all_parts, "comparison.csv"), na.strings = "")
+summary <- readLines(file.path(all_parts, "summary.md"))
+stopifnot(identical(unique(measurements$part), pc_parts),
+  identical(unique(comparison$part), pc_parts),
+  identical(run$exit_shared, "0"), identical(run$exit_v09, "1"), identical(run$failed_cases_v09, "ovo-holdout-full"),
+  identical(run$wall_seconds_total, "1620"),
+  identical(comparison$flag[comparison$part %in% c("shared", "v09") & !is.na(comparison$flag)],
+            c("> 1.10", "counters differ")),
+  "- shared: 2 cases, 1 flagged" %in% summary, "- v09: 2 cases, 1 flagged" %in% summary,
+  "| shared | `binary-grid` | fit_seconds | 1.000 s | 1.250 s | 1.25 | > 1.10 |" %in% summary,
+  "| v09 | `tuned-ensemble-full` | tuning_observed_base_fits | 16 | 20 | – | counters differ |" %in% summary,
+  "- Failed: v09 (cases: ovo-holdout-full)" %in% summary,
+  any(grepl("shared 0:02:00 (exit 0), v09 0:05:00 (exit 1); total 0:27:00", summary, fixed = TRUE)))
 # Without part new the table of the nine new cases stays, empty.
 alone <- summarize_copy(function(out) {
   run <- pc_read_keys(file.path(out, "run.csv"))
@@ -244,5 +358,5 @@ alone <- summarize_copy(function(out) {
 summary <- readLines(file.path(alone, "summary.md"))
 stopifnot("- performance: 2 cases, 1 flagged" %in% summary,
   identical(length(grep("^\\| `[^`]+` \\| – \\| – \\| – \\|", summary)), 9L))
-unlink(c(out, smoke, both, alone), recursive = TRUE)
+unlink(c(out, smoke, both, all_parts, alone), recursive = TRUE)
 cat("Performance comparison checks passed.\n")
