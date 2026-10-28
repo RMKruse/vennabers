@@ -211,7 +211,7 @@ predict.vennabers_ensemble <- function(object, newdata, type = if (is.null(objec
       .base_numeric(object$models[[j]], newdata, paste(object$context, "/", j))
     })
     values <- do.call(cbind, predictions)
-    return(tibble::tibble(.pred = vapply(seq_len(nrow(newdata)), function(i) .regression_mean(values[i, ]), 0)))
+    return(tibble::tibble(.pred = .regression_mean_rows(values)))
   }
   probabilities <- lapply(object$inner_folds, function(j) {
     .base_probability(object$models[[j]], newdata, object$classes, NULL, paste(object$context, "/", j))
