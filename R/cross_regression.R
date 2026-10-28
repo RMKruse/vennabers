@@ -63,6 +63,43 @@ cross_venn_abers_regression <- function(truth, prediction, fold, ..., m = 1, eps
   .regression_mean(values / scale) * scale
 }
 
+# Row-wise .regression_mean() of a finite numeric matrix, bitwise equal to
+# calling it on each row: the same steps run across all rows at once.
+# Rows whose result is not finite go to the scalar version, which scales.
+.regression_mean_rows <- function(values) {
+  rows <- nrow(values)
+  k <- ncol(values)
+  if (!rows) return(numeric())
+  row <- seq_len(rows)
+  # Sort each row ascending into a row-major vector. The order of equal values
+  # cannot matter: only signed zeros compare equal with different bits, and
+  # adding +0 or -0 to the running total (never -0) gives the same result.
+  sorted <- values[order(rep(row, k), values, method = "radix")]
+  base <- (row - 1L) * k
+  left <- base + 1L
+  right <- base + k
+  total <- correction <- numeric(rows)
+  for (step in seq_len(k)) {
+    take_left <- total > 0
+    position <- right
+    position[take_left] <- left[take_left]
+    value <- sorted[position]
+    left <- left + take_left
+    right <- right - !take_left
+    next_total <- total + value
+    # After an overflow total stays infinite, so the row ends up non-finite
+    # and goes to the scalar path; its remaining steps are irrelevant.
+    big_total <- abs(total) >= abs(value)
+    term <- (value - next_total) + total
+    term[big_total] <- ((total - next_total) + value)[big_total]
+    correction <- correction + term
+    total <- next_total
+  }
+  result <- (total + correction) / k
+  for (i in which(!is.finite(result))) result[[i]] <- .regression_mean(values[i, ])
+  result
+}
+
 #' @export
 predict.cross_venn_abers_regression <- function(object, newdata, ..., type = "response") {
   if (length(list(...))) stop("`...` must be empty; unsupported prediction argument.", call. = FALSE)
@@ -81,7 +118,7 @@ predict.cross_venn_abers_regression <- function(object, newdata, ..., type = "re
   names(folds) <- object$folds
   prediction <- lapply(c("prediction", "lower", "upper"), function(column) {
     values <- do.call(cbind, lapply(folds, `[[`, column))
-    vapply(seq_len(nrow(newdata)), function(i) .regression_mean(values[i, ]), 0)
+    .regression_mean_rows(values)
   })
   names(prediction) <- c("prediction", "lower", "upper")
   prediction <- as.data.frame(prediction)

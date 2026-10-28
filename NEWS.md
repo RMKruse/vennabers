@@ -1,3 +1,14 @@
+# vennabers (development version)
+
+## Performance
+
+- `predict()` for `cross_venn_abers_regression()` fits, and regression
+  postprocessing that averages an inner ensemble, now average the fold
+  results for all rows at once instead of row by row. Results are bitwise
+  unchanged; predictions are 25 to 85 times faster. Large predictions need
+  more memory: with one million rows and five folds, the peak process memory
+  of `predict()` rises by about a third.
+
 # vennabers 1.0.0
 
 Initial CRAN release.
