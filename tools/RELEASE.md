@@ -289,6 +289,12 @@ The parts run serially. A failed part does not stop the others; the summary
 names failed parts and cases, and the starter then exits with status 1.
 Repeat a failed part as a partial run into a new directory.
 
+On a Mac (Apple M5 Pro, 1.0.0 against itself) the smoke run of all parts
+takes about 16 minutes and `<out>` holds about 0.85 GB; the run of all parts
+at measurement size takes about 106 minutes and `<out>` holds about 1.3 GB,
+mostly the input RDS files of parts performance (0.8 GB) and new. The
+sections below give the time of each part.
+
 **Outputs.** Besides the raw outputs in one directory per part, `<out>` holds:
 
 - `measurements.csv`: single values in long form
@@ -363,7 +369,10 @@ Rscript --vanilla tools/benchmark-v11.R [--quick] --cases ivap-1e7,cvar-predict-
 ```
 
 On a Mac (Apple M5 Pro, 1.0.0 against itself) the smoke run of part new
-takes about 20 seconds and the measurement run about 27 minutes.
+takes 10-20 seconds and the run at measurement size 20-27 minutes. Against
+itself, the process peak of `ivap-1e7` (1.5-1.7 GiB) varies by about 10 % in
+either direction between runs and can pass the 1.10 flag; at measurement
+size the times stay within 4 %, heaps and RDS sizes match.
 
 ### Part performance
 
@@ -461,8 +470,8 @@ regression workflows with fixed models plus Grid and Bayes tuning for binary,
 pairwise and regression (12 cases). Metrics: `fit_seconds`,
 `predict_seconds`, `outer_seconds` (not for IVAP), `rds_bytes` (the script's
 `bytes`), the counters `base_fits` and `retained` (not for IVAP) and the
-process peak. There is no heap. The six tuned cases take most of the time:
-on a Mac about 72 minutes for both libraries in measurement size.
+process peak. There is no heap. On a Mac the part takes about 66 minutes for
+both libraries at measurement size, most of it in the six tuned cases.
 
 ### Part v09
 
