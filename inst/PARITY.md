@@ -129,9 +129,10 @@ randomized sets) with 17,444 new rows, the 105 Cross cases with their folds
 -1 and 4, tolerance `1e-10` absolute. As a control, the main reference matches
 vennabers everywhere (at most `1.22e-15`) when multiclass rows are normalized as
 vennabers normalizes them; MAPIE and the main reference do not normalize rows
-themselves. Last checked on 2026-10-28 with the vennabers 1.1 development
-sources, R 4.6.1 and Python 3.12 (NumPy 2.5.4) on macOS arm64; the first run
-on 2026-10-25 with vennabers 1.0.0 gave identical results.
+themselves. Last checked on 2026-10-29 at the 1.1 minor checkpoint with the
+vennabers 1.1 development sources, R 4.6.1 and Python 3.12 (NumPy 2.5.4) on
+macOS arm64; the earlier runs on 2026-10-25 with vennabers 1.0.0 and on
+2026-10-28 gave identical results.
 
 ### MAPIE
 
@@ -207,9 +208,11 @@ on 2026-10-25 with vennabers 1.0.0 gave identical results.
   (`fast_ivap/sklearn.py`), identical to the files of that commit; the
   compiled core comes from the wheel. MIT licence (Paolo Toccaceli, Royal
   Holloway, University of London); installed only in the temporary
-  environment, no code is taken over. Last checked on 2026-10-28 with the
-  vennabers 1.1 development sources, R 4.6.1 and Python 3.12 (NumPy 2.5.4) on
-  macOS arm64, by `tools/counter-comparison-fast-ivap.py`.
+  environment, no code is taken over. Last checked on 2026-10-29 at the 1.1
+  minor checkpoint with the vennabers 1.1 development sources, R 4.6.1 and
+  Python 3.12 (NumPy 2.5.4) on macOS arm64, by
+  `tools/counter-comparison-fast-ivap.py`; the first run on 2026-10-28 gave
+  identical results.
 - **Why:** the only Venn-Abers implementation that does not derive from the
   main reference. It follows Vovk, Petej and Fedorova (2015), Algorithms 1 and
   2, and obtains the lower value by symmetry; until 0.2 it was the original
@@ -257,8 +260,10 @@ on 2026-10-25 with vennabers 1.0.0 gave identical results.
 ### reliabilitydiag
 
 - **Version:** reliabilitydiag 0.2.1 from CRAN, with dplyr 1.2.1 and tibble
-  3.3.1 and without monotone. Last checked on 2026-10-21 with vennabers 1.0.0,
-  R 4.6.1 on macOS arm64, by `tools/corp-parity-reliabilitydiag.R`.
+  3.3.1 and without monotone. Last checked on 2026-10-29 at the 1.1 minor
+  checkpoint with the vennabers 1.1 development sources, R 4.6.1 on macOS
+  arm64, by `tools/corp-parity-reliabilitydiag.R`; the first run on 2026-10-21
+  with vennabers 1.0.0 gave identical results.
 - **Compared:** the CORP estimate and both resampling bands of `corp_plot()`
   against `reliabilitydiag(region.method = "resampling")` with the same data
   and seed; consistency band as `region.position = "diagonal"`, confidence
