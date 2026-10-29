@@ -80,7 +80,7 @@ Handrechnungstests. Gegenvergleiche sind dokumentiert und nicht bindend
 | VA-Abstention | 1.3 | keine, Orakel | – | keine |
 | VA-Schwellenwahrscheinlichkeit | 1.3 | Hauptreferenz auf dem abgeleiteten Binärproblem | calibrated-explanations 1.0.2 | IVAP-Aussage je Schwelle, nur Inductive |
 | Reelle Scores im binären Kern (K04) | 1.3 | Hauptreferenz nach ordnungserhaltender Abbildung | – | IVAP-Aussage (Vovk et al. 2015) |
-| Beschränkter IVAR | 1.4 | binäre Komponente der Hauptreferenz, falls die Vorabprüfung sie belegt; sonst nur Orakel | – | Preprint: Petej/Vovk 2026, Thm. 2, nur Inductive |
+| Beschränkter IVAR | 1.4 | binäre Komponente der Hauptreferenz, falls die Vorabprüfung sie belegt; sonst nur Orakel | – | Petej/Vovk 2026 (COPA, PMLR 329), Thm. 2, nur Inductive |
 | SC-CP-Vorhersageintervall | 1.4 | keine, Orakel | SelfCalibratingConformal @ `fa2a1eb` | van der Laan/Alaa 2024 (NeurIPS 37), Thm. 4.2 |
 | VA-Quantilkalibrierung | 1.5 | keine, Orakel | SelfCalibratingConformal @ `fa2a1eb` | van der Laan/Alaa 2025 (ICML, PMLR 267), Thm. 4.1; geschlossene Form eigene Ableitung |
 | Venn-Multikalibrierung | 1.5 | keine, Orakel gegen `lm()` | – (VennCalibration nur beschrieben) | van der Laan/Alaa 2025, Kor. 3.6 |
@@ -662,9 +662,10 @@ Release-Prüfprotokoll; die Checkliste steht auch in `tools/RELEASE.md`.
    calibrated-explanations, reliabilitydiag, `ptocca/VennABERS` und ab 1.4
    SelfCalibratingConformal, gegen die aktuellen Releases bzw. Commits;
    notfalls „zuletzt geprüft mit Version X“.
-3. **Preprint-Aussagen nachprüfen** (nicht blockierend): derzeit Petej/Vovk
-   2026, Thm. 2 (beschränkter IVAR). Bei Begutachtung wird die Kennzeichnung
-   in Hilfe und PARITY angepasst.
+3. **Preprint-Aussagen nachprüfen** (nicht blockierend): derzeit keine.
+   Petej/Vovk 2026, Thm. 2 (beschränkter IVAR), ist seit 1.1 begutachtet
+   (COPA 2026, PMLR 329). Bei Begutachtung wird die Kennzeichnung in Hilfe
+   und PARITY angepasst.
 4. **tidymodels-`main`-Lauf auswerten** (ab 1.2, nicht blockierend): Brüche
    der abgegrenzten Interna als Ticket festhalten.
 
@@ -793,7 +794,7 @@ Prüfungen sind Umsetzungsnachweise. Sie werden nicht vorweggenommen.
 - Johansson, U. et al. (2021). Calibrating multi-class models. *PMLR 152*
   (COPA).
 - Petej, I., Vovk, V. (2026). Inductive Venn–Abers and related regressors.
-  arXiv:2605.06646. Preprint.
+  *Proc. COPA 2026*, PMLR 329, 28–61. arXiv:2605.06646.
 - van der Laan, L., Alaa, A. M. (2024). Self-calibrating conformal
   prediction. *NeurIPS 37*. arXiv:2402.07307.
 - van der Laan, L., Alaa, A. (2025). Generalized Venn and Venn-Abers

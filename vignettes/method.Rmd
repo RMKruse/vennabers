@@ -399,7 +399,9 @@ Conformal and Probabilistic Prediction and Applications*, PMLR 60, 228–240.
 <https://proceedings.mlr.press/v60/manokhin17a.html>
 
 Petej, I. and Vovk, V. (2026). Inductive Venn-Abers and related regressors.
-*arXiv preprint* 2605.06646. <doi:10.48550/arXiv.2605.06646>
+*Proceedings of the Fifteenth Symposium on Conformal and Probabilistic
+Prediction with Applications*, PMLR 329, 28–61.
+<https://proceedings.mlr.press/v329/petej26a.html>
 
 Platt, J. C. (2000). Probabilities for SV machines. In A. J. Smola,
 P. L. Bartlett, B. Schölkopf and D. Schuurmans (Eds.), *Advances in Large

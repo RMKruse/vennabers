@@ -16,9 +16,10 @@ Description: Calibrates the predictions of classification and regression
     binary classification, multiclass classification by one-vs-one coupling
     (Manokhin, 2017, <https://proceedings.mlr.press/v60/manokhin17a.html>)
     or one-vs-rest, and regression (Petej and Vovk, 2026,
-    <doi:10.48550/arXiv.2605.06646>). Predictions of an existing model can
-    be calibrated directly, or optional 'tidymodels' workflows fit the
-    model, create the calibration splits and tune the complete procedure.
+    <https://proceedings.mlr.press/v329/petej26a.html>). Predictions of an
+    existing model can be calibrated directly, or optional 'tidymodels'
+    workflows fit the model, create the calibration splits and tune the
+    complete procedure.
     Diagnostics include the Brier score, log loss, plots of fitted
     calibration maps and reliability diagrams with the CORP (consistent,
     optimally binned, reproducible and pool-adjacent-violators based) method
