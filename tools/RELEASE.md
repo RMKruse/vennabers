@@ -266,9 +266,11 @@ Rscript --vanilla tools/test-performance-comparison.R
 Rscript --vanilla tools/performance-comparison.R [--parts new,performance,shared,v09] [--quick] \
   /absolute/path/to/vennabers_1.0.0.tar.gz /absolute/path/to/vennabers_1.1.0.tar.gz <deps-lib> <out>
 Rscript --vanilla tools/performance-comparison.R --summarize <out>
+Rscript --vanilla tools/performance-comparison.R --combine <out> <run>...
 ```
 
-`<out>` must be empty or missing. Put it under
+The reference run happens on CI (see "Linux reference run" below); a local
+run serves as a rehearsal. `<out>` must be empty or missing. Put it under
 `venn-abers-candidates/<version>-<commit>/`, never in `.scratch`; the input
 RDS files of part new alone take about 0.5 GB. The starter installs both
 archives once into `<out>` and records their SHA-256. A probe process with
@@ -295,6 +297,26 @@ The parts run serially. A failed part does not stop the others; the summary
 names failed parts and cases, and the starter then exits with status 1.
 Repeat a failed part as a partial run into a new directory.
 
+Every part measures each case on the previous release and then on the
+candidate before it goes on to the next case. **Remeasurement:** at
+measurement size, a part whose cases carry a `> 1.10` flag runs once more
+with only those cases (both libraries, same order) into
+`<out>/<part>-remeasure/`. A flag counts as a regression only if the
+remeasurement flags it again. `counters differ` is not remeasured, because
+counters do not vary between runs. A smoke run has no flags and never
+remeasures. A failed remeasurement also makes the exit status 1.
+
+**Combined runs.** `--combine <out> <run>...` joins summarized runs of
+disjoint parts into one run, as the CI workflow does with its one job per
+part. The runs must agree in platform, size, R, thread variables and both
+archives (file, version, SHA-256); CPU, cores, RAM, OS, BLAS and the
+dependency library may differ and are kept per part. Ratios never mix jobs:
+each job measures both libraries. The joined run counts as a reference run
+under the same rule as a single run (Linux x86_64, all four parts,
+measurement size). `run.csv`, `packages.csv` and `measurements.csv` of each
+run go to `<out>/runs/<parts>/`, the status files to `<out>/<part>/`;
+`--summarize` rebuilds a combined run from those copies.
+
 On a Mac (Apple M5 Pro, 1.0.0 against itself) the smoke run of all parts
 takes about 16 minutes and `<out>` holds about 0.85 GB; the run of all parts
 at measurement size takes about 106 minutes and `<out>` holds about 1.3 GB,
@@ -308,15 +330,23 @@ sections below give the time of each part.
   warm-up. Metrics have canonical names in seconds and bytes (`fit_seconds`,
   `predict_seconds`, `fit_heap_bytes`, `rds_bytes`, `process_peak_bytes`, ...);
   counters keep their part's name with unit `count`. The process peak covers
-  warm-up and measured runs together and has an empty `run`.
+  warm-up and measured runs together and has an empty `run`. A last column
+  `pass` is `first`, or `remeasure` for the values of a remeasurement.
 - `comparison.csv`: one row per part, case and metric with both medians
-  (computed from the single values), `ratio` (candidate/previous, empty when
-  the previous median is 0), `flag` and `note`.
+  (computed from the single values of the first pass), `ratio`
+  (candidate/previous, empty when the previous median is 0), `flag` and
+  `note`, then `remeasure_ratio` and `remeasure_flag` of the remeasurement and
+  `status` for each `> 1.10` flag: `confirmed` (the remeasurement flags it
+  again: a regression to investigate), `not confirmed` or `not remeasured`
+  (no remeasurement value, for example after a failure).
 - `run.csv`: the run header as key-value pairs: run kind, start and end in
   UTC, CPU, cores, RAM, OS, R, BLAS/LAPACK, thread variables, both archives
   with file, version and SHA-256, and per part wall time, exit code and failed
-  cases. The starter writes it before measuring and adds the derived fields
-  afterwards.
+  cases, plus the remeasured cases, wall time and exit code of its
+  remeasurement. The starter writes it before measuring and adds the derived
+  fields afterwards. A combined run adds `combined_runs`, `packages`
+  (`identical` or `differ`) and `cpu_<part>`, `cores_<part>`,
+  `ram_bytes_<part>`.
 - `packages.csv`: name and version of every package in `<deps-lib>`.
 - `summary.md`: the short report.
 
@@ -329,10 +359,12 @@ release acceptance investigates and justifies each one.
 
 `summary.md` starts with `Smoke run – not a measurement`,
 `Not acceptance evidence (<platform>, parts: ...)` or `Reference run`, then
-environment, wall times and failures. It always shows the full table of the
-nine new cases (rows and knots from the plan; time, process peak, heap and RDS
-size of the fit cases), and from the historical parts only the flagged rows
-with a count per part. Copy it unchanged to `.scratch/<version>/`; the other
+environment, wall times, remeasured cases and failures (for a combined run
+also the host of each part). It always shows the full table of the nine new
+cases (rows and knots from the plan; time, process peak, heap and RDS size of
+the fit cases; the flag names each flagged metric with its status), and from
+the historical parts only the flagged rows, with remeasure ratio and status,
+and a count of cases, flagged and confirmed per part. Copy it unchanged to `.scratch/<version>/`; the other
 files stay in `<out>`.
 
 `--summarize <out>` rebuilds `measurements.csv`, `comparison.csv`,
@@ -390,7 +422,8 @@ the process handling changed. The starter runs it as
 
 ```sh
 R_LIBS=<out>/candidate-lib:<deps-lib> Rscript --vanilla tools/performance.R \
-  <out>/candidate-lib <out>/previous-lib <out>/performance/output --previous-version <previous> [--smoke]
+  <out>/candidate-lib <out>/previous-lib <out>/performance/output --previous-version <previous> [--smoke] \
+  [--cases a,b]
 ```
 
 in library mode: it takes the installed libraries and checks that the
@@ -398,7 +431,11 @@ previous library has the previous archive's version. A 1.x candidate runs
 every v0.7 case on both libraries (`previous_supported` is `TRUE`), each case
 and library in one fresh process under `/usr/bin/time` with one warm-up and
 three measured runs, followed by a restore check in another fresh process.
-The parent writes the inputs once as RDS with their SHA-256 in `plan.csv`.
+Each case runs on the previous library, then on the candidate (until 1.1 all
+candidate cases ran first). The parent writes the inputs once as RDS with
+their SHA-256 in `plan.csv`; `--cases` (used for the remeasurement) measures
+only the named cases, but still prepares all inputs, so seeds and inputs stay
+those of the full run.
 
 The reader takes the single values per iteration from
 `<release>-<case>-runs.csv` (`current` is the candidate), without the warm-up
@@ -415,8 +452,6 @@ not read.
 
 Historical quirks, the same for both libraries and therefore kept:
 
-- all candidate cases run first, then all previous cases, not interleaved
-  per case;
 - there is no `gc()` heap;
 - the script refuses measurements outside Linux x86_64, so there the starter
   passes `--smoke`. The cases and sizes are the same; only the script's own
@@ -429,9 +464,9 @@ partial run.
 
 On a Mac (Apple M5 Pro, 1.0.0 against itself) part performance takes about
 13 minutes, with or without `--quick`. Against itself, single
-workflow fits and outer resampling of 0.04-0.3 s can pass the 1.10 flag
-(the candidate block runs first); counters, RDS sizes and process peaks
-match.
+workflow fits and outer resampling of 0.04-0.3 s could pass the 1.10 flag
+while the candidate block still ran first; counters, RDS sizes and process
+peaks match.
 
 ### Parts shared and v09
 
@@ -452,6 +487,8 @@ directory and one `done` or `FAILED` line per process into the part's
 with status 1 and the summary names the case. `BENCH_QUICK=1` (set by
 `--quick`) makes one measured run (`BENCH_REPS=1`) and skips the tuned cases:
 the six Grid/Bayes cases of part shared and `tuned-ensemble-full` of part v09.
+`BENCH_CASES=a,b` (set by the remeasurement) runs only the named cases, such
+as `binary-grid` or `ovo-holdout-full`, in the runner's order.
 
 The readers take the single values per run from each RDS and the process
 peak from the `.time` file (bytes on macOS, kilobytes in GNU time) once per
@@ -493,3 +530,35 @@ tuned case only, `tuning_observed_base_fits`, and the process peak.
 Single cases can be rerun directly through the measurement script, with
 `R_LIBS=<out>/<library>-lib:<deps-lib>` and `/usr/bin/time` as in the
 script's header.
+
+### Linux reference run
+
+The reference run happens on the `performance-comparison` workflow, on
+GitHub-hosted `ubuntu-24.04` runners (Linux x86_64). Like the archive
+comparison, it is started by hand on the candidate ref and must also exist on
+`main` to be offered:
+
+```sh
+gh workflow run performance-comparison.yaml --ref v1.1.0 -f previous_ref=71f1041 [-f quick=true]
+```
+
+`previous` (a CRAN version or tarball URL, default `1.0.0`) and `previous_ref`
+behave as in the archive comparison. A first job checks the helpers
+(`tools/test-performance-comparison.R`) and builds both source packages once,
+without vignettes or manual; every part measures these two archives. Then
+one job per part (`new`, `performance`, `shared`, `v09`) installs GNU time and
+the package's Suggests as `<deps-lib>` and runs the starter with
+`--parts <part>`, both libraries in the same job, each case previous before
+candidate, flagged cases remeasured once. Each job may take the hosted
+runner limit of 6 hours. It uploads `part-<part>` without input and model RDS
+files or the installed libraries, plus `runner.md` with the runner image.
+A last job joins the parts with `--combine` and uploads
+`performance-comparison`: the combined run under `summary/` and `run.md`
+(dispatched commit, previous release, run URL, SHA-256 of both archives
+built on CI, runner image per part). It also runs when a part failed, and then
+summarizes only the parts that produced a summary, so the headline is no
+reference run. Copy `summary/summary.md` unchanged to `.scratch/<version>/`;
+`run.md` carries the run data for the release log.
+
+`quick=true` makes a smoke run of the whole workflow. Rerunning only failed
+jobs reruns the combining job as well; every upload overwrites its artifact.
