@@ -15,6 +15,9 @@
   linearly with the distinct calibration probabilities, and `precision`
   reduces them at the cost of changing the calibration itself. The regression
   calibrators refer to it.
+- The regression method paper (Petej and Vovk, 2026) is now cited in its
+  peer-reviewed version (COPA 2026, PMLR 329) in the Description and the
+  method guide, and `citation("vennabers")` lists it.
 
 # vennabers 1.0.0
 

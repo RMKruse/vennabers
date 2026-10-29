@@ -63,6 +63,22 @@ bibentry(
 )
 
 bibentry(
+  bibtype = "InProceedings",
+  key = "PetejVovk2026",
+  header = "Inductive Venn-Abers regression:",
+  title = "Inductive Venn-Abers and Related Regressors",
+  author = c(person("Ivan", "Petej"), person("Vladimir", "Vovk")),
+  booktitle = paste("Proceedings of the Fifteenth Symposium on Conformal and",
+                    "Probabilistic Prediction with Applications"),
+  series = "Proceedings of Machine Learning Research",
+  volume = "329",
+  pages = "28--61",
+  year = "2026",
+  publisher = "PMLR",
+  url = "https://proceedings.mlr.press/v329/petej26a.html"
+)
+
+bibentry(
   bibtype = "Article",
   key = "DimitriadisGneitingJordan2021",
   header = "CORP reliability diagrams:",
