@@ -1,7 +1,15 @@
-# vennabers (development version)
+# vennabers 1.1.0
+
+No function, argument or default changes: code written for 1.0.0 runs
+unchanged and gives the same results.
 
 ## Performance
 
+- `venn_abers()`, `cross_venn_abers()`, `venn_abers_regression()` and
+  `cross_venn_abers_regression()` fit about two and a half to three times
+  faster when most calibration predictions are distinct: the isotonic scans
+  compute their cross products inline, and binary fits count events per
+  distinct probability from cumulative sums. Results are bitwise unchanged.
 - `predict()` for `cross_venn_abers_regression()` fits, and regression
   postprocessing that averages an inner ensemble, now average the fold
   results for all rows at once instead of row by row. Results are bitwise
@@ -15,6 +23,11 @@
   linearly with the distinct calibration probabilities, and `precision`
   reduces them at the cost of changing the calibration itself. The regression
   calibrators refer to it.
+- `PARITY.md` has a new section "Counter-comparisons": the Venn-Abers
+  procedures of MAPIE, calibrated-explanations and fast-ivap, and the CORP
+  bands of reliabilitydiag, are compared with vennabers on identical arrays,
+  with the versions last checked and every difference explained. These
+  comparisons are not binding and make no parity statement.
 - The regression method paper (Petej and Vovk, 2026) is now cited in its
   peer-reviewed version (COPA 2026, PMLR 329) in the Description and the
   method guide, and `citation("vennabers")` lists it.

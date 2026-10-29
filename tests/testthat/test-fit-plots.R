@@ -81,7 +81,7 @@ for (bad in list("hinge", c("log", "brier"), NA_character_, 1)) {
 }
 
 # Fits without a stored calibration map stop clearly.
-stored <- "`x` has no stored calibration map (`knots`, `lower`, `upper`); refit it with vennabers 1.0.0."
+stored <- "`x` has no stored calibration map (`knots`, `lower`, `upper`); refit it with vennabers 1.0.0 or later."
 for (field in c("knots", "lower", "upper")) {
   old <- fit
   old[[field]] <- NULL
@@ -198,7 +198,7 @@ error(plot(fit, ylim = "bad"), "ylim")
 assert_conditions(identical(graphics::par("mfrow"), layout))
 
 # Fits without stored subproblem maps stop clearly.
-stored <- "`x` has no stored calibration map (`knots`, `lower`, `upper`); refit it with vennabers 1.0.0."
+stored <- "`x` has no stored calibration map (`knots`, `lower`, `upper`); refit it with vennabers 1.0.0 or later."
 old <- fit
 old$calibrators[[2L]]$knots <- NULL
 error(plot(old), stored)
@@ -304,7 +304,7 @@ for (bad in list(character(), c("map", "map"), "fit", NA_character_)) {
 }
 
 # Fits without a stored calibration map stop clearly.
-stored <- "`x` has no stored calibration map (`knots`, `lower`, `upper`); refit it with vennabers 1.0.0."
+stored <- "`x` has no stored calibration map (`knots`, `lower`, `upper`); refit it with vennabers 1.0.0 or later."
 for (field in c("knots", "lower", "upper")) {
   old <- fit
   old[[field]] <- NULL

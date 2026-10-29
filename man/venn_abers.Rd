@@ -98,9 +98,9 @@ Multiclass fits repeat this for every pair (OvO) or class (OvR).
 
 \code{precision} reduces the knots: \code{precision = d} leaves at most
 \eqn{10^d + 1} of them for nonnegative \eqn{d}, and a negative value leaves
-one. This is not a pure speed-up. Rounding pools neighbouring probabilities
+one. This is not a pure speed-up. Rounding pools neighboring probabilities
 and so changes the fitted calibration itself, while new probabilities stay
-unrounded at prediction. Treat it as a modelling choice and assess the result
+unrounded at prediction. Treat it as a modeling choice and assess the result
 on held-out data, for example with \code{\link{brier_score}} or
 \code{\link{log_loss}}. No fixed run time is implied; it depends on the
 hardware and the R build.
