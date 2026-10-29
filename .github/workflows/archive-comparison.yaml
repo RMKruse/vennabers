@@ -50,7 +50,7 @@ jobs:
             R CMD build --no-build-vignettes --no-manual "$RUNNER_TEMP/previous-checkout"
           fi
           cd "$RUNNER_TEMP/source"
-          sha256sum */vennabers_*.tar.gz | tee SHA256SUMS
+          sha256sum -- */vennabers_*.tar.gz | tee SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
           name: archive-source-packages
@@ -85,11 +85,23 @@ jobs:
         working-directory: ${{ runner.temp }}/source
         env:
           PREVIOUS: ${{ inputs.previous }}
+          PREVIOUS_REF: ${{ inputs.previous_ref }}
         run: |
           previous="$PREVIOUS"
           for tarball in previous/vennabers_*.tar.gz; do
             if [ -e "$tarball" ]; then previous="$tarball"; fi
           done
+          # Ties each record to the dispatched commit and the compared archives.
+          mkdir -p "$RUNNER_TEMP/archive"
+          {
+            echo "# Archive comparison run"
+            echo
+            echo "- Commit: $GITHUB_SHA ($GITHUB_REF_NAME)"
+            echo "- Previous: ${PREVIOUS_REF:-$PREVIOUS}"
+            echo "- Archives built on CI (SHA-256):"
+            while read -r hash file; do echo "  - $file: \`$hash\`"; done < SHA256SUMS
+            echo
+          } | tee "$RUNNER_TEMP/archive/run.md" >> "$GITHUB_STEP_SUMMARY"
           set -o pipefail
           Rscript --vanilla "$GITHUB_WORKSPACE/tools/archive-comparison.R" "$previous" candidate/vennabers_*.tar.gz \
             "$RUNNER_TEMP/archive" | tee -a "$GITHUB_STEP_SUMMARY"

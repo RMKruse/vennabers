@@ -228,15 +228,21 @@ directory afterwards.
 On CI, start the `archive-comparison` workflow by hand on the candidate ref
 (it must also exist on `main` to be offered). It runs the eight required
 platform/R combinations and adds each summary to the job summary. Leave
-`previous` at the CRAN version, or set `previous_ref` (for example the
-`v1.0.0` tag) to build the previous release from Git while it is not on CRAN:
+`previous` at the CRAN version, or set `previous_ref` to build the previous
+release from Git while it is not on CRAN. For 1.1.0 that is the submitted
+1.0.0 commit `71f1041` (there is no `v1.0.0` tag before CRAN accepts it):
 
 ```sh
-gh workflow run archive-comparison.yaml --ref v1.1.0 -f previous_ref=v1.0.0
+gh workflow run archive-comparison.yaml --ref v1.1.0 -f previous_ref=71f1041
 ```
 
 The CI job builds both packages without vignettes or manual; only R code and
-data enter the comparison.
+data enter the comparison. Each combination uploads an
+`archive-<os>-r-<r>` artifact with `summary.md`, `comparison.csv`, the logs
+and `run.md`, which names the dispatched commit, the previous release and the
+SHA-256 of both archives built on CI. These hashes differ from the local
+candidate archive (packaging timestamps, no vignettes); the commit ties them
+to it.
 
 **Extending the catalog.** An option omitted from a call takes its default in
 both versions, so the existing cases already cover the default of every new
