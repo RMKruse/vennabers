@@ -66,7 +66,7 @@ plot.vennabers_fit <- function(x, which = "map", loss = x$loss, ...) {
 
 .stop_stored_map <- function() {
   stop("`x` has no stored calibration map (`knots`, `lower`, `upper`); ",
-       "refit it with vennabers 1.0.0.", call. = FALSE)
+       "refit it with vennabers 1.0.0 or later.", call. = FALSE)
 }
 
 .validate_stored_map <- function(calibrator) {
