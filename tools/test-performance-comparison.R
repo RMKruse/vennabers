@@ -68,7 +68,29 @@ stopifnot(identical(parsed$parts, "new"), isTRUE(parsed$quick), identical(parsed
   identical(pc_parse_args(c("--parts", "v09,shared", "--quick", "p", "c", "d", "o"))$parts, c("shared", "v09")),
   grepl("Unknown part", error_of(pc_parse_args(c("--parts", "old", "p", "c", "d", "o")))),
   grepl("Usage", error_of(pc_parse_args(c("--parts", "new", "p", "c", "d")))),
-  grepl("Usage", error_of(pc_parse_args(c("--parts", "new", "--fast", "p", "c", "d", "o")))))
+  grepl("Usage", error_of(pc_parse_args(c("--parts", "new", "--fast", "p", "c", "d", "o")))),
+  identical(pc_parse_args(c("--combine", "o", "a", "b")),
+            list(summarize = FALSE, combine = TRUE, out = "o", runs = c("a", "b"))),
+  grepl("Usage", error_of(pc_parse_args(c("--combine", "o")))))
+
+# Remeasurement: a "> 1.10" flag is confirmed only if the remeasurement flags
+# it again; counters are not measured again.
+passes <-function(first, again, unit = "seconds", metric = "fit_seconds") {
+  pc_compare_passes(rbind(data.frame(pair(first[[1L]], first[[2L]], unit, metric), pass = "first"),
+                          if (length(again)) data.frame(pair(again[[1L]], again[[2L]], unit, metric), pass = "remeasure")),
+                    smoke = FALSE)
+}
+stopifnot(identical(passes(list(1, 1.2), list(1, 1.3))$status, "confirmed"),
+  identical(passes(list(1, 1.2), list(1, 1.3))$remeasure_ratio, 1.3),
+  identical(passes(list(1, 1.2), list(1, 1.05))$status, "not confirmed"),
+  identical(passes(list(1, 1.2), list(1, 1.05))$remeasure_flag, ""),
+  identical(passes(list(1, 1.2), NULL)$status, "not remeasured"), is.na(passes(list(1, 1.2), NULL)$remeasure_ratio),
+  identical(passes(list(1, 1.05), NULL)$status, ""),
+  identical(passes(list(4, 5), list(4, 5), "count", "fits")$status, ""),
+  identical(pc_remeasure_cases(pc_compare(rbind(pair(1, 1.2), transform(pair(1, 1.3), case = "y"),
+                                                transform(pair(1, 1), case = "z"),
+                                                transform(pair(4, 5, "count", "fits"), case = "w")), FALSE)),
+            c("x", "y")))
 
 # Part performance: performance.R takes the starter's libraries, candidate
 # first; outside Linux x86_64 it gets --smoke, and --quick changes nothing.
@@ -87,7 +109,9 @@ stopifnot(identical(mac$args, c("--vanilla", shQuote("/t/performance.R"), shQuot
   identical(pc_performance_command(part_context(FALSE, quick = TRUE)), mac),
   identical(pc_performance_failed(c("Release evidence: FALSE ", "current binary_inductive ", "current 3_cross_ovo ",
                                     "Error: Command failed; see /o/current-3_cross_ovo-process.log")), "3_cross_ovo"),
-  identical(pc_performance_failed("Error: OUTPUT must be empty."), character()))
+  identical(pc_performance_failed("Error: OUTPUT must be empty."), character()),
+  identical(pc_performance_command(c(part_context(TRUE), list(cases = c("binary_cross", "3_cross_ovo"))))$args,
+            c(linux$args, "--cases", "binary_cross,3_cross_ovo")))
 
 # A case has only the phases its input runs: outer resampling for unfrozen
 # workflows, schema and encoding with a schema.
@@ -129,11 +153,12 @@ dir.create(stub)
 writeLines(c("#!/bin/sh", 'echo "$R_LIBS ${BENCH_REPS:-unset} $*"',
              'case "$R_LIBS $*" in cand:*" pairwise fixed "*) exit 3 ;; esac'), file.path(stub, "Rscript"))
 Sys.chmod(file.path(stub, "Rscript"), "755")
-runner <- function(part, quick) {
+runner <- function(part, quick, cases = "") {
   out <- tempfile()
   lines <- suppressWarnings(system2("sh", c(shQuote(file.path(tools, "run-benchmarks-v09.sh")), "cand", "prev", "deps",
                                             shQuote(out), part), stdout = TRUE, stderr = TRUE,
-    env = c(paste0("PATH=", shQuote(paste(stub, Sys.getenv("PATH"), sep = ":"))), paste0("BENCH_QUICK=", quick))))
+    env = c(paste0("PATH=", shQuote(paste(stub, Sys.getenv("PATH"), sep = ":"))), paste0("BENCH_QUICK=", quick),
+            paste0("BENCH_CASES=", cases))))
   list(lines = as.vector(lines), status = attr(lines, "status") %||% 0L, out = out)
 }
 labels <- function(part, cases) paste0(part, "-", c("previous", "candidate"), "-", rep(cases, each = 2L))
@@ -144,6 +169,11 @@ shared_quick <- runner("shared", 1)
 shared_full <- runner("shared", 0)
 v09_quick <- runner("v09", 1)
 v09_full <- runner("v09", 0)
+# BENCH_CASES keeps only the named cases, in the runner's order.
+shared_some <- runner("shared", 0, "ovo-fixed,binary-grid")
+v09_some <- runner("v09", 0, "tuned-ensemble-full")
+stopifnot(identical(shared_some$lines, paste("done", labels("shared", c("binary-grid", "ovo-fixed")))),
+  identical(shared_some$status, 0L), identical(v09_some$lines, paste("done", labels("v09", "tuned-ensemble-full"))))
 expected <- paste("done", labels("shared", fixed))
 expected[expected == "done shared-candidate-pairwise-fixed"] <- "FAILED shared-candidate-pairwise-fixed"
 stopifnot(identical(shared_quick$lines, expected), identical(shared_quick$status, 1L),
@@ -159,7 +189,8 @@ stopifnot(identical(shared_quick$lines, expected), identical(shared_quick$status
                   file.path(v09_full$out, "v09-candidate-tuned-ensemble-full.rds"))),
   !is.na(pc_parse_time(readLines(file.path(v09_quick$out, "v09-candidate-ovo-holdout-full.time")))),
   grepl("Unknown part", paste(runner("new", 0)$lines, collapse = " ")))
-unlink(c(stub, shared_quick$out, shared_full$out, v09_quick$out, v09_full$out), recursive = TRUE)
+unlink(c(stub, shared_quick$out, shared_full$out, v09_quick$out, v09_full$out, shared_some$out, v09_some$out),
+       recursive = TRUE)
 
 # The starter runs the runner from the repository root with its own Rscript
 # first on PATH, only the part's cases, and BENCH_QUICK under --quick.
@@ -171,6 +202,8 @@ stopifnot(identical(command$args, c(shQuote("/t/run-benchmarks-v09.sh"), shQuote
                            "BENCH_QUICK=0")),
   identical(pc_runner_command(part_context(TRUE, quick = TRUE, part = "v09"), "v09")$env[[2L]], "BENCH_QUICK=1"),
   identical(pc_runner_command(part_context(TRUE, part = "v09"), "v09")$args[[6L]], "v09"),
+  identical(pc_runner_command(c(part_context(TRUE, part = "shared"), list(cases = c("binary-grid", "ovo-fixed"))),
+                              "shared")$env, c(command$env, "BENCH_CASES=binary-grid,ovo-fixed")),
   identical(pc_runner_cases(c("done shared-previous-binary-grid", "FAILED shared-candidate-binary-grid",
                               "FAILED shared-previous-ovo-fixed", "FAILED shared-candidate-ovo-fixed",
                               "FAILED v09-candidate-ovo-holdout-full", "Unknown part: x"), "shared", "FAILED"),
@@ -276,7 +309,7 @@ stopifnot(identical(run$wall_seconds_new, "750.5"), identical(run$exit_new, "0")
   any(grepl("Wall time: new 0:12:30 (exit 0); total 0:12:36", summary, fixed = TRUE)),
   "- Failed: none" %in% summary,
   identical(length(case_rows), 9L), identical(sub("^\\| `([^`]+)`.*$", "\\1", case_rows), pc_new_cases$case),
-  any(grepl("^\\| `cvar-predict-1e5` \\| 100,000 \\| 10,000 \\| 4\\.100 \\| 0\\.110 \\| 0\\.03 \\| 300\\.0 \\| 400\\.0 \\| 1\\.33 \\|.*\\| – \\| > 1\\.10 \\(heap, peak\\) \\|$",
+  any(grepl("^\\| `cvar-predict-1e5` \\| 100,000 \\| 10,000 \\| 4\\.100 \\| 0\\.110 \\| 0\\.03 \\| 300\\.0 \\| 400\\.0 \\| 1\\.33 \\|.*\\| – \\| > 1\\.10 \\(heap not remeasured, peak not remeasured\\) \\|$",
             case_rows)),
   any(grepl("^\\| `ivap-1e6` \\| 1,000,000 \\| 1,000,000 \\| 1\\.000 \\| 0\\.510 \\| 0\\.51 \\|.*\\| 16\\.0 \\|  \\|$", case_rows)),
   any(grepl("^\\| `ivar-1e7` \\| – \\| – \\| – \\|", case_rows)),
@@ -321,10 +354,10 @@ stopifnot(identical(run$exit_performance, "0"), identical(run$wall_seconds_perfo
   identical(sum(!is.na(historical$note)), 1L),
   "**Not acceptance evidence (macOS arm64, parts: new,performance)**" %in% summary,
   any(grepl("Wall time: new 0:12:30 (exit 0), performance 0:07:24 (exit 0); total 0:20:00", summary, fixed = TRUE)),
-  "- performance: 2 cases, 1 flagged" %in% summary,
-  "| performance | `workflow_binary_inductive` | fit_seconds | 0.210 s | 0.260 s | 1.24 | > 1.10 |" %in% summary,
-  "| performance | `workflow_binary_inductive` | process_peak_bytes | 286.1 MiB | 381.5 MiB | 1.33 | > 1.10 |" %in% summary,
-  "| performance | `workflow_binary_inductive` | outer_fit_count | 3 | 3 | – | counters differ |" %in% summary,
+  "- performance: 2 cases, 1 flagged, 0 confirmed" %in% summary,
+  "| performance | `workflow_binary_inductive` | fit_seconds | 0.210 s | 0.260 s | 1.24 | > 1.10 | – | not remeasured |" %in% summary,
+  "| performance | `workflow_binary_inductive` | process_peak_bytes | 286.1 MiB | 381.5 MiB | 1.33 | > 1.10 | – | not remeasured |" %in% summary,
+  "| performance | `workflow_binary_inductive` | outer_fit_count | 3 | 3 | – | counters differ | – |  |" %in% summary,
   identical(length(grep("^\\| `", summary)), 9L))
 # --summarize over all parts: shared and v09 show their counts, flagged rows
 # and failed cases like part performance.
@@ -343,9 +376,9 @@ stopifnot(identical(unique(measurements$part), pc_parts),
   identical(run$wall_seconds_total, "1620"),
   identical(comparison$flag[comparison$part %in% c("shared", "v09") & !is.na(comparison$flag)],
             c("> 1.10", "counters differ")),
-  "- shared: 2 cases, 1 flagged" %in% summary, "- v09: 2 cases, 1 flagged" %in% summary,
-  "| shared | `binary-grid` | fit_seconds | 1.000 s | 1.250 s | 1.25 | > 1.10 |" %in% summary,
-  "| v09 | `tuned-ensemble-full` | tuning_observed_base_fits | 16 | 20 | – | counters differ |" %in% summary,
+  "- shared: 2 cases, 1 flagged, 0 confirmed" %in% summary, "- v09: 2 cases, 1 flagged, 0 confirmed" %in% summary,
+  "| shared | `binary-grid` | fit_seconds | 1.000 s | 1.250 s | 1.25 | > 1.10 | – | not remeasured |" %in% summary,
+  "| v09 | `tuned-ensemble-full` | tuning_observed_base_fits | 16 | 20 | – | counters differ | – |  |" %in% summary,
   "- Failed: v09 (cases: ovo-holdout-full)" %in% summary,
   any(grepl("shared 0:02:00 (exit 0), v09 0:05:00 (exit 1); total 0:27:00", summary, fixed = TRUE)))
 # Without part new the table of the nine new cases stays, empty.
@@ -356,7 +389,119 @@ alone <- summarize_copy(function(out) {
   unlink(file.path(out, "new"), recursive = TRUE)
 })
 summary <- readLines(file.path(alone, "summary.md"))
-stopifnot("- performance: 2 cases, 1 flagged" %in% summary,
+stopifnot("- performance: 2 cases, 1 flagged, 0 confirmed" %in% summary,
   identical(length(grep("^\\| `[^`]+` \\| – \\| – \\| – \\|", summary)), 9L))
+
+# The starter measures a part, then once more only its "> 1.10" cases into
+# <part>-remeasure/, with their names in its status.csv; a smoke run never
+# remeasures. Stub parts stand in for the measuring scripts.
+original <- list(run = run_part_new, read = read_part_new)
+seen <- list()
+run_part_new <- function(context) {
+  seen[[length(seen) + 1L]] <<- context
+  list(exit = 0L, failed_cases = character())
+}
+read_part_new <- function(dir) {
+  rbind(pair(1, 1.2), transform(pair(1, 1), case = "y"), transform(pair(4, 5, "count", "fits"), case = "z"))
+}
+stage <- tempfile()
+quick_stage <- tempfile()
+dir.create(stage)
+dir.create(quick_stage)
+context <- part_context(FALSE)
+context$dir <- NULL
+cases <- suppressMessages(pc_run_with_remeasure("new", context, stage))
+none <- suppressMessages(pc_run_with_remeasure("new", modifyList(context, list(quick = TRUE)), quick_stage))
+status <- pc_read_keys(file.path(stage, "new-remeasure", "status.csv"))
+stopifnot(identical(cases, "x"), identical(length(seen), 3L),
+  identical(seen[[1L]]$dir, file.path(stage, "new")), is.null(seen[[1L]]$cases),
+  identical(seen[[2L]]$dir, file.path(stage, "new-remeasure")), identical(seen[[2L]]$cases, "x"),
+  identical(status$cases, "x"), identical(status$exit, "0"),
+  is.null(pc_read_keys(file.path(stage, "new", "status.csv"))$cases),
+  identical(none, character()), !dir.exists(file.path(quick_stage, "new-remeasure")))
+run_part_new <- original$run
+read_part_new <- original$read
+
+# --summarize with a remeasurement: the peak of cvar-predict-1e5 stays above
+# 1.10 (confirmed), its heap does not (not confirmed).
+remeasure <- function(exit) function(out) {
+  dir <- file.path(out, "new-remeasure")
+  dir.create(dir)
+  long <- utils::read.csv(file.path(out, "new", "measurements.csv"))
+  long <- long[long$case == "cvar-predict-1e5", ]
+  long$value[long$library == "candidate" & long$metric == "predict_heap_bytes"] <- 66060288
+  utils::write.csv(long, file.path(dir, "measurements.csv"), row.names = FALSE, na = "")
+  pc_write_keys(list(start_utc = "2026-10-28T10:12:40.000Z", end_utc = "2026-10-28T10:13:40.000Z", wall_seconds = "60",
+                     exit = exit, failed_cases = "", cases = "cvar-predict-1e5"), file.path(dir, "status.csv"))
+}
+again <- summarize_copy(remeasure("0"))
+comparison <- utils::read.csv(file.path(again, "comparison.csv"), na.strings = "")
+measurements <- utils::read.csv(file.path(again, "measurements.csv"), na.strings = "")
+run <- pc_read_keys(file.path(again, "run.csv"))
+summary <- readLines(file.path(again, "summary.md"))
+row <- function(metric) comparison[comparison$case == "cvar-predict-1e5" & comparison$metric == metric, ]
+stopifnot(identical(row("process_peak_bytes")$status, "confirmed"), identical(row("process_peak_bytes")$remeasure_flag, "> 1.10"),
+  identical(row("predict_heap_bytes")$status, "not confirmed"), identical(row("predict_heap_bytes")$remeasure_ratio, 1.05),
+  is.na(row("predict_seconds")$status), identical(row("predict_seconds")$remeasure_ratio, round(0.11 / 4.1, 4)),
+  all(is.na(comparison$remeasure_ratio[comparison$case != "cvar-predict-1e5"])),
+  identical(names(measurements), c("part", pc_long_columns, "pass")),
+  identical(sum(measurements$pass == "remeasure"), 14L), identical(unique(measurements$part), "new"),
+  identical(run$remeasured_new, "cvar-predict-1e5"), identical(run$exit_remeasure_new, "0"),
+  identical(run$wall_seconds_remeasure_new, "60"), identical(run$wall_seconds_total, "820"),
+  "- Remeasured: new 0:01:00 (exit 0; cases: cvar-predict-1e5)" %in% summary, "- Failed: none" %in% summary,
+  any(grepl("| > 1.10 (heap not confirmed, peak confirmed) |", summary, fixed = TRUE)))
+failed_again <- summarize_copy(remeasure("1"))
+stopifnot("- Failed: new remeasure" %in% readLines(file.path(failed_again, "summary.md")))
+
+# --combine joins one run per CI job into one run: a reference run for Linux
+# x86_64 with all parts at measurement size, with the same measurements and
+# comparison as a single run of all parts and the host of each part.
+job <- function(parts, cpu, packages = "1.6.0") function(out) {
+  run <- pc_read_keys(file.path(out, "run.csv"))
+  run[c("platform", "linux_x86_64", "parts", "cpu")] <- list("Linux x86_64", "TRUE", paste(parts, collapse = ","), cpu)
+  pc_write_keys(run, file.path(out, "run.csv"))
+  utils::write.csv(data.frame(package = "parsnip", version = packages), file.path(out, "packages.csv"), row.names = FALSE)
+  unlink(file.path(out, setdiff(pc_parts, parts)), recursive = TRUE)
+}
+job_new <- summarize_copy(job("new", "CPU A"))
+job_rest <- summarize_copy(job(c("performance", "shared", "v09"), "CPU B"))
+combined <- file.path(tempfile(), "combined")
+summary <- pc_combine(combined, c(job_rest, job_new))
+run <- pc_read_keys(file.path(combined, "run.csv"))
+csv <- function(dir, file) utils::read.csv(file.path(dir, file), na.strings = "")
+stopifnot(identical(run$parts, paste(pc_parts, collapse = ",")), identical(run$reference, "TRUE"),
+  identical(summary[[3L]], "**Reference run**"), identical(run$combined_runs, "2"), identical(run$packages, "identical"),
+  identical(run$cpu, "CPU B | CPU A"), identical(run$cpu_new, "CPU A"), identical(run$cpu_v09, "CPU B"),
+  identical(run$exit_v09, "1"), identical(run$failed_cases_v09, "ovo-holdout-full"), identical(run$wall_seconds_total, "1620"),
+  identical(csv(combined, "measurements.csv"), csv(all_parts, "measurements.csv")),
+  identical(csv(combined, "comparison.csv"), csv(all_parts, "comparison.csv")),
+  any(startsWith(summary, "- Combined from 2 runs, each measuring both libraries: new on CPU A, 8 cores, 16 GiB; performance on CPU B")),
+  "- Failed: v09 (cases: ovo-holdout-full)" %in% summary, identical(length(grep("^\\| `", summary)), 9L),
+  file.exists(file.path(combined, "runs", c("new", "performance+shared+v09"), "measurements.csv")),
+  file.exists(file.path(combined, "new", "plan.csv")), identical(csv(combined, "packages.csv")$version, "1.6.0"))
+first <- lapply(file.path(combined, rebuilt), read_bytes)
+pc_summarize(combined)
+stopifnot(identical(first, lapply(file.path(combined, rebuilt), read_bytes)))
+# Different dependencies are kept per run; parts, archives, platform and size must fit.
+odd <- summarize_copy(job("shared", "CPU A", packages = "1.6.1"))
+mixed <- file.path(tempfile(), "mixed")
+summary <- pc_combine(mixed, c(job_new, odd))
+other <- summarize_copy(function(out) {
+  job("shared", "CPU A")(out)
+  run <- pc_read_keys(file.path(out, "run.csv"))
+  run$candidate_sha256 <- "c3c3"
+  pc_write_keys(run, file.path(out, "run.csv"))
+})
+stopifnot(identical(pc_read_keys(file.path(mixed, "run.csv"))$reference, "FALSE"),
+  "**Not acceptance evidence (Linux x86_64, parts: new,shared)**" %in% summary,
+  "- Dependencies differ between the runs; see packages.csv" %in% summary,
+  identical(csv(mixed, "packages.csv")$parts, c("new", "shared")),
+  grepl("not empty", error_of(pc_combine(combined, job_new))),
+  grepl("More than one run has part(s) new.", error_of(pc_combine(tempfile(), c(job_new, job_new))), fixed = TRUE),
+  grepl("differ in candidate_sha256", error_of(pc_combine(tempfile(), c(job_new, other)))),
+  grepl("already a combined run", error_of(pc_combine(tempfile(), combined))),
+  grepl("holds no summarized run", error_of(pc_combine(tempfile(), examples))))
+unlink(c(stage, quick_stage, again, failed_again, job_new, job_rest, dirname(combined), odd, dirname(mixed), other),
+       recursive = TRUE)
 unlink(c(out, smoke, both, all_parts, alone), recursive = TRUE)
 cat("Performance comparison checks passed.\n")

@@ -3,6 +3,7 @@
 #   Rscript --vanilla tools/performance-comparison.R [--parts new,performance,shared,v09] [--quick] \
 #     <previous.tar.gz> <candidate.tar.gz> <deps-lib> <out>
 #   Rscript --vanilla tools/performance-comparison.R --summarize <out>
+#   Rscript --vanilla tools/performance-comparison.R --combine <out> <run>...
 # <out> must be empty or missing. Keep it under venn-abers-candidates/; only
 # summary.md goes to .scratch. Both archives are installed once into <out>,
 # and every measuring process runs with R_LIBS=<lib>:<deps-lib>.
@@ -10,11 +11,16 @@
 # The comparison has four parts, run serially in this order: new (the nine
 # performance cases of 1.1), performance (v0.3-v0.7), shared (v0.8) and v09.
 # Each part has a start function run_part_<name>(context) and a reader
-# read_part_<name>(dir) that turns its raw outputs into the long form. A failed
-# part does not stop the others, but the run then exits with status 1. Flags
-# never fail a run. --summarize rebuilds measurements.csv, comparison.csv,
-# summary.md and the derived fields of run.csv from the raw outputs without
-# measuring. Not part of R CMD check.
+# read_part_<name>(dir) that turns its raw outputs into the long form. Every
+# part measures each case on the previous release, then on the candidate. A
+# case with a "> 1.10" flag is measured once more, both libraries, into
+# <part>-remeasure/; it counts as a regression only if the remeasurement
+# flags it again. A failed part does not stop the others, but the run then
+# exits with status 1. Flags never fail a run. --summarize rebuilds
+# measurements.csv, comparison.csv, summary.md and the derived fields of
+# run.csv from the raw outputs without measuring. --combine joins summarized
+# runs of disjoint parts with the same archives, platform and size (one CI
+# job per part) into one run under <out>. Not part of R CMD check.
 
 pc_parts <- c("new", "performance", "shared", "v09")
 
@@ -43,12 +49,17 @@ pc_part_function <- function(kind, part) get(paste0(kind, "_part_", part), mode 
 pc_usage <- paste(
   "Usage: Rscript --vanilla tools/performance-comparison.R [--parts new,performance,shared,v09] [--quick]",
   "<previous.tar.gz> <candidate.tar.gz> <deps-lib> <out>",
-  "\n       Rscript --vanilla tools/performance-comparison.R --summarize <out>")
+  "\n       Rscript --vanilla tools/performance-comparison.R --summarize <out>",
+  "\n       Rscript --vanilla tools/performance-comparison.R --combine <out> <run>...")
 
 pc_parse_args <- function(args) {
   if (length(args) && args[[1L]] == "--summarize") {
     if (length(args) != 2L) stop(pc_usage, call. = FALSE)
     return(list(summarize = TRUE, out = args[[2L]]))
+  }
+  if (length(args) && args[[1L]] == "--combine") {
+    if (length(args) < 3L) stop(pc_usage, call. = FALSE)
+    return(list(summarize = FALSE, combine = TRUE, out = args[[2L]], runs = args[-(1:2)]))
   }
   quick <- "--quick" %in% args
   args <- args[args != "--quick"]
@@ -156,6 +167,25 @@ pc_compare <- function(measurements, smoke) {
   result
 }
 
+# The cases a remeasurement repeats: those with a "> 1.10" flag. Counters are
+# deterministic, so "counters differ" is not measured again.
+pc_remeasure_cases <- function(comparison) unique(comparison$case[comparison$flag == "> 1.10"])
+
+# The comparison of the first measurement with the remeasurement's ratio and
+# flag added. `status` applies the rule to each "> 1.10" flag: "confirmed" if
+# the remeasurement flags it again, "not confirmed" if not, "not remeasured"
+# if the remeasurement has no value for it.
+pc_compare_passes <- function(measurements, smoke) {
+  first <- pc_compare(measurements[measurements$pass == "first", ], smoke)
+  again <- pc_compare(measurements[measurements$pass == "remeasure", ], smoke)
+  at <- match(paste(first$part, first$case, first$metric), paste(again$part, again$case, again$metric))
+  first$remeasure_ratio <- again$ratio[at]
+  first$remeasure_flag <- again$flag[at]
+  first$status <- ifelse(first$flag != "> 1.10", "", ifelse(is.na(at), "not remeasured",
+                         ifelse(first$remeasure_flag == "> 1.10", "confirmed", "not confirmed")))
+  first
+}
+
 pc_utc <- function(time = Sys.time()) format(time, "%Y-%m-%dT%H:%M:%OS3Z", tz = "UTC")
 pc_parse_utc <- function(x) as.POSIXct(x, format = "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC")
 
@@ -211,21 +241,26 @@ pc_run_header <- function(kind, archives, deps) {
 
 pc_derived_keys <- function(run) {
   parts <- strsplit(run$parts, ",", fixed = TRUE)[[1L]]
-  c("end_utc", "wall_seconds_total", paste0(rep(c("wall_seconds_", "exit_", "failed_cases_"), length(parts)),
-                                           rep(parts, each = 3L)))
+  fields <- c("wall_seconds_", "exit_", "failed_cases_", "remeasured_", "wall_seconds_remeasure_", "exit_remeasure_")
+  c("end_utc", "wall_seconds_total", paste0(rep(fields, length(parts)), rep(parts, each = length(fields))))
 }
 
-# Derived fields of run.csv from each part's status.csv.
+# Derived fields of run.csv from each part's status.csv and that of its
+# remeasurement; a part without remeasurement has empty remeasure fields.
 pc_derive <- function(run, out) {
   parts <- strsplit(run$parts, ",", fixed = TRUE)[[1L]]
   derived <- list()
   ends <- character()
   for (part in parts) {
     status <- pc_read_keys(file.path(out, part, "status.csv"))
+    again <- pc_read_keys(file.path(out, paste0(part, "-remeasure"), "status.csv"))
     derived[[paste0("wall_seconds_", part)]] <- status$wall_seconds %||% ""
     derived[[paste0("exit_", part)]] <- status$exit %||% "not run"
     derived[[paste0("failed_cases_", part)]] <- status$failed_cases %||% ""
-    if (!is.null(status$end_utc)) ends <- c(ends, status$end_utc)
+    derived[[paste0("remeasured_", part)]] <- again$cases %||% ""
+    derived[[paste0("wall_seconds_remeasure_", part)]] <- again$wall_seconds %||% ""
+    derived[[paste0("exit_remeasure_", part)]] <- again$exit %||% ""
+    ends <- c(ends, status$end_utc, again$end_utc)
   }
   end <- if (length(ends)) max(ends) else ""
   total <- if (nzchar(end)) {
@@ -249,7 +284,8 @@ run_part_new <- function(context) {
   script <- file.path(context$tools, "benchmark-v11.R")
   log <- file.path(context$dir, "part.log")
   status <- system2(file.path(R.home("bin"), "Rscript"),
-    c("--vanilla", shQuote(script), if (context$quick) "--quick", shQuote(context$previous_lib),
+    c("--vanilla", shQuote(script), if (context$quick) "--quick",
+      if (length(context$cases)) c("--cases", paste(context$cases, collapse = ",")), shQuote(context$previous_lib),
       shQuote(context$candidate_lib), shQuote(context$deps), shQuote(context$dir)), stdout = log, stderr = log)
   failed <- file.path(context$dir, "failed-cases.txt")
   list(exit = status, failed_cases = if (file.exists(failed)) readLines(failed) else character())
@@ -262,12 +298,14 @@ read_part_new <- function(dir) {
 }
 
 # Part performance: tools/performance.R (v0.3-v0.7) in library mode, the
-# candidate first as the script expects. It refuses measurements outside
-# Linux x86_64, so other platforms get --smoke; --quick changes nothing here.
+# candidate library first as the script expects. It refuses measurements
+# outside Linux x86_64, so other platforms get --smoke; --quick changes nothing
+# here.
 pc_performance_command <- function(context) {
   list(args = c("--vanilla", shQuote(file.path(context$tools, "performance.R")), shQuote(context$candidate_lib),
                 shQuote(context$previous_lib), shQuote(file.path(context$dir, "output")),
-                "--previous-version", context$previous_version, if (!context$linux_x86_64) "--smoke"),
+                "--previous-version", context$previous_version, if (!context$linux_x86_64) "--smoke",
+                if (length(context$cases)) c("--cases", paste(context$cases, collapse = ","))),
        env = paste0("R_LIBS=", shQuote(paste(context$candidate_lib, context$deps, sep = .Platform$path.sep))))
 }
 
@@ -334,12 +372,13 @@ read_part_performance <- function(dir) {
 # Parts shared (v0.8) and v09: tools/run-benchmarks-v09.sh with only the
 # part's cases, run from the repository root with this R's Rscript first on
 # PATH. The runner sets R_LIBS=<lib>:<deps-lib> per case; BENCH_QUICK=1 makes
-# one measured run and skips the tuned cases.
+# one measured run and skips the tuned cases; BENCH_CASES limits the cases.
 pc_runner_command <- function(context, part) {
   list(args = c(shQuote(file.path(context$tools, "run-benchmarks-v09.sh")), shQuote(context$candidate_lib),
                 shQuote(context$previous_lib), shQuote(context$deps), shQuote(file.path(context$dir, "output")), part),
        env = c(paste0("PATH=", shQuote(paste(R.home("bin"), Sys.getenv("PATH"), sep = .Platform$path.sep))),
-               paste0("BENCH_QUICK=", if (context$quick) 1L else 0L)))
+               paste0("BENCH_QUICK=", if (context$quick) 1L else 0L),
+               if (length(context$cases)) paste0("BENCH_CASES=", paste(context$cases, collapse = ","))))
 }
 
 # The cases of `part` in the runner's log, in order, from its done and FAILED lines.
@@ -421,6 +460,10 @@ pc_value <- function(x, unit) {
   ifelse(is.na(x), "–", ifelse(unit == "seconds", paste(pc_seconds(x), "s"),
                                ifelse(unit == "bytes", paste(pc_mib(x), "MiB"), pc_count(x))))
 }
+pc_gib <- function(bytes) {
+  values <- suppressWarnings(as.numeric(strsplit(bytes %||% "", " | ", fixed = TRUE)[[1L]]))
+  if (!length(values) || anyNA(values)) "unknown" else paste(sprintf("%.0f GiB", values / 1024^3), collapse = " | ")
+}
 pc_clock <- function(seconds) {
   if (is.null(seconds) || !nzchar(seconds)) return("–")
   s <- round(as.numeric(seconds))
@@ -440,7 +483,8 @@ pc_new_table <- function(comparison, plan) {
     time <- c("fit_seconds", "predict_seconds")
     heap <- c("fit_heap_bytes", "predict_heap_bytes")
     planned <- plan[plan$case == case, , drop = FALSE]
-    flagged <- unique(metric_label[values$metric[nzchar(values$flag)]])
+    at <- nzchar(values$flag)
+    flagged <- unique(trimws(paste(metric_label[values$metric[at]], values$status[at])))
     notes <- unique(values$note[nzchar(values$note)])
     flag <- paste(c(if (length(flagged)) sprintf("> 1.10 (%s)", paste(flagged, collapse = ", ")), notes),
                   collapse = "; ")
@@ -463,46 +507,95 @@ pc_summary <- function(run, comparison, plan) {
   walls <- vapply(parts, function(part) sprintf("%s %s (exit %s)", part, pc_clock(run[[paste0("wall_seconds_", part)]]),
                                                 run[[paste0("exit_", part)]] %||% "not run"), "")
   failed_parts <- parts[vapply(parts, function(part) !identical(run[[paste0("exit_", part)]], "0"), TRUE)]
-  failed <- if (length(failed_parts)) {
-    paste(vapply(failed_parts, function(part) {
+  failed_again <- parts[vapply(parts, function(part) !(run[[paste0("exit_remeasure_", part)]] %||% "") %in% c("", "0"), TRUE)]
+  failed <- if (length(failed_parts) || length(failed_again)) {
+    paste(c(vapply(failed_parts, function(part) {
       cases <- run[[paste0("failed_cases_", part)]] %||% ""
       if (nzchar(cases)) sprintf("%s (cases: %s)", part, gsub(";", ", ", cases)) else part
+    }, ""), if (length(failed_again)) paste(failed_again, "remeasure")), collapse = "; ")
+  } else "none"
+  remeasured_parts <- parts[vapply(parts, function(part) nzchar(run[[paste0("remeasured_", part)]] %||% ""), TRUE)]
+  remeasured <- if (length(remeasured_parts)) {
+    paste(vapply(remeasured_parts, function(part) {
+      sprintf("%s %s (exit %s; cases: %s)", part, pc_clock(run[[paste0("wall_seconds_remeasure_", part)]]),
+              run[[paste0("exit_remeasure_", part)]], gsub(";", ", ", run[[paste0("remeasured_", part)]]))
     }, ""), collapse = "; ")
   } else "none"
-  ram <- suppressWarnings(as.numeric(run$ram_bytes))
+  combined <- if (!is.null(run$combined_runs)) {
+    hosts <- vapply(parts, function(part) {
+      sprintf("%s on %s, %s cores, %s", part, run[[paste0("cpu_", part)]], run[[paste0("cores_", part)]],
+              pc_gib(run[[paste0("ram_bytes_", part)]]))
+    }, "")
+    c(sprintf("- Combined from %s runs, each measuring both libraries: %s", run$combined_runs,
+              paste(hosts, collapse = "; ")),
+      if (identical(run$packages, "differ")) "- Dependencies differ between the runs; see packages.csv")
+  }
   archive <- function(role) sprintf("%s vennabers %s (`%s`, SHA-256 %s…)", role, run[[paste0(role, "_version")]],
                                     run[[paste0(role, "_file")]], substr(run[[paste0(role, "_sha256")]], 1L, 12L))
   historical <- setdiff(parts, "new")
   history <- if (length(historical)) {
     counts <- vapply(historical, function(part) {
       values <- comparison[comparison$part == part, ]
-      sprintf("- %s: %d cases, %d flagged", part, length(unique(values$case)),
-              length(unique(values$case[nzchar(values$flag)])))
+      sprintf("- %s: %d cases, %d flagged, %d confirmed", part, length(unique(values$case)),
+              length(unique(values$case[nzchar(values$flag)])), length(unique(values$case[values$status == "confirmed"])))
     }, "")
     flagged <- comparison[comparison$part %in% historical & nzchar(comparison$flag), ]
     c("", "## Historical parts", "", unname(counts),
-      if (nrow(flagged)) c("", "| Part | Case | Metric | Previous | Candidate | Ratio | Flag |",
-        "| --- | --- | --- | ---: | ---: | ---: | --- |",
-        sprintf("| %s | `%s` | %s | %s | %s | %s | %s |", flagged$part, flagged$case, flagged$metric,
+      if (nrow(flagged)) c("", "| Part | Case | Metric | Previous | Candidate | Ratio | Flag | Remeasure | Status |",
+        "| --- | --- | --- | ---: | ---: | ---: | --- | ---: | --- |",
+        sprintf("| %s | `%s` | %s | %s | %s | %s | %s | %s | %s |", flagged$part, flagged$case, flagged$metric,
                 pc_value(flagged$median_previous, flagged$unit), pc_value(flagged$median_candidate, flagged$unit),
-                pc_ratio(flagged$ratio), flagged$flag)))
+                pc_ratio(flagged$ratio), flagged$flag, pc_ratio(flagged$remeasure_ratio), flagged$status)))
   }
   c("# Performance comparison",
     "",
     sprintf("**%s**", pc_headline(run)),
     "",
-    sprintf("- Platform: %s; %s, %s cores, %s RAM; %s", run$platform, run$cpu, run$cores,
-            if (is.na(ram)) "unknown" else sprintf("%.0f GiB", ram / 1024^3), run$os),
+    sprintf("- Platform: %s; %s, %s cores, %s RAM; %s", run$platform, run$cpu, run$cores, pc_gib(run$ram_bytes),
+            run$os),
     sprintf("- R: %s; BLAS %s; LAPACK %s; %s", run$r, run$blas, run$lapack, run$threads),
     sprintf("- Archives: %s; %s", archive("previous"), archive("candidate")),
     sprintf("- Wall time: %s; total %s", paste(walls, collapse = ", "), pc_clock(run$wall_seconds_total)),
+    sprintf("- Remeasured: %s", remeasured),
     sprintf("- Failed: %s", failed),
+    combined,
     "",
     "## New performance cases",
     "",
     pc_new_table(comparison, plan),
     history)
 }
+
+# The single values of all parts with their pass: "first" from <part>/,
+# "remeasure" from <part>-remeasure/. A combined run takes them from the
+# measurements.csv of each joined run under runs/.
+pc_gather <- function(out, run) {
+  parts <- strsplit(run$parts, ",", fixed = TRUE)[[1L]]
+  if (!is.null(run$combined_runs)) {
+    files <- file.path(list.dirs(file.path(out, "runs"), recursive = FALSE), "measurements.csv")
+    long <- lapply(files, function(path) {
+      utils::read.csv(path, colClasses = c("character", "character", "character", "integer", "character", "numeric",
+                                           "character", "character"), na.strings = "")
+    })
+    long <- do.call(rbind, c(list(pc_empty_measurements()), long))
+    long <- long[long$part %in% parts, ]
+    long <- long[order(match(long$part, pc_parts), match(long$pass, c("first", "remeasure"))), ]
+    rownames(long) <- NULL
+    return(long)
+  }
+  passes <- c(first = "", remeasure = "-remeasure")
+  do.call(rbind, c(list(pc_empty_measurements()), unlist(lapply(parts, function(part) {
+    lapply(names(passes), function(pass) {
+      dir <- file.path(out, paste0(part, passes[[pass]]))
+      if (dir.exists(dir)) {
+        long <- pc_part_function("read", part)(dir)
+        data.frame(long, pass = rep(pass, nrow(long)))
+      }
+    })
+  }), recursive = FALSE)))
+}
+
+pc_empty_measurements <- function() data.frame(pc_empty_long(), pass = character())
 
 # Rebuilds measurements.csv, comparison.csv, summary.md and the derived fields
 # of run.csv from the raw outputs under `out`. It never measures.
@@ -511,19 +604,119 @@ pc_summarize <- function(out) {
   if (!length(run)) stop("No run.csv in ", out, call. = FALSE)
   run <- c(run[setdiff(names(run), pc_derived_keys(run))], pc_derive(run, out))
   pc_write_keys(run, file.path(out, "run.csv"))
-  parts <- strsplit(run$parts, ",", fixed = TRUE)[[1L]]
-  measurements <- do.call(rbind, c(list(pc_empty_long()), lapply(parts, function(part) {
-    dir <- file.path(out, part)
-    if (dir.exists(dir)) pc_part_function("read", part)(dir)
-  })))
+  measurements <- pc_gather(out, run)
   utils::write.csv(measurements, file.path(out, "measurements.csv"), row.names = FALSE, na = "")
-  comparison <- pc_compare(measurements, smoke = identical(run$size, "quick"))
+  comparison <- pc_compare_passes(measurements, smoke = identical(run$size, "quick"))
   utils::write.csv(comparison, file.path(out, "comparison.csv"), row.names = FALSE, na = "")
   plan_file <- file.path(out, "new", "plan.csv")
   plan <- if (file.exists(plan_file)) utils::read.csv(plan_file) else data.frame(case = character())
   summary <- pc_summary(run, comparison, plan)
   writeLines(summary, file.path(out, "summary.md"))
   invisible(summary)
+}
+
+# Keys every joined run must share, and host keys that may differ between CI
+# jobs; the latter are kept per part.
+pc_shared_keys <- c("platform", "linux_x86_64", "size", "r", "threads", "previous_file", "previous_version",
+                    "previous_sha256", "candidate_file", "candidate_version", "candidate_sha256")
+pc_host_keys <- c("cpu", "cores", "ram_bytes", "os", "blas", "lapack", "deps_lib")
+
+# Joins summarized runs of disjoint parts into one run under `out`: run.csv,
+# packages.csv and measurements.csv of each go to runs/<parts>/, the status
+# files of each part (and the plan of part new) to <out>/<part>/. Only Linux
+# x86_64 runs of all four parts at measurement size make a reference run.
+pc_combine <- function(out, runs) {
+  if (dir.exists(out) && length(list.files(out, all.files = TRUE, no.. = TRUE))) {
+    stop(out, " is not empty; combining needs an empty output directory.", call. = FALSE)
+  }
+  runs <- normalizePath(runs, mustWork = TRUE)
+  headers <- lapply(runs, function(dir) {
+    run <- pc_read_keys(file.path(dir, "run.csv"))
+    if (!length(run) || !file.exists(file.path(dir, "measurements.csv"))) {
+      stop(dir, " holds no summarized run.", call. = FALSE)
+    }
+    if (!is.null(run$combined_runs)) stop(dir, " is already a combined run.", call. = FALSE)
+    run
+  })
+  parts <- lapply(headers, function(run) strsplit(run$parts, ",", fixed = TRUE)[[1L]])
+  twice <- unique(unlist(parts)[duplicated(unlist(parts))])
+  if (length(twice)) stop("More than one run has part(s) ", paste(twice, collapse = ", "), ".", call. = FALSE)
+  for (key in pc_shared_keys) {
+    values <- unique(vapply(headers, function(run) run[[key]] %||% "", ""))
+    if (length(values) > 1L) stop("The runs differ in ", key, ": ", paste(values, collapse = " / "), call. = FALSE)
+  }
+  first <- headers[[1L]]
+  all <- pc_parts[pc_parts %in% unlist(parts)]
+  run <- first[setdiff(names(first), pc_derived_keys(first))]
+  run$parts <- paste(all, collapse = ",")
+  run$reference <- as.character(identical(first$linux_x86_64, "TRUE") && setequal(all, pc_parts) &&
+                                  identical(first$size, "measurement"))
+  run$start_utc <- min(vapply(headers, function(header) header$start_utc, ""))
+  for (key in pc_host_keys) {
+    run[[key]] <- paste(unique(vapply(headers, function(header) header[[key]] %||% "unknown", "")), collapse = " | ")
+  }
+  dir.create(out, recursive = TRUE, showWarnings = FALSE)
+  out <- normalizePath(out)
+  packages <- list()
+  for (i in seq_along(runs)) {
+    target <- file.path(out, "runs", paste(parts[[i]], collapse = "+"))
+    dir.create(target, recursive = TRUE)
+    file.copy(file.path(runs[[i]], c("run.csv", "packages.csv", "measurements.csv")), target)
+    for (part in parts[[i]]) {
+      for (key in c("cpu", "cores", "ram_bytes")) run[[paste0(key, "_", part)]] <- headers[[i]][[key]] %||% "unknown"
+      for (dir in c(part, paste0(part, "-remeasure"))) {
+        files <- file.path(runs[[i]], dir, c("status.csv", if (dir == "new") "plan.csv"))
+        files <- files[file.exists(files)]
+        if (length(files)) {
+          dir.create(file.path(out, dir))
+          file.copy(files, file.path(out, dir))
+        }
+      }
+    }
+    packages[[i]] <- utils::read.csv(file.path(runs[[i]], "packages.csv"), colClasses = "character")
+  }
+  same <- all(vapply(packages, identical, TRUE, packages[[1L]]))
+  run$packages <- if (same) "identical" else "differ"
+  run$combined_runs <- as.character(length(runs))
+  utils::write.csv(if (same) packages[[1L]] else do.call(rbind, lapply(seq_along(packages), function(i) {
+    data.frame(packages[[i]], parts = rep(paste(parts[[i]], collapse = "+"), nrow(packages[[i]])))
+  })), file.path(out, "packages.csv"), row.names = FALSE)
+  pc_write_keys(run, file.path(out, "run.csv"))
+  pc_summarize(out)
+}
+
+# Runs one part into context$dir and writes its status.csv; a remeasurement
+# (context$cases) also records its cases.
+pc_run_part <- function(part, context) {
+  dir.create(context$dir)
+  label <- if (length(context$cases)) paste(part, "remeasure") else paste("part", part)
+  start <- Sys.time()
+  message("Running ", label, " ...")
+  result <- tryCatch(pc_part_function("run", part)(context), error = function(e) {
+    message(label, " failed: ", conditionMessage(e))
+    list(exit = 1L, failed_cases = character())
+  })
+  end <- Sys.time()
+  pc_write_keys(c(list(start_utc = pc_utc(start), end_utc = pc_utc(end),
+                       wall_seconds = format(round(as.numeric(difftime(end, start, units = "secs")), 3)),
+                       exit = as.character(result$exit), failed_cases = paste(result$failed_cases, collapse = ";")),
+                  if (length(context$cases)) list(cases = paste(context$cases, collapse = ";"))),
+                file.path(context$dir, "status.csv"))
+  message(label, " ended with exit ", result$exit)
+  invisible(result)
+}
+
+# Runs a part and, at measurement size, once more for its flagged cases.
+pc_run_with_remeasure <- function(part, context, out) {
+  pc_run_part(part, c(context, list(dir = file.path(out, part))))
+  if (context$quick) return(invisible(character()))
+  long <- tryCatch(pc_part_function("read", part)(file.path(out, part)), error = function(e) {
+    message("Reading part ", part, " for the remeasurement failed: ", conditionMessage(e))
+    NULL
+  })
+  cases <- if (!is.null(long)) pc_remeasure_cases(pc_compare(long, smoke = FALSE)) else character()
+  if (length(cases)) pc_run_part(part, c(context, list(dir = file.path(out, paste0(part, "-remeasure")), cases = cases)))
+  invisible(cases)
 }
 
 pc_install <- function(tarball, lib, log) {
@@ -551,6 +744,10 @@ pc_main <- function(args, tools) {
     writeLines(pc_summarize(normalizePath(options$out)))
     return(0L)
   }
+  if (isTRUE(options$combine)) {
+    writeLines(pc_combine(options$out, options$runs))
+    return(0L)
+  }
   if (dir.exists(options$out) && length(list.files(options$out, all.files = TRUE, no.. = TRUE))) {
     stop(options$out, " is not empty; every run needs an empty output directory.", call. = FALSE)
   }
@@ -573,29 +770,16 @@ pc_main <- function(args, tools) {
     pc_probe(libs[[role]], deps, archives[[role]]$version)
   }
   do.call(Sys.setenv, as.list(pc_thread_env))
-  for (part in options$parts) {
-    dir <- file.path(out, part)
-    dir.create(dir)
-    start <- Sys.time()
-    message("Running part ", part, " ...")
-    result <- tryCatch(pc_part_function("run", part)(list(
-      previous_lib = libs[["previous"]], candidate_lib = libs[["candidate"]], deps = deps, dir = dir,
-      previous_version = archives$previous$version,
-      quick = options$quick, linux_x86_64 = identical(kind$linux_x86_64, "TRUE"), tools = tools)),
-      error = function(e) {
-        message("Part ", part, " failed: ", conditionMessage(e))
-        list(exit = 1L, failed_cases = character())
-      })
-    end <- Sys.time()
-    pc_write_keys(list(start_utc = pc_utc(start), end_utc = pc_utc(end),
-                       wall_seconds = format(round(as.numeric(difftime(end, start, units = "secs")), 3)),
-                       exit = as.character(result$exit), failed_cases = paste(result$failed_cases, collapse = ";")),
-                  file.path(dir, "status.csv"))
-    message("Part ", part, " ended with exit ", result$exit)
-  }
+  context <- list(previous_lib = libs[["previous"]], candidate_lib = libs[["candidate"]], deps = deps,
+                  previous_version = archives$previous$version, quick = options$quick,
+                  linux_x86_64 = identical(kind$linux_x86_64, "TRUE"), tools = tools)
+  for (part in options$parts) pc_run_with_remeasure(part, context, out)
   writeLines(pc_summarize(out))
   run <- pc_read_keys(file.path(out, "run.csv"))
-  if (all(vapply(options$parts, function(part) identical(run[[paste0("exit_", part)]], "0"), TRUE))) 0L else 1L
+  ok <- vapply(options$parts, function(part) {
+    identical(run[[paste0("exit_", part)]], "0") && run[[paste0("exit_remeasure_", part)]] %in% c("", "0")
+  }, TRUE)
+  if (all(ok)) 0L else 1L
 }
 
 if (sys.nframe() == 0L) {

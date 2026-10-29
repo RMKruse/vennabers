@@ -1,8 +1,11 @@
 # Separate from package checks. Part performance of tools/performance-comparison.R
 # (see tools/RELEASE.md); the v0.3-v0.7 cases are unchanged. Library mode:
 #   Rscript --vanilla tools/performance.R CURRENT-LIBRARY PREVIOUS-LIBRARY OUTPUT [--previous-version VERSION] [--smoke]
+#     [--cases a,b]
 # Dependencies come from R_LIBS. A 1.x candidate runs all v0.7 cases on both
 # libraries, needs --previous-version and uses one process per case and library.
+# Each case runs on the previous library, then on the current one. --cases
+# measures only the named cases; all inputs are still prepared.
 local({
   args <- commandArgs(TRUE)
   script <- normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)))
@@ -164,8 +167,11 @@ local({
   at <- match("--previous-version", args)
   previous_version <- if (is.na(at)) NULL else args[at + 1L]
   if (!is.na(at)) args <- args[-c(at, at + 1L)]
-  if (length(args) != 3L || identical(previous_version, NA_character_)) {
-    stop("Usage: Rscript tools/performance.R CURRENT-LIBRARY PREVIOUS-LIBRARY OUTPUT [--previous-version VERSION] [--smoke]")
+  at <- match("--cases", args)
+  chosen <- if (is.na(at)) NULL else strsplit(args[at + 1L], ",", fixed = TRUE)[[1L]]
+  if (!is.na(at)) args <- args[-c(at, at + 1L)]
+  if (length(args) != 3L || identical(previous_version, NA_character_) || anyNA(chosen)) {
+    stop("Usage: Rscript tools/performance.R CURRENT-LIBRARY PREVIOUS-LIBRARY OUTPUT [--previous-version VERSION] [--smoke] [--cases a,b]")
   }
   linux <- Sys.info()[["sysname"]] == "Linux"
   if (!(linux && R.version$arch == "x86_64") && !smoke) stop("Release measurements require Linux x86_64. Use --smoke for non-release validation.")
@@ -435,13 +441,15 @@ local({
     cat("Inputs prepared; no measurements or release evidence.\n")
     return(invisible(NULL))
   }
+  unknown <- setdiff(chosen, plan$case)
+  if (length(unknown)) stop("Unknown case(s): ", paste(unknown, collapse = ", "))
   all_runs <- list()
-  for (release in c("current", "previous")) {
-    i <- match(release, c("current", "previous"))
-    lib <- libraries[i]
-    version <- versions[[i]]
-    selected <- if (release == "current") plan$case else plan$case[plan$previous_supported]
-    for (id in selected) {
+  for (id in if (is.null(chosen)) plan$case else plan$case[plan$case %in% chosen]) {
+    for (release in c("previous", "current")) {
+      i <- match(release, c("current", "previous"))
+      lib <- libraries[i]
+      version <- versions[[i]]
+      if (release == "previous" && !plan$previous_supported[plan$case == id]) next
       cat(release, id, "\n")
       prefix <- file.path(output, paste(release, id, sep = "-"))
       worker <- c(shQuote(rscript), "--vanilla", shQuote(script), "--case",

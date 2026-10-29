@@ -5,6 +5,7 @@
 # outer folds, plus IVAP 100k). v0.9 postprocessing cases: tools/benchmark-v09.R.
 # Both run on the previous release and the candidate; the fifth argument runs
 # only one of them. BENCH_QUICK=1 sets BENCH_REPS=1 and skips the tuned cases.
+# BENCH_CASES=a,b runs only the named cases (without the part prefix).
 # The process peak comes from /usr/bin/time (-l on macOS, -v GNU time on Linux).
 # Exits with status 1 if a case failed. Run from the repository root.
 set -eu
@@ -13,6 +14,7 @@ case $selected in ""|shared|v09) ;; *) echo "Unknown part: $selected" >&2; exit 
 mkdir -p "$out"
 export OMP_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
 quick=${BENCH_QUICK:-0}
+cases=${BENCH_CASES:-}
 [ "$quick" = 1 ] && export BENCH_REPS=1
 time_flag=-v; [ "$(uname)" = Darwin ] && time_flag=-l
 failed=0
@@ -24,6 +26,7 @@ run() { # label lib script args...
 }
 both() { # part case script args... (each library gets its own RDS path)
   part=$1; case=$2; shift 2
+  if [ -n "$cases" ]; then case ",$cases," in *",$case,"*) ;; *) return 0 ;; esac; fi
   for artifact in previous candidate; do
     lib=$candidate; [ "$artifact" = previous ] && lib=$previous
     run "$part-$artifact-$case" "$lib" "$@" "$out/$part-$artifact-$case.rds"
