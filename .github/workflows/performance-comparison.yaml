@@ -1,0 +1,194 @@
+# Performance comparison from RELEASE-ROADMAP-1.x.md, sections 3.4 and 4: the
+# previous release against this ref's source package on the Linux reference
+# machine, a GitHub-hosted ubuntu-24.04 runner. One job per part measures both
+# libraries, case by case, and remeasures flagged cases once; a last job joins
+# the four runs into one summary. Release acceptance only; started by hand,
+# never by a push.
+name: performance-comparison
+
+on:
+  workflow_dispatch:
+    inputs:
+      previous:
+        description: Previous release as a CRAN version or a source tarball URL
+        default: "1.0.0"
+      previous_ref:
+        description: Git ref to build the previous release from instead, while it is not on CRAN
+        default: ""
+      quick:
+        description: Smoke run (--quick), not a measurement
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  source:
+    name: Build source packages
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+      - name: Install GNU time
+        run: sudo apt-get update && sudo apt-get install -y time
+      - name: Check the performance comparison helpers
+        run: Rscript --vanilla tools/test-performance-comparison.R
+      # Only R code and data are measured; vignettes and the manual are not
+      # built. All parts measure these same two archives.
+      - name: Build
+        env:
+          PREVIOUS: ${{ inputs.previous }}
+          PREVIOUS_REF: ${{ inputs.previous_ref }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/source/candidate" "$RUNNER_TEMP/source/previous"
+          cd "$RUNNER_TEMP/source/candidate"
+          R CMD build --no-build-vignettes --no-manual "$GITHUB_WORKSPACE"
+          cd "$RUNNER_TEMP/source/previous"
+          if [ -n "$PREVIOUS_REF" ]; then
+            mkdir "$RUNNER_TEMP/previous-checkout"
+            git -C "$GITHUB_WORKSPACE" archive "$PREVIOUS_REF" | tar -x -C "$RUNNER_TEMP/previous-checkout"
+            R CMD build --no-build-vignettes --no-manual "$RUNNER_TEMP/previous-checkout"
+          else
+            case "$PREVIOUS" in
+              http://*|https://*) curl -fsSLO "$PREVIOUS" ;;
+              *)
+                file="vennabers_$PREVIOUS.tar.gz"
+                curl -fsSLO "https://cran.r-project.org/src/contrib/$file" ||
+                  curl -fsSLO "https://cran.r-project.org/src/contrib/Archive/vennabers/$file"
+                ;;
+            esac
+          fi
+          cd "$RUNNER_TEMP/source"
+          sha256sum -- */vennabers_*.tar.gz | tee SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: performance-source-packages
+          path: ${{ runner.temp }}/source
+          overwrite: true
+
+  measure:
+    needs: source
+    name: Part ${{ matrix.part }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [new, performance, shared, v09]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install GNU time
+        run: sudo apt-get update && sudo apt-get install -y time
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+      # The parts need the integration packages of Suggests; the dependency
+      # library must not hold vennabers itself, which the starter checks.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"all"'
+      - uses: actions/download-artifact@v4
+        with:
+          name: performance-source-packages
+          path: ${{ runner.temp }}/source
+      - name: Measure
+        env:
+          PART: ${{ matrix.part }}
+          QUICK: ${{ inputs.quick }}
+        run: |
+          deps=$(Rscript --vanilla -e 'cat(.libPaths()[[1L]])')
+          out="$RUNNER_TEMP/performance/$PART"
+          quick=
+          if [ "$QUICK" = true ]; then quick=--quick; fi
+          set -o pipefail
+          status=0
+          Rscript --vanilla tools/performance-comparison.R --parts "$PART" $quick \
+            "$RUNNER_TEMP"/source/previous/vennabers_*.tar.gz "$RUNNER_TEMP"/source/candidate/vennabers_*.tar.gz \
+            "$deps" "$out" | tee -a "$GITHUB_STEP_SUMMARY" || status=$?
+          mkdir -p "$out"
+          echo "- $PART: runner image $ImageOS $ImageVersion, runner $RUNNER_NAME" > "$out/runner.md"
+          exit "$status"
+      # Without the input and model RDS files and the installed libraries;
+      # the summarized run is enough for the combining job.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: part-${{ matrix.part }}
+          path: |
+            ${{ runner.temp }}/performance/${{ matrix.part }}
+            !${{ runner.temp }}/performance/${{ matrix.part }}/*-lib
+            !${{ runner.temp }}/performance/${{ matrix.part }}/new*/inputs
+            !${{ runner.temp }}/performance/${{ matrix.part }}/performance*/output/*-input.rds
+            !${{ runner.temp }}/performance/${{ matrix.part }}/performance*/output/*-model.rds
+            !${{ runner.temp }}/performance/${{ matrix.part }}/performance*/output/*-prediction.rds
+            !${{ runner.temp }}/performance/${{ matrix.part }}/performance*/output/*-outer.rds
+            !${{ runner.temp }}/performance/${{ matrix.part }}/performance*/output/*-decoded.rds
+          overwrite: true
+
+  combine:
+    needs: [source, measure]
+    if: ${{ always() && needs.source.result == 'success' }}
+    name: Combine the parts
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+      - uses: actions/download-artifact@v4
+        with:
+          name: performance-source-packages
+          path: ${{ runner.temp }}/source
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: part-*
+          path: ${{ runner.temp }}/runs
+      - name: Combine
+        env:
+          PREVIOUS: ${{ inputs.previous }}
+          PREVIOUS_REF: ${{ inputs.previous_ref }}
+          QUICK: ${{ inputs.quick }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/combined"
+          # Ties the summary to the dispatched commit, the run and the compared archives.
+          {
+            echo "# Performance comparison run"
+            echo
+            echo "- Commit: $GITHUB_SHA ($GITHUB_REF_NAME)"
+            echo "- Previous: ${PREVIOUS_REF:-$PREVIOUS}"
+            echo "- Smoke run: $QUICK"
+            echo "- Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID (attempt $GITHUB_RUN_ATTEMPT)"
+            echo "- Archives built on CI (SHA-256):"
+            while read -r hash file; do echo "  - $file: \`$hash\`"; done < "$RUNNER_TEMP/source/SHA256SUMS"
+            echo "- Runners:"
+            for runner in "$RUNNER_TEMP"/runs/part-*/runner.md; do
+              if [ -e "$runner" ]; then sed 's/^/  /' "$runner"; fi
+            done
+            echo
+          } | tee "$RUNNER_TEMP/run.md" >> "$GITHUB_STEP_SUMMARY"
+          # A part whose job stopped before its summary is left out; the
+          # summary then names only the parts it has.
+          runs=()
+          for run in "$RUNNER_TEMP"/runs/part-*; do
+            if [ -e "$run/measurements.csv" ]; then runs+=("$run"); fi
+          done
+          set -o pipefail
+          Rscript --vanilla tools/performance-comparison.R --combine "$RUNNER_TEMP/combined/summary" "${runs[@]}" |
+            tee -a "$GITHUB_STEP_SUMMARY"
+          mv "$RUNNER_TEMP/run.md" "$RUNNER_TEMP/combined/run.md"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-comparison
+          path: ${{ runner.temp }}/combined
+          overwrite: true
