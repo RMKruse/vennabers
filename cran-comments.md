@@ -1,3 +1,10 @@
+## Request from the review of 1.0.0
+
+When 1.0.0 was accepted, the reviewers asked for the references in the
+Description field to use the form authors (year) <doi:...>. All five
+references now read that way, with the year in parentheses and no commas;
+the two PMLR papers have no DOI and use authors (year) <https:...>.
+
 ## Test environments
 
 * win-builder: R-release (4.6.1) and R-devel

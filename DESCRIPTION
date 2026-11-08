@@ -8,15 +8,16 @@ Description: Calibrates the predictions of classification and regression
     models with Venn-Abers predictors. A Venn-Abers predictor turns the
     score of any model into a pair of probabilities that contains a
     calibrated value when the observations are independent and identically
-    distributed (Vovk and Petej, 2014, <doi:10.48550/arXiv.1211.0025>);
-    Inductive and Cross Venn-Abers predictors make this practical for large
-    data sets (Vovk, Petej and Fedorova, 2015,
-    <doi:10.48550/arXiv.1511.00213>). The package serves analysts and
-    researchers who need calibrated probabilities or prediction bounds for
-    binary classification, multiclass classification by one-vs-one coupling
-    (Manokhin, 2017, <https://proceedings.mlr.press/v60/manokhin17a.html>)
-    or one-vs-rest, and regression (Petej and Vovk, 2026,
-    <https://proceedings.mlr.press/v329/petej26a.html>). Predictions of an
+    distributed, as shown by Vovk and Petej (2014)
+    <doi:10.48550/arXiv.1211.0025>; the Inductive and Cross Venn-Abers
+    predictors of Vovk, Petej and Fedorova (2015)
+    <doi:10.48550/arXiv.1511.00213> make this practical for large data sets.
+    The package serves analysts and researchers who need calibrated
+    probabilities or prediction bounds for binary classification, multiclass
+    classification by the one-vs-one coupling of Manokhin (2017)
+    <https://proceedings.mlr.press/v60/manokhin17a.html> or by one-vs-rest,
+    and regression with the method of Petej and Vovk (2026)
+    <https://proceedings.mlr.press/v329/petej26a.html>. Predictions of an
     existing model can be calibrated directly, or optional 'tidymodels'
     workflows fit the model, create the calibration splits and tune the
     complete procedure.
