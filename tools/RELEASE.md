@@ -269,8 +269,9 @@ Rscript --vanilla tools/performance-comparison.R --summarize <out>
 Rscript --vanilla tools/performance-comparison.R --combine <out> <run>...
 ```
 
-The reference run happens on CI (see "Linux reference run" below); a local
-run serves as a rehearsal. `<out>` must be empty or missing. Put it under
+The reference run happens on the maintainer's Linux machine (see "Linux
+reference run" below); a run elsewhere serves as a rehearsal. `<out>` must be
+empty or missing. Put it under
 `venn-abers-candidates/<version>-<commit>/`, never in `.scratch`; the input
 RDS files of part new alone take about 0.5 GB. The starter installs both
 archives once into `<out>` and records their SHA-256. A probe process with
@@ -538,10 +539,20 @@ script's header.
 
 ### Linux reference run
 
-The reference run happens on the `performance-comparison` workflow, on
-GitHub-hosted `ubuntu-24.04` runners (Linux x86_64). Like the archive
-comparison, it is started by hand on the candidate ref and must also exist on
-`main` to be offered:
+The reference run happens on the maintainer's machine: Ubuntu 24.04 under
+WSL2, x86_64, 24 cores, 30 GB RAM. Build both source packages there without
+vignettes or manual (the previous one from `git archive <previous_ref>`), run
+`tools/test-performance-comparison.R`, then a smoke run with `--quick`, then
+one run of all parts at measurement size, as above. Leave the machine
+otherwise idle while it runs: the Windows host underneath shares its CPU.
+Copy `summary.md` unchanged to `.scratch/<version>/` and record the host
+(CPU, cores, RAM, kernel and WSL version), R version and both archive hashes
+in the release log.
+
+The `performance-comparison` workflow is the fallback, on GitHub-hosted
+`ubuntu-24.04` runners (Linux x86_64). Like the archive comparison, it is
+started by hand on the candidate ref and must also exist on `main` to be
+offered:
 
 ```sh
 gh workflow run performance-comparison.yaml --ref v1.1.0 -f previous_ref=71f1041 [-f quick=true]
