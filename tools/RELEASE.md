@@ -362,10 +362,15 @@ release acceptance investigates and justifies each one.
 environment, wall times, remeasured cases and failures (for a combined run
 also the host of each part). It always shows the full table of the nine new
 cases (rows and knots from the plan; time, process peak, heap and RDS size of
-the fit cases; the flag names each flagged metric with its status), and from
-the historical parts only the flagged rows, with remeasure ratio and status,
-and a count of cases, flagged and confirmed per part. Copy it unchanged to `.scratch/<version>/`; the other
-files stay in `<out>`.
+the fit cases; the flag names each flagged metric with its status). From the
+historical parts it shows a count of cases, flagged, confirmed and improved
+per part, the flagged rows with remeasure ratio and status, and a table
+"Improvements": every time, peak, heap or RDS size with ratio below 0.90 and
+at least the flags' absolute difference (0.01 s or 1 MiB). Improvements are
+not remeasured, do not affect the exit status and are absent from a smoke
+run; they back the release notes' performance claims for the historical
+cases. Copy it unchanged to `.scratch/<version>/`; the other files stay in
+`<out>`.
 
 `--summarize <out>` rebuilds `measurements.csv`, `comparison.csv`,
 `summary.md` and the derived fields of `run.csv` from the raw outputs and the

@@ -16,7 +16,9 @@
 # case with a "> 1.10" flag is measured once more, both libraries, into
 # <part>-remeasure/; it counts as a regression only if the remeasurement
 # flags it again. A failed part does not stop the others, but the run then
-# exits with status 1. Flags never fail a run. --summarize rebuilds
+# exits with status 1. Flags never fail a run. Improvements (ratio below 0.90)
+# of the historical parts are listed in summary.md but never remeasured and
+# never change the exit status. --summarize rebuilds
 # measurements.csv, comparison.csv, summary.md and the derived fields of
 # run.csv from the raw outputs without measuring. --combine joins summarized
 # runs of disjoint parts with the same archives, platform and size (one CI
@@ -165,6 +167,16 @@ pc_compare <- function(measurements, smoke) {
                          result$metric), ]
   rownames(result) <- NULL
   result
+}
+
+# The rows of a comparison that improved: a ratio below 0.90 with at least the
+# flags' absolute difference, 0.01 s or 1 MiB. Counters have no ratio and never
+# improve. Improvements are not remeasured. A smoke run has none.
+pc_improvements <- function(comparison, smoke) {
+  floor <- ifelse(comparison$unit == "seconds", 0.01, 1048576)
+  better <- !smoke & !is.na(comparison$ratio) & round(comparison$ratio, 6) < 0.9 &
+    round(comparison$median_previous - comparison$median_candidate, 6) >= floor
+  comparison[better, , drop = FALSE]
 }
 
 # The cases a remeasurement repeats: those with a "> 1.10" flag. Counters are
@@ -534,10 +546,12 @@ pc_summary <- function(run, comparison, plan) {
                                     run[[paste0(role, "_file")]], substr(run[[paste0(role, "_sha256")]], 1L, 12L))
   historical <- setdiff(parts, "new")
   history <- if (length(historical)) {
+    improved <- pc_improvements(comparison[comparison$part %in% historical, ], identical(run$size, "quick"))
     counts <- vapply(historical, function(part) {
       values <- comparison[comparison$part == part, ]
-      sprintf("- %s: %d cases, %d flagged, %d confirmed", part, length(unique(values$case)),
-              length(unique(values$case[nzchar(values$flag)])), length(unique(values$case[values$status == "confirmed"])))
+      sprintf("- %s: %d cases, %d flagged, %d confirmed, %d improved", part, length(unique(values$case)),
+              length(unique(values$case[nzchar(values$flag)])), length(unique(values$case[values$status == "confirmed"])),
+              length(unique(improved$case[improved$part == part])))
     }, "")
     flagged <- comparison[comparison$part %in% historical & nzchar(comparison$flag), ]
     c("", "## Historical parts", "", unname(counts),
@@ -545,7 +559,13 @@ pc_summary <- function(run, comparison, plan) {
         "| --- | --- | --- | ---: | ---: | ---: | --- | ---: | --- |",
         sprintf("| %s | `%s` | %s | %s | %s | %s | %s | %s | %s |", flagged$part, flagged$case, flagged$metric,
                 pc_value(flagged$median_previous, flagged$unit), pc_value(flagged$median_candidate, flagged$unit),
-                pc_ratio(flagged$ratio), flagged$flag, pc_ratio(flagged$remeasure_ratio), flagged$status)))
+                pc_ratio(flagged$ratio), flagged$flag, pc_ratio(flagged$remeasure_ratio), flagged$status)),
+      if (nrow(improved)) c("", "### Improvements", "",
+        "Ratio below 0.90 and at least 0.01 s or 1 MiB less; not remeasured.", "",
+        "| Part | Case | Metric | Previous | Candidate | Ratio |", "| --- | --- | --- | ---: | ---: | ---: |",
+        sprintf("| %s | `%s` | %s | %s | %s | %s |", improved$part, improved$case, improved$metric,
+                pc_value(improved$median_previous, improved$unit), pc_value(improved$median_candidate, improved$unit),
+                pc_ratio(improved$ratio))))
   }
   c("# Performance comparison",
     "",
