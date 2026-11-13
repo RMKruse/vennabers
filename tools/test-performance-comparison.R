@@ -45,6 +45,20 @@ stopifnot(identical(flag(1, 1.1), ""), identical(flag(0.5, 0.55), ""), identical
   identical(compare(0.01, 0.01)$note, ""),
   identical(compare(c(1, 3, 2), c(2, 9, 2))$median_candidate, 2), identical(compare(c(1, 3, 2), c(2, 9, 2))$ratio, 1))
 
+# Improvements: ratio below 0.90 and at least 0.01 s or 1 MiB less; no flag,
+# no counters, never in a smoke run. Fixture: one case below 0.90, one just
+# above, one below the absolute floor.
+improved <- function(..., smoke = FALSE) nrow(pc_improvements(compare(..., smoke = smoke), smoke)) == 1L
+fixture <- rbind(transform(pair(1, 0.85), case = "below"), transform(pair(1, 0.901), case = "above"),
+                 transform(pair(0.05, 0.0405), case = "small"))
+fixture_improved <- pc_improvements(pc_compare(fixture, FALSE), FALSE)
+stopifnot(identical(fixture_improved$case, "below"), identical(fixture_improved$ratio, 0.85),
+  identical(pc_compare(fixture, FALSE)$flag, c("", "", "")),
+  improved(1, 0.899), !improved(1, 0.9), improved(0.05, 0.04), !improved(0.05, 0.0401),
+  improved(10 * mib, 8 * mib, "bytes", "process_peak_bytes"), !improved(5 * mib, 4.5 * mib, "bytes", "fit_heap_bytes"),
+  !improved(c(5, 5), c(4, 4), "count", "fits"), !improved(1, 0.5, smoke = TRUE), !improved(0, 0),
+  identical(nrow(pc_improvements(pc_compare(pair(1, 1)[0L, ], FALSE), FALSE)), 0L))
+
 # Run kind: only Linux x86_64, all parts, measurement size is a reference run.
 kind <- function(...) pc_run_kind(...)
 stopifnot(identical(kind("Linux", "x86_64", pc_parts, FALSE)$reference, "TRUE"),
@@ -354,8 +368,11 @@ stopifnot(identical(run$exit_performance, "0"), identical(run$wall_seconds_perfo
   identical(sum(!is.na(historical$note)), 1L),
   "**Not acceptance evidence (macOS arm64, parts: new,performance)**" %in% summary,
   any(grepl("Wall time: new 0:12:30 (exit 0), performance 0:07:24 (exit 0); total 0:20:00", summary, fixed = TRUE)),
-  "- performance: 2 cases, 1 flagged, 0 confirmed" %in% summary,
+  "- performance: 2 cases, 1 flagged, 0 confirmed, 1 improved" %in% summary,
   "| performance | `workflow_binary_inductive` | fit_seconds | 0.210 s | 0.260 s | 1.24 | > 1.10 | – | not remeasured |" %in% summary,
+  "### Improvements" %in% summary,
+  identical(grep("^\\| performance \\| `binary_inductive`", summary, value = TRUE),
+            "| performance | `binary_inductive` | fit_seconds | 0.051 s | 0.041 s | 0.80 |"),
   "| performance | `workflow_binary_inductive` | process_peak_bytes | 286.1 MiB | 381.5 MiB | 1.33 | > 1.10 | – | not remeasured |" %in% summary,
   "| performance | `workflow_binary_inductive` | outer_fit_count | 3 | 3 | – | counters differ | – |  |" %in% summary,
   identical(length(grep("^\\| `", summary)), 9L))
@@ -376,7 +393,9 @@ stopifnot(identical(unique(measurements$part), pc_parts),
   identical(run$wall_seconds_total, "1620"),
   identical(comparison$flag[comparison$part %in% c("shared", "v09") & !is.na(comparison$flag)],
             c("> 1.10", "counters differ")),
-  "- shared: 2 cases, 1 flagged, 0 confirmed" %in% summary, "- v09: 2 cases, 1 flagged, 0 confirmed" %in% summary,
+  "- shared: 2 cases, 1 flagged, 0 confirmed, 0 improved" %in% summary,
+  "- v09: 2 cases, 1 flagged, 0 confirmed, 0 improved" %in% summary,
+  identical(length(grep("^\\| [a-z0-9]+ \\| `[^`]+` \\| [a-z_]+ \\| [^|]+ \\| [^|]+ \\| [0-9.]+ \\|$", summary)), 1L),
   "| shared | `binary-grid` | fit_seconds | 1.000 s | 1.250 s | 1.25 | > 1.10 | – | not remeasured |" %in% summary,
   "| v09 | `tuned-ensemble-full` | tuning_observed_base_fits | 16 | 20 | – | counters differ | – |  |" %in% summary,
   "- Failed: v09 (cases: ovo-holdout-full)" %in% summary,
@@ -389,7 +408,7 @@ alone <- summarize_copy(function(out) {
   unlink(file.path(out, "new"), recursive = TRUE)
 })
 summary <- readLines(file.path(alone, "summary.md"))
-stopifnot("- performance: 2 cases, 1 flagged, 0 confirmed" %in% summary,
+stopifnot("- performance: 2 cases, 1 flagged, 0 confirmed, 1 improved" %in% summary,
   identical(length(grep("^\\| `[^`]+` \\| – \\| – \\| – \\|", summary)), 9L))
 
 # The starter measures a part, then once more only its "> 1.10" cases into
@@ -477,6 +496,9 @@ stopifnot(identical(run$parts, paste(pc_parts, collapse = ",")), identical(run$r
   identical(csv(combined, "comparison.csv"), csv(all_parts, "comparison.csv")),
   any(startsWith(summary, "- Combined from 2 runs, each measuring both libraries: new on CPU A, 8 cores, 16 GiB; performance on CPU B")),
   "- Failed: v09 (cases: ovo-holdout-full)" %in% summary, identical(length(grep("^\\| `", summary)), 9L),
+  identical(summary[which(summary == "## Historical parts"):length(summary)],
+            local({ s <- readLines(file.path(all_parts, "summary.md")); s[which(s == "## Historical parts"):length(s)] })),
+  "| performance | `binary_inductive` | fit_seconds | 0.051 s | 0.041 s | 0.80 |" %in% summary,
   file.exists(file.path(combined, "runs", c("new", "performance+shared+v09"), "measurements.csv")),
   file.exists(file.path(combined, "new", "plan.csv")), identical(csv(combined, "packages.csv")$version, "1.6.0"))
 first <- lapply(file.path(combined, rebuilt), read_bytes)
